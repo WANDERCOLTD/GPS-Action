@@ -321,3 +321,46 @@ When an idea hits you:
 3. **Never:** delete an idea, even if declining — record the reason so it's not re-argued
 
 The parking lot grows. That's fine. It's a record of thinking, not a backlog to clear.
+
+---
+
+## Inbound sharing — share INTO GPS Action (added late April 2026)
+
+### ABSORBING (v0.6 or v0.7) · Inbound share endpoint + bookmarklet
+
+The inverse of 1-click share-out. When a member encounters content elsewhere (X, Safari, an article, an Instagram post), they should be able to send it INTO GPS Action with one tap rather than copy-URL → switch-app → paste.
+
+**Three mechanisms, layered:**
+
+**Mechanism A — Native OS share sheet** (Phase 2)
+- Register GPS Action as an iOS/Android share target (or PWA via Web Share Target API)
+- User in any app taps Share → GPS Action appears in the picker
+- App opens with shared content pre-filled in composer
+- Real-world flow: Sharon scrolling X → sees problematic tweet → Share → GPS Action → composer opens with URL/preview pre-filled → picks Boost → publishes. 8 seconds total.
+
+**Mechanism B — Browser bookmarklet** (MVP-friendly)
+- One-click "Share to GPS Action" button in browser bookmarks bar
+- No app store, no extension, no install — just drag a link to the bookmarks bar
+- Click while viewing any page → opens GPS Action composer with page URL/title pre-filled
+- Universal: works in every browser, ships in days
+- Distribute to pilot users on day one
+
+**Mechanism C — URL endpoint** (foundation everything else builds on)
+- `gpsaction.org/share?url=...&title=...&note=...&image=...`
+- Any app, browser, automation tool, iOS Shortcut, email gateway, Slack bot can construct this URL
+- All shared parameters pre-fill the composer
+- Authenticated user lands on compose page with everything ready
+- Fallback if not logged in: prompt login, then continue to composer
+
+**Strategic importance:**
+Without inbound sharing, the user flow is 7+ steps (encounter → copy → switch app → tap + → pick type → paste → add context → publish). Most users drop in the middle. With inbound sharing it's 3 steps (encounter → share to GPS Action → publish). **Order-of-magnitude friction reduction at the most important moment.**
+
+This is the inbound twin of D016 (1-click share-out) and equally critical for member behaviour.
+
+**Build order:**
+- MVP (Phase 1): Mechanism C (URL endpoint — foundation) + Mechanism B (bookmarklet — easy wins)
+- Phase 2: Mechanism A (PWA Share Target API or native app integration)
+- Phase 3: iOS Shortcuts integration, email-to-post gateway, Slack/Teams bot integrations
+
+*Origin: user question April 2026 — "Do we have concept of X and other social sharing TO our app? how could we enable that?"*
+
