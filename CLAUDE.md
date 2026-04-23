@@ -137,3 +137,9 @@ build the requested work, STOP and surface the question to the user.
 - **Before any feature instrumentation** → `docs/product/analytics-events.md` (16 events, PII policy)
 - **Before any feature behind a flag** → D036 in decision log + `docs/product/feature-flag-register.md`
 - **Before creating or touching a Build Unit** → D038 + D039 in decision log
+
+## Build discipline
+
+- **Before Build Unit #1 starts** → Phase 0 (`docs/build/phase-0-foundations.md`) must be complete
+- **Fortnightly engineering review** → walk `docs/build/engineering-roadmap.md`, update triggers, log adopted items
+- **New engineering idea surfaces in chat?** → log to engineering-roadmap.md within 48 hours or it dies
