@@ -1,0 +1,353 @@
+/*
+ * GPS Action — Design Tokens
+ * =========================================================================
+ * Single source of truth for every design decision.
+ * All components reference these tokens; no component hard-codes a colour,
+ * spacing value, or font-size.
+ *
+ * Usage:
+ *   <html data-theme="light"> (default)
+ *   <html data-theme="dark">
+ *   <html data-theme="system"> (client respects OS preference via CSS media query)
+ *
+ * Token naming:
+ *   --colour-[role]-[variant]   e.g. --colour-primary, --colour-surface-raised
+ *   --space-[scale]             e.g. --space-2, --space-4 (4pt grid)
+ *   --radius-[scale]            e.g. --radius-sm, --radius-pill
+ *   --font-[role]               e.g. --font-ui, --font-body
+ *   --text-[scale]              e.g. --text-sm, --text-xl
+ *   --weight-[scale]            e.g. --weight-medium, --weight-bold
+ *   --shadow-[scale]            e.g. --shadow-sm, --shadow-modal
+ *   --motion-[role]             e.g. --motion-fast, --motion-enter
+ *
+ * v0.1 · April 2026
+ * =========================================================================
+ */
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * LIGHT THEME (DEFAULT)
+ * Anchored in Israeli-flag blue, softened for screen.
+ * Background is warm cream (never pure white).
+ * ───────────────────────────────────────────────────────────────────────── */
+
+:root,
+[data-theme="light"] {
+
+  /* ─── COLOURS · BRAND ─────────────────────────────────────────────── */
+
+  --colour-primary:            #1851CC;  /* flag-blue, softened for screen */
+  --colour-primary-hover:      #1441A8;  /* press/hover state */
+  --colour-primary-bright:     #3D74E6;  /* elevated — disabled, badges */
+  --colour-primary-subtle:     #E6EDFA;  /* pale tint — selected rows, chips */
+  --colour-primary-contrast:   #FFFFFF;  /* text on primary */
+
+  /* ─── COLOURS · SEMANTIC ──────────────────────────────────────────── */
+
+  --colour-success:            #0F6E56;  /* wins, outcomes, "acted" states */
+  --colour-success-subtle:     #E1F5EE;
+  --colour-success-contrast:   #FFFFFF;
+
+  --colour-warning:            #BA7517;  /* caps, deadlines approaching */
+  --colour-warning-subtle:     #FAEEDA;
+  --colour-warning-contrast:   #FFFFFF;
+
+  --colour-urgent:             #D85A30;  /* urgent, closing soon, cap-fill */
+  --colour-urgent-subtle:      #FAECE7;
+  --colour-urgent-contrast:    #FFFFFF;
+
+  --colour-danger:             #A32D2D;  /* errors, flags, severe */
+  --colour-danger-subtle:      #FCEBEB;
+  --colour-danger-contrast:    #FFFFFF;
+
+  --colour-info:               #3C3489;  /* neutral info, seeking-action markers */
+  --colour-info-subtle:        #EEEDFE;
+  --colour-info-contrast:      #FFFFFF;
+
+  /* ─── COLOURS · CULTURAL ──────────────────────────────────────────── */
+  /* Used sparingly for Shabbat, remembrance, Jewish-specific content */
+
+  --colour-cultural:           #6B3045;  /* deep bordeaux */
+  --colour-cultural-subtle:    #F3E8EC;
+  --colour-cultural-contrast:  #FFFFFF;
+
+  /* ─── COLOURS · SURFACES ──────────────────────────────────────────── */
+
+  --colour-surface-canvas:     #F4F1EA;  /* page background — warm cream */
+  --colour-surface-raised:     #FFFFFF;  /* cards, modals, raised panels */
+  --colour-surface-sunken:     #EDE9DF;  /* input fields, deeper than canvas */
+  --colour-surface-overlay:    rgba(28, 28, 26, 0.35);  /* modal backdrop */
+
+  /* ─── COLOURS · BORDERS ───────────────────────────────────────────── */
+
+  --colour-border-subtle:      #E5E2D8;  /* default borders */
+  --colour-border-strong:      #B4B2A9;  /* input borders, stronger dividers */
+  --colour-border-focus:       var(--colour-primary);
+
+  /* ─── COLOURS · TEXT ──────────────────────────────────────────────── */
+
+  --colour-text-primary:       #2C2C2A;  /* default body */
+  --colour-text-secondary:     #5F5E5A;  /* supporting, captions */
+  --colour-text-tertiary:      #888780;  /* placeholder, timestamps */
+  --colour-text-disabled:      #B4B2A9;
+  --colour-text-inverse:       #FFFFFF;  /* on dark backgrounds */
+  --colour-text-link:          var(--colour-primary);
+  --colour-text-link-visited:  #6B4E9E;
+
+  /* ─── SPACING (4pt grid) ──────────────────────────────────────────── */
+
+  --space-0:    0;
+  --space-1:    4px;
+  --space-2:    8px;
+  --space-3:    12px;
+  --space-4:    16px;
+  --space-5:    20px;
+  --space-6:    24px;
+  --space-8:    32px;
+  --space-10:   40px;
+  --space-12:   48px;
+  --space-16:   64px;
+  --space-20:   80px;
+
+  /* ─── RADIUS ──────────────────────────────────────────────────────── */
+
+  --radius-none:  0;
+  --radius-sm:    4px;
+  --radius-md:    8px;
+  --radius-lg:    14px;
+  --radius-xl:    22px;
+  --radius-pill:  999px;
+  --radius-circle: 50%;
+
+  /* ─── TYPOGRAPHY · FAMILIES ───────────────────────────────────────── */
+
+  --font-ui: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue",
+             Arial, sans-serif;
+  --font-body: Georgia, "Times New Roman", serif;
+  --font-mono: "SF Mono", Menlo, Consolas, "Courier New", monospace;
+
+  /* ─── TYPOGRAPHY · SIZES ──────────────────────────────────────────── */
+
+  --text-2xs:   10px;
+  --text-xs:    11px;
+  --text-sm:    13px;
+  --text-base:  14px;
+  --text-md:    15px;
+  --text-lg:    17px;
+  --text-xl:    20px;
+  --text-2xl:   24px;
+  --text-3xl:   30px;
+  --text-4xl:   36px;
+
+  /* ─── TYPOGRAPHY · WEIGHTS ────────────────────────────────────────── */
+
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+  --weight-heavy:    800;
+
+  /* ─── TYPOGRAPHY · LINE HEIGHTS ───────────────────────────────────── */
+
+  --line-tight:   1.2;   /* headings */
+  --line-snug:    1.35;  /* UI text, short content */
+  --line-normal:  1.55;  /* body text */
+  --line-loose:   1.7;   /* long-form content */
+
+  /* ─── TYPOGRAPHY · LETTER SPACING ─────────────────────────────────── */
+
+  --tracking-tight:   -0.01em;  /* large headings */
+  --tracking-normal:  0;
+  --tracking-wide:    0.05em;   /* labels, uppercase text */
+  --tracking-wider:   0.08em;   /* kickers, all-caps eyebrow text */
+
+  /* ─── SHADOWS ─────────────────────────────────────────────────────── */
+
+  --shadow-none:   none;
+  --shadow-sm:     0 1px 2px rgba(28, 28, 26, 0.06);
+  --shadow-md:     0 2px 8px rgba(28, 28, 26, 0.08);
+  --shadow-lg:     0 4px 16px rgba(28, 28, 26, 0.10);
+  --shadow-xl:     0 8px 24px rgba(28, 28, 26, 0.12);
+  --shadow-modal:  0 8px 32px rgba(28, 28, 26, 0.18);
+
+  /* ─── MOTION ──────────────────────────────────────────────────────── */
+
+  --motion-instant: 0ms;
+  --motion-fast:    120ms;
+  --motion-base:    200ms;
+  --motion-slow:    320ms;
+
+  --ease-in:      cubic-bezier(0.4, 0, 1, 1);
+  --ease-out:     cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out:  cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-standard: var(--ease-out);
+
+  /* ─── Z-INDEX ─────────────────────────────────────────────────────── */
+
+  --z-base:       0;
+  --z-raised:     10;
+  --z-dropdown:   100;
+  --z-fab:        200;
+  --z-modal:      500;
+  --z-toast:      800;
+  --z-tooltip:    900;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * DARK THEME
+ * Activated via [data-theme="dark"] on <html> or parent element.
+ * Pure black avoided; flag blue brightened for readability.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+[data-theme="dark"] {
+
+  /* ─── COLOURS · BRAND ─────────────────────────────────────────────── */
+
+  --colour-primary:            #6B9AFF;  /* brightened flag-blue for dark */
+  --colour-primary-hover:      #8AB1FF;
+  --colour-primary-bright:     #4577E8;
+  --colour-primary-subtle:     #1B2544;  /* dark tint, replaces pale */
+  --colour-primary-contrast:   #0E1628;
+
+  /* ─── COLOURS · SEMANTIC ──────────────────────────────────────────── */
+
+  --colour-success:            #4AAE8E;
+  --colour-success-subtle:     #133528;
+  --colour-success-contrast:   #0E1628;
+
+  --colour-warning:            #E0A050;
+  --colour-warning-subtle:     #3A2A10;
+  --colour-warning-contrast:   #0E1628;
+
+  --colour-urgent:             #F47E52;
+  --colour-urgent-subtle:      #3A1D10;
+  --colour-urgent-contrast:    #0E1628;
+
+  --colour-danger:             #E06060;
+  --colour-danger-subtle:      #3A1414;
+  --colour-danger-contrast:    #0E1628;
+
+  --colour-info:               #8B82E8;
+  --colour-info-subtle:        #22204A;
+  --colour-info-contrast:      #0E1628;
+
+  /* ─── COLOURS · CULTURAL ──────────────────────────────────────────── */
+
+  --colour-cultural:           #C07A93;
+  --colour-cultural-subtle:    #311A22;
+  --colour-cultural-contrast:  #0E1628;
+
+  /* ─── COLOURS · SURFACES ──────────────────────────────────────────── */
+
+  --colour-surface-canvas:     #18171D;  /* dark grey, not pure black */
+  --colour-surface-raised:     #26252D;  /* cards one step raised */
+  --colour-surface-sunken:     #111013;  /* input wells, deeper than canvas */
+  --colour-surface-overlay:    rgba(0, 0, 0, 0.55);
+
+  /* ─── COLOURS · BORDERS ───────────────────────────────────────────── */
+
+  --colour-border-subtle:      #35333D;
+  --colour-border-strong:      #4D4A58;
+  --colour-border-focus:       var(--colour-primary);
+
+  /* ─── COLOURS · TEXT ──────────────────────────────────────────────── */
+
+  --colour-text-primary:       #E8E6E2;
+  --colour-text-secondary:     #B4B2AA;
+  --colour-text-tertiary:      #85837D;
+  --colour-text-disabled:      #565360;
+  --colour-text-inverse:       #0E1628;
+  --colour-text-link:          var(--colour-primary);
+  --colour-text-link-visited:  #B79BE3;
+
+  /* Shadows get deeper / less visible in dark mode */
+
+  --shadow-sm:     0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-md:     0 2px 8px rgba(0, 0, 0, 0.30);
+  --shadow-lg:     0 4px 16px rgba(0, 0, 0, 0.38);
+  --shadow-xl:     0 8px 24px rgba(0, 0, 0, 0.46);
+  --shadow-modal:  0 8px 32px rgba(0, 0, 0, 0.60);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * SYSTEM THEME
+ * When user chooses "follow my device", this rule activates dark-mode
+ * variables if the OS is in dark mode.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    /* Duplicate of [data-theme="dark"] — applied when OS is dark */
+    --colour-primary:            #6B9AFF;
+    --colour-primary-hover:      #8AB1FF;
+    --colour-primary-bright:     #4577E8;
+    --colour-primary-subtle:     #1B2544;
+    --colour-primary-contrast:   #0E1628;
+    --colour-success:            #4AAE8E;
+    --colour-success-subtle:     #133528;
+    --colour-success-contrast:   #0E1628;
+    --colour-warning:            #E0A050;
+    --colour-warning-subtle:     #3A2A10;
+    --colour-warning-contrast:   #0E1628;
+    --colour-urgent:             #F47E52;
+    --colour-urgent-subtle:      #3A1D10;
+    --colour-urgent-contrast:    #0E1628;
+    --colour-danger:             #E06060;
+    --colour-danger-subtle:      #3A1414;
+    --colour-danger-contrast:    #0E1628;
+    --colour-info:               #8B82E8;
+    --colour-info-subtle:        #22204A;
+    --colour-info-contrast:      #0E1628;
+    --colour-cultural:           #C07A93;
+    --colour-cultural-subtle:    #311A22;
+    --colour-cultural-contrast:  #0E1628;
+    --colour-surface-canvas:     #18171D;
+    --colour-surface-raised:     #26252D;
+    --colour-surface-sunken:     #111013;
+    --colour-surface-overlay:    rgba(0, 0, 0, 0.55);
+    --colour-border-subtle:      #35333D;
+    --colour-border-strong:      #4D4A58;
+    --colour-text-primary:       #E8E6E2;
+    --colour-text-secondary:     #B4B2AA;
+    --colour-text-tertiary:      #85837D;
+    --colour-text-disabled:      #565360;
+    --colour-text-inverse:       #0E1628;
+    --colour-text-link-visited:  #B79BE3;
+    --shadow-sm:     0 1px 2px rgba(0, 0, 0, 0.24);
+    --shadow-md:     0 2px 8px rgba(0, 0, 0, 0.30);
+    --shadow-lg:     0 4px 16px rgba(0, 0, 0, 0.38);
+    --shadow-xl:     0 8px 24px rgba(0, 0, 0, 0.46);
+    --shadow-modal:  0 8px 32px rgba(0, 0, 0, 0.60);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * BASE RESETS & DEFAULTS
+ * Minimal. Components own their styling; this just gets the page sensible.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: var(--line-normal);
+  color: var(--colour-text-primary);
+  background: var(--colour-surface-canvas);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/* Respect user motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

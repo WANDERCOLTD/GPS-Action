@@ -1,0 +1,32 @@
+// GPS Action — Database schema
+//
+// This is the ERD in code form. The authoritative model of all entities.
+// See docs/architecture/erd.md for the visual diagram and rationale.
+//
+// Rules:
+//   - Every entity that holds Tier 1 personal data has encrypted fields
+//     (marked in comments; handled by Prisma Client Extension)
+//   - Soft delete by default (deletedAt nullable DateTime)
+//   - Every create/update tracked in AuditEntry (via service layer)
+//   - No cascading deletes on User — preserve audit integrity
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Ping: the hello-world entity ─────────────────────────────────────────
+// Purpose: prove the toolchain works end-to-end before real entities land.
+// This will be removed once the first real entity (User) is built.
+model Ping {
+  id        String   @id @default(cuid())
+  message   String
+  createdAt DateTime @default(now())
+}
+
+// ─── Real entities go here ────────────────────────────────────────────────
+// Populated by the ERD session. Placeholder above demonstrates structure.

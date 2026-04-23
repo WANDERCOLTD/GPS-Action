@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPS Action — clickable prototype v2</title>
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #2C2C2A; }
+body { background: #f4f1ea; min-height: 100vh; }
+.mode-select { max-width: 560px; margin: 0 auto; padding: 60px 24px; text-align: center; }
+.logo { font-size: 14px; letter-spacing: 0.1em; font-weight: 600; color: #888; text-transform: uppercase; margin-bottom: 8px; }
+.title { font-size: 32px; font-weight: 700; color: #1a1a1a; margin: 0 0 6px; }
+.subtitle { font-size: 15px; color: #666; margin-bottom: 36px; }
+.mode-btn { display: block; width: 100%; padding: 22px 24px; background: #fff; border: 1px solid #E5E2D8; border-radius: 12px; margin-bottom: 12px; cursor: pointer; text-align: left; font-family: inherit; }
+.mode-btn:hover { border-color: #888780; }
+.mode-btn-title { font-size: 17px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+.mode-btn-sub { font-size: 13px; color: #666; line-height: 1.5; }
+.proto-note { margin-top: 32px; padding: 14px 18px; background: #EEEDFE; border-radius: 8px; font-size: 13px; color: #3C3489; line-height: 1.5; text-align: left; }
+.app { display: none; }
+.app.active { display: block; }
+.screen { display: none; }
+.screen.active { display: block; }
+.phone-stage { min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 24px 0; }
+.phone { width: 390px; max-width: 100vw; background: #fff; border-radius: 28px; overflow: hidden; border: 1px solid #E5E2D8; box-shadow: 0 2px 16px rgba(0,0,0,0.06); position: relative; }
+@media (max-width: 430px) { .phone { border-radius: 0; border: none; box-shadow: none; width: 100%; } .phone-stage { padding: 0; } }
+.ph-status { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; font-size: 13px; font-weight: 600; }
+.ph-header { padding: 12px 14px; border-bottom: 1px solid #E5E2D8; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; background: #fff; z-index: 5; }
+.ph-back { font-size: 22px; color: #666; cursor: pointer; padding: 0 4px; }
+.ph-meta { font-size: 12px; color: #888; flex: 1; }
+.feed-head { padding: 12px 16px 10px; }
+.feed-head-top { display: flex; align-items: center; margin-bottom: 10px; }
+.feed-head-l { font-size: 20px; font-weight: 700; color: #1a1a1a; flex: 1; }
+.feed-head-r { font-size: 12px; color: #666; }
+.sort-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.sort-row::-webkit-scrollbar { display: none; }
+.sort { font-size: 12px; padding: 6px 12px; border-radius: 999px; border: 1px solid #B4B2A9; color: #555; background: transparent; white-space: nowrap; cursor: pointer; font-family: inherit; font-weight: 500; }
+.sort.on { background: #2C2C2A; color: #fff; border-color: #2C2C2A; }
+.chip-row { display: flex; gap: 6px; padding: 8px 16px 10px; overflow-x: auto; border-bottom: 1px solid #E5E2D8; scrollbar-width: none; }
+.chip-row::-webkit-scrollbar { display: none; }
+.chip { font-size: 11px; padding: 4px 10px; border-radius: 999px; background: #F1EFE8; color: #5F5E5A; white-space: nowrap; cursor: pointer; font-weight: 500; }
+.chip.on { background: #E1F5EE; color: #085041; }
+.feed-card { padding: 14px 16px; border-bottom: 1px solid #E5E2D8; cursor: pointer; background: #fff; }
+.feed-card:hover { background: #faf9f5; }
+.card-author { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 12px; flex-shrink: 0; }
+.avatar.sm { width: 22px; height: 22px; font-size: 10px; }
+.avatar.xs { width: 18px; height: 18px; font-size: 9px; }
+.author-name { font-size: 13px; font-weight: 600; color: #1a1a1a; line-height: 1.2; }
+.author-meta { font-size: 11px; color: #888; margin-top: 1px; line-height: 1.2; }
+.vtick { display: inline-block; width: 12px; height: 12px; background: #0F6E56; color: #fff; border-radius: 50%; text-align: center; line-height: 12px; font-size: 8px; margin-left: 4px; font-weight: 700; vertical-align: 1px; }
+.fmeta { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+.sev { width: 7px; height: 7px; border-radius: 50%; }
+.sev.h { background: #A32D2D; }
+.sev.m { background: #BA7517; }
+.sev.l { background: #5F5E5A; }
+.ftype { font-size: 10px; font-weight: 700; letter-spacing: 0.07em; color: #5F5E5A; text-transform: uppercase; }
+.ftype.outcome { color: #0F6E56; }
+.ftype.community { color: #7A3E9C; }
+.ftype.seeking { color: #3C3489; }
+.ftype.coord { color: #854F0B; }
+.ftime { font-size: 11px; color: #888; margin-left: auto; }
+.ftitle { font-size: 16px; font-weight: 600; color: #1a1a1a; line-height: 1.35; margin-bottom: 6px; }
+.fbody { font-size: 14px; color: #2C2C2A; line-height: 1.55; margin-bottom: 10px; }
+.read-more { font-size: 13px; color: #0F6E56; font-weight: 600; cursor: pointer; display: inline-block; margin-top: -4px; margin-bottom: 10px; }
+.hero-poster { border-radius: 10px; overflow: hidden; margin-bottom: 10px; position: relative; background: #000; color: #fff; }
+.poster-camera { background: #1a1a1a; padding: 20px; position: relative; overflow: hidden; aspect-ratio: 4/5; }
+.poster-camera-title { font-size: 26px; font-weight: 800; font-style: italic; color: #fff; line-height: 1.0; }
+.poster-camera-sub { font-size: 12px; font-weight: 700; color: #fff; margin-top: 10px; line-height: 1.3; max-width: 75%; }
+.poster-camera-body { font-size: 10px; color: #ddd; margin-top: 10px; line-height: 1.5; max-width: 60%; }
+.poster-camera-qr { position: absolute; bottom: 50px; left: 20px; width: 44px; height: 44px; background: #fff; }
+.poster-camera-date { position: absolute; bottom: 16px; left: 20px; border: 2px solid #C8A8E4; color: #C8A8E4; padding: 5px 11px; font-weight: 700; font-size: 10px; font-style: italic; }
+.poster-camera-circle { position: absolute; top: -20px; right: -40px; width: 200px; height: 200px; border-radius: 50%; background: linear-gradient(135deg, #7A3E9C 0%, #3C3489 100%); opacity: 0.7; }
+.poster-oct7 { background: #6BB4E8; padding: 20px; position: relative; overflow: hidden; }
+.poster-oct7-label { font-size: 22px; font-weight: 800; color: #fff; line-height: 1.0; }
+.poster-oct7-num { font-size: 40px; font-weight: 800; color: #fff; line-height: 1.0; margin-top: 2px; }
+.poster-oct7-date { font-size: 12px; color: #fff; margin-top: 10px; font-weight: 600; }
+.poster-oct7-tag { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 13px; font-weight: 700; }
+.poster-oct7-body { background: #fff; margin: 16px -20px 0; padding: 16px 20px; }
+.poster-oct7-topic { font-size: 10px; font-weight: 600; color: #666; }
+.poster-oct7-title { font-size: 18px; font-weight: 800; color: #1a1a1a; line-height: 1.15; margin-top: 3px; }
+.poster-oct7-statue { position: absolute; top: 16px; right: 50px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle at 40% 40%, #D4A060 0%, #8B6020 80%); opacity: 0.75; }
+.tweet-embed { background: #000; color: #fff; padding: 14px; border-radius: 12px; margin-bottom: 10px; font-size: 13px; line-height: 1.45; }
+.tweet-head { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+.tweet-avatar { width: 32px; height: 32px; border-radius: 50%; background: #8B4789; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 11px; }
+.tweet-name { font-weight: 700; font-size: 13px; }
+.tweet-handle { font-size: 11px; color: #888; }
+.tweet-body { color: #ddd; font-size: 12px; }
+.tweet-doc { margin-top: 10px; background: #111; padding: 6px; border-radius: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.tweet-doc div { aspect-ratio: 5/7; background: #eee; border-radius: 2px; }
+.tweet-stats { margin-top: 10px; display: flex; gap: 14px; font-size: 10px; color: #888; }
+.yt-embed { border: 1px solid #E5E2D8; border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
+.yt-hero { aspect-ratio: 16/9; background: linear-gradient(135deg, #1a3b6b 0%, #4a6a9b 100%); position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.yt-banner { position: absolute; bottom: 0; left: 0; right: 0; background: #11283f; color: #fff; padding: 5px 10px; display: flex; justify-content: space-between; align-items: center; }
+.yt-banner-l { background: #FFC93D; color: #11283f; padding: 3px 9px; border-radius: 3px; font-weight: 800; font-size: 10px; }
+.yt-banner-r { color: #FFC93D; font-weight: 800; font-size: 12px; }
+.yt-play { width: 48px; height: 48px; border-radius: 50%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; }
+.yt-play::before { content: ''; width: 0; height: 0; border-left: 13px solid #fff; border-top: 9px solid transparent; border-bottom: 9px solid transparent; margin-left: 4px; }
+.yt-body { padding: 10px 12px; }
+.yt-title { font-size: 13px; font-weight: 600; color: #1a1a1a; line-height: 1.3; margin-bottom: 4px; }
+.yt-domain { font-size: 11px; color: #888; }
+.poster-shabbat { background: linear-gradient(to bottom, #2B2E4F 0%, #5A6290 100%); padding: 22px; color: #fff; text-align: center; min-height: 170px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.poster-shabbat-candle { font-size: 40px; margin-bottom: 10px; }
+.poster-shabbat-title { font-size: 22px; font-weight: 700; font-family: Georgia, serif; }
+.poster-shabbat-sub { font-size: 13px; margin-top: 6px; opacity: 0.85; font-style: italic; }
+.invite-card { background: #fff; border: 1px solid #E5E2D8; border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
+.invite-head { padding: 10px 12px; display: flex; align-items: center; gap: 10px; background: #F7F6F2; }
+.invite-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 15px; flex-shrink: 0; }
+.invite-name { font-size: 12px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; }
+.invite-desc { font-size: 11px; color: #888; margin-top: 1px; }
+.invite-body { padding: 10px 12px; font-size: 12px; color: #2C2C2A; line-height: 1.5; border-top: 1px solid #E5E2D8; }
+.invite-join { display: block; padding: 10px; text-align: center; background: #fff; border-top: 1px solid #E5E2D8; color: #0F6E56; font-weight: 600; font-size: 13px; cursor: pointer; }
+.ftags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+.tag { font-size: 10px; padding: 2px 8px; border-radius: 999px; font-weight: 500; }
+.tag-red { background: #FAECE7; color: #712B13; }
+.tag-teal { background: #E1F5EE; color: #085041; }
+.tag-blue { background: #E6F1FB; color: #0C447C; }
+.tag-pink { background: #FCE7F3; color: #86288A; }
+.tag-amber { background: #FAEEDA; color: #633806; }
+.tag-purple { background: #EEEDFE; color: #3C3489; }
+.micro-cap { margin-bottom: 10px; }
+.micro-cap-label { font-size: 11px; color: #5F5E5A; margin-bottom: 4px; display: flex; justify-content: space-between; }
+.micro-cap-track { height: 4px; background: #F1EFE8; border-radius: 2px; overflow: hidden; }
+.micro-cap-fill { height: 100%; background: #D85A30; border-radius: 2px; }
+.seeking-banner { background: #EEEDFE; border-left: 3px solid #3C3489; padding: 9px 12px; border-radius: 0 8px 8px 0; margin-bottom: 10px; }
+.seeking-label { font-size: 11px; font-weight: 700; color: #3C3489; text-transform: uppercase; }
+.seeking-top { font-size: 12px; color: #2C2C2A; margin-top: 4px; line-height: 1.5; }
+.engage-strip { display: flex; align-items: center; gap: 10px; font-size: 11px; color: #666; margin-top: 8px; flex-wrap: wrap; }
+.rpill { display: inline-flex; align-items: center; gap: 4px; background: #F1EFE8; border-radius: 999px; padding: 3px 9px; font-size: 12px; }
+.rpill-count { font-size: 11px; color: #333; font-weight: 600; }
+.comments-hint { display: inline-flex; align-items: center; gap: 5px; color: #666; }
+.avatars-stack { display: inline-flex; }
+.avatars-stack .avatar { margin-left: -6px; border: 2px solid #fff; }
+.avatars-stack .avatar:first-child { margin-left: 0; }
+.engage-dot { color: #C8C5BD; font-size: 10px; }
+.action-count { color: #0F6E56; font-weight: 600; }
+.card-cta { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #1a1a1a; color: #fff; border-radius: 8px; margin-top: 10px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; width: 100%; font-family: inherit; }
+.card-cta-arrow { margin-left: auto; }
+.card-cta-partner { font-size: 10px; padding: 2px 7px; border-radius: 999px; background: rgba(255,255,255,0.2); color: #fff; font-weight: 600; margin-left: 6px; }
+.card-cta.suggest { background: #3C3489; }
+.card-cta.rsvp { background: #0F6E56; }
+.card-cta.share { background: #555; }
+.detail-hero { padding: 16px 16px 10px; }
+.detail-author { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.detail-body { padding: 0 16px 16px; font-size: 14.5px; line-height: 1.6; color: #2C2C2A; }
+.detail-body p { margin: 0 0 12px; }
+.detail-title { font-size: 20px; font-weight: 700; color: #1a1a1a; line-height: 1.3; margin: 0 0 8px; }
+.rxn-block { padding: 12px 16px; border-top: 1px solid #E5E2D8; background: #F7F6F2; }
+.rxn-pills { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.rxn-pill { background: #fff; border: 1px solid #E5E2D8; border-radius: 999px; padding: 4px 10px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; }
+.rxn-pill.me { background: #FAEEDA; border-color: #EAC678; }
+.rxn-pill-count { font-size: 11px; color: #333; font-weight: 600; }
+.rxn-add { background: transparent; border: 1px dashed #B4B2A9; border-radius: 999px; padding: 4px 11px; font-size: 14px; cursor: pointer; color: #666; font-family: inherit; }
+.picker-stage { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 50; display: none; align-items: flex-end; justify-content: center; padding: 20px; }
+.picker-stage.open { display: flex; }
+.picker { background: #fff; border-radius: 16px; width: 100%; max-width: 400px; padding: 18px; }
+.picker-head { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 12px; }
+.picker-sub { font-size: 11px; color: #888; margin-bottom: 8px; text-transform: uppercase; font-weight: 600; }
+.picker-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 12px; }
+.picker-emoji { background: none; border: none; font-size: 24px; padding: 8px 0; cursor: pointer; border-radius: 8px; }
+.picker-emoji:hover { background: #F1EFE8; }
+.picker-close { display: block; width: 100%; padding: 10px; background: none; border: 1px solid #E5E2D8; border-radius: 8px; font-size: 13px; color: #666; cursor: pointer; margin-top: 6px; font-family: inherit; }
+.drill-stage { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 50; display: none; align-items: center; justify-content: center; padding: 20px; }
+.drill-stage.open { display: flex; }
+.drill { background: #fff; border-radius: 14px; width: 100%; max-width: 360px; max-height: 70vh; overflow: hidden; display: flex; flex-direction: column; }
+.drill-tabs { display: flex; padding: 4px; background: #F1EFE8; margin: 10px 10px 0; border-radius: 8px; gap: 2px; }
+.drill-tab { flex: 1; padding: 6px; font-size: 12px; border-radius: 6px; text-align: center; cursor: pointer; background: transparent; border: none; font-family: inherit; }
+.drill-tab.on { background: #fff; font-weight: 600; }
+.drill-list { padding: 10px 14px 14px; overflow-y: auto; }
+.drill-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #F1EFE8; font-size: 13px; }
+.drill-row-name { flex: 1; font-weight: 500; }
+.drill-row-emoji { font-size: 18px; }
+.comments-block { padding: 14px 16px 20px; border-top: 1px solid #E5E2D8; }
+.comments-label { font-size: 11px; font-weight: 700; color: #5F5E5A; margin-bottom: 12px; text-transform: uppercase; }
+.comment { display: flex; gap: 9px; margin-bottom: 14px; }
+.comment-body-wrap { flex: 1; min-width: 0; }
+.comment-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+.comment-name { font-size: 13px; font-weight: 600; color: #1a1a1a; }
+.comment-time { font-size: 11px; color: #888; }
+.comment-text { font-size: 13.5px; line-height: 1.5; color: #2C2C2A; }
+.mention { color: #0F6E56; font-weight: 500; }
+.comment-actions { display: flex; gap: 14px; margin-top: 5px; font-size: 11px; color: #888; }
+.comment-action { cursor: pointer; font-weight: 500; }
+.comment-rxn { display: inline-block; font-size: 11px; background: #F1EFE8; padding: 2px 7px; border-radius: 999px; margin-top: 4px; }
+.comment-reply { margin-left: 40px; padding-left: 12px; border-left: 2px solid #E5E2D8; }
+.comment-suggestion { background: #EEEDFE; padding: 10px 12px; border-radius: 8px; border-left: 3px solid #3C3489; margin-top: 4px; }
+.comment-suggestion-tag { font-size: 10px; font-weight: 700; color: #3C3489; text-transform: uppercase; margin-bottom: 3px; }
+.suggestion-upvote { display: inline-flex; align-items: center; gap: 4px; background: #fff; border: 1px solid #C5C0E3; border-radius: 6px; padding: 3px 9px; font-size: 12px; cursor: pointer; font-weight: 500; margin-top: 6px; }
+.suggestion-upvote.on { background: #3C3489; color: #fff; border-color: #3C3489; }
+.comment-reportback { background: #E1F5EE; padding: 10px 12px; border-radius: 8px; border-left: 3px solid #0F6E56; margin-top: 4px; }
+.comment-reportback-tag { font-size: 10px; font-weight: 700; color: #0F6E56; text-transform: uppercase; margin-bottom: 3px; }
+.compose-bar { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #E5E2D8; padding: 10px 12px; display: flex; align-items: center; gap: 8px; }
+.compose-input { flex: 1; border: 1px solid #D3D1C7; border-radius: 20px; padding: 9px 14px; font-size: 13px; font-family: inherit; }
+.compose-send { background: #0F6E56; color: #fff; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.detail-cta-wrap { padding: 14px 16px; border-top: 1px solid #E5E2D8; background: #fff; }
+.detail-actions-label { font-size: 11px; font-weight: 700; color: #5F5E5A; margin-bottom: 10px; text-transform: uppercase; }
+.detail-cta { display: flex; align-items: center; padding: 13px 14px; border-radius: 10px; cursor: pointer; border: 1px solid #B4B2A9; background: #fff; gap: 10px; width: 100%; font-family: inherit; color: #1a1a1a; font-size: 14px; font-weight: 600; }
+.detail-cta.primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.detail-cta-sub { font-size: 12px; color: rgba(255,255,255,0.75); font-weight: 400; margin-top: 2px; }
+.desk-stage { min-height: 100vh; padding: 24px; background: #f4f1ea; }
+.desk-wrap { max-width: 1120px; margin: 0 auto; background: #fff; border-radius: 12px; border: 1px solid #E5E2D8; overflow: hidden; }
+.desk-head { padding: 14px 22px; border-bottom: 1px solid #E5E2D8; display: flex; align-items: center; gap: 12px; }
+.desk-back { font-size: 20px; color: #666; cursor: pointer; padding: 0 4px; }
+.desk-title { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+.desk-meta { margin-left: auto; font-size: 12px; color: #666; }
+.triage-tabs { display: flex; padding: 0 22px; border-bottom: 1px solid #E5E2D8; gap: 4px; }
+.triage-tab { padding: 11px 14px; font-size: 13px; color: #666; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.triage-tab.on { color: #1a1a1a; border-bottom-color: #1a1a1a; font-weight: 600; }
+.triage-tab-count { background: #F1EFE8; font-size: 11px; padding: 1px 7px; border-radius: 999px; margin-left: 5px; color: #555; font-weight: 600; }
+.triage-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.triage-tbl th { text-align: left; padding: 11px 22px; font-size: 11px; font-weight: 600; color: #5F5E5A; background: #F7F6F2; border-bottom: 1px solid #E5E2D8; text-transform: uppercase; }
+.triage-tbl td { padding: 14px 22px; border-bottom: 1px solid #E5E2D8; vertical-align: top; }
+.triage-row { cursor: pointer; }
+.triage-row:hover td { background: #faf9f5; }
+.source-tag { font-size: 11px; padding: 2px 9px; border-radius: 999px; font-weight: 500; display: inline-block; }
+.source-alert { background: #FAEEDA; color: #633806; }
+.source-sub { background: #EEEDFE; color: #3C3489; }
+.source-dir { background: #F1EFE8; color: #444; }
+.item-title { font-size: 13px; font-weight: 600; color: #1a1a1a; margin-bottom: 2px; }
+.item-sub { font-size: 12px; color: #5F5E5A; }
+.prio-h { font-size: 11px; font-weight: 600; color: #A32D2D; }
+.prio-m { font-size: 11px; font-weight: 600; color: #854F0B; }
+.prio-l { font-size: 11px; font-weight: 600; color: #5F5E5A; }
+.stepper { display: flex; padding: 11px 22px; border-bottom: 1px solid #E5E2D8; gap: 6px; font-size: 11px; color: #5F5E5A; align-items: center; }
+.step { padding: 4px 11px; border-radius: 999px; background: #F7F6F2; }
+.step.on { background: #1a1a1a; color: #fff; font-weight: 600; }
+.composer { display: grid; grid-template-columns: 1fr 320px; min-height: 560px; }
+.composer-main { padding: 20px 22px; border-right: 1px solid #E5E2D8; }
+.composer-side { background: #F7F6F2; display: flex; flex-direction: column; }
+.c-label { font-size: 11px; font-weight: 600; color: #5F5E5A; margin: 0 0 7px; display: block; text-transform: uppercase; }
+.c-input, .c-select { width: 100%; padding: 9px 11px; border: 1px solid #D3D1C7; border-radius: 6px; font-size: 13px; font-family: inherit; background: #fff; margin-bottom: 14px; }
+.c-textarea { width: 100%; padding: 10px 12px; border: 1px solid #D3D1C7; border-radius: 6px; font-size: 13px; font-family: Georgia, serif; min-height: 140px; line-height: 1.7; resize: vertical; margin-bottom: 14px; }
+.ai-banner { background: #EEEDFE; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; font-size: 12px; color: #3C3489; }
+.c-tabs { display: flex; border-bottom: 1px solid #E5E2D8; background: #fff; }
+.c-tab { flex: 1; padding: 11px 4px; font-size: 11px; color: #666; cursor: pointer; border: none; background: transparent; font-family: inherit; font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.c-tab.on { color: #1a1a1a; border-bottom-color: #1a1a1a; font-weight: 600; background: #F7F6F2; }
+.c-tab-badge { background: #D85A30; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 999px; margin-left: 3px; }
+.c-tab-content { padding: 16px 18px; display: none; flex: 1; overflow-y: auto; }
+.c-tab-content.on { display: block; }
+.c-side-h { font-size: 11px; font-weight: 600; color: #5F5E5A; margin-bottom: 10px; display: block; text-transform: uppercase; }
+.c-side-box { background: #fff; border-radius: 6px; padding: 11px 13px; margin-bottom: 10px; font-size: 12px; line-height: 1.5; border: 1px solid #E5E2D8; }
+.c-side-l { font-size: 10px; color: #5F5E5A; margin-bottom: 3px; text-transform: uppercase; display: block; }
+.discuss-thread { display: flex; flex-direction: column; gap: 10px; padding-bottom: 10px; margin-bottom: 8px; }
+.discuss-msg { display: flex; gap: 8px; }
+.discuss-msg-body { flex: 1; }
+.discuss-msg-head { display: flex; align-items: baseline; gap: 6px; margin-bottom: 2px; }
+.discuss-msg-name { font-size: 12px; font-weight: 600; color: #1a1a1a; }
+.discuss-msg-time { font-size: 10px; color: #999; }
+.discuss-msg-text { background: #fff; border: 1px solid #E5E2D8; padding: 7px 10px; border-radius: 8px; font-size: 12.5px; line-height: 1.45; }
+.discuss-sep { text-align: center; font-size: 10px; color: #999; padding: 6px 0; }
+.discuss-compose { display: flex; gap: 6px; border-top: 1px solid #E5E2D8; padding-top: 12px; }
+.discuss-compose input { flex: 1; padding: 8px 10px; border: 1px solid #D3D1C7; border-radius: 6px; font-size: 12px; font-family: inherit; }
+.discuss-compose button { background: #0F6E56; color: #fff; border: none; border-radius: 6px; padding: 0 12px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.link-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #E5E2D8; border-radius: 6px; background: #fafafa; margin-bottom: 14px; font-size: 12px; }
+.link-partner { padding: 3px 9px; border-radius: 999px; background: #993C1D; color: #FAECE7; font-weight: 600; font-size: 10px; }
+.link-url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: Menlo, monospace; }
+.limit-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.composer-foot { border-top: 1px solid #E5E2D8; padding: 13px 22px; display: flex; gap: 8px; }
+.btn { padding: 9px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #B4B2A9; background: #fff; color: #1a1a1a; font-family: inherit; }
+.btn.primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.btn.success { background: #0F6E56; color: #fff; border-color: #0F6E56; }
+.btn.danger { border-color: #F09595; color: #A32D2D; }
+.btn.push-right { margin-left: auto; }
+.tip-bar { position: fixed; bottom: 14px; right: 14px; background: #1a1a1a; color: #fff; font-size: 11px; padding: 8px 14px; border-radius: 999px; z-index: 40; cursor: pointer; opacity: 0.75; }
+.am-stage { min-height: 100vh; background: #eaf3fb; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.am-page { max-width: 520px; background: #fff; border-radius: 12px; padding: 36px 28px; }
+.am-logo { font-size: 14px; font-weight: 700; color: #185FA5; letter-spacing: 0.1em; margin-bottom: 16px; }
+.am-title { font-size: 22px; font-weight: 700; color: #1a1a1a; margin: 0 0 8px; line-height: 1.3; }
+.am-body { font-size: 14px; line-height: 1.6; color: #444; }
+.am-box { margin: 20px 0; padding: 16px 18px; border: 1px solid #E5E2D8; border-radius: 8px; background: #fafafa; font-size: 13px; color: #555; font-family: Georgia, serif; line-height: 1.6; }
+.am-send { display: inline-block; margin-top: 18px; padding: 12px 22px; background: #185FA5; color: #fff; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; font-size: 14px; font-family: inherit; }
+.am-back { font-size: 13px; color: #888; margin-top: 16px; cursor: pointer; display: inline-block; }
+.confirm-stage { padding: 30px 20px; text-align: center; }
+.confirm-tick { width: 64px; height: 64px; border-radius: 50%; background: #FAEEDA; margin: 20px auto 18px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #854F0B; }
+.confirm-q { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
+.confirm-sub { font-size: 14px; color: #555; margin-bottom: 24px; line-height: 1.5; }
+.confirm-buttons { display: flex; flex-direction: column; gap: 8px; padding: 0 8px; }
+.confirm-btn { padding: 14px; border-radius: 10px; font-size: 15px; font-weight: 600; border: 1px solid #B4B2A9; background: #fff; cursor: pointer; color: #1a1a1a; font-family: inherit; }
+.confirm-btn.yes { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+.done-hero { padding: 36px 20px 24px; text-align: center; border-bottom: 1px solid #E5E2D8; }
+.done-tick { width: 56px; height: 56px; border-radius: 50%; background: #E1F5EE; margin: 0 auto 18px; display: flex; align-items: center; justify-content: center; font-size: 26px; color: #0F6E56; }
+.done-title { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
+.done-sub { font-size: 14px; color: #666; }
+.done-done { padding: 22px 16px 28px; text-align: center; }
+.done-done-btn { display: inline-block; padding: 12px 28px; border: 1px solid #B4B2A9; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; background: #fff; }
+.pub-stage { padding: 60px 40px; text-align: center; max-width: 560px; margin: 0 auto; }
+.pub-tick { width: 72px; height: 72px; border-radius: 50%; background: #E1F5EE; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #0F6E56; }
+.pub-title { font-size: 24px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
+.pub-sub { font-size: 15px; color: #555; margin-bottom: 28px; line-height: 1.6; }
+.pub-box { background: #fff; border: 1px solid #E5E2D8; border-radius: 10px; padding: 18px 20px; text-align: left; margin-bottom: 20px; }
+.pub-box-label { font-size: 11px; font-weight: 600; color: #5F5E5A; margin-bottom: 6px; text-transform: uppercase; }
+.pub-box-val { font-size: 14px; color: #1a1a1a; line-height: 1.5; }
+.pub-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<div class="mode-select" id="home">
+  <div class="logo">GPS Action · Clickable Prototype v2</div>
+  <h1 class="title">Which flow would you like to walk through?</h1>
+  <p class="subtitle">Pick a role. Switch back from bottom-right.</p>
+  <button class="mode-btn" onclick="startActivist()">
+    <div class="mode-btn-title">→ I'm a member (activist)</div>
+    <div class="mode-btn-sub">Scroll 11 posts, react, read comments, take action. Mobile view.</div>
+  </button>
+  <button class="mode-btn" onclick="startWriter()">
+    <div class="mode-btn-title">→ I'm a writer / group admin</div>
+    <div class="mode-btn-sub">Pick up an alert, draft with team Discuss thread, publish. Desktop view.</div>
+  </button>
+  <div class="proto-note">
+    <strong>v2 adds engagement:</strong> reactions (WhatsApp-style, 14-emoji curated set), comments with nesting and suggestions, view counts, sort options, group invites, Discuss tab for writer collaboration. Publishing additions (FAB, Quick Add, drafts) come next pass.
+  </div>
+</div>
+
+<div class="app" id="activist">
+<div class="screen active" id="a-feed">
+<div class="phone-stage">
+<div class="phone">
+<div class="ph-status"><span>09:12</span><span>●●● ▲▲</span></div>
+<div class="feed-head">
+  <div class="feed-head-top"><div class="feed-head-l">Actions for you</div><div class="feed-head-r">11 posts</div></div>
+  <div class="sort-row">
+    <button class="sort on">Newest</button>
+    <button class="sort">For me</button>
+    <button class="sort">Nearby</button>
+    <button class="sort">Urgent</button>
+    <button class="sort">Unactioned</button>
+  </div>
+</div>
+<div class="chip-row">
+  <span class="chip on">All topics</span>
+  <span class="chip">East Midlands</span>
+  <span class="chip">BDS</span>
+  <span class="chip">Media</span>
+  <span class="chip">Events</span>
+  <span class="chip">Education</span>
+</div>
+
+<div class="feed-card" onclick="go('a-detail-1')">
+  <div class="card-author">
+    <div class="avatar" style="background:#993C1D;">GS</div>
+    <div><div class="author-name">Grant Spencer <span class="vtick">✓</span></div><div class="author-meta">East Midlands Coordinator · 10 min ago</div></div>
+  </div>
+  <div class="fmeta"><span class="sev h"></span><span class="ftype">Urgent · Council motion</span><span class="ftime">Closes in 9h</span></div>
+  <div class="ftitle">Derbyshire CC — BDS motion heard tonight</div>
+  <div class="fbody">A motion (C/23/2026) calls on the council to divest from Israeli-linked companies. It will be heard at 19:00 tonight. Local councillors respond to constituent contact.</div>
+  <div class="micro-cap">
+    <div class="micro-cap-label"><span>42 of 50 emails sent</span><span>84% · closing soon</span></div>
+    <div class="micro-cap-track"><div class="micro-cap-fill" style="width:84%;"></div></div>
+  </div>
+  <div class="ftags"><span class="tag tag-red">Derbyshire</span><span class="tag tag-teal">BDS</span><span class="tag tag-amber">Councils</span></div>
+  <button class="card-cta" onclick="event.stopPropagation(); go('a-handoff');">Send the email <span class="card-cta-partner">ActivistMailer</span><span class="card-cta-arrow">↗</span></button>
+  <div class="engage-strip">
+    <span class="rpill">‼️ 💪 🎯 <span class="rpill-count">34</span></span>
+    <span class="engage-dot">·</span>
+    <span class="comments-hint"><span class="avatars-stack"><span class="avatar xs" style="background:#3C3489;">JW</span><span class="avatar xs" style="background:#0F6E56;">SP</span><span class="avatar xs" style="background:#BA7517;">MK</span></span> 12 · 2m</span>
+    <span class="engage-dot">·</span>
+    <span>👁 247 seen</span>
+    <span class="engage-dot">·</span>
+    <span class="action-count">42 acted</span>
+  </div>
+</div>
+
+<div class="feed-card">
+  <div class="card-author">
+    <div class="avatar" style="background:#712B13;">SO</div>
+    <div><div class="author-name">Sharon O'Mahoney <span class="vtick">✓</span></div><div class="author-meta">Writers group lead · 46 min ago</div></div>
+  </div>
+  <div class="fmeta"><span class="sev l"></span><span class="ftype outcome">Outcome · Writers event</span><span class="ftime">46m</span></div>
+  <div class="ftitle">Monday's GPS Writers event — letters out to a dozen local papers each</div>
+  <div class="fbody">Just a quick note to say I participated in yesterday's GPS Writers event and found it immensely rewarding. Under the diligent and professional guidance of the team (thank you!! 🤗💕💐), we all wrote letters there and then to over a dozen local newspapers each (!) publicising that local elections should deal with local matters.</div>
+  <span class="read-more">Read more</span>
+  <div class="ftags"><span class="tag tag-teal">Writers</span><span class="tag tag-pink">Community</span><span class="tag tag-blue">Media</span></div>
+  <div class="engage-strip">
+    <span class="rpill">❤️ 💕 🙏 <span class="rpill-count">28</span></span>
+    <span class="engage-dot">·</span>
+    <span>💬 6</span>
+    <span class="engage-dot">·</span>
+    <span>👁 184 seen</span>
+  </div>
+</div>
+
+<div class="feed-card">
+  <div class="card-author">
+    <div class="avatar" style="background:#8B4789;">CV</div>
+    <div><div class="author-name">Christina Vishnefski</div><div class="author-meta">Member · 2h ago</div></div>
+  </div>
+  <div class="hero-poster poster-camera">
+    <div class="poster-camera-circle"></div>
+    <div class="poster-camera-title">CAMERA Fellow!</div>
+    <div class="poster-camera-sub">Help Combat Misinformation About Israel on Campus</div>
+    <div class="poster-camera-body">Support Israel on your campus with a team of advisors and researchers behind you.</div>
+    <div class="poster-camera-qr"></div>
+    <div class="poster-camera-date">Apply by May 1st</div>
+  </div>
+  <div class="fmeta"><span class="sev l"></span><span class="ftype community">Community · Opportunity</span><span class="ftime">2h</span></div>
+  <div class="ftitle">CAMERA Fellowship — applications open</div>
+  <div class="fbody">CAMERA is recruiting fellows for 2026/27 in US, UK and Israel. Year-long programme with training, a conference in Boston, and a $1500/£1120 stipend.</div>
+  <span class="read-more">Read more</span>
+  <div class="ftags"><span class="tag tag-pink">Opportunity</span><span class="tag tag-blue">Education</span><span class="tag tag-teal">Students</span></div>
+  <button class="card-cta share" onclick="event.stopPropagation();">Visit CAMERA <span class="card-cta-arrow">↗</span></button>
+  <div class="engage-strip">
+    <span class="rpill">🎯 💪 🙏 <span class="rpill-count">17</span></span>
+    <span class="engage-dot">·</span>
+    <span>💬 3</span>
+    <span class="engage-dot">·</span>
+    <span>👁 134 seen</span>
+  </div>
+</div>
+
+<div class="feed-card">
+  <div class="card-author">
+    <div class="avatar" style="background:#3C3489;">JW</div>
+    <div><div class="author-name">Jeremy Wootliff <span class="vtick">✓</span></div><div class="author-meta">Director · 3h ago</div></div>
+  </div>
+  <div class="hero-poster poster-oct7">
+    <div class="poster-oct7-statue"></div>
+    <div class="poster-oct7-tag">oct7</div>
+    <div class="poster-oct7-label">VIP PANEL</div>
+    <div class="poster-oct7-num">#101</div>
+    <div class="poster-oct7-date">April 9th 2026 · 20h Israel time</div>
+    <div class="poster-oct7-body">
+      <div class="poster-oct7-topic">FRANCE, US, UK</div>
+      <div class="poster-oct7-title">Antizionist Discrimination — Legal Frameworks</div>
+    </div>
+  </div>
+  <div class="fmeta"><span class="sev l"></span><span class="ftype">Event · Zoom panel</span><span class="ftime">3h · Tomorrow</span></div>
+  <div class="ftitle">Oct7 VIP Legal Panel — RSVP for the Zoom</div>
+  <div class="fbody">Gerard Filitti (Lawfare Project), Sam Jardine (Oct7 Legal), Naya Lekht (Stop Antizionism), Jake Bennet (StandWithUs). Tomorrow 20:00 Israel / 18:00 UK.</div>
+  <div class="ftags"><span class="tag tag-blue">Event</span><span class="tag tag-purple">Legal</span></div>
+  <button class="card-cta rsvp" onclick="event.stopPropagation();">RSVP on Zoom <span class="card-cta-partner">Zoom</span><span class="card-cta-arrow">↗</span></button>
+  <div class="engage-strip">
+    <span class="rpill">🎯 🙏 <span class="rpill-count">9</span></span>
+    <span class="engage-dot">·</span>
+    <span>💬 2</span>
+    <span class="engage-dot">·</span>
+    <span>👁 203 seen</span>
+    <span class="engage-dot">·</span>
+    <span class="action-count">23 RSVPs</span>
+  </div>
+</div>
+
+<div class="feed-card">
+  <div class="card-author">
+    <div class="avatar" style="background:#3C3489;">JW</div>
+    <div><div class="author-name">Jeremy Wootliff <span class="vtick">✓</span></div><div class="author-meta">Director · 4h ago</div></div>
+  </div>
+  <div class="fmeta"><span class="sev l"></span><span class="ftype coord">Coordination · Join a group</span><span class="ftime">4h</span></div>
+  <div class="fbody">‼️‼️ Three groups looking for more hands. Can you help with any of these?</div>
+  <div class="invite-card">
+    <div class="invite-head"><div class="invite-icon" style="background:#000;">𝕏</div><div><div class="invite-name">GPS Social Media</div><div class="invite-desc">Active on X, FB, IG</div></div></div>
+    <div class="invite-body">If you're remotely tech-savvy and active on socials, join us. Weekly coordination and shared content library.</div>
+    <div class="invite-join">Join group</div>
+  </div>
+  <div class="invite-card">
+    <div class="invite-head"><div class="invite-icon" style="background:#085041;">✎</div><div><div class="invite-name">GPS News Writers Team</div><div class="invite-desc">Letters, op-eds, responses</div></div></div>
+    <div class="invite-body">Meets Monday evenings. Sharon leads. Beginners welcome — we draft together.</div>
+    <div class="invite-join">Join group</div>
+  </div>
+  <div class="invite-card">
+    <div class="invite-head"><div class="invite-icon" style="background:#A32D2D;">⚠</div><div><div class="invite-name">GPS VOA Group</div><div class="invite-desc">Victims of antisemitism</div></div></div>
+    <div class="invite-body">If you are a victim of antisemitism directly yourself, or want to help those who are, join us.</div>
+    <div class="invite-join">Join group</div>
+  </div>
+  <div class="engage-strip">
+    <span class="rpill">🙏 💪 <span class="rpill-count">14</span></span>
+    <span class="engage-dot">·</span>
+    <span>💬 4</span>
+    <span class="engage-dot">·</span>
+    <span>👁 189 seen</span>
+  </div>
+</div>
+
+<div class="feed-card" onclick="go('a-detail-seeking')">
+  <div class="card-author">
+    <div class="avatar" style="background:#7A3E9C;">EB</div>
+    <div><div class="author-name">Emma Blackwell</div><div class="author-meta">Member · 5h ago</div></div>
+  </div>
+  <div class="fmeta"><span class="sev m"></span><span class="ftype seeking">Seeking action · What should we do?</span><span class="ftime">5h</span></div>
+  <div class="ftitle">Leaflets at my child's school gate — what do I do?</div>
+  <div class="fbody">Picked up my daughter from Chesterfield Primary yesterday and there were people handing out leaflets outside the gates about "Israeli crimes." Aimed at parents. I've got a photo. I don't want to overreact, but I also don't want to do nothing.</div>
+  <div class="ftags"><span class="tag tag-red">Derbyshire</span><span class="tag tag-pink">Education</span><span class="tag tag-purple">Seeking help</span></div>
+  <div class="seeking-banner">
+    <div class="seeking-label">Top suggestion · 8 upvotes</div>
+    <div class="seeking-top"><b>Sarah Patel:</b> "Email the head teacher first, calm tone. Ask what their safeguarding policy says about external groups at the gate."</div>
+  </div>
+  <button class="card-cta suggest" onclick="event.stopPropagation(); go('a-detail-seeking');">Read 9 suggestions · suggest one</button>
+  <div class="engage-strip">
+    <span class="rpill">😔 🤗 ‼️ <span class="rpill-count">21</span></span>
+    <span class="engage-dot">·</span>
+    <span class="comments-hint"><span class="avatars-stack"><span class="avatar xs" style="background:#0F6E56;">SP</span><span class="avatar xs" style="background:#993C1D;">GS</span><span class="avatar xs" style="background:#BA7517;">MK</span></span> 9 suggestions · 12m</span>
+    <span class="engage-dot">·</span>
+    <span>👁 156 seen</span>
+  </div>
+</div>
+
+<div class="feed-card">
+  <div class="card-author">
+    <div class="avatar" style="background:#A32D2D;">MF</div>
+    <div><div class="author-name">Michael Friedman</div><div class="author-meta">Member · 6h ago</div></div>
+  </div>
+  <div class="fmeta"><span class="sev m"></span><span class="ftype">Media · Social media</span><span class="ftime">6h</span></div>
+  <div class="fbody">If anyone is on X, Carla Denyer (Green Party co-leader) is off on one again about "Israel's continued violations." Attached are some facts about Bristol that she seems to be neglecting. Worth a polite, factual reply.</div>
+  <div class="tweet-embed">
+    <div class="tweet-head"><div class="tweet-avatar">CD</div><div><div class="tweet-name">Carla Denyer ✓</div><div class="tweet-handle">@carla_denyer · 19h</div></div></div>
+    <div class="tweet-body">I signed this letter calling on British and Irish govs to take action on Israel's continued violations of international law. Specifically: 1) the issuing of tenders to build a new illegal settlement in Jerusalem, and 2) the Israeli gov's ban on international NGOs in Palestine.</div>
+    <div class="tweet-doc"><div></div><div></div><div></div><div></div></div>
+    <div class="tweet-stats"><span>💬 58</span><span>🔁 307</span><span>♥ 744</span><span>👁 8.1K</span></div>
+  </div>
+  <div class="ftags"><span class="tag tag-blue">Social media</span><span class="tag tag-amber">Response</span><span class="tag tag-red">Bristol</span></div>
+  <button class="card-cta share" onclick="event.stopPropagation();">Reply on X <span class="card-cta-partner">X</span><span class="card-cta-arrow">↗</span></button>
+  <div class="engage-strip">
+    <span class="rpill">‼️ 👀 💪 <span class="rpill-count">19</span></span>
+    <span class="engage-dot">·</span>
+    <span>💬 7</span>
+    <span class="engage-dot">·</span>
+    <span>👁 221 seen</span>
+    <span class="engage-dot">·</span>
+    <span class="action-count">14 replied</span>
+  </div>
+</div>
+
+<div class="feed-card">
+  <div class="card-author">
+    <div class="avatar" style="background:#854F0B;">DM</div>
+    <div><div class="author-name">David Mendel</div><div class="author-meta">Newswriters group · 8h ago</div></div>
+  </div>
+  <div class="fmeta"><span class="sev l"></span><span class="ftype">Media · Broadcast</span><span class="ftime">8h</span></div>
+  <div class="fbody">If you're going to write about Kent Police, remember this.</div>
+  <div class="yt-embed">
+    <div class="yt-hero">
+      <div class="yt-play"></div>
+      <div class="yt-banner"><span class="yt-banner-l">TALK</span><span class="yt-banner-r">THOUGHT POLICE</span></div>
+    </div>
+    <div class="yt-body">
+      <div class="yt-title">"Makes MOCKERY Of Law!" Kent Police Apologise For Arresting F...</div>
+      <div class="yt-domain">▸ youtube.com</div>
+    </div>
+  </div>
+  <div class="ftags"><span class="tag tag-blue">Media</span><span class="tag tag-red">Kent</span><span class="tag tag-amber">Police</span></div>
+  <div class="engage-strip">
+    <span class="rpill">😡 ‼️ 👀 <span class="rpill-count">22</span></span>
+    <span class="engage-dot">·</span>
+    <span>💬 5</span>
+    <span class="engage-dot">·</span>
+    <span>👁 167 seen</span>
+  </div>
+</div>
+
+<div class="feed-card">
+  <div class="card-author">
+    <div class="avatar" style="background:#0F6E56;">CD</div>
+    <div><div class="author-name">Claire Davies <span class="vtick">✓</span></div><div class="author-meta">Newswriters lead · 12h ago</div></div>
+  </div>
+  <div class="fmeta"><span class="sev m"></span><span class="ftype">This week · Newspaper</span><span class="ftime">12h</span></div>
+  <div class="ftitle">Nottingham Post op-ed — factual inaccuracy</div>
+  <div class="fbody">An op-ed in today's Nottingham Post claims the UK "recognises Palestine as an occupied state" — this is inaccurate. Letter to editor drafted and ready to send. Takes 45 seconds.</div>
+  <div class="ftags"><span class="tag tag-red">Nottinghamshire</span><span class="tag tag-blue">Media</span></div>
+  <button class="card-cta" onclick="event.stopPropagation();">Send the letter <span class="card-cta-partner">ActivistMailer</span><span class="card-cta-arrow">↗</span></button>
+  <div class="engage-strip">
+    <span class="rpill">🎯 💪 <span class="rpill-count">11</span></span>
+    <span class="engage-dot">·</span>
+    <span>💬 2</span>
+    <span class="engage-dot">·</span>
+    <span>👁 142 seen</span>
+    <span class="engage-dot">·</span>
+    <span class="action-count">18 sent</span>
+  </div>
+</div>
+
+<div class="feed-card">
+  <div class="card-author">
+    <div class="avatar" style="background:#BA7517;">RA</div>
+    <div><div class="author-name">Rachel Aarons</div><div class="author-meta">Leicester community · Yesterday</div></div>
+  </div>
+  <div class="fmeta"><span class="sev l"></span><span class="ftype community">Community · Event</span><span class="ftime">Yesterday</span></div>
+  <div class="ftitle">Leicester solidarity gathering — this Saturday</div>
+  <div class="fbody">Small informal gathering at the Leicester community centre this Saturday 2pm. Tea, biscuits, conversation. Everyone welcome, faith groups welcome, just come if you want to be with people. No speeches, no agenda.</div>
+  <div class="ftags"><span class="tag tag-red">Leicestershire</span><span class="tag tag-pink">Community</span></div>
+  <button class="card-cta rsvp" onclick="event.stopPropagation();">I'll come <span class="card-cta-arrow">↗</span></button>
+  <div class="engage-strip">
+    <span class="rpill">❤️ 💕 🤗 <span class="rpill-count">31</span></span>
+    <span class="engage-dot">·</span>
+    <span class="comments-hint"><span class="avatars-stack"><span class="avatar xs" style="background:#3C3489;">JW</span><span class="avatar xs" style="background:#0F6E56;">SP</span></span> 6 · 1h</span>
+    <span class="engage-dot">·</span>
+    <span>👁 176 seen</span>
+    <span class="engage-dot">·</span>
+    <span class="action-count">24 coming</span>
+  </div>
+</div>
+
+<div class="feed-card">
+  <div class="card-author">
+    <div class="avatar" style="background:#2B2E4F;">GA</div>
+    <div><div class="author-name">GPS Action <span class="vtick">✓</span></div><div class="author-meta">Friday 17:02</div></div>
+  </div>
+  <div class="hero-poster poster-shabbat">
+    <div class="poster-shabbat-candle">🕯️</div>
+    <div class="poster-shabbat-title">Shabbat Shalom</div>
+    <div class="poster-shabbat-sub">May the week ahead bring strength, peace, and good company.</div>
+  </div>
+  <div class="fmeta"><span class="sev l"></span><span class="ftype community">Community · Shabbat</span><span class="ftime">Friday</span></div>
+  <div class="fbody">A quiet moment. Thank you to everyone who wrote, called, shared, showed up, listened, and simply kept going this week. Rest well. Shabbat Shalom to those observing.</div>
+  <div class="engage-strip">
+    <span class="rpill">💕 🙏 🕯️ <span class="rpill-count">67</span></span>
+    <span class="engage-dot">·</span>
+    <span>💬 11</span>
+    <span class="engage-dot">·</span>
+    <span>👁 312 seen</span>
+  </div>
+</div>
+
+<div style="padding:30px 16px 60px; text-align:center; font-size:12px; color:#999;">You're all caught up.</div>
+
+</div></div></div>
+
+<div class="screen" id="a-detail-1">
+<div class="phone-stage">
+<div class="phone" style="display:flex;flex-direction:column;height:calc(100vh - 48px);max-height:900px;">
+<div class="ph-status"><span>09:14</span><span>●●● ▲▲</span></div>
+<div class="ph-header"><span class="ph-back" onclick="go('a-feed')">‹</span><div class="ph-meta">Actions for you</div></div>
+<div style="flex:1;overflow-y:auto;">
+  <div class="detail-hero">
+    <div class="detail-author">
+      <div class="avatar" style="background:#993C1D;">GS</div>
+      <div><div class="author-name">Grant Spencer <span class="vtick">✓</span></div><div class="author-meta">East Midlands Coordinator · 10 min ago</div></div>
+    </div>
+    <div class="fmeta"><span class="sev h"></span><span class="ftype">Urgent · Council motion</span><span class="ftime" style="margin-left:0;">Closes in 9h</span></div>
+    <div class="detail-title">Derbyshire County Council — BDS motion heard tonight</div>
+    <div class="micro-cap">
+      <div class="micro-cap-label"><span>42 of 50 emails sent</span><span>84%</span></div>
+      <div class="micro-cap-track"><div class="micro-cap-fill" style="width:84%;"></div></div>
+    </div>
+  </div>
+  <div class="detail-body">
+    <p><b>What's happening:</b> A motion (C/23/2026) calls on the council to divest from Israeli-linked companies. Heard tonight at 19:00.</p>
+    <p><b>Source:</b> Council agenda, derbyshire.gov.uk, 18 April. Motion cites July 2024 ICJ advisory opinion.</p>
+    <p><b>Why it matters:</b> If passed, Derbyshire joins three other councils with similar motions this quarter. Local councillors respond to constituent contact.</p>
+    <p><b>What we're doing:</b> Pre-drafted email to your ward councillor. 30 seconds. Cap is 50 — concentrated contact lands harder than a mass blast.</p>
+  </div>
+  <div class="detail-cta-wrap">
+    <div class="detail-actions-label">Take action</div>
+    <button class="detail-cta primary" onclick="go('a-handoff')">
+      <div style="flex:1;">Send the email <span style="display:inline-block;font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,0.2);color:#fff;font-weight:600;margin-left:6px;vertical-align:2px;">ActivistMailer</span><div class="detail-cta-sub">30 seconds · opens new page</div></div>
+      <span style="font-size:18px;">↗</span>
+    </button>
+  </div>
+  <div class="rxn-block">
+    <div class="rxn-pills">
+      <div class="rxn-pill me" onclick="openDrill()"><span>‼️</span><span class="rxn-pill-count">12</span></div>
+      <div class="rxn-pill" onclick="openDrill()"><span>💪</span><span class="rxn-pill-count">9</span></div>
+      <div class="rxn-pill" onclick="openDrill()"><span>🎯</span><span class="rxn-pill-count">7</span></div>
+      <div class="rxn-pill" onclick="openDrill()"><span>😔</span><span class="rxn-pill-count">4</span></div>
+      <div class="rxn-pill" onclick="openDrill()"><span>🙏</span><span class="rxn-pill-count">2</span></div>
+      <button class="rxn-add" onclick="openPicker()">+</button>
+    </div>
+  </div>
+  <div class="comments-block">
+    <div class="comments-label">Discussion (12)</div>
+    <div class="comment">
+      <div class="avatar sm" style="background:#3C3489;">JW</div>
+      <div class="comment-body-wrap">
+        <div class="comment-head"><span class="comment-name">Jeremy Wootliff <span class="vtick">✓</span></span><span class="comment-time">8:47</span></div>
+        <div class="comment-text">This matters — Derbyshire's been building toward this for months. Good to see 40+ already moving.</div>
+        <div class="comment-rxn">💪 4</div>
+        <div class="comment-actions"><span class="comment-action">Reply</span><span class="comment-action">React</span></div>
+      </div>
+    </div>
+    <div class="comment">
+      <div class="avatar sm" style="background:#0F6E56;">SP</div>
+      <div class="comment-body-wrap">
+        <div class="comment-head"><span class="comment-name">Sarah Patel</span><span class="comment-time">8:52</span></div>
+        <div class="comment-text">Just sent mine to Cllr Brook. Did anyone know if there's a protest planned outside County Hall too? Happy to make signs.</div>
+        <div class="comment-actions"><span class="comment-action">Reply</span><span class="comment-action">React</span></div>
+      </div>
+    </div>
+    <div class="comment comment-reply">
+      <div class="avatar sm" style="background:#BA7517;">MK</div>
+      <div class="comment-body-wrap">
+        <div class="comment-head"><span class="comment-name">Miriam Klein</span><span class="comment-time">8:58</span></div>
+        <div class="comment-text"><span class="mention">@Sarah Patel</span> yes — small gathering from 18:30. Board Room side entrance. Signs brilliant if you can.</div>
+        <div class="comment-rxn">🙏 2</div>
+        <div class="comment-actions"><span class="comment-action">Reply</span><span class="comment-action">React</span></div>
+      </div>
+    </div>
+    <div class="comment">
+      <div class="avatar sm" style="background:#A32D2D;">RF</div>
+      <div class="comment-body-wrap">
+        <div class="comment-head"><span class="comment-name">Rebecca Fielding</span><span class="comment-time">9:04</span></div>
+        <div class="comment-reportback">
+          <div class="comment-reportback-tag">✓ Report-back</div>
+          <div class="comment-text">Sent mine. Got an autoreply back from Cllr Thomas within 2 minutes saying he'd read it. Better than expected.</div>
+        </div>
+        <div class="comment-rxn">🎯 6  💪 2</div>
+        <div class="comment-actions"><span class="comment-action">Reply</span><span class="comment-action">React</span></div>
+      </div>
+    </div>
+    <div class="comment">
+      <div class="avatar sm" style="background:#854F0B;">DS</div>
+      <div class="comment-body-wrap">
+        <div class="comment-head"><span class="comment-name">Daniel Stern</span><span class="comment-time">9:09</span></div>
+        <div class="comment-text">Quick question — does the letter mention the factual issue with the settlement claim? The ICJ opinion is being cited selectively.</div>
+        <div class="comment-actions"><span class="comment-action">Reply</span><span class="comment-action">React</span></div>
+      </div>
+    </div>
+    <div class="comment comment-reply">
+      <div class="avatar sm" style="background:#993C1D;">GS</div>
+      <div class="comment-body-wrap">
+        <div class="comment-head"><span class="comment-name">Grant Spencer <span class="vtick">✓</span></span><span class="comment-time">9:11</span></div>
+        <div class="comment-text"><span class="mention">@Daniel</span> yes — paragraph 3 addresses it without getting into weeds. We'll share the full opinion text in Writers if anyone wants to go deeper.</div>
+        <div class="comment-rxn">👍 3</div>
+        <div class="comment-actions"><span class="comment-action">Reply</span><span class="comment-action">React</span></div>
+      </div>
+    </div>
+    <div class="comment">
+      <div class="avatar sm" style="background:#2B2E4F;">NW</div>
+      <div class="comment-body-wrap">
+        <div class="comment-head"><span class="comment-name">Naomi Weiss</span><span class="comment-time">9:13</span></div>
+        <div class="comment-text">Done ✓ 💪</div>
+        <div class="comment-actions"><span class="comment-action">Reply</span><span class="comment-action">React</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="compose-bar"><div class="avatar sm" style="background:#555;">JA</div><input class="compose-input" type="text" placeholder="Add a comment…"><button class="compose-send">↑</button></div>
+</div></div></div>
+
+<div class="screen" id="a-detail-seeking">
+<div class="phone-stage">
+<div class="phone" style="display:flex;flex-direction:column;height:calc(100vh - 48px);max-height:900px;">
+<div class="ph-status"><span>09:16</span><span>●●● ▲▲</span></div>
+<div class="ph-header"><span class="ph-back" onclick="go('a-feed')">‹</span><div class="ph-meta">Seeking action</div></div>
+<div style="flex:1;overflow-y:auto;">
+  <div class="detail-hero">
+    <div class="detail-author">
+      <div class="avatar" style="background:#7A3E9C;">EB</div>
+      <div><div class="author-name">Emma Blackwell</div><div class="author-meta">Member · Chesterfield · 5h ago</div></div>
+    </div>
+    <div class="fmeta"><span class="sev m"></span><span class="ftype seeking">Seeking action · What should we do?</span></div>
+    <div class="detail-title">Leaflets at my child's school gate — what do I do?</div>
+  </div>
+  <div class="detail-body">
+    <p>Picked up my daughter from Chesterfield Primary yesterday afternoon and there were two people handing out leaflets outside the school gates about "Israeli crimes." They were aimed at parents — I saw a couple of mums take one without really realising what it was.</p>
+    <p>I've got a photo of the leaflet. It's not threatening exactly, but it's pretty one-sided and I don't love that it's turning up at primary school gates.</p>
+    <p>I don't want to overreact — but I also don't want to do nothing, especially if they come back next week. Has anyone dealt with something like this before?</p>
+  </div>
+  <div class="detail-cta-wrap">
+    <div class="detail-actions-label">What can you suggest?</div>
+    <button class="detail-cta primary" style="background:#3C3489;border-color:#3C3489;">
+      <div style="flex:1;">Suggest an action for Emma<div class="detail-cta-sub">What would you do in her shoes?</div></div>
+      <span style="font-size:18px;">↑</span>
+    </button>
+  </div>
+  <div class="rxn-block">
+    <div class="rxn-pills">
+      <div class="rxn-pill"><span>🤗</span><span class="rxn-pill-count">8</span></div>
+      <div class="rxn-pill"><span>😔</span><span class="rxn-pill-count">7</span></div>
+      <div class="rxn-pill"><span>‼️</span><span class="rxn-pill-count">5</span></div>
+      <div class="rxn-pill"><span>💕</span><span class="rxn-pill-count">1</span></div>
+      <button class="rxn-add" onclick="openPicker()">+</button>
+    </div>
+  </div>
+  <div class="comments-block">
+    <div class="comments-label">9 suggestions</div>
+    <div class="comment">
+      <div class="avatar sm" style="background:#0F6E56;">SP</div>
+      <div class="comment-body-wrap">
+        <div class="comment-head"><span class="comment-name">Sarah Patel</span><span class="comment-time">4h ago</span></div>
+        <div class="comment-suggestion">
+          <div class="comment-suggestion-tag">💡 Suggested action</div>
+          <div class="comment-text">Email the head teacher first, calm tone. Ask what their safeguarding policy says about external groups approaching at the gate. I've got a template I used in Leicester — happy to share.</div>
+          <span class="suggestion-upvote on">▲ 8 · Top suggestion</span>
+        </div>
+        <div class="comment-actions"><span class="comment-action">Reply</span><span class="comment-action">React</span></div>
+      </div>
+    </div>
+    <div class="comment">
+      <div class="avatar sm" style="background:#993C1D;">GS</div>
+      <div class="comment-body-wrap">
+        <div class="comment-head"><span class="comment-name">Grant Spencer <span class="vtick">✓</span></span><span class="comment-time">4h ago</span></div>
+        <div class="comment-suggestion">
+          <div class="comment-suggestion-tag">💡 Suggested action</div>
+          <div class="comment-text">If they come back, photograph the leaflet and report to the local council's community cohesion lead. That opens a formal record. CST also have a helpful line for this.</div>
+          <span class="suggestion-upvote">▲ 6</span>
+        </div>
+        <div class="comment-actions"><span class="comment-action">Reply</span><span class="comment-action">React</span></div>
+      </div>
+    </div>
+    <div class="comment">
+      <div class="avatar sm" style="background:#BA7517;">MK</div>
+      <div class="comment-body-wrap">
+        <div class="comment-head"><span class="comment-name">Miriam Klein</span><span class="comment-time">4h ago</span></div>
+        <div class="comment-suggestion">
+          <div class="comment-suggestion-tag">💡 Suggested action</div>
+          <div class="comment-text">Don't do nothing, but don't go in hot. Head teacher by email with the photo attached, polite. Worked for a similar thing in Nottingham last year.</div>
+          <span class="suggestion-upvote">▲ 5</span>
+        </div>
+        <div class="comment-actions"><span class="comment-action">Reply</span><span class="comment-action">React</span></div>
+      </div>
+    </div>
+    <div class="comment">
+      <div class="avatar sm" style="background:#2B2E4F;">NW</div>
+      <div class="comment-body-wrap">
+        <div class="comment-head"><span class="comment-name">Naomi Weiss</span><span class="comment-time">3h ago</span></div>
+        <div class="comment-text">You're not overreacting. A leaflet handed to parents at primary school gates is a safeguarding question, not a political debate. Trust your gut. 🤗</div>
+        <div class="comment-rxn">💕 4  🙏 2</div>
+        <div class="comment-actions"><span class="comment-action">Reply</span><span class="comment-action">React</span></div>
+      </div>
+    </div>
+    <div class="comment">
+      <div class="avatar sm" style="background:#3C3489;">JW</div>
+      <div class="comment-body-wrap">
+        <div class="comment-head"><span class="comment-name">Jeremy Wootliff <span class="vtick">✓</span></span><span class="comment-time">3h ago</span></div>
+        <div class="comment-suggestion">
+          <div class="comment-suggestion-tag">💡 Suggested action</div>
+          <div class="comment-text">Combining: email head teacher + cc chair of governors. Factual, calm, attach photo. Ask for a reply by end of week. I can help draft if useful.</div>
+          <span class="suggestion-upvote">▲ 4</span>
+        </div>
+        <div class="comment-actions"><span class="comment-action">Reply</span><span class="comment-action">React</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="compose-bar"><div class="avatar sm" style="background:#555;">JA</div><input class="compose-input" type="text" placeholder="Suggest an action…"><button class="compose-send">↑</button></div>
+</div></div></div>
+
+<div class="screen" id="a-handoff">
+<div class="am-stage">
+<div class="am-page">
+<div class="am-logo">■ ACTIVISTMAILER</div>
+<h1 class="am-title">Email your councillor about motion C/23/2026</h1>
+<p class="am-body">Your message to <strong>Cllr Sarah Brook</strong> (Chesterfield North). You can edit before sending.</p>
+<div class="am-box">Dear Cllr Brook,<br><br>I am a resident of Chesterfield North and am writing ahead of tonight's council meeting about motion C/23/2026.<br><br>I have concerns about both the factual basis of the motion and its implications for community cohesion in Derbyshire. I would ask you to consider voting against it, or proposing amendments.<br><br>Yours sincerely,<br>James Allen</div>
+<button class="am-send" onclick="go('a-confirm')">Send email</button>
+<div class="am-back" onclick="go('a-confirm')">← Back to GPS Action</div>
+</div></div></div>
+
+<div class="screen" id="a-confirm">
+<div class="phone-stage"><div class="phone">
+<div class="ph-status"><span>09:16</span><span>●●● ▲▲</span></div>
+<div class="ph-header"><div class="ph-meta" style="text-align:center;">GPS Action</div></div>
+<div class="confirm-stage">
+<div class="confirm-tick">↗</div>
+<div class="confirm-q">Welcome back</div>
+<div class="confirm-sub">Did the email go through?</div>
+<div class="confirm-buttons">
+<button class="confirm-btn yes" onclick="go('a-done')">Yes, sent ✓</button>
+<button class="confirm-btn" onclick="go('a-done')">Not yet</button>
+<button class="confirm-btn" onclick="go('a-done')">Skipped</button>
+</div></div></div></div></div>
+
+<div class="screen" id="a-done">
+<div class="phone-stage"><div class="phone">
+<div class="ph-status"><span>09:16</span><span>●●● ▲▲</span></div>
+<div class="done-hero">
+<div class="done-tick">✓</div>
+<div class="done-title">Email sent</div>
+<div class="done-sub">Thanks James. 43 of 50 now sent.</div>
+</div>
+<div class="done-done"><div class="done-done-btn" onclick="go('a-feed')">Back to stream</div></div>
+</div></div></div>
+
+</div>
+
+<div class="app" id="writer">
+
+<div class="screen active" id="w-triage">
+<div class="desk-stage"><div class="desk-wrap">
+<div class="desk-head"><div class="desk-title">Triage</div><div class="desk-meta">Hi Claire · East Midlands Writers</div></div>
+<div class="triage-tabs">
+<div class="triage-tab on">Inbox <span class="triage-tab-count">12</span></div>
+<div class="triage-tab">In progress <span class="triage-tab-count">4</span></div>
+<div class="triage-tab">Published</div>
+<div class="triage-tab">Archived</div>
+</div>
+<table class="triage-tbl">
+<thead><tr><th style="width:12%">Source</th><th style="width:42%">Item</th><th style="width:14%">Region</th><th style="width:10%">Priority</th><th style="width:10%">Received</th><th style="width:12%"></th></tr></thead>
+<tbody>
+<tr class="triage-row" onclick="go('w-compose')">
+<td><span class="source-tag source-alert">Alert</span></td>
+<td><div class="item-title">Derbyshire CC — BDS motion C/23/2026</div><div class="item-sub">Council agenda · matches BDS keyword group</div></td>
+<td>Derbyshire</td>
+<td><span class="prio-h">High</span></td>
+<td>10 min ago</td>
+<td style="text-align:right;"><button class="btn primary" style="padding:5px 12px;font-size:12px;" onclick="event.stopPropagation();go('w-compose');">Open</button></td>
+</tr>
+<tr class="triage-row">
+<td><span class="source-tag source-sub">Submission</span></td>
+<td><div class="item-title">School gate leaflet — Chesterfield</div><div class="item-sub">From Emma Blackwell · 9 suggestions in thread</div></td>
+<td>Derbyshire</td><td><span class="prio-m">Medium</span></td><td>5h ago</td><td></td>
+</tr>
+<tr class="triage-row">
+<td><span class="source-tag source-alert">Alert</span></td>
+<td><div class="item-title">Nottingham Post op-ed — factual inaccuracy</div><div class="item-sub">Newspaper scraper · editor contact found</div></td>
+<td>Nottinghamshire</td><td><span class="prio-m">Medium</span></td><td>12h ago</td><td></td>
+</tr>
+<tr class="triage-row">
+<td><span class="source-tag source-sub">Submission</span></td>
+<td><div class="item-title">Carla Denyer X post — Bristol</div><div class="item-sub">From Michael Friedman · 14 already replied</div></td>
+<td>Bristol</td><td><span class="prio-l">Low</span></td><td>6h ago</td><td></td>
+</tr>
+<tr class="triage-row">
+<td><span class="source-tag source-dir">Directive</span></td>
+<td><div class="item-title">Jeremy: proactive campaign on teacher training</div><div class="item-sub">Strategy note · all regions</div></td>
+<td>National</td><td><span class="prio-l">Low</span></td><td>2 days ago</td><td></td>
+</tr>
+</tbody>
+</table>
+</div></div>
+</div>
+
+<div class="screen" id="w-compose">
+<div class="desk-stage"><div class="desk-wrap">
+<div class="desk-head"><span class="desk-back" onclick="go('w-triage')">‹</span><div class="desk-title">Derbyshire CC — BDS motion C/23/2026</div><div class="desk-meta">Draft · autosaved</div></div>
+<div class="stepper">
+<span class="step">Triage</span><span>›</span>
+<span class="step on">Compose</span><span>›</span>
+<span class="step">Review</span><span>›</span>
+<span class="step">Publish</span>
+</div>
+<div class="composer">
+<div class="composer-main">
+<label class="c-label">Action type</label>
+<select class="c-select"><option>Email to councillor (via ActivistMailer)</option></select>
+<label class="c-label">Activist-facing title</label>
+<input class="c-input" type="text" value="Derbyshire County Council — BDS motion tonight">
+<div class="ai-banner">AI drafted from source article · edited by you 2 minutes ago</div>
+<label class="c-label">What's happening</label>
+<textarea class="c-textarea">A motion (C/23/2026) calls on the council to divest from Israeli-linked companies. It will be heard tonight at 19:00.
+
+If passed, Derbyshire joins three other councils with similar motions this quarter. Local councillors respond to constituent contact.</textarea>
+<label class="c-label">Partner action link</label>
+<div class="link-row"><span class="link-partner">ActivistMailer</span><span class="link-url">app.activistmailer.com/c/derbys-bds-2026</span></div>
+<div class="limit-row">
+<div><label class="c-label">Send cap</label><input class="c-input" type="text" value="50" style="margin-bottom:0;"></div>
+<div><label class="c-label">Closes at</label><input class="c-input" type="text" value="Tonight 19:00" style="margin-bottom:0;"></div>
+</div>
+</div>
+<div class="composer-side">
+<div class="c-tabs">
+<button class="c-tab on" onclick="setTab(this,'source')">Source</button>
+<button class="c-tab" onclick="setTab(this,'ai')">AI assists</button>
+<button class="c-tab" onclick="setTab(this,'audience')">Audience</button>
+<button class="c-tab" onclick="setTab(this,'discuss')">Discuss<span class="c-tab-badge">3</span></button>
+</div>
+<div class="c-tab-content on" id="tab-source">
+<span class="c-side-h">Source material</span>
+<div class="c-side-box">Derbyshire CC agenda, published 18 April 2026. Motion C/23/2026. Sponsored by Cllr T. Harman (Lab). Cites ICJ advisory opinion July 2024.</div>
+<div class="c-side-box"><span class="c-side-l">Linked material</span>View on derbyshire.gov.uk →</div>
+</div>
+<div class="c-tab-content" id="tab-ai">
+<span class="c-side-h">AI suggests</span>
+<div class="c-side-box"><span class="c-side-l">Consider adding</span>Factual correction on UK govt policy position re: settlements</div>
+<div class="c-side-box"><span class="c-side-l">Targeting</span>Labour councillors responded 3× more than Conservative last time</div>
+<div class="c-side-box"><span class="c-side-l">Cross-ref</span>Similar motion passed in Lancashire Jan 2026 — worth mentioning?</div>
+</div>
+<div class="c-tab-content" id="tab-audience">
+<span class="c-side-h">Target audience</span>
+<div class="c-side-box">Derbyshire residents<br>Subscribed to: BDS, councils<br><span style="color:#5F5E5A;">~180 activists match</span></div>
+<span class="c-side-h" style="margin-top:12px;">Reach estimate</span>
+<div class="c-side-box">42–58 likely sends based on past engagement</div>
+</div>
+<div class="c-tab-content" id="tab-discuss">
+<span class="c-side-h">Working thread · 3 unread</span>
+<div class="discuss-thread">
+<div class="discuss-sep">— Today —</div>
+<div class="discuss-msg">
+<div class="avatar xs" style="background:#993C1D;">GS</div>
+<div class="discuss-msg-body"><div class="discuss-msg-head"><span class="discuss-msg-name">Grant</span><span class="discuss-msg-time">7:40</span></div><div class="discuss-msg-text">Got the agenda PDF. Motion 3 pages in, pretty standard BDS template. Claire can you pick this up?</div></div>
+</div>
+<div class="discuss-msg">
+<div class="avatar xs" style="background:#0F6E56;">CD</div>
+<div class="discuss-msg-body"><div class="discuss-msg-head"><span class="discuss-msg-name">Claire</span><span class="discuss-msg-time">7:52</span></div><div class="discuss-msg-text">On it. Thinking cap of 50 — concentrated hits from real residents land better than a 500-blast. Agreed?</div></div>
+</div>
+<div class="discuss-msg">
+<div class="avatar xs" style="background:#3C3489;">JW</div>
+<div class="discuss-msg-body"><div class="discuss-msg-head"><span class="discuss-msg-name">Jeremy</span><span class="discuss-msg-time">8:05</span></div><div class="discuss-msg-text">Yes. 50 for this one. Let me see it before publish please — I want to check para 3 on the ICJ ref.</div></div>
+</div>
+<div class="discuss-msg">
+<div class="avatar xs" style="background:#0F6E56;">CD</div>
+<div class="discuss-msg-body"><div class="discuss-msg-head"><span class="discuss-msg-name">Claire</span><span class="discuss-msg-time">8:34</span></div><div class="discuss-msg-text">Tightened para 2 — motion number now explicit. Sending for review now 🙏</div></div>
+</div>
+</div>
+<div class="discuss-compose"><input type="text" placeholder="Reply to the team…"><button>↑</button></div>
+</div>
+</div>
+</div>
+<div class="composer-foot">
+<button class="btn">Save draft</button>
+<button class="btn primary push-right" onclick="go('w-review')">Send for review</button>
+</div>
+</div></div>
+</div>
+
+<div class="screen" id="w-review">
+<div class="desk-stage"><div class="desk-wrap">
+<div class="desk-head"><span class="desk-back" onclick="go('w-compose')">‹</span><div class="desk-title">Derbyshire CC — BDS motion tonight</div><div class="desk-meta">Awaiting review · 12 min</div></div>
+<div class="stepper">
+<span class="step">Triage</span><span>›</span>
+<span class="step">Compose</span><span>›</span>
+<span class="step on">Review</span><span>›</span>
+<span class="step">Publish</span>
+</div>
+<div style="padding:24px 22px;">
+<div style="font-size:11px;font-weight:700;color:#5F5E5A;margin-bottom:14px;text-transform:uppercase;">Final check</div>
+<div style="background:#F7F6F2;border-radius:10px;padding:18px;margin-bottom:18px;">
+<div style="font-weight:600;color:#1a1a1a;margin-bottom:6px;">Derbyshire County Council — BDS motion tonight</div>
+<div style="font-size:12px;color:#666;line-height:1.6;">Email to councillor · ActivistMailer · 180 audience · cap 50 · closes 19:00</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+<div>
+<div style="font-size:11px;font-weight:700;color:#5F5E5A;margin-bottom:8px;text-transform:uppercase;">Pre-publish checks</div>
+<div style="font-size:13px;line-height:2;color:#2C2C2A;">
+✓ Source verified<br>
+✓ Factual claims checked<br>
+✓ Councillor ward-matching ready<br>
+✓ Tone reviewed<br>
+<span style="color:#854F0B;">! No prior action on same motion</span>
+</div>
+</div>
+<div>
+<div style="font-size:11px;font-weight:700;color:#5F5E5A;margin-bottom:8px;text-transform:uppercase;">Working thread</div>
+<div style="font-size:12px;color:#666;line-height:1.5;">4 messages from Grant, Claire, Jeremy. Last activity 8:34. Thread will be archived when published.</div>
+</div>
+</div>
+</div>
+<div class="composer-foot">
+<button class="btn">Request changes</button>
+<button class="btn danger">Reject</button>
+<button class="btn success push-right" onclick="go('w-published')">Approve &amp; publish</button>
+</div>
+</div></div>
+</div>
+
+<div class="screen" id="w-published">
+<div class="desk-stage"><div class="pub-stage">
+<div class="pub-tick">✓</div>
+<h1 class="pub-title">Published</h1>
+<div class="pub-sub">Derbyshire CC — BDS motion tonight is now live to 180 activists.</div>
+<div class="pub-box"><div class="pub-box-label">Delivery</div><div class="pub-box-val">Push notifications going out. Appearing in East Midlands stream.</div></div>
+<div class="pub-box"><div class="pub-box-label">Closes</div><div class="pub-box-val">Tonight 19:00 or when 50 sends are confirmed.</div></div>
+<div class="pub-actions">
+<button class="btn">Copy share link</button>
+<button class="btn primary" onclick="go('w-triage')">Back to triage</button>
+</div>
+</div></div>
+</div>
+
+</div>
+
+<div class="picker-stage" id="picker">
+<div class="picker">
+<div class="picker-head">React to this post</div>
+<div class="picker-sub">Most used</div>
+<div class="picker-row">
+<button class="picker-emoji" onclick="pickRxn('👍')">👍</button>
+<button class="picker-emoji" onclick="pickRxn('❤️')">❤️</button>
+<button class="picker-emoji" onclick="pickRxn('💕')">💕</button>
+<button class="picker-emoji" onclick="pickRxn('🤗')">🤗</button>
+<button class="picker-emoji" onclick="pickRxn('🙏')">🙏</button>
+<button class="picker-emoji" onclick="pickRxn('💪')">💪</button>
+<button class="picker-emoji" onclick="pickRxn('‼️')">‼️</button>
+</div>
+<div class="picker-sub">More</div>
+<div class="picker-row">
+<button class="picker-emoji" onclick="pickRxn('👀')">👀</button>
+<button class="picker-emoji" onclick="pickRxn('😔')">😔</button>
+<button class="picker-emoji" onclick="pickRxn('🎯')">🎯</button>
+<button class="picker-emoji" onclick="pickRxn('✡️')">✡️</button>
+<button class="picker-emoji" onclick="pickRxn('🕯️')">🕯️</button>
+<button class="picker-emoji" onclick="pickRxn('😂')">😂</button>
+<button class="picker-emoji" onclick="pickRxn('🔥')">🔥</button>
+</div>
+<div class="picker-sub">This season · Nisan/Iyyar</div>
+<div class="picker-row">
+<button class="picker-emoji" onclick="pickRxn('🌿')">🌿</button>
+<button class="picker-emoji" onclick="pickRxn('🍎')">🍎</button>
+<button class="picker-emoji" onclick="pickRxn('🕎')">🕎</button>
+</div>
+<button class="picker-close" onclick="closePicker()">Close</button>
+</div></div>
+
+<div class="drill-stage" id="drill" onclick="if(event.target===this)closeDrill()">
+<div class="drill">
+<div class="drill-tabs">
+<button class="drill-tab on">All 34</button>
+<button class="drill-tab">‼️ 12</button>
+<button class="drill-tab">💪 9</button>
+<button class="drill-tab">🎯 7</button>
+</div>
+<div class="drill-list">
+<div class="drill-row"><div class="avatar sm" style="background:#3C3489;">JW</div><div class="drill-row-name">Jeremy Wootliff</div><div class="drill-row-emoji">‼️</div></div>
+<div class="drill-row"><div class="avatar sm" style="background:#0F6E56;">SP</div><div class="drill-row-name">Sarah Patel</div><div class="drill-row-emoji">💪</div></div>
+<div class="drill-row"><div class="avatar sm" style="background:#BA7517;">MK</div><div class="drill-row-name">Miriam Klein</div><div class="drill-row-emoji">🎯</div></div>
+<div class="drill-row"><div class="avatar sm" style="background:#A32D2D;">RF</div><div class="drill-row-name">Rebecca Fielding</div><div class="drill-row-emoji">💪</div></div>
+<div class="drill-row"><div class="avatar sm" style="background:#854F0B;">DS</div><div class="drill-row-name">Daniel Stern</div><div class="drill-row-emoji">‼️</div></div>
+<div class="drill-row"><div class="avatar sm" style="background:#2B2E4F;">NW</div><div class="drill-row-name">Naomi Weiss</div><div class="drill-row-emoji">🎯</div></div>
+<div class="drill-row"><div class="avatar sm" style="background:#993C1D;">GS</div><div class="drill-row-name">Grant Spencer</div><div class="drill-row-emoji">‼️</div></div>
+<div class="drill-row"><div class="avatar sm" style="background:#7A3E9C;">EB</div><div class="drill-row-name">Emma Blackwell</div><div class="drill-row-emoji">😔</div></div>
+</div>
+<button class="picker-close" style="margin:0 14px 14px;" onclick="closeDrill()">Close</button>
+</div></div>
+
+<div class="tip-bar" onclick="goHome()" id="tip-bar" style="display:none;">Back to role select</div>
+
+<script>
+function startActivist(){document.getElementById('home').style.display='none';document.getElementById('activist').classList.add('active');document.getElementById('writer').classList.remove('active');document.getElementById('tip-bar').style.display='block';go('a-feed');}
+function startWriter(){document.getElementById('home').style.display='none';document.getElementById('writer').classList.add('active');document.getElementById('activist').classList.remove('active');document.getElementById('tip-bar').style.display='block';go('w-triage');}
+function goHome(){document.getElementById('home').style.display='block';document.getElementById('activist').classList.remove('active');document.getElementById('writer').classList.remove('active');document.getElementById('tip-bar').style.display='none';window.scrollTo(0,0);}
+function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function openPicker(){document.getElementById('picker').classList.add('open');}
+function closePicker(){document.getElementById('picker').classList.remove('open');}
+function pickRxn(e){closePicker();setTimeout(()=>alert('Reacted with '+e+' (prototype — not persisted)'),100);}
+function openDrill(){document.getElementById('drill').classList.add('open');}
+function closeDrill(){document.getElementById('drill').classList.remove('open');}
+function setTab(btn,name){const parent=btn.closest('.composer-side');parent.querySelectorAll('.c-tab').forEach(t=>t.classList.remove('on'));parent.querySelectorAll('.c-tab-content').forEach(c=>c.classList.remove('on'));btn.classList.add('on');document.getElementById('tab-'+name).classList.add('on');}
+</script>
+
+</body>
+</html>
