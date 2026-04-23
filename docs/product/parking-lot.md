@@ -2,7 +2,7 @@
 
 *Ideas, observations, and requirements that came up but haven't yet landed in the spec.*
 
-*Version: 0.1 · April 2026*
+*Version: 0.2 · April 2026*
 
 ---
 
@@ -146,10 +146,32 @@ How do we handle a member who changes their legal name, marries, changes career?
 
 ## Dispatch & amplification ideas
 
-### PARKED · Smart deduplication
-System detects when the same content (same URL, similar title) is being posted twice within a window. Prompts: "Similar content was posted 2 hours ago by Sharon — boost that one instead?"
+### ABSORBING · Post deduplication & co-surfacing
+*(Agreed direction — v0.6, will become §3.31)*
 
-*Origin: self-dispatch model implied risk.*
+When two members independently try to post the same URL within a configurable window (default 24 hours), the second attempt is merged into the first as a comment, framed warmly ("Abby saw this too and wants to share"). The canonical post stays singular — Sharon's post is still Sharon's post. Abby's voice is preserved as a comment on that post with her original draft accessible through a collapsed disclosure.
+
+**Key design choices:**
+- URL match after normalisation (shorteners resolved, tracking params stripped)
+- Soft-suggest with auto-merge as default (Variant A — 1-click to proceed)
+- No region differentiation — dedup is URL+time only; region is a viewing filter
+- Admin-configurable time window, default 24h
+- Specific notification to original author ("X saw this too and added their thoughts") — signals independent discovery, not generic comment noise
+- Any interaction with the interstitial marks the canonical post as **read** for the interacting user
+- Dispatch indicator visible on the interstitial — prevents double-dispatch
+
+**What this solves:**
+- Feed clutter (no duplicate posts)
+- Unread-anxiety (the second sharer doesn't see the canonical as unread)
+- Attribution (Abby's voice preserved, not silenced)
+- Double-dispatch (Abby sees Sharon already sent to WhatsApp groups)
+
+**Full spec:** `docs/product/dedup-and-cosurfacing.md`
+**Build Unit:** BU-009 (to be catalogued after ERD)
+**Analytics:** three new events — `post_merge_suggested`, `post_merge_accepted`, `post_merge_declined`
+**Copy keys:** seven new keys added to copy library (dedup.interstitial.*, dedup.comment.*, dedup.notification.specific)
+
+*Origin: self-dispatch model implied risk + Paul's late-April clarification on how attribution should work. Design landed in chat on 23 April 2026.*
 
 ### PARKED · Dispatcher-view version of routes
 For users on a team who dispatch frequently, a "dispatch mode" that surfaces the queue as their primary view. Different from the default member experience.
@@ -165,6 +187,82 @@ Similar flow for Telegram, Signal, X/Twitter. Routes registry extensible, but ea
 A post attributed to Action on Antisemitism might route to their networks too (if they're GPS Action users or if we integrate).
 
 *Origin: partner-organisation feature absorbed this week.*
+
+---
+
+## Inbound sharing — share INTO GPS Action
+
+### ABSORBING · Inbound sharing (PWA-first, native later)
+*(Agreed direction — v0.6, will become §3.32)*
+
+The paths content comes *into* GPS Action from the outside world. Member sees something on X, Instagram, a news site — gets it into GPS Action as a draft post.
+
+**Path A locked in:** PWA-first for MVP. Three inbound paths ship from day one:
+
+1. **Android Web Share Target API** — installed Android PWAs show up in the native share sheet, same quality as native apps
+2. **Clipboard detection on iOS + desktop** — composer detects a URL on the clipboard and offers one-tap acceptance. Works around Apple's refusal to allow PWAs as share targets
+3. **`/share?url=` endpoint + desktop bookmarklet** — works on any browser, useful for power users and as the foundation all other paths post to
+
+**Native iOS/Android share extensions are Tier B (B11)** on the engineering roadmap — triggered only if pilot data shows weak sharing rates or ≥25% of members request native share sheet.
+
+**What this unlocks:**
+- The WhatsApp-replacement loop ("I saw it on X → post it to GPS Action") becomes real
+- Members on Android get native-quality share sheet integration immediately
+- iOS members get a 3-tap path (copy → open app → accept clipboard) — not ideal but reliable
+- The `/share` endpoint means Phase 2 native apps plug into existing backend with no rebuild
+
+**Full spec:** `docs/product/inbound-sharing.md`
+**Build Unit:** BU-010 (to be catalogued after ERD)
+**Engineering roadmap item:** B11 (native iOS for share extension)
+**Analytics:** three new events — `share_intent_started`, `share_intent_completed`, `share_intent_abandoned`; plus `inbound_source` property added to `post_published`
+**Copy keys:** ten new keys added to copy library (share.clipboard.*, share.bookmarklet.*, share.android.*, share.endpoint.*)
+
+*Origin: D018 first noted the inbound-share endpoint as a concept; Paul's 23 April 2026 question about "use the phone share feature to post from social app TO OUR app" surfaced the platform constraint analysis and the Path A decision.*
+
+---
+
+## Presence & multi-user awareness ideas
+
+### PARKED · Live presence indicators (stacked avatars showing who's currently viewing)
+
+Beyond the claim avatar (which shows who's *claimed* a work item), live
+presence shows who's *currently viewing* a page — work-item detail page,
+admin entity page, queue list. Stacked avatars at the top of the page
+("Sharon, Grant viewing now"), updated via background heartbeat polling
+every 15 seconds.
+
+**What this would add beyond the claim avatar:**
+- Awareness of coordinators looking at the same item without claiming
+- "Wait — Sharon's already looking at this" hint on the queue list
+- Genuine sense of a shared workspace
+
+**What it requires:**
+- A `viewing_sessions` table (user_id, entity_type, entity_id, last_seen_at)
+- A heartbeat endpoint per page that shows presence
+- Background polling (every 15 seconds) on every relevant page
+- Stacked-avatar UI component
+- Cleanup sweep for stale sessions
+
+**Why deferred:** the claim avatar (in scope for MVP, see
+claim-and-lease.md) gives 80% of the social-awareness value at a fraction
+of the infrastructure cost. Coordinators see who's *working* on what; they
+don't necessarily need to see who's *looking*.
+
+**Trigger:** A coordinator complains, more than once, that they did
+duplicated work because they didn't know someone else was already on the
+same item (despite the claim avatar being visible). Backstop: re-evaluate
+if coordinator team grows past 10 people.
+
+**When triggered:**
+- Build `viewing_sessions` table + heartbeat endpoint
+- Add stacked-avatar component
+- Wire into work-item detail pages, queue list, admin entity pages
+- Honest copy: "viewing now" not "currently active"
+- Privacy posture: members never see admin presence
+
+*Origin: discussed in chat 23 April 2026. Pattern B (unified work_items
+queue) chosen for MVP; presence deferred until claim avatar proven
+insufficient.*
 
 ---
 
@@ -225,7 +323,7 @@ Routes that are Channels (not groups) can automate. Needs Business verification,
 *Origin: §3.13 spec.*
 
 ### DEFERRED (Phase 2) · Native mobile apps
-PWA for MVP. Native iOS/Android for Phase 2 once pattern stabilises.
+PWA for MVP. Native iOS/Android for Phase 2 once pattern stabilises. See engineering-roadmap B11 for the specific trigger for iOS share-sheet integration.
 
 *Origin: stack choice discussion.*
 
@@ -299,7 +397,7 @@ Single type with sub-field (incident / info / external content) or separate type
 WhatsApp fills this for pilot. Build native chat in Phase 2? Worth revisiting after pilot feedback.
 
 ### OPEN · Native apps vs web for MVP
-Trade-off: native gives push + share sheet; web is faster to iterate. Needs call before build.
+Trade-off: native gives push + share sheet; web is faster to iterate. Resolved for MVP: PWA-first (D003, inbound-sharing Path A). Native iOS has specific trigger on engineering roadmap B11.
 
 ### OPEN · Cloud hosting choice
 AWS eu-west-2 my lean. Others possible.
@@ -321,46 +419,3 @@ When an idea hits you:
 3. **Never:** delete an idea, even if declining — record the reason so it's not re-argued
 
 The parking lot grows. That's fine. It's a record of thinking, not a backlog to clear.
-
----
-
-## Inbound sharing — share INTO GPS Action (added late April 2026)
-
-### ABSORBING (v0.6 or v0.7) · Inbound share endpoint + bookmarklet
-
-The inverse of 1-click share-out. When a member encounters content elsewhere (X, Safari, an article, an Instagram post), they should be able to send it INTO GPS Action with one tap rather than copy-URL → switch-app → paste.
-
-**Three mechanisms, layered:**
-
-**Mechanism A — Native OS share sheet** (Phase 2)
-- Register GPS Action as an iOS/Android share target (or PWA via Web Share Target API)
-- User in any app taps Share → GPS Action appears in the picker
-- App opens with shared content pre-filled in composer
-- Real-world flow: Sharon scrolling X → sees problematic tweet → Share → GPS Action → composer opens with URL/preview pre-filled → picks Boost → publishes. 8 seconds total.
-
-**Mechanism B — Browser bookmarklet** (MVP-friendly)
-- One-click "Share to GPS Action" button in browser bookmarks bar
-- No app store, no extension, no install — just drag a link to the bookmarks bar
-- Click while viewing any page → opens GPS Action composer with page URL/title pre-filled
-- Universal: works in every browser, ships in days
-- Distribute to pilot users on day one
-
-**Mechanism C — URL endpoint** (foundation everything else builds on)
-- `gpsaction.org/share?url=...&title=...&note=...&image=...`
-- Any app, browser, automation tool, iOS Shortcut, email gateway, Slack bot can construct this URL
-- All shared parameters pre-fill the composer
-- Authenticated user lands on compose page with everything ready
-- Fallback if not logged in: prompt login, then continue to composer
-
-**Strategic importance:**
-Without inbound sharing, the user flow is 7+ steps (encounter → copy → switch app → tap + → pick type → paste → add context → publish). Most users drop in the middle. With inbound sharing it's 3 steps (encounter → share to GPS Action → publish). **Order-of-magnitude friction reduction at the most important moment.**
-
-This is the inbound twin of D016 (1-click share-out) and equally critical for member behaviour.
-
-**Build order:**
-- MVP (Phase 1): Mechanism C (URL endpoint — foundation) + Mechanism B (bookmarklet — easy wins)
-- Phase 2: Mechanism A (PWA Share Target API or native app integration)
-- Phase 3: iOS Shortcuts integration, email-to-post gateway, Slack/Teams bot integrations
-
-*Origin: user question April 2026 — "Do we have concept of X and other social sharing TO our app? how could we enable that?"*
-

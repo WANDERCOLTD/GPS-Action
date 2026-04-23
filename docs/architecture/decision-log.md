@@ -688,3 +688,62 @@ external collaborator asks. They do **not** replace Build Units for planned work
 
 **Status:** Active. Build Unit catalogue is the first deliverable after ERD lands.
 Target: ~30 Build Units covering MVP scope, sequenced into 4 phases.
+
+### D040 · `work_items` as the unified queue primitive
+
+**Date:** April 2026
+**Tier:** Foundation
+**Context:** Multiple coordinators must be able to work the same admin
+surface from day one without conflicting. The naïve approach is per-domain
+queues (one for vetting, one for flags, one for outcome reviews, etc.) each
+with its own claim mechanism, audit pattern, notification system, and queue
+UI. This produces duplication, drift, and a scattered coordinator
+experience ("which page do I check?").
+
+**Options considered:**
+
+- **Six separate queues, six separate UIs (per-domain claim mechanics)**
+  Rejected: every queue reimplements the same pattern; coordinators have to
+  visit multiple pages to know what needs them; per-domain drift accumulates.
+
+- **One queue list, dedicated detail pages per type (Pattern C)**
+  Considered: better than six queues but still requires per-type page
+  scaffolding. Marginal gain over Pattern B.
+
+- **One unified `work_items` table, type-driven UI (Pattern B — chosen)**
+  All claimable workflows live in one table. Type drives which form/resolution
+  flow renders. One claim mechanic, one heartbeat endpoint, one audit pattern,
+  one queue UI. Adding a new claimable workflow is metadata + a form
+  component, not a new table.
+
+**Decision:** Adopt Pattern B. The `work_items` table is the workflow
+primitive; the underlying entities (Flag, Application, Submission, etc.) are
+what's being worked on. Schema spec lives in `docs/architecture/claim-and-lease.md`.
+
+**Eight initial types:** `vetting`, `flag`, `outcome_review`, `dedup_merge`,
+`edit_request`, `incident`, `content_submission`, `link_submission`. Extends
+as features add new claimable workflows.
+
+**Reasoning:**
+- One place coordinators look ("what needs me?" → /queue)
+- Cross-type queries become trivial ("Sharon's open work this week",
+  "average resolution time by type")
+- Auto-scaffold synergy — admin-surface.md's auto-generation pattern applies
+  cleanly at the queue level too
+- Adding a new claimable type is metadata, not new infrastructure
+
+**Consequences:**
+- ERD must include `work_items` per spec in claim-and-lease.md (the schema
+  block in §"Schema for ERD")
+- The `context` JSONB carries type-specific payload; each type defines its
+  shape via a TypeScript type + Zod schema
+- BU-001 (admin scaffolding) is the first Build Unit and includes the
+  generic queue UI on top of work_items
+- Per-type resolution forms are specified per-Build-Unit (vetting form in
+  BU-002, flag form in BU-012, etc.)
+- Five claim/lease design decisions confirmed and locked in claim-and-lease.md
+  (single-worker exclusive claims, tab-split queue UI, three-tier release,
+  scoped lock — locks the work-item, not the underlying entity)
+
+**Status:** Active. Foundational for ERD. All claimable workflows route
+through this primitive.
