@@ -129,3 +129,11 @@ build the requested work, STOP and surface the question to the user.
   mail client. Say "Opening your mail client..." Honesty matters.
 - **Plain English:** No jargon. "Send" not "Dispatch." "Share" not "Amplify."
   (Internal data terms are fine — `verdict: boost` is data, "Amplify this" is the button.)
+
+## Foundation docs (read before relevant work)
+
+- **Before any UI work** → `docs/product/design-philosophy.md` (the 5 principles, priority order)
+- **Before any router/API work** → `docs/process/api-contract-discipline.md` (10 rules + reviewer checklist)
+- **Before any feature instrumentation** → `docs/product/analytics-events.md` (16 events, PII policy)
+- **Before any feature behind a flag** → D036 in decision log + `docs/product/feature-flag-register.md`
+- **Before creating or touching a Build Unit** → D038 + D039 in decision log

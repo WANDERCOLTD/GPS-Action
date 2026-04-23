@@ -404,3 +404,287 @@ Never edit past entries. Append corrections as new entries. This preserves the t
 - App naming (1-2 weeks pre-pilot)
 - Steward / Welcoming vocabulary (test with members)
 
+# Decision Log — April 2026 addendum
+
+**Instructions:** Append everything below to `docs/architecture/decision-log.md`.
+Four new decisions (D036–D039) covering feature flags, observability, traceability
+infrastructure, and the Build Unit model. All four are foundational — must land
+before feature-level Claude Code sessions begin.
+
+---
+
+### D036 · Feature flag tooling — homegrown, DB-driven, discipline-enforced
+
+**Date:** April 2026
+**Tier:** Foundation
+**Context:** We stated the principle "feature flags everywhere" (v0.5 spec §5.4)
+but never chose tooling. Every substantial feature must ship behind a flag. Without
+a locked approach, each Claude Code session invents its own pattern.
+
+**Options considered:**
+- **LaunchDarkly** — industry leader, per-user targeting, full audit. Rejected: ~$180/month
+  baseline, scales punishingly, vendor lock-in, overkill pre-revenue.
+- **Unleash (self-hosted)** — OSS, feature-complete. Rejected for MVP: adds another
+  service to deploy, secure, and monitor. Reconsider Phase 2.
+- **GrowthBook** — OSS with hosted tier, A/B testing built-in. Rejected: A/B testing
+  is not a near-term need; its strength doesn't help us.
+- **PostHog feature flags (piggyback on analytics)** — attractive integration. Rejected
+  as primary: client-side evaluation risks tampering; we need server-side authority.
+- **Env vars only** — Rejected: requires redeploy to flip, no per-user targeting,
+  cannot act as a kill switch in seconds.
+- **Homegrown, DB-driven (chosen)**
+
+**Decision:** Single `feature_flags` table in the primary database, evaluated
+server-side by a `isFeatureEnabled(name, context)` function. Admin UI for flip +
+audit. Client receives booleans only, never flag names.
+
+**Three flag types must be declared explicitly:**
+
+1. **Rollout flags** — short-lived. Ramp pilot → wider release. Mandatory TTL.
+2. **Kill switches** — long-lived. Instant disable for abuse/failure. Named owner.
+3. **Pilot gates** — restrict feature to named cohort during pilot.
+
+Config values (max post length, rate limits) are **not flags** — they live in
+`config/` and change via PR.
+
+**Schema:**
+```
+feature_flags:
+  id              uuid
+  name            text unique        -- e.g. "ff_flagging_v2"
+  description     text
+  purpose         enum(rollout, kill_switch, pilot_gate)
+  enabled_globally        boolean
+  enabled_for_user_ids    uuid[]
+  enabled_for_group_ids   uuid[]
+  enabled_for_regions     text[]
+  rollout_percentage      int        -- 0..100, stable hash(user_id)
+  ttl_remove_after        date       -- required for rollout flags
+  owner_user_id           uuid       -- required for kill switches
+  created_at, created_by, updated_at, updated_by
+```
+
+**Discipline rules (enforced in review):**
+
+1. Every new feature lands with `enabled_globally=false`. Default OFF.
+2. Every flag declares its `purpose`. Generic flags rejected in review.
+3. Rollout flags must have `ttl_remove_after`. Default: 90 days. Enforced by a
+   weekly script that opens issues for expiring flags.
+4. Kill switches are permanent and have a named owner.
+5. No nested flags. If a feature needs two flags, the feature is too big.
+6. Flags evaluated server-side. Clients never see flag names.
+7. Every flag flip is audit-logged: who, when, old state, new state, reason.
+8. Test suite must cover feature behaviour in both states.
+9. Every flag is listed in `docs/product/feature-flag-register.md` (live registry).
+
+**Consequences:**
+- One Claude Code session builds the service + admin UI (~half day).
+- Adds a `feature_flags` table and corresponding audit entries.
+- ESLint rule enforces `isFeatureEnabled` wrapping for new features (custom rule).
+- Weekly cron opens "Flag X expires in 7 days — plan removal or extend" issues.
+- The "nothing new" week (ratchet-discipline doc) is where expired flags get removed.
+
+**Status:** Active. Build the service in Phase 0 before any feature-flag-dependent
+work. Register file seeded with initial flags during Build Unit definition.
+
+---
+
+### D037 · Observability stack — Sentry + PostHog + Better Stack
+
+**Date:** April 2026
+**Tier:** Foundation
+**Context:** "Observability is a feature" was stated as principle but no concrete
+stack chosen. Three audiences need different tools: operators (is it up, fast?),
+product (are people using it?), incident responders (what broke at 3am?).
+
+**Options considered:**
+- **Datadog (all-in-one)** — Rejected: excellent, expensive, lock-in.
+- **Grafana Cloud + Loki + Tempo** — Rejected for MVP: assembly required, three
+  tools to learn, team size doesn't justify the DIY premium now. Reconsider if
+  costs escalate on the chosen stack.
+- **AWS CloudWatch only** — Rejected: painful DX, no product analytics, weak
+  error triage.
+- **OpenTelemetry + homegrown** — Rejected: huge time sink pre-scale.
+- **Sentry + PostHog + Better Stack (chosen)**
+
+**Decision:**
+
+| Concern | Tool | Why |
+|---|---|---|
+| Errors + performance traces | **Sentry** | Next.js integration in minutes; free tier covers MVP; the best tool for "what broke in this user's session" |
+| Product analytics + funnels + cohorts | **PostHog** | Event model in `docs/product/analytics-events.md`; self-hostable later if costs rise; strong free tier |
+| Structured logs + uptime monitoring + alerts | **Better Stack (Logtail + Uptime)** | Cheap; searchable; alerting via multiple channels |
+
+**Instrumentation discipline (enforced in every feature):**
+
+1. **Structured logs at lifecycle points** — handler entry/exit, external calls,
+   decisions. One log = one JSON object. Fields: `event_type`, `user_id_hash`,
+   relevant props. **Never** log PII, tokens, post bodies, comment text, emails.
+2. **Metrics on critical paths** — latency histograms, success/failure counters,
+   queue depths.
+3. **Traces across service boundaries** — AI call, email send, webhook delivery,
+   external API. Sentry handles this natively for HTTP; manual spans for queues.
+4. **Sentry breadcrumbs before every `try` block** — future-you will thank you.
+5. **Analytics event at every meaningful user action** — list in
+   `docs/product/analytics-events.md`.
+
+**PII policy (non-negotiable):**
+- `user_id` → hashed (sha256 + salt) before logging or analytics
+- Email addresses → never logged, never sent to analytics
+- Post/comment bodies → never logged, never sent to analytics
+- IP addresses → logged for security events only, retained 30 days, then purged
+- Tokens/secrets → filtered by framework-level middleware; any leak is a P1
+
+**Deployment order (Phase 0, before feature #1):**
+1. Sentry SDK in both Next.js app and server
+2. PostHog SDK in Next.js; server-side event emission from tRPC procedures
+3. Logtail transport for Pino/Winston structured logger
+4. Better Stack uptime monitors on public endpoints
+5. Alert rules: error rate spike, P95 latency spike, uptime loss, queue depth
+
+**Consequences:**
+- Three vendor accounts to manage + secrets in the vault.
+- ~£50/month at MVP scale. Scales with volume; review at 6 months.
+- Every feature ships with a dashboard (a saved PostHog insight or Grafana panel).
+- Data export agreements checked — all three vendors support UK/EEA residency or
+  offer EU processing. Verify at contract time.
+
+**Status:** Active. Install in Phase 0 before any feature PR. Instrumentation
+added retrofit always misses the interesting edges.
+
+---
+
+### D038 · Traceability infrastructure — YAML frontmatter + file annotations + `trace` script
+
+**Date:** April 2026
+**Tier:** Foundation
+**Context:** Moving into code, we need bidirectional traceability: forward (spec →
+scenarios → build units → code) and backward (code → build units → scenarios →
+spec). Without this, impact analysis is archaeology and regressions hide.
+
+**Decision:** Adopt a six-part convention enforced by automation.
+
+**1. Scenarios reference spec sections.** Every scenario file starts with a
+YAML block:
+
+```yaml
+---
+id: SCN-04
+name: Sharon flags a post
+spec_sections: ["3.15", "3.15.2", "3.22"]
+build_units: [BU-012]
+related_scenarios: [SCN-05, SCN-12]
+---
+```
+
+**2. Build Units are the canonical linked-list node.** Each `docs/build/units/BU-NNN.md`
+file begins with:
+
+```yaml
+---
+id: BU-012
+name: Flagging pipeline
+status: proposed | ready | in_progress | done | blocked
+scenarios: [SCN-04, SCN-05, SCN-12]
+spec_sections: ["3.15", "3.15.2", "3.22"]
+adrs: [D019]
+erd_entities: [Flag, Post, User]
+trpc_procedures: [flagPost, listFlags, resolveFlag]
+ui_components: [FlagButton, FlagReasonModal, FlagQueueScreen]
+events: [post_flagged, flag_resolved]
+feature_flags: [ff_flagging_v2]
+depends_on: [BU-001, BU-003]
+blocks: []
+estimated_sessions: 3
+---
+```
+
+**3. Every code file declares its Build Unit.** Top of file:
+
+```typescript
+/**
+ * @build-unit BU-012
+ * @scenarios SCN-04, SCN-05
+ * @spec §3.15
+ */
+```
+
+Enforced by ESLint custom rule (`require-build-unit-header`). New files without
+the header fail CI.
+
+**4. ADRs reference the features they constrain.** Already partial — formalise:
+
+```markdown
+**Affects:** §3.15.2, BU-012
+**Triggered by:** SCN-04
+```
+
+**5. Analytics events declare their source.** In `docs/product/analytics-events.md`,
+each event lists the file(s) that fire it and the Build Unit owning it.
+
+**6. `scripts/trace.ts`.** One script, takes any ID (scenario, build unit, file path,
+procedure name, component name, event name, ADR ID) and prints the full dependency
+tree both directions.
+
+**Consequences:**
+- Adds ~5 minutes per Build Unit to maintain.
+- Adds ~10 seconds per file to annotate (auto-generated by Claude Code if the
+  session brief includes the Build Unit ID — which it should).
+- Enables single-command impact analysis before any change.
+- Enables regression scope in one query after a bug.
+- Enables coverage gap detection (scenarios with no code, ADRs referenced by
+  nothing, events declared but never fired).
+- Retrofitting this later is 10× the cost of doing it day one. Hence day one.
+
+**Status:** Active. The convention + ESLint rule + `trace.ts` script are Phase 0
+deliverables, before the first feature Build Unit. See
+`docs/build/README.md` for the full operator's guide.
+
+---
+
+### D039 · Build Unit as the work-scoping primitive
+
+**Date:** April 2026
+**Tier:** Foundation
+**Context:** We have Feature Spec and Scenarios but nothing between them and code.
+Claude Code needs scoped work packages. Humans need "tickets" to pick up. Both
+need a unit that maps cleanly down to session briefs and up to scenarios.
+
+**Options considered:**
+- **GitHub Issues as tickets** — Rejected as sole mechanism: no structured links
+  to scenarios/ADRs/components; search is weak; lives outside the repo.
+- **Jira / Linear** — Rejected: weight, cost, context-switch, outside the repo.
+- **Markdown files with YAML frontmatter (chosen)** — in-repo, grep-able,
+  machine-readable, version-controlled, diff-able in PRs.
+
+**Decision:** Build Units are markdown files in `docs/build/units/BU-NNN.md`.
+Schema defined in D038. Ordered in `docs/build/plan.md` by phase.
+
+**A Build Unit:**
+- Covers one or more scenarios end-to-end
+- Delivers a viewable artifact (scenario demo, Storybook entry, or preview deploy)
+- Is chunky enough to represent real progress (1–3 Claude Code sessions)
+- Is small enough that a human can hold its scope in their head
+- Has explicit dependencies on other Build Units
+- Has an owner (even if that owner is "Paul + Claude Code")
+- Has a status in {proposed, ready, in_progress, done, blocked}
+
+**Phasing principle:** Vertical slices early. Phase 2 must deliver an end-to-end
+demo-able scenario within 2 weeks of Phase 0 completing. Horizontal scaffolding
+(all models, then all APIs, then all UI) is rejected — it delays visible progress
+and hides integration problems until late.
+
+**GitHub Issues may still be used** for ad-hoc bugs, operational tasks, and
+external collaborator asks. They do **not** replace Build Units for planned work.
+
+**Consequences:**
+- Planning cadence: weekly pull of 1–3 Build Units from `ready` into `in_progress`.
+- No stand-ups, no sprint planning ceremony, no Jira grooming. The Build Plan +
+  Build Units + weekly demo is sufficient ritual for a team this size.
+- Session Briefs (see `docs/process/session-brief-template.md`) are generated
+  from Build Units when starting a Claude Code session.
+- Parking lot items become Build Units when they're ready to build (or stay parked).
+- "Done" requires the scenario demo recorded, not just PR merged.
+
+**Status:** Active. Build Unit catalogue is the first deliverable after ERD lands.
+Target: ~30 Build Units covering MVP scope, sequenced into 4 phases.
