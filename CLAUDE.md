@@ -80,3 +80,52 @@ business logic, design tradeoff), STOP and ask. Don't guess.
 Building the ERD. See `docs/architecture/erd.md` for placeholder context.
 After ERD lands, the Ping placeholder entity in `prisma/schema.prisma`
 will be removed and real entities defined.
+
+---
+
+## CRITICAL: Recent context not yet absorbed into Feature Spec v0.5
+
+Several important decisions were made in conversation but Feature Spec is still v0.5.
+The spec will be updated to v0.6 in a future session. Until then, **read these explicitly
+before any work touching their areas**:
+
+### Mandatory reading before relevant work
+
+- **Before any Post-related work** → read `docs/product/parking-lot.md` sections:
+  - "1-click social sharing — CRITICAL FEATURE" (will be §3.31 in v0.6)
+  - "Boost / Remove — clarification" (simplifies §3.22)
+  - "Identity & affiliation ideas" → Partner Organisations (will be §3.30)
+
+- **Before any UI work** → read parking-lot section "Naming exploration"
+  - Member-facing copy uses specific verbs not generic "Take action"
+  - "Steward" is being tested as alternative to "Coordinator"
+
+- **Before any dispatch/routing work** → read parking-lot:
+  - Self-dispatch is the default (D013 in decision log)
+  - Boost/Remove is just a post + verdict to a WhatsApp channel (D017)
+
+- **Before any sharing/inbound work** → read parking-lot:
+  - Inbound sharing endpoint (D018) — `/share?url=...` foundation
+  - Bookmarklet for MVP, native share sheet for Phase 2
+
+### What "v0.6 absorbing" means
+
+Items marked **ABSORBING (v0.6)** in the parking lot are agreed-direction features
+that will land in the next spec update. Treat them as confirmed for build, not as
+"maybe." If a session needs to build something that depends on them, build assuming
+they're real.
+
+Items marked **PARKED** are not yet decided. If a session needs one of these to
+build the requested work, STOP and surface the question to the user.
+
+### Voice and tone notes (carry through all UI copy)
+
+- **Sharon-warmth:** Community moments use warm, casual register (💕🤗 acceptable here)
+- **No anxiety amplification:** Avoid endless-scroll patterns, "always-on urgency" framing.
+  Members should feel "permission to close" the app after acting.
+- **Cultural moments are quiet:** Shabbat / remembrance posts use bordeaux (#6B3045)
+  cultural-marker colour. Quieter, dignified treatment, not urgent-action styling.
+- **Honest copy:** Don't say "We've sent your email!" if we just opened the user's
+  mail client. Say "Opening your mail client..." Honesty matters.
+- **Plain English:** No jargon. "Send" not "Dispatch." "Share" not "Amplify."
+  (Internal data terms are fine — `verdict: boost` is data, "Amplify this" is the button.)

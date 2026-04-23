@@ -288,3 +288,119 @@ Whenever a decision is made:
 5. If decision supersedes an earlier one, mark the earlier one Superseded and link
 
 Never edit past entries. Append corrections as new entries. This preserves the trail.
+
+---
+
+## Recent decisions (April 2026, late-month batch — added during pre-build doc consolidation)
+
+### D015 · Partner Organisations & co-branding
+
+**Date:** April 2026
+**Tier:** Architecture
+**Context:** GPS members are often affiliated with other campaigning organisations (Action on Antisemitism, CST, etc.). WhatsApp screenshot showed Action on Antisemitism logo on a Sky News complaint post — co-branding is already happening informally.
+**Options considered:**
+- No co-branding, GPS only (rejected — doesn't match reality)
+- Free text attribution (rejected — unverifiable, brand-impersonation risk)
+- Structured Partner Organisation entity with verified affiliations (chosen)
+**Decision:** Partner Organisation as first-class entity. Members declare Affiliations. Posts may attribute to one or more Partners (max 3). Logo renders on card. Admin-managed Partner records. Self-declared affiliations with verification layer.
+**Reasoning:** Real GPS posts already co-brand. Need a controlled way to do it that prevents impersonation. Verified affiliations carry a tick; unverified appear without it. Partnership archive (not retroactive removal) preserves history.
+**Consequences:** New entities — Partner, UserAffiliation. Composer gains attribution picker. Card rendering supports logo + tick. Routing engine matches partner-attributed posts to partner-specific WhatsApp routes. Profile lists user's affiliations. Affects enrolment form (asks about existing affiliations).
+**Status:** Active. To absorb into Feature Spec v0.6 as §3.30.
+
+### D016 · 1-click social sharing as primary universal feature
+
+**Date:** April 2026
+**Tier:** Architecture
+**Context:** WhatsApp screenshot shows 9,411 links across the network — overwhelming evidence that the dominant member behaviour is **amplifying content on social media**. Earlier spec treated "share" as one action type among 12. That mis-frames priority.
+**Options considered:**
+- Keep share as one action type (rejected — under-prioritises the dominant behaviour)
+- 1-click share strip on every shareable post, multi-platform (chosen)
+**Decision:** Every shareable post carries a 1-click share strip: X, Facebook, Instagram, LinkedIn, WhatsApp, Telegram, email, plus native OS share sheet. Composer produces per-platform text variants and image crops (1:1 / 9:16 / 16:9 / 1.91:1). System tracks share-button taps (not completion — privacy by design). UTM params on outgoing URLs.
+**Reasoning:** Order-of-magnitude friction reduction at the most important moment. A member encounters bad content → wants to amplify → 1-click instead of 5-step manual flow. Without this, members will continue using WhatsApp directly and bypass GPS Action entirely.
+**Consequences:** Post primitive gains text variants + image crops fields. Composer adds platform-specific authoring with previews. Card UI gains share strip. Tracking infrastructure for tap events + UTM attribution. Boost/share as a generic action type becomes less central — sharing is universal on every post.
+**Status:** Active. To absorb into Feature Spec v0.6 as §3.31. **Critical for pilot.**
+
+### D017 · Boost/Remove simplification — just a post + verdict
+
+**Date:** April 2026
+**Tier:** Architecture
+**Context:** Earlier spec over-engineered Boost/Remove with separate composer flows, complex cap management, distinct moderation treatment. User clarified: it's nothing more than a post + verdict, into a designated WhatsApp channel.
+**Options considered:**
+- Maintain separate Boost and Remove flows (rejected — over-complex)
+- Single composer with verdict field, dispatch routes to verdict-specific channel (chosen)
+**Decision:** Boost ✅ / Remove ❌ are a `verdict: 'boost' | 'remove' | null` field on Post. Dispatch routes verdict-carrying posts to the "Network Tick or Cross" WhatsApp channel with the appropriate prefix. No special UI flows. WhatsApp team manually actions the channel as they do today (retweet/like for boost, mass-report for remove).
+**Reasoning:** Matches existing GPS practice exactly. No invention. Lowest engineering cost. Highest fidelity to the workflow Sharon and team already run.
+**Consequences:** Spec simplifies materially. Verdict field on Post primitive. One additional Route record for the boost/remove channel. Dispatched message format prefixes ✅ or ❌. No bespoke moderation pipeline needed.
+**Status:** Active. Supersedes earlier over-engineered Boost/Remove design. To absorb into Feature Spec v0.6 §3.22.
+
+### D018 · Inbound sharing — share INTO GPS Action
+
+**Date:** April 2026
+**Tier:** Architecture
+**Context:** Inverse of share-out. When a member encounters content elsewhere (X, Safari, an article), they should be able to send it INTO GPS Action with one tap, not copy-paste-switch-app.
+**Options considered:**
+- Manual flow only — copy URL, switch app, paste (current — high friction)
+- URL endpoint as foundation + bookmarklet for MVP (chosen MVP)
+- Native OS share sheet integration (Phase 2, requires native app or PWA Share Target)
+- Browser extension (Phase 2, polish)
+**Decision (MVP):** Build `/share?url=...&title=...&note=...` endpoint. Build a bookmarklet that members install in their browser bookmarks bar — one click while viewing any page opens the GPS Action composer pre-filled. **Decision (Phase 2):** Native share sheet via PWA Share Target API or native app integration.
+**Reasoning:** Removes the same order-of-magnitude friction as share-out, at the inbound moment. Bookmarklet is universal (works in every browser), needs no app-store approval, ships in days. URL endpoint is the foundation everything else builds on (native share, browser extension, automation tools).
+**Consequences:** New `/share` route in app. Composer accepts URL parameters and pre-fills. Bookmarklet code distributed to pilot users on day one. Share Target API specified in PWA manifest (Phase 2).
+**Status:** Active. Parked for v0.6 or v0.7 depending on capacity.
+
+### D019 · Useful Links repository (member-contributed, admin-curated)
+
+**Date:** April 2026
+**Tier:** Feature
+**Context:** WhatsApp screenshot showed Sharon saying "I'll add it to our repository of useful info" after Candice shared standwithus.com link. The repository exists informally; should be formalised.
+**Decision:** Members submit external links with context. Lands in admin review queue. Approved links appear in Network → Resources area, searchable/filterable by topic and region. Distinct from Content Library (GPS's own assets), Partner Organisations (relationship records), Contacts (outreach), and Routes (dispatch).
+**Reasoning:** Existing practice should be supported, not bypassed. Centralising the "useful links" library removes WhatsApp scroll-back searching and makes resources discoverable to new members.
+**Consequences:** New Resource entity. Submission form. Admin review queue. Browse/search UI in Network area.
+**Status:** Parked for v0.6 or later. Naming TBD ("Resources" / "Library" / "Useful Links" / "Know This").
+
+### D020 · Engineering discipline framework adopted
+
+**Date:** April 2026
+**Tier:** Foundation
+**Context:** User wants extreme parallel one-shot Claude Code builds against contracts. Without explicit discipline, parallel sessions drift.
+**Decision:** Adopt the full discipline framework: Session Brief Template, Reviewer Checklist, Ratchet Discipline, Security Baseline, Change Absorption Guide, Decision Log, Parking Lot, Scenarios library. ESLint with boundary plugin enforces MVC layer separation as errors. CI blocks merges on typecheck/lint/test failures. Definition-of-done is non-negotiable per session.
+**Reasoning:** Parallel work without contracts produces unassembleable output. The discipline framework is what makes one-shot parallel builds actually work. The cost (rigorous briefs, reviewer time) is far less than the cost of integration failure.
+**Consequences:** Every Claude Code session uses the brief template. Every PR walks the reviewer checklist. Layer boundaries are physical (file paths) not just conventional. All decisions go to this log.
+**Status:** Active.
+
+### D021 · Naming exploration deferred to pre-pilot
+
+**Date:** April 2026
+**Tier:** Feature
+**Context:** "GPS Action" is institutional. Member-facing name should be warmer, verb-led, shorter (e.g. Stand, Echo, Rally). Internal vocabulary also under exploration (Coordinator → Steward, Vetting → Welcoming).
+**Decision:** Keep "GPS Action" as internal working name through build. Lock member-facing name 1-2 weeks pre-pilot after testing 3 candidates aloud with Jeremy, Sharon, and a few trusted members.
+**Reasoning:** Naming this early commits to domain/handles/trademark searches before we know what we're shipping. But thinking is captured (parking lot) so it's not lost.
+**Consequences:** Code uses "GPSAction" or "gps-action" internally. Display strings parameterise the app name so a single-file change updates everything when the name lands.
+**Status:** Pending — pre-pilot decision.
+
+### D022 · Repo structure — single monorepo with layer-first directories
+
+**Date:** April 2026
+**Tier:** Foundation
+**Context:** Need to commit to a repo organisation before code lands.
+**Options considered:**
+- Polyrepo (separate frontend/backend repos) — rejected, over-engineering for MVP
+- Monorepo with feature-first directories — rejected, breaks layer boundaries
+- Monorepo with layer-first directories (chosen)
+**Decision:** Single repo `gps-action`. Directories organise by layer (`/app`, `/server/routers`, `/server/services`, `/server/db`, `/server/lib`, `/shared`, `/components`, `/styles`, `/prisma`, `/tests`, `/scripts`, `/docs`). Features cut across layers — a "dispatch" feature has files in `/server/services/dispatch.ts`, `/server/routers/dispatch.ts`, `/app/(member)/dispatch/...`.
+**Reasoning:** Layer-first preserves MVC discipline at the file-system level. ESLint boundary rules enforce import direction. Feature-first directories make boundaries conventional (easily violated); layer-first makes them physical.
+**Consequences:** Sessions building one feature touch multiple directories — that's expected and correct. Reviewers check layer boundaries by file location alone. Architecture decisions don't drift.
+**Status:** Active. Skeleton script implements this structure.
+
+---
+
+## Late-April additions to "Pending decisions"
+
+- Partner Organisations spec details for v0.6
+- 1-click social sharing spec details for v0.6 (CRITICAL)
+- Boost/Remove simplification absorbed into v0.6 §3.22
+- Inbound sharing endpoint (decide MVP scope vs Phase 2)
+- Useful Links repository (decide MVP scope)
+- App naming (1-2 weeks pre-pilot)
+- Steward / Welcoming vocabulary (test with members)
+
