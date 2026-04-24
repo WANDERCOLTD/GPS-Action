@@ -35,6 +35,7 @@ D039 (Build Units), `docs/build/engineering-roadmap.md` (Tier B/C/D backlog).
 | F10 | Seed data script (realistic fixtures) | ☐ | — |
 | F11 | Error boundaries in UI shell | ☐ | — |
 | F12 | Health check endpoints (`/healthz`, `/readyz`) | ☐ | — |
+| F13 | Enforce `@spec` traceability tag (ESLint) | ☐ | — |
 
 Mark complete in PR descriptions. This checklist lives here forever — future
 contributors see what foundation was laid and when.
@@ -695,6 +696,27 @@ Better Stack (D037) monitors both and pages on `/readyz` failures.
 
 **Done when:** Both endpoints return JSON; Better Stack monitors are configured
 and pass.
+
+---
+
+## F13 · Enforce `@spec` traceability tag
+
+**Why:** D038 requires every code file with `@build-unit` to also carry a `@spec`
+tag pointing at the relevant spec or decision document. F06 rule 1 enforces
+`@build-unit` but `@spec` was convention-only — 3 files drifted during BU-feed,
+proving the convention is not self-enforcing.
+
+**File:** `eslint-rules/rules/require-spec-tag.js`
+
+**Behaviour:** Scans the first 10 non-blank lines (same window as rule 1). If
+`@build-unit` is present but no `@spec <value>` tag, the rule fires. Files
+without `@build-unit` pass — utility files are unaffected.
+
+**Scope:** Same file globs as rule 1 (`app/`, `server/routers/`, `server/services/`,
+`server/admin/`, `components/`).
+
+**Done when:** `npm run lint` fails on any file with `@build-unit` but no `@spec`,
+and passes when both tags are present.
 
 ---
 
