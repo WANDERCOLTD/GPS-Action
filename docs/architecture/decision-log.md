@@ -1520,3 +1520,190 @@ Chosen because:
 - Originating conversation: April 2026 planning session (post-F03)
 - Implementation: ERD Slice 2 minimal PR (amended to remove PostType)
 - Future refinement: composer design session (BU-composer brief, TBD)
+
+### 2026-04 update — blocked pending real-post screenshots
+
+GPS leadership has indicated they will provide screenshots of **real
+WhatsApp posts** covering the 10-14 post types actually in use. Until
+those land:
+
+- **PostType taxonomy is BLOCKED.** Not merely deferred — blocked.
+  The composer design session cannot finalise the type list by
+  reasoning from first principles; the real vocabulary is in those
+  screenshots.
+- **Simple BU-composer (demo path) is unaffected.** It has no type
+  field per the original D048 decision. Demo proceeds.
+- **Full FAB composer (BU-005, post-demo) is blocked** on
+  screenshots arriving.
+
+When screenshots arrive:
+
+1. Add them to `docs/product/post-type-examples/` (new directory)
+2. Update `docs/product/scale-and-audience.md` with the validated
+   list of post types
+3. Draft the PostType enum against real examples
+4. Unblock BU-005
+
+See also: `docs/product/scale-and-audience.md` for related scale
+context (350k reach, coordinator-as-default, projected 1,000+
+coordinators).
+
+# D049 — Coordinator: role tier or reach attribute? [OPEN]
+
+**Status:** Proposed / Open · April 2026
+**Context:** Product strategy input from GPS leadership, April 2026
+**Supersedes:** refines earlier assumptions in
+`docs/architecture/admin-surface.md` about `coordinator` as a
+distinct role tier
+
+---
+
+## Context
+
+GPS leadership clarified (April 2026) that **nearly everyone in GPS
+is a coordinator** — defined as "a member with a reachable network
+beyond GPS itself, whether 15 friends or 15,000 newsletter
+subscribers." The original assumption — that coordinators are a
+small power-user tier — is incorrect.
+
+Current scale: 250 members, 200 coordinators. Projected: 1,000+
+coordinators out of a growing base. The distinction between "member"
+and "coordinator" is vanishing; the meaningful variable is
+**reach**, which varies by orders of magnitude.
+
+See `docs/product/scale-and-audience.md` for full scale context.
+
+## The question
+
+Should GPS Action model "coordinator" as:
+
+- **(A)** A discrete role tier (`member` | `coordinator` |
+  `queue_manager` | `admin`), as currently in the schema, OR
+- **(B)** A continuous attribute on User — e.g.,
+  `selfDeclaredReach: Int?` and/or `verifiedReach: Int?` — with
+  behaviours gated by reach rather than role, OR
+- **(C)** Both — keep `coordinator` as an observable flag for
+  "has non-trivial reach" but also track reach as a number
+
+## Options considered
+
+### Option A — Keep `coordinator` as a discrete role
+
+**Pros:**
+
+- Schema unchanged; no migration
+- Admin UI mental model stays "grant someone coordinator status"
+- Clear yes/no for UI branching ("is this user a coordinator?
+  show the amplification flow")
+
+**Cons:**
+
+- The line between "member" and "coordinator" is arbitrary; GPS
+  leadership says nearly-everyone has some reach
+- Loses information: a coordinator with 15 people and one with
+  15,000 are treated identically
+- The word "coordinator" implies a small special group — which isn't
+  reality
+- Invites disputes at the edges ("am I a coordinator? I've got a
+  small WhatsApp group")
+
+### Option B — Replace with `reach` attribute
+
+**Pros:**
+
+- Captures the continuous variable that actually matters
+- No arbitrary line; small reach is still reach
+- Enables richer UI decisions (show dispatch flow to anyone with
+  reach > 10, not just those granted coordinator)
+- Matches the product strategy: amplification is the mechanism
+
+**Cons:**
+
+- Schema change (add fields to User, deprecate coordinator role)
+- Migration path for existing coordinator role grants
+- Self-reported reach is unreliable; users may over- or under-state
+- Verification of reach is its own workstream
+- Admin UI becomes "how do we surface reach" rather than "grant/
+  revoke coordinator"
+
+### Option C — Keep role AND add reach
+
+**Pros:**
+
+- Best of both — role for UI branching, reach for nuance
+- Smooth migration (existing role grants keep meaning)
+- Role can be derived from reach (reach > threshold → automatic
+  coordinator tag)
+
+**Cons:**
+
+- Two sources of truth can drift
+- Adds schema complexity without clear necessity
+- Defers the real decision ("what's the canonical attribute?")
+
+### Option D — Do nothing right now
+
+**Pros:**
+
+- Demo path doesn't care about this question
+- Moving fast matters; this is a Phase 2 concern
+- More information may emerge (what does GPS actually use
+  "coordinator" to mean in practice?)
+
+**Cons:**
+
+- The admin surface (BU-020) will assume one of the models;
+  whichever it picks is hard to undo
+- Continues building against an incorrect mental model
+
+## Recommendation (not yet decided)
+
+**Option D for now, with a commitment to decide before BU-020.**
+
+The demo path doesn't need this resolved. But BU-020 (full admin
+surface) does — the role-grant UI will be quite different under
+Option A vs. B. Forcing a decision in the next 4-6 weeks is
+reasonable. Before deciding, it would help to:
+
+1. Understand how GPS currently uses the word "coordinator" — is
+   there an operational meaning beyond "has reach"?
+2. See the real post-type screenshots — different post flows may
+   reveal what role branching is actually for
+3. Talk to 3-5 coordinators about how they self-identify and what
+   they expect from the tool
+
+Only then commit to A, B, or C.
+
+## Decision
+
+**NOT YET DECIDED.** This ADR documents the question and options so
+the design space is visible. When a decision is made, this file is
+updated to "Accepted" with the chosen option.
+
+Target decision date: before BU-020 brief is written (within ~6
+weeks).
+
+## Consequences if we keep the question open
+
+- BU-020 waits for this decision, OR builds against Option A
+  (current schema) with awareness that migration may follow
+- Admin UI design sketches support both models pending decision
+- Product discussions surface the question so decision isn't made
+  by default
+
+## Related
+
+- `docs/product/scale-and-audience.md` — the 350k reach number and
+  coordinator-as-default principle
+- `docs/architecture/admin-surface.md` — the existing role model
+- `docs/architecture/decision-log.md` D042 — role grants as currently
+  modelled
+- `docs/architecture/decision-log.md` D048 — PostType taxonomy
+  (also blocked on GPS input)
+- Parking-lot: "Reach as schema attribute" (to be added)
+
+## Meta
+
+This ADR is intentionally **open** (not accepted). Documenting open
+questions as ADRs makes them harder to forget and easier to resume.
+When product context arrives, revisit this doc and resolve.
