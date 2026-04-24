@@ -634,7 +634,9 @@ estimated_sessions: 3
 ```
 
 Enforced by ESLint custom rule (`require-build-unit-header`). New files without
-the header fail CI.
+the header fail CI. The `@spec` tag is enforced by a companion rule
+(`require-spec-tag`, F13) — files with `@build-unit` must also have at least
+one `@spec` annotation.
 
 **4. ADRs reference the features they constrain.** Already partial — formalise:
 

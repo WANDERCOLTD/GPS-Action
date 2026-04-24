@@ -1,7 +1,7 @@
 # `eslint-rules/` — local ESLint plugin
 
 Custom rules that mechanically enforce GPS Action's discipline conventions.
-The five rules in this plugin catch mistakes that documentation alone can't:
+The six rules in this plugin catch mistakes that documentation alone can't:
 the rules run in your editor, on commit, and in CI, with no human in the
 loop.
 
@@ -30,8 +30,9 @@ glob:
 | [`no-pii-in-logs`](#3-no-pii-in-logs)                       | `app/**/*.{ts,tsx}`, `server/**/*.ts`, `components/**/*.{ts,tsx}`                                    |
 | [`no-inline-auth-check`](#4-no-inline-auth-check)           | `server/routers/**/*.ts`                                                                             |
 | [`feature-must-have-flag`](#5-feature-must-have-flag)       | `app/**/*.{ts,tsx}`, `server/**/*.ts`, `components/**/*.{ts,tsx}` (opt-in via directive)             |
+| [`require-spec-tag`](#6-require-spec-tag)                   | `app/**/*.{ts,tsx}`, `server/routers/**/*.ts`, `server/services/**/*.ts`, `components/**/*.{ts,tsx}` |
 
-All five rules ship at `error` severity (block CI).
+All six rules ship at `error` severity (block CI).
 
 Excluded paths (rules don't apply): `eslint-rules/**`, `prisma/**`, `tests/**`,
 `*.test.{ts,js}`, `node_modules/**`, `.next/**`, `dist/**`, `build/**`.
@@ -285,6 +286,64 @@ export const x = 1; // imported but never called → fires
 - No directive ⇒ rule never fires (opt-in by design).
 - Multiple `@feature-gated` directives are deduplicated; one is enough.
 - The directive in a JSDoc block (`/** @feature-gated */`) is recognised.
+
+---
+
+### 6. `require-spec-tag`
+
+**Purpose:** Per D038, every code file with a `@build-unit` tag must also carry
+at least one `@spec` tag pointing at the relevant spec or decision document.
+Rule 1 (`require-build-unit-header`) enforces the `@build-unit` tag; this rule
+enforces the companion `@spec` tag. Together they maintain full traceability.
+
+**Fires when:** First 10 non-blank lines contain `@build-unit` but no
+`@spec <value>` tag.
+
+**Compliant:**
+
+```typescript
+/**
+ * @build-unit BU-feed
+ * @spec architecture/api-contract.md
+ */
+export function createPost() { ... }
+```
+
+```typescript
+/**
+ * @build-unit BU-012
+ * @spec architecture/decision-log.md (D038)
+ * @spec product/scenarios.md
+ */
+export const FlagButton = () => { ... };
+```
+
+**Violating:**
+
+```typescript
+/**
+ * @build-unit BU-feed
+ */
+// → has @build-unit but no @spec, fires
+export function createPost() { ... }
+```
+
+```typescript
+/**
+ * @build-unit BU-003
+ * @scenarios SCN-02
+ */
+// → @scenarios is not @spec, fires
+export function publishPost() { ... }
+```
+
+**Edge cases:**
+
+- Files without `@build-unit` are not checked — utility files pass freely.
+- Empty files are exempt.
+- `@spec` must have a non-empty value (bare `@spec` with no path does not satisfy).
+- The rule does not validate that the referenced spec file exists — that's
+  future audit work, not a lint rule.
 
 ---
 

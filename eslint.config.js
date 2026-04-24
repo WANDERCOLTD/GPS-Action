@@ -76,7 +76,7 @@ export default [
   // F06 — local custom rules (per docs/build/session-briefs/f06-eslint-rules.md)
   // ───────────────────────────────────────────────────────────────────────────
 
-  // Rule 1 (require-build-unit-header) — feature code paths only
+  // Rule 1 (require-build-unit-header) + Rule 6 (require-spec-tag) — feature code paths only
   {
     files: [
       'app/**/*.{ts,tsx}',
@@ -88,6 +88,7 @@ export default [
     plugins: { 'local-rules': localRules },
     rules: {
       'local-rules/require-build-unit-header': 'error',
+      'local-rules/require-spec-tag': 'error',
     },
   },
 
