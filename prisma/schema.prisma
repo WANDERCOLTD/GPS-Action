@@ -1,14 +1,28 @@
 // GPS Action — Database schema
 //
-// This is the ERD in code form. The authoritative model of all entities.
-// See docs/architecture/erd.md for the visual diagram and rationale.
+// @build-unit BU-001-prep
+// @spec architecture/admin-surface.md
+// @spec architecture/claim-and-lease.md
+// @spec product/region-and-proximity-decision.md
+// @adr D003 D022 D036 D038 D040 D041 D042 B07
 //
-// Rules:
-//   - Every entity that holds Tier 1 personal data has encrypted fields
-//     (marked in comments; handled by Prisma Client Extension)
-//   - Soft delete by default (deletedAt nullable DateTime)
-//   - Every create/update tracked in AuditEntry (via service layer)
-//   - No cascading deletes on User — preserve audit integrity
+// This file is the authoritative model of all entities. The visual ERD and
+// rationale live in `docs/architecture/erd.md`. The slice convention (this
+// file is extended one slice at a time, never refactored without an ADR) is
+// documented in `prisma/schema.README.md`.
+//
+// Six conventions enforced by this schema (per admin-surface.md):
+//   1. Every entity has a human-readable display field
+//   2. Soft-delete-eligible entities have `deletedAt DateTime?`
+//   3. Status / category / type fields use Prisma enums, never free-text
+//   4. Every entity has `createdAt` and `updatedAt`
+//   5. Every relation declares an explicit `onDelete` policy
+//   6. Per-entity admin metadata lives in `server/admin/entity-metadata.ts`
+//
+// Slice 1 (this file): foundation entities — User, Region, UserRegion,
+// WorkItem, RoleGrant, CoordinatorProfile, CoordinatorGroup, AuditLog,
+// FeatureFlag. Feature entities (Post, Comment, Flag, Application, etc.)
+// arrive in Slices 2–4. See README for the slice plan.
 
 generator client {
   provider = "prisma-client-js"
@@ -19,14 +33,424 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── Ping: the hello-world entity ─────────────────────────────────────────
-// Purpose: prove the toolchain works end-to-end before real entities land.
-// This will be removed once the first real entity (User) is built.
+// ─────────────────────────────────────────────────────────────────────────────
+// TRANSITIONAL — Ping placeholder
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// The original skeleton's hello-world entity. CLAUDE.md says it should be
+// removed once real entities land, but the existing references in
+// `server/services/ping.ts`, `server/routers/ping.ts`, `server/routers/_app.ts`
+// and `scripts/seed.ts` are out of scope for this Slice 1 brief (which forbids
+// touching `/server/{services,routers}/` and `seed.ts`). Kept here so
+// downstream code keeps compiling. Tracked for removal — see the open
+// questions in `docs/architecture/erd.md`.
 model Ping {
   id        String   @id @default(cuid())
   message   String
   createdAt DateTime @default(now())
 }
 
-// ─── Real entities go here ────────────────────────────────────────────────
-// Populated by the ERD session. Placeholder above demonstrates structure.
+// ─────────────────────────────────────────────────────────────────────────────
+// SLICE 1 — Foundation entities
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum SystemRole {
+  queue_manager
+  admin
+}
+
+enum RegionType {
+  national
+  region
+  council
+}
+
+enum WorkItemType {
+  vetting
+  flag
+  outcome_review
+  dedup_merge
+  edit_request
+  incident
+  content_submission
+  link_submission
+}
+
+enum WorkItemStatus {
+  unclaimed
+  claimed
+  in_review
+  resolved
+  abandoned
+}
+
+enum WorkItemPriority {
+  low
+  normal
+  high
+  urgent
+}
+
+enum WorkItemResolution {
+  approved
+  rejected
+  edited
+  escalated
+  dismissed
+  duplicate
+  other
+}
+
+enum FeatureFlagPurpose {
+  rollout
+  kill_switch
+  pilot_gate
+}
+
+// ─── User ────────────────────────────────────────────────────────────────────
+//
+// Identity for any human in the system. Per D041 — no location fields
+// (homePostcode, lat/lng, location-permission). Auth implementation (NextAuth /
+// Auth.js / Clerk / Lucia) is a separate Build Unit; this table only carries
+// identity state.
+//
+// App-level invariants (not enforceable in Prisma):
+//   - The last admin RoleGrant cannot be revoked
+//   - A user cannot revoke their own admin role
+//   - Soft-deleted users should not appear in default queries (router middleware
+//     adds `WHERE deletedAt IS NULL`)
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  displayName String
+  phoneNumber String?
+  verifiedAt  DateTime?
+  lastSeenAt  DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Region affinity (informational; per D041 not used for filtering)
+  regionsOfInterest UserRegion[]
+
+  // Work items
+  workItemsCreated  WorkItem[] @relation("workItemsCreated")
+  workItemsClaimed  WorkItem[] @relation("workItemsClaimed")
+  workItemsResolved WorkItem[] @relation("workItemsResolved")
+
+  // Role grants
+  roleGrants        RoleGrant[] @relation("roleGrants")
+  roleGrantsMade    RoleGrant[] @relation("roleGrantsMade")
+  roleGrantsRevoked RoleGrant[] @relation("roleGrantsRevoked")
+
+  // Coordinator identity (one-to-one optional, per D042)
+  coordinatorProfile CoordinatorProfile? @relation("coordinatorProfile")
+
+  // Audit log
+  auditEntriesActed AuditLog[] @relation("auditActor")
+  auditEntriesAbout AuditLog[] @relation("auditTarget")
+
+  // Feature flags
+  featureFlagsOwned   FeatureFlag[] @relation("featureFlagsOwned")
+  featureFlagsCreated FeatureFlag[] @relation("featureFlagsCreated")
+  featureFlagsUpdated FeatureFlag[] @relation("featureFlagsUpdated")
+
+  @@index([deletedAt])
+  @@index([verifiedAt])
+}
+
+// ─── Region ──────────────────────────────────────────────────────────────────
+//
+// Per D041 — hierarchy only. No centroids, no boundaries, no PostGIS. Used
+// for tagging posts and for future council-action features. Slugs are stable
+// public identifiers; displayName may be edited.
+//
+// App-level invariant: the parent chain is acyclic (enforced by router on
+// create/update; not enforced by the database).
+model Region {
+  id          String     @id @default(uuid())
+  slug        String     @unique
+  displayName String
+  type        RegionType
+
+  parentId String?
+  parent   Region?  @relation("regionHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children Region[] @relation("regionHierarchy")
+
+  userRegions UserRegion[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([type])
+  @@index([parentId])
+  @@index([deletedAt])
+}
+
+// ─── UserRegion ──────────────────────────────────────────────────────────────
+//
+// Join table between User and Region. PURPOSE NEEDS CONFIRMATION — see open
+// question 0 in the ERD doc. Current placeholder semantics: "regions a user
+// has flagged as relevant to their activism" (informational only; per D041
+// does NOT drive feed or queue filtering in MVP).
+//
+// Modelled minimally so the access pattern in the brief's permission matrix
+// can be satisfied without committing to a richer semantic. If this is wrong,
+// it is the cheapest of the nine to revisit in a follow-up ADR.
+model UserRegion {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  regionId String
+  region   Region @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, regionId])
+  @@index([userId])
+  @@index([regionId])
+}
+
+// ─── WorkItem ────────────────────────────────────────────────────────────────
+//
+// The unified queue primitive (D040). All claimable, single-worker workflows
+// flow through this table; type-driven UI renders the right form per type.
+// Schema is locked to claim-and-lease.md "Schema for ERD" section — do not
+// drift without an ADR.
+//
+// App-level invariants:
+//   - status='claimed' implies claimedByUserId, claimedAt, claimExpiresAt populated
+//   - status='resolved' implies resolvedAt, resolvedByUserId, resolution populated
+//   - regionSlug is informational only (per D041 not used for access control)
+//   - Atomic claim: UPDATE ... WHERE status='unclaimed' (per claim-and-lease §"The race condition")
+//   - Sweeper releases expired claims every 5 min (TTL + 4-hour cap)
+model WorkItem {
+  id       String           @id @default(uuid())
+  type     WorkItemType
+  status   WorkItemStatus   @default(unclaimed)
+  priority WorkItemPriority @default(normal)
+
+  // Type-specific payload — references to underlying entities + display summary.
+  // Per-type Zod schemas defined per Build Unit when each feature ships.
+  context Json
+
+  // Region tag — informational only in MVP (per D041)
+  regionSlug String?
+
+  // Lifecycle
+  createdAt       DateTime @default(now())
+  createdByUserId String?
+  createdBy       User?    @relation("workItemsCreated", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  // Claim fields (all nullable until a claim happens)
+  claimedByUserId String?
+  claimedBy       User?     @relation("workItemsClaimed", fields: [claimedByUserId], references: [id], onDelete: SetNull)
+  claimedAt       DateTime?
+  claimExpiresAt  DateTime?
+  lastHeartbeatAt DateTime?
+
+  // Resolution fields (populated on resolve)
+  resolvedAt       DateTime?
+  resolvedByUserId String?
+  resolvedBy       User?               @relation("workItemsResolved", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  resolution       WorkItemResolution?
+  resolutionNotes  String?
+
+  deletedAt DateTime?
+  updatedAt DateTime  @updatedAt
+
+  @@index([status, priority, createdAt])
+  @@index([claimedByUserId, status])
+  @@index([type, status])
+  @@index([regionSlug, status])
+  @@index([deletedAt])
+}
+
+// ─── RoleGrant ───────────────────────────────────────────────────────────────
+//
+// Dynamic role grants (D042). Active role test = exists RoleGrant where
+// `revokedAt IS NULL`. Append-only in spirit — revocation is a status change
+// (revokedAt + revokedReason), not a delete. No deletedAt; no soft delete.
+//
+// App-level invariants:
+//   - One active grant per (user, role) — Postgres partial unique indexes are
+//     not first-class in Prisma; enforced in the grant procedure. See open
+//     question 1 in the ERD doc.
+//   - Cannot revoke own admin role
+//   - Cannot revoke the last admin
+//   - On revocation: any work items claimed by the user are auto-released
+//
+// onDelete choices:
+//   - user: Cascade (if a user is hard-deleted, drop their grant history)
+//   - grantedBy: Restrict (an admin who granted roles cannot be hard-deleted
+//     until those grants are reassigned/archived — preserves audit chain)
+//   - revokedBy: Restrict (same reasoning)
+model RoleGrant {
+  id String @id @default(uuid())
+
+  userId String
+  user   User       @relation("roleGrants", fields: [userId], references: [id], onDelete: Cascade)
+  role   SystemRole
+
+  grantedAt       DateTime @default(now())
+  grantedByUserId String
+  grantedBy       User     @relation("roleGrantsMade", fields: [grantedByUserId], references: [id], onDelete: Restrict)
+  grantedReason   String
+
+  revokedAt       DateTime?
+  revokedByUserId String?
+  revokedBy       User?     @relation("roleGrantsRevoked", fields: [revokedByUserId], references: [id], onDelete: Restrict)
+  revokedReason   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, role, revokedAt])
+  @@index([grantedAt])
+}
+
+// ─── CoordinatorProfile ──────────────────────────────────────────────────────
+//
+// Per D042 — coordinator identity is data attached to a member, not a
+// permission. Optional one-to-one with User. Self-claim with no verification
+// in MVP (per M3a). Confers no special powers in GPS Action.
+model CoordinatorProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation("coordinatorProfile", fields: [userId], references: [id], onDelete: Cascade)
+
+  notes String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  groups CoordinatorGroup[]
+
+  @@index([deletedAt])
+}
+
+// ─── CoordinatorGroup ────────────────────────────────────────────────────────
+//
+// External community a coordinator runs (a WhatsApp group, newsletter, shul
+// network, etc.). Self-reported. `reachEstimate` and `reachVerifiedAt`
+// foreshadow future analytics integration.
+model CoordinatorGroup {
+  id                   String             @id @default(uuid())
+  coordinatorProfileId String
+  coordinatorProfile   CoordinatorProfile @relation(fields: [coordinatorProfileId], references: [id], onDelete: Cascade)
+
+  name            String
+  description     String?
+  logoUrl         String?
+  reachEstimate   Int?
+  reachVerifiedAt DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([coordinatorProfileId, deletedAt])
+}
+
+// ─── AuditLog ────────────────────────────────────────────────────────────────
+//
+// Immutable, append-only record of sensitive events (per B07). No update, no
+// delete, no soft-delete. Routers expose only insert + read; no update
+// procedures must be written.
+//
+// `action` and `entityType` are open strings (not enums) because the action
+// vocabulary extends per Build Unit — locking it in an enum would force a
+// schema migration for every new auditable event. Documented values listed
+// in B07.
+//
+// `userId` (actor) is nullable because some events are system-generated (e.g.
+// claim_ttl_expired written by the sweeper).
+//
+// onDelete: SetNull for both actor and target so a user hard-delete leaves
+// the audit chain intact.
+model AuditLog {
+  id String @id @default(uuid())
+
+  action     String
+  entityType String
+  entityId   String
+
+  userId String?
+  user   User?   @relation("auditActor", fields: [userId], references: [id], onDelete: SetNull)
+
+  targetUserId String?
+  targetUser   User?   @relation("auditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  changes Json?
+  context Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+  @@index([createdAt])
+}
+
+// ─── FeatureFlag ─────────────────────────────────────────────────────────────
+//
+// Homegrown, DB-driven feature flags (D036). Three purposes (rollout /
+// kill_switch / pilot_gate) declared explicitly per flag. Evaluated
+// server-side by `isFeatureEnabled(name, context)` (separate Build Unit;
+// not implemented here).
+//
+// App-level invariants:
+//   - New flags default `enabledGlobally=false`
+//   - Rollout flags require `ttlRemoveAfter`
+//   - Kill switches require `ownerUserId`
+//   - Every flip writes an AuditLog entry (action: feature_flag_flipped)
+//   - `enabledForGroupIds` references future Group entity (Slice 1.5);
+//     stored as opaque strings for now since arrays cannot be FK-constrained
+//     in Postgres anyway
+//
+// `enabledForRegions` holds region slugs (not IDs) for stability.
+//
+// onDelete choices: all User refs use Restrict so a user with active flags
+// cannot be hard-deleted without first transferring ownership.
+model FeatureFlag {
+  id          String             @id @default(uuid())
+  name        String             @unique
+  description String
+  purpose     FeatureFlagPurpose
+
+  enabledGlobally    Boolean  @default(false)
+  enabledForUserIds  String[] @default([])
+  enabledForGroupIds String[] @default([])
+  enabledForRegions  String[] @default([])
+  rolloutPercentage  Int      @default(0)
+
+  ttlRemoveAfter DateTime?
+
+  ownerUserId String?
+  owner       User?   @relation("featureFlagsOwned", fields: [ownerUserId], references: [id], onDelete: Restrict)
+
+  createdAt       DateTime @default(now())
+  createdByUserId String
+  createdBy       User     @relation("featureFlagsCreated", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  updatedAt       DateTime @updatedAt
+  updatedByUserId String
+  updatedBy       User     @relation("featureFlagsUpdated", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+
+  deletedAt DateTime?
+
+  @@index([purpose])
+  @@index([enabledGlobally])
+  @@index([ttlRemoveAfter])
+  @@index([deletedAt])
+}
