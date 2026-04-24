@@ -23,7 +23,6 @@ const PII_PROPERTIES = new Set([
   'phoneNumber',
   'postcode',
   'address',
-  'body',
   'displayName',
   'firstName',
   'lastName',

@@ -1,6 +1,9 @@
 /**
- * Landing page — skeleton placeholder.
- * Real landing page lands in its own session.
+ * @build-unit BU-000-scaffold
+ * @spec architecture/decision-log.md (D003)
+ *
+ * Landing page — skeleton placeholder. Real landing page lands in its
+ * own session (see BU-005 in the engineering roadmap).
  */
 
 export default function Page() {

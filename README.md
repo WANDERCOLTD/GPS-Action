@@ -15,14 +15,16 @@ Pre-build skeleton. ERD and first features incoming.
 npm install
 
 # Configure environment
-cp .env.example .env.local
-# Edit .env.local with real values for your environment
+cp .env.example .env
+# Edit .env with real values for your environment
+# (both .env and .env.local are gitignored; .env is the project default)
 
 # Generate Prisma client
 npm run db:generate
 
 # Run dev server
 npm run dev
+# App runs on http://localhost:3001 by default (set PORT in .env to change)
 ```
 
 ## Project structure

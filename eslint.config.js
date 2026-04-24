@@ -82,6 +82,7 @@ export default [
       'app/**/*.{ts,tsx}',
       'server/routers/**/*.ts',
       'server/services/**/*.ts',
+      'server/admin/**/*.ts',
       'components/**/*.{ts,tsx}',
     ],
     plugins: { 'local-rules': localRules },
