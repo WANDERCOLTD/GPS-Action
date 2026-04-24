@@ -4,12 +4,14 @@
  * @build-unit BU-001-prep
  * @spec architecture/admin-surface.md
  * @spec architecture/claim-and-lease.md
+ * @spec product/groups.md
  *
  * One entry per Prisma entity. BU-001's generic admin components
  * (`<EntityListPage>`, `<EntityDetailPage>`, `<EntityForm>`) read this map to
  * render list/detail/form views without per-entity code.
  *
- * Slice 1 covers the nine foundation entities. Future slices extend this map
+ * Slice 1 covers nine foundation entities; Slice 1.5 adds Group and
+ * GroupMembership (D043). Future slices extend this map
  * — never remove entries, never rename keys (keys are the URL segment in
  * `/admin/[entity]`).
  *
@@ -172,6 +174,48 @@ export const entityMetadata: Record<string, EntityMetadataEntry> = {
     workflow: null,
     softDelete: true,
     notes: 'Every flip writes an AuditLog entry (action: feature_flag_flipped).',
+  },
+
+  // ── Slice 1.5 — Groups (D043) ──────────────────────────────────────────────
+
+  group: {
+    displayField: 'displayName',
+    listColumns: [
+      'displayName',
+      'slug',
+      'joinPolicy',
+      'isOfficial',
+      'createdBy.displayName',
+      'createdAt',
+    ],
+    searchableFields: ['displayName', 'slug', 'description'],
+    defaultSort: { displayName: 'asc' },
+    bulkActions: ['softDelete', 'restore'],
+    requiresRole: { view: 'queue_manager', edit: 'admin' },
+    workflow: null,
+    softDelete: true,
+    notes:
+      'Internal affiliation markers (D043). Distinct from CoordinatorGroup (external communities).',
+  },
+
+  groupMembership: {
+    displayField: 'id',
+    displayTemplate: '{user.displayName} in {group.displayName}',
+    listColumns: [
+      'user.displayName',
+      'group.displayName',
+      'role',
+      'joinedVia',
+      'joinedAt',
+      'leftAt',
+    ],
+    searchableFields: ['user.displayName', 'group.displayName'],
+    defaultSort: { joinedAt: 'desc' },
+    requiresRole: { view: 'admin', edit: 'admin' },
+    workflow: null,
+    softDelete: true,
+    notes:
+      'leftAt tracks voluntary departures; deletedAt tracks admin removal. One active membership per (user, group).',
   },
 };
 

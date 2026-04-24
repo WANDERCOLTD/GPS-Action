@@ -4,7 +4,8 @@
 // @spec architecture/admin-surface.md
 // @spec architecture/claim-and-lease.md
 // @spec product/region-and-proximity-decision.md
-// @adr D003 D022 D036 D038 D040 D041 D042 B07
+// @spec product/groups.md
+// @adr D003 D022 D036 D038 D040 D041 D042 D043 B07
 //
 // This file is the authoritative model of all entities. The visual ERD and
 // rationale live in `docs/architecture/erd.md`. The slice convention (this
@@ -19,10 +20,11 @@
 //   5. Every relation declares an explicit `onDelete` policy
 //   6. Per-entity admin metadata lives in `server/admin/entity-metadata.ts`
 //
-// Slice 1 (this file): foundation entities — User, Region, UserRegion,
-// WorkItem, RoleGrant, CoordinatorProfile, CoordinatorGroup, AuditLog,
-// FeatureFlag. Feature entities (Post, Comment, Flag, Application, etc.)
-// arrive in Slices 2–4. See README for the slice plan.
+// Slice 1: foundation entities — User, Region, UserRegion, WorkItem,
+// RoleGrant, CoordinatorProfile, CoordinatorGroup, AuditLog, FeatureFlag.
+// Slice 1.5: Groups entities — Group, GroupMembership + WorkItem.groupTags.
+// Feature entities (Post, Comment, Flag, Application, etc.) arrive in
+// Slices 2–4. See README for the slice plan.
 
 generator client {
   provider = "prisma-client-js"
@@ -136,6 +138,11 @@ model User {
   auditEntriesActed AuditLog[] @relation("auditActor")
   auditEntriesAbout AuditLog[] @relation("auditTarget")
 
+  // Groups (Slice 1.5 — D043)
+  groupMemberships GroupMembership[] @relation("groupMemberships")
+  groupsCreated    Group[]           @relation("groupsCreated")
+  groupApprovals   GroupMembership[] @relation("groupApprovals")
+
   // Feature flags
   featureFlagsOwned   FeatureFlag[] @relation("featureFlagsOwned")
   featureFlagsCreated FeatureFlag[] @relation("featureFlagsCreated")
@@ -224,6 +231,9 @@ model WorkItem {
   // Region tag — informational only in MVP (per D041)
   regionSlug String?
 
+  // Group tags — array of Group slugs for queue filtering (Slice 1.5, D043)
+  groupTags String[] @default([])
+
   // Lifecycle
   createdAt       DateTime @default(now())
   createdByUserId String?
@@ -250,6 +260,7 @@ model WorkItem {
   @@index([claimedByUserId, status])
   @@index([type, status])
   @@index([regionSlug, status])
+  @@index([groupTags], type: Gin)
   @@index([deletedAt])
 }
 
@@ -434,5 +445,114 @@ model FeatureFlag {
   @@index([purpose])
   @@index([enabledGlobally])
   @@index([ttlRemoveAfter])
+  @@index([deletedAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SLICE 1.5 — Groups entities (D043)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum GroupJoinPolicy {
+  open
+  request_to_join
+  admin_only
+}
+
+enum GroupMembershipRole {
+  member
+  lead
+}
+
+enum JoinSource {
+  self_join
+  request_approved
+  admin_added
+  admin_invited
+}
+
+// ─── Group ───────────────────────────────────────────────────────────────────
+//
+// Internal affiliation marker (D043). Members join groups to declare identity
+// (e.g. "Writers", "Manchester", "BDS Response Team"). Groups enable soft
+// queue filtering but do NOT grant permissions or fragment the feed (D041).
+//
+// Distinct from CoordinatorGroup (Slice 1) which represents external
+// communities a coordinator runs outside GPS Action.
+//
+// App-level invariants:
+//   - Slug is URL-safe and immutable after creation (renames update
+//     displayName only — per groups.md §"Group naming conflicts")
+//   - Soft-deleted groups don't appear in default queries
+//   - createdBy user cannot be hard-deleted while the group exists (Restrict)
+model Group {
+  id          String  @id @default(uuid())
+  slug        String  @unique
+  displayName String
+  description String?
+  logoUrl     String?
+
+  joinPolicy GroupJoinPolicy @default(open)
+  isOfficial Boolean         @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  createdByUserId String
+  createdBy       User   @relation("groupsCreated", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  memberships GroupMembership[]
+
+  @@index([deletedAt, isOfficial])
+}
+
+// ─── GroupMembership ─────────────────────────────────────────────────────────
+//
+// Join table between User and Group. Tracks who belongs to which group, how
+// they joined, and (if applicable) who approved them.
+//
+// App-level invariants:
+//   - One active membership per (user, group) — active = leftAt IS NULL
+//     AND deletedAt IS NULL. @@unique([userId, groupId]) enforces at DB
+//     level; if a user re-joins after leaving, app logic creates a new row
+//     (leftAt history preserved per groups.md)
+//   - Cascade on both user and group FKs: if either is hard-deleted, the
+//     membership row is removed
+//   - approvedBy is SetNull: if the approving admin is hard-deleted, the
+//     approval record persists with a null actor
+model GroupMembership {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation("groupMemberships", fields: [userId], references: [id], onDelete: Cascade)
+
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  role GroupMembershipRole @default(member)
+
+  joinedAt  DateTime   @default(now())
+  joinedVia JoinSource @default(self_join)
+
+  // Departure (domain event — member left voluntarily; row preserved for history)
+  // Distinct from deletedAt: leftAt tracks a member choosing to leave;
+  // deletedAt tracks an admin soft-deleting the record from default queries.
+  leftAt     DateTime?
+  leftReason String?
+
+  // Approval tracking for request_to_join groups
+  approvedByUserId String?
+  approvedBy       User?     @relation("groupApprovals", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  approvedAt       DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([userId, groupId])
+  @@index([userId])
+  @@index([groupId, leftAt])
   @@index([deletedAt])
 }
