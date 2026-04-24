@@ -38,12 +38,14 @@ from harming the codebase.
 **Never accumulate more than one logical chunk of uncommitted work.**
 
 In a typical session, the right chunks are:
+
 - Schema model + its tests + its metadata (one commit)
 - A router + its procedures + its tests (one commit)
 - A rule + its test file (one commit, per rule, for something like F06)
 - A UI component + its Storybook story (one commit)
 
 Commit after each chunk completes and passes local validation. This gives:
+
 - A natural undo point if the next chunk goes wrong
 - A clean history to review after the session
 - A safety net if context runs out mid-session
@@ -57,6 +59,7 @@ can't cleanly continue in a new session.
 **Claude Code should proactively monitor its own context usage.**
 
 Signs the window is getting tight:
+
 - Responses start getting shorter for the same kind of task
 - Earlier decisions are re-asked or contradicted
 - Claude Code starts re-reading files it already read
@@ -91,7 +94,7 @@ When continuing from a handoff:
 
 ```
 Read docs/build/session-briefs/<brief>.md and
-docs/build/session-handoffs/<handoff>.md. 
+docs/build/session-handoffs/<handoff>.md.
 Continue from where the handoff ends.
 ```
 
@@ -114,16 +117,18 @@ written in the handoff.
 ## What was done
 
 Specific. Per brief acceptance criterion if possible.
+
 - [x] Rule 1: require-build-unit-header — complete, tests passing
 - [x] Rule 2: no-trpc-any — complete, tests passing
 - [x] Rule 3: no-pii-in-logs — complete, tests passing
 - [ ] Rule 4: no-inline-auth-check — implementation done, 2 tests
-  failing, see "Known issues" below
+      failing, see "Known issues" below
 - [ ] Rule 5: feature-must-have-flag — not started
 
 ## What remains
 
 From the brief's scope:
+
 - Fix 2 failing tests in rule 4
 - Implement rule 5 + tests
 - Write eslint-rules/README.md
@@ -158,6 +163,7 @@ Branch: phase-0/f06-eslint-rules (not yet pushed)
 ## Known issues
 
 Rule 4's "chain has use" detection fails on two edge cases:
+
 1. `.use(authMiddleware).use(requireRole(...))` — double-middleware chain
 2. `.input(schema).use(...).mutation(...)` — middleware between input
    and mutation
@@ -170,11 +176,14 @@ handle stacked `use` calls. See TODO in
 
 Start with:
 ```
-Read docs/build/session-briefs/f06-eslint-rules.md and 
+
+Read docs/build/session-briefs/f06-eslint-rules.md and
 docs/build/session-handoffs/2026-04-24-f06-eslint-rules-handoff.md.
 Continue from where the handoff ends — fix the failing tests in rule 4,
 then implement rule 5, then write the README and do final validation.
+
 ```
+
 ```
 
 ---
@@ -182,6 +191,7 @@ then implement rule 5, then write the README and do final validation.
 ## When to checkpoint and when to push through
 
 **Checkpoint (stop + handoff) when:**
+
 - Context is ≥70% full AND substantial work remains
 - A natural "chunk boundary" has been reached (entity + tests + metadata
   all complete)
@@ -191,6 +201,7 @@ then implement rule 5, then write the README and do final validation.
 - The human user signals fatigue or confusion
 
 **Push through when:**
+
 - <50% of context used, clear path to done
 - A single tightly-coupled chunk isn't cleanly splittable (e.g., "add
   entity + its migration + its seed + its test in one go")
@@ -207,26 +218,31 @@ Claude Code proceeds but surfaces context usage every hour.
 From accumulated experience. Flag these when spotted:
 
 ### The sprawling session
+
 **Symptom:** "Build the admin surface" — scope undefined, could be 3
 days of work. **Fix:** Split into specific Build Units (BU-001a = generic
 entity list page; BU-001b = queue UI; etc.).
 
 ### The chained dependency session
+
 **Symptom:** "Add Posts, and while you're there, add Comments,
 Reactions, and fix the dispatch flow." **Fix:** Posts is one slice.
 Comments/Reactions is another. Don't chain.
 
 ### The "while you're in there" addition
+
 **Symptom:** Mid-session, the user or Claude Code says "oh, and also can
 we fix X?" **Fix:** Capture X as a follow-up in the handoff or a
 separate issue. Do not expand scope mid-session.
 
 ### The partial refactor
+
 **Symptom:** Session starts refactoring something that the brief didn't
 sanction, because "it's cleaner." **Fix:** Refactors are their own
 brief. They need explicit scope, review, and rollback plan.
 
 ### The unbounded "investigation"
+
 **Symptom:** "Look into why the tests are slow" — could be 10 min or 3
 days. **Fix:** Time-box investigations. 30-min spike → write up findings
 → decide if a real session is needed.
@@ -287,6 +303,7 @@ When reviewing Claude Code output (per `reviewer-checklist.md`):
 ## What lands in practice
 
 **MVP day 1:**
+
 - This document exists
 - CLAUDE.md references it
 - `session-brief-template.md` references it
@@ -295,11 +312,13 @@ When reviewing Claude Code output (per `reviewer-checklist.md`):
   first mid-session checkpoint)
 
 **Over time (no explicit action needed):**
+
 - Handoff docs accumulate in `docs/build/session-handoffs/` as long
   sessions span multiple runs
 - The template evolves based on what handoff patterns actually emerge
 
 **Never:**
+
 - Enforce via tooling (this is process, not code)
 - Punish human-directed "push through" decisions
 - Treat as a ceiling; it's a floor of good practice
