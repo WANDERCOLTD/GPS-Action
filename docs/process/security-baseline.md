@@ -1,8 +1,8 @@
 # GPS Action — Security Baseline
 
-*The concrete rules for protecting personal data, authenticating users, and defending against realistic threats. Every session consults this before building features that touch sensitive data.*
+_The concrete rules for protecting personal data, authenticating users, and defending against realistic threats. Every session consults this before building features that touch sensitive data._
 
-*Version: 0.1 · April 2026*
+_Version: 0.1 · April 2026_
 
 ---
 
@@ -55,6 +55,7 @@ Data that could link back to identity if combined with other data. Needs care.
 - Contact lists (Routes, partner orgs) — stored plain; the routes themselves are often operational info
 
 For fields we need to search on but which contain PII:
+
 - **Deterministic encryption** for email equality searches (same input → same ciphertext). Weaker than randomised; acceptable for searches.
 - **Blind indexes** — hash of normalised value (lowercase email prefix) stored alongside encrypted full value. Search by blind index, return by decryption.
 
@@ -103,7 +104,7 @@ For fields we need to search on but which contain PII:
 
 ## Password storage
 
-Passwords are *never* encrypted. They are hashed, slowly, with a salt.
+Passwords are _never_ encrypted. They are hashed, slowly, with a salt.
 
 ### The rules
 
@@ -119,7 +120,7 @@ Passwords are *never* encrypted. They are hashed, slowly, with a salt.
 
 - TOTP (Time-based One-Time Password) as default second factor. Free via any authenticator app (Google Authenticator, Authy, 1Password, etc.)
 - Backup codes (8 single-use codes) issued at setup. Stored hashed.
-- SMS-based 2FA is *discouraged* (SIM-swap attacks) but may be offered as fallback.
+- SMS-based 2FA is _discouraged_ (SIM-swap attacks) but may be offered as fallback.
 - Every user must enable 2FA before gaining publishing rights.
 - Admin accounts must have 2FA — no option.
 
@@ -182,7 +183,7 @@ const permissions = {
     scope: 'national',
   },
   // etc
-}
+};
 ```
 
 Every feature uses this map. Never inline.
@@ -219,6 +220,7 @@ Every feature uses this map. Never inline.
 ### Structured logging format
 
 Every log entry:
+
 ```
 {
   timestamp: ISO8601,
@@ -349,7 +351,8 @@ Every log entry:
 
 ### Contact list
 
-*Maintained separately. Includes:*
+_Maintained separately. Includes:_
+
 - Internal team (numbers, emergency emails)
 - Cloud provider support (account IDs, support plan)
 - Legal counsel

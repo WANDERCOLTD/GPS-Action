@@ -18,7 +18,7 @@ in admin-surface.md (different concept entirely).
 
 ## What groups are (and are not)
 
-GPS Action has *one feed everyone sees*. This is a foundational principle
+GPS Action has _one feed everyone sees_. This is a foundational principle
 (per D041). But within that single shared space, members have **affinities**
 — writers identify with writers, parents with parents, Manchester locals
 with Manchester locals. Groups give those affinities a place to live in
@@ -42,12 +42,12 @@ the data model without fragmenting the feed.
 - **Not the same as queue_manager role.** You can be in the Vetting
   Group without being a queue manager (you just identify with it)
 - **Not the same as coordinator_profile.** Coordinator profile is about
-  groups you run *outside* GPS Action; groups (this doc) are inside GPS
+  groups you run _outside_ GPS Action; groups (this doc) are inside GPS
   Action
 - **Not native chat channels.** No private threads, no group-only feed,
   no DMs. The feed remains unified
 - **Not WhatsApp dispatch routes.** Routes (the WhatsApp groups GPS
-  Action members dispatch *to*) are a separate model
+  Action members dispatch _to_) are a separate model
 
 ### Why this is the right level of "groupness"
 
@@ -68,16 +68,16 @@ purpose without compromising the unified-feed principle.
 
 To make this concrete, here are groups that might exist:
 
-| Group name | Type | Why it exists |
-|---|---|---|
-| Writers | Skill-based | Members who write op-eds, articles, letters to the editor |
-| Newsletter Editors | Skill-based | Members who run external newsletters; coordination of campaign asks |
-| Vetting Team | Operational | Members who actively work the vetting queue (overlaps with queue_manager role but is its own affinity) |
-| BDS Response Team | Topic-focused | Members focused on BDS-related content and responses |
-| Talk Radio Group | Skill-based | Members willing to phone into talk radio shows; need quick alerts |
-| Northwood Mums | Geographic + demographic | Members from the Northwood area who are mums (informal cohort) |
-| Manchester | Geographic | Members in/near Manchester |
-| Education Campaigns | Topic-focused | Members focused on schools, universities, antisemitism in education |
+| Group name          | Type                     | Why it exists                                                                                          |
+| ------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Writers             | Skill-based              | Members who write op-eds, articles, letters to the editor                                              |
+| Newsletter Editors  | Skill-based              | Members who run external newsletters; coordination of campaign asks                                    |
+| Vetting Team        | Operational              | Members who actively work the vetting queue (overlaps with queue_manager role but is its own affinity) |
+| BDS Response Team   | Topic-focused            | Members focused on BDS-related content and responses                                                   |
+| Talk Radio Group    | Skill-based              | Members willing to phone into talk radio shows; need quick alerts                                      |
+| Northwood Mums      | Geographic + demographic | Members from the Northwood area who are mums (informal cohort)                                         |
+| Manchester          | Geographic               | Members in/near Manchester                                                                             |
+| Education Campaigns | Topic-focused            | Members focused on schools, universities, antisemitism in education                                    |
 
 Some are skill-based, some topic-based, some demographic, some geographic.
 The model accommodates all of them — they're all just `Group` records
@@ -116,6 +116,7 @@ Most groups. A member sees the group, taps "Join", and they're in. No
 approval. No friction.
 
 Used for:
+
 - Skill-based groups (Writers, Talk Radio Group)
 - Topic-focused groups (BDS Response Team)
 - Geographic groups (Manchester)
@@ -127,6 +128,7 @@ if implemented later) review and approve/decline. Member sees "Your
 request is pending."
 
 Used for:
+
 - Sensitive skill groups (Vetting Team — you want some quality control)
 - Trusted-circle groups (admin-led campaigns where you want to know
   the cohort)
@@ -141,6 +143,7 @@ The group's membership is fully curated by admins. Members cannot
 self-join or request. Admins add members directly.
 
 Used for:
+
 - Operational groups with strict rosters (e.g. "Beta Testers" if we
   needed one)
 - Groups where membership is a recognition (e.g. "Founding Members" if
@@ -151,12 +154,14 @@ Used for:
 ## What members see when they're in a group
 
 ### On their profile
+
 - Small group badges/chips listed under their name
-- e.g. "Sharon Cohen — *Writers, BDS Response Team, Northwood Mums*"
+- e.g. "Sharon Cohen — _Writers, BDS Response Team, Northwood Mums_"
 - Each badge shows the group's logo (if set) or a default icon
 - Tap a badge to see the group's page
 
 ### On their post bylines (subtle)
+
 - Optionally, the most recent or most relevant group badge appears next
   to their name on posts
 - Single badge max, kept small, doesn't dominate the byline
@@ -164,6 +169,7 @@ Used for:
   their settings
 
 ### On the group's page (a member or admin can view)
+
 - Group name, description, logo
 - List of members (if member privacy permits — see below)
 - Recent posts where any member tagged this group as relevant
@@ -217,11 +223,11 @@ The existing `WorkItem` (per claim-and-lease.md) gains:
 ```prisma
 model WorkItem {
   // ... existing fields ...
-  
+
   groupTags    String[]  @default([])  // array of Group slugs; informational + filterable
-  
+
   // ... existing fields ...
-  
+
   @@index([groupTags])  // GIN index for array search
 }
 ```
@@ -305,23 +311,23 @@ model Group {
   displayName   String           // "Writers"
   description   String?          // "Members who write op-eds, articles, letters"
   logoUrl       String?          // uploaded image; defaults to type-appropriate icon
-  
+
   joinPolicy    GroupJoinPolicy  @default(open)
-  
+
   // Officially blessed groups have an admin badge
   isOfficial    Boolean          @default(false)
-  
+
   // Soft delete
   deletedAt     DateTime?
-  
+
   createdAt     DateTime         @default(now())
   createdByUserId String
   createdBy     User             @relation("groupsCreated", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  
+
   updatedAt     DateTime         @updatedAt
-  
+
   memberships   GroupMembership[]
-  
+
   @@index([slug])
   @@index([deletedAt, isOfficial])
 }
@@ -338,27 +344,27 @@ enum GroupJoinPolicy {
 ```prisma
 model GroupMembership {
   id              String              @id @default(uuid())
-  
+
   userId          String
   user            User                @relation("groupMemberships", fields: [userId], references: [id], onDelete: Cascade)
-  
+
   groupId         String
   group           Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  
+
   role            GroupMembershipRole @default(member)
-  
+
   joinedAt        DateTime            @default(now())
   joinedVia       JoinSource          @default(self_join)
-  
+
   // Soft delete (left the group)
   leftAt          DateTime?
   leftReason      String?             // optional, member-supplied
-  
+
   // Tracking for request_to_join groups
   approvedByUserId String?
   approvedBy      User?               @relation("groupApprovals", fields: [approvedByUserId], references: [id], onDelete: SetNull)
   approvedAt      DateTime?
-  
+
   @@unique([userId, groupId])  // one active membership per (user, group)
   @@index([userId])
   @@index([groupId, leftAt])
@@ -382,11 +388,11 @@ enum JoinSource {
 ```prisma
 model User {
   // ... existing fields ...
-  
+
   groupMemberships  GroupMembership[]   @relation("groupMemberships")
   groupsCreated     Group[]             @relation("groupsCreated")
   groupApprovals    GroupMembership[]   @relation("groupApprovals")
-  
+
   // ... existing fields ...
 }
 ```
@@ -396,11 +402,11 @@ model User {
 ```prisma
 model WorkItem {
   // ... existing fields per claim-and-lease.md ...
-  
+
   groupTags         String[]            @default([])   // group slugs
-  
+
   // ... existing fields ...
-  
+
   @@index([groupTags], type: Gin)
 }
 ```
@@ -410,11 +416,11 @@ model WorkItem {
 ```prisma
 model Post {
   // ... existing fields ...
-  
+
   groupTags         String[]            @default([])   // group slugs author tagged
-  
+
   // ... existing fields ...
-  
+
   @@index([groupTags], type: Gin)
 }
 ```
@@ -425,22 +431,23 @@ model Post {
 
 The group-related router exposes:
 
-| Procedure | Purpose | Auth |
-|---|---|---|
-| `group.list` | List all groups (filterable) | member |
-| `group.get` | Get one group by slug | member |
-| `group.getMembers` | List members of a group | member (subject to member-privacy settings) |
-| `group.create` | Create a new group | admin |
-| `group.update` | Update group fields | admin |
-| `group.archive` | Soft-delete a group | admin |
-| `group.join` | Self-join an open group | member |
-| `group.requestJoin` | Request to join a request_to_join group | member |
-| `group.leave` | Leave a group | member (must be member) |
-| `group.addMember` | Add a member (admin or admin_only group) | admin |
-| `group.removeMember` | Remove a member | admin |
-| `group.setRole` | Set member's role within group (member ↔ lead) | admin |
+| Procedure            | Purpose                                        | Auth                                        |
+| -------------------- | ---------------------------------------------- | ------------------------------------------- |
+| `group.list`         | List all groups (filterable)                   | member                                      |
+| `group.get`          | Get one group by slug                          | member                                      |
+| `group.getMembers`   | List members of a group                        | member (subject to member-privacy settings) |
+| `group.create`       | Create a new group                             | admin                                       |
+| `group.update`       | Update group fields                            | admin                                       |
+| `group.archive`      | Soft-delete a group                            | admin                                       |
+| `group.join`         | Self-join an open group                        | member                                      |
+| `group.requestJoin`  | Request to join a request_to_join group        | member                                      |
+| `group.leave`        | Leave a group                                  | member (must be member)                     |
+| `group.addMember`    | Add a member (admin or admin_only group)       | admin                                       |
+| `group.removeMember` | Remove a member                                | admin                                       |
+| `group.setRole`      | Set member's role within group (member ↔ lead) | admin                                       |
 
 All procedures follow api-contract-discipline.md. Audit log entries for:
+
 - group_created, group_updated, group_archived
 - group_member_added, group_member_left, group_member_removed
 - group_join_request_created, group_join_request_resolved
@@ -453,6 +460,7 @@ All procedures follow api-contract-discipline.md. Audit log entries for:
 ### Discovery — "find groups"
 
 Members can browse all groups via `/groups` page:
+
 - List of all (non-deleted) groups
 - Each shows: logo, name, description, member count
 - "Joined" indicator if the member is in
@@ -462,6 +470,7 @@ Members can browse all groups via `/groups` page:
 ### Group page — `/groups/{slug}`
 
 Each group has its own page:
+
 - Logo, name, description
 - Member count and (if visible) member list
 - Recent posts tagged with this group
@@ -473,6 +482,7 @@ Each group has its own page:
 ### In the composer — group tagging
 
 When composing a post, an optional dropdown:
+
 ```
 Relevant to: [Choose group(s) ▾]
               ☐ Writers
@@ -508,6 +518,7 @@ re-set each session.
 ### Group management — `/admin/groups`
 
 Standard admin-surface entity page:
+
 - List of all groups
 - Create new group
 - Edit / archive / restore
@@ -519,6 +530,7 @@ Standard admin-surface entity page:
 ### Group analytics (Phase 1.5+)
 
 Per group, show:
+
 - Member count over time
 - Posts tagged with this group, last 30 days
 - Work items tagged with this group, last 30 days
@@ -535,6 +547,7 @@ the lists.
 
 Seed data (via the F10 seed script) creates a small set of starter
 groups:
+
 - Writers
 - Newsletter Editors
 - Talk Radio Group
@@ -543,6 +556,7 @@ groups:
 - BDS Response Team
 
 Plus 3-5 geographic ones for the pilot's anchor regions:
+
 - Manchester
 - North London
 - South London
@@ -555,8 +569,8 @@ model with realistic examples on day one.
 
 After signup + vetting approval, the onboarding flow includes:
 
-> *"Are there any groups you'd like to join? It helps your fellow
-> members route relevant content your way."*
+> _"Are there any groups you'd like to join? It helps your fellow
+> members route relevant content your way."_
 >
 > [list of open groups with brief descriptions]
 > [Skip — I'll browse later]
@@ -600,6 +614,7 @@ Optional, skippable, no pressure. Members can browse groups anytime.
 ## What lands in MVP
 
 **MVP day 1:**
+
 - Group entity + GroupMembership entity
 - Per-group join policy (open default)
 - Member browse + join flow
@@ -610,12 +625,14 @@ Optional, skippable, no pressure. Members can browse groups anytime.
 - Seed data with ~10 starter groups
 
 **Phase 1.5 (a few weeks in):**
+
 - Group leads role (soft)
 - Request-to-join workflow (work_item type)
 - Member-side group analytics
 - Onboarding optional group join
 
 **Phase 2:**
+
 - Hide-my-groups privacy setting
 - Algorithmic group suggestions
 - Group notification preferences
@@ -623,6 +640,7 @@ Optional, skippable, no pressure. Members can browse groups anytime.
 - Bulk group operations
 
 **Never (or only on strong signal):**
+
 - Group-private feeds
 - Group permissions / access control
 - Native group chat

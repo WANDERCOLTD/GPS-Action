@@ -1,8 +1,8 @@
 # GPS Action — Change Absorption Guide
 
-*Which parts of the system are built to stay stable, which are built to change, and what to do when change lands where you weren't expecting it.*
+_Which parts of the system are built to stay stable, which are built to change, and what to do when change lands where you weren't expecting it._
 
-*Version: 0.1 · April 2026*
+_Version: 0.1 · April 2026_
 
 ---
 
@@ -43,6 +43,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why hard:** every piece of code depends on it. Schema changes require migrations. Bad migrations corrupt data.
 
 **How to keep it stable:**
+
 - Start with the ERD right. Spend the time upfront.
 - Every schema change requires an ADR and migration.
 - Never store calculated values — compute on read.
@@ -56,6 +57,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why hard:** User ↔ Post ↔ Comment ↔ Reaction — if these relationships shift fundamentally, every query breaks.
 
 **How to keep it stable:**
+
 - Get the cardinality right first time (one-to-many, many-to-many)
 - Think about foreign key constraints carefully
 - Model soft-delete from the start, not retrofitted
@@ -66,6 +68,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why hard:** who's a user, how they log in, what tokens look like. Changing this logs everyone out and breaks all sessions.
 
 **How to keep it stable:**
+
 - Decide on JWT vs session-cookies once. Stick with it.
 - Token shape agreed and versioned.
 - 2FA approach decided up front.
@@ -76,6 +79,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why hard:** every API endpoint, every UI component depends on "can this user do this?" Changing the permission model is a system-wide refactor.
 
 **How to keep it stable:**
+
 - Permission matrix as data, not code
 - `checkPermission(user, action, scope)` as a single function
 - Roles and permission flags defined comprehensively before any feature work
@@ -86,6 +90,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why hard:** every write touches audit. If audit is designed poorly, it's slow, incomplete, or corrupts data.
 
 **How to keep it stable:**
+
 - Audit as a shared service from day one
 - Entries append-only, never edited
 - Trace IDs flow through every request
@@ -96,6 +101,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why hard:** encryption choices, password hashing parameters, TLS versions — changing these retrospectively is disruptive.
 
 **How to keep it stable:**
+
 - See Security Baseline document
 - Make the hard calls upfront
 - KMS + envelope encryption pattern established early
@@ -105,6 +111,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why hard:** every client depends on API shapes. Breaking contracts breaks clients.
 
 **How to keep it stable:**
+
 - API contracts versioned
 - Deprecated endpoints supported for transition periods
 - Type generation from schema means contracts stay in sync
@@ -119,12 +126,14 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why soft:** new action types will emerge. "Attend a training," "donate to specific fund," "submit research."
 
 **How to design for change:**
+
 - Store as data (database table or config file), not as enum
 - Each action type defines: label, icon, behaviour, target entity type
 - New action types added via admin UI or config change, no code deploy
 - UI renderer looks up behaviour from the catalogue
 
 **What not to do:**
+
 - Don't build a visual workflow editor "for flexibility"
 - Don't support every possible action type before any exist
 - Keep the catalogue tight; add types as real needs emerge
@@ -134,6 +143,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why soft:** started with 5 (Action, Seeking, Outcome, Community, Coordination); might add (Announcement, Event, Story) over time.
 
 **How to design for change:**
+
 - Post types as configuration
 - Each type defines: composer fields, card rendering, default routes, default visibility
 - New types added without touching core post-handling logic
@@ -151,6 +161,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why soft:** 14 emoji now, might be 16 in a year. Seasonal rotations.
 
 **How to design for change:**
+
 - Reactions as configuration, not hardcoded
 - Seasonal rotation via date-triggered config
 - Admin UI to manage (later phase)
@@ -160,6 +171,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why soft:** new kinds of notifications ("member vouched for you," "your post was verified") emerge as features land.
 
 **How to design for change:**
+
 - Notification types as config: template, channel (in-app/email/push), default on/off per user
 - Router handles dispatch; features just publish events
 - Users can configure which types they receive
@@ -169,6 +181,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why soft:** the topic taxonomy evolves with the world. "TikTok extremism" wasn't a topic 5 years ago.
 
 **How to design for change:**
+
 - Tags as data
 - Admin curates (merges, renames, deprecates)
 - Tag aliases (when renaming, old tag redirects to new)
@@ -178,6 +191,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why soft:** every button label, every error message, every help text — all of these evolve.
 
 **How to design for change:**
+
 - Externalise into i18n files even if English-only
 - Change copy without touching code
 - Lays groundwork for future translations
@@ -187,6 +201,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why soft:** the whole point.
 
 **How to design for change:**
+
 - Flag service that's queried via `flags.isEnabled(user, 'feature_name')`
 - Per-user / per-group / per-percentage rollouts
 - Admin UI to flip flags
@@ -201,6 +216,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why disposable:** member pushback, pilot learnings, designer iteration — screens get rebuilt multiple times.
 
 **How to keep it disposable:**
+
 - Build from the design system, not custom CSS
 - Keep component complexity low per screen
 - Expect to redesign — don't invest heavy architecture in one screen
@@ -210,6 +226,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why disposable:** admin needs will evolve quickly as you learn how you actually moderate.
 
 **How to keep it disposable:**
+
 - Build functional, not beautiful, early
 - Tables, forms, buttons. Not elaborate dashboards.
 - Iterate based on actual usage patterns
@@ -220,6 +237,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why disposable:** polish evolves with content and tone.
 
 **How to keep it disposable:**
+
 - Use the design system
 - Keep copy simple
 - Expect to rewrite after pilot feedback
@@ -229,6 +247,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why disposable:** the welcome tour, the first-use nudges — these improve iteratively.
 
 **How to keep it disposable:**
+
 - Build minimal onboarding for MVP
 - Don't gate features behind elaborate tutorials
 - Improve based on drop-off data from pilot
@@ -238,6 +257,7 @@ These will be iterated on heavily. Build them simply, accept they'll be rebuilt.
 **Why disposable:** you don't know what you'll want to measure until you're measuring.
 
 **How to keep it disposable:**
+
 - Emit structured events from day one (hard)
 - Build the dashboards lazy and iteratively (soft)
 - First dashboard is ugly. Final one is beautiful. Don't conflate.

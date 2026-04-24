@@ -1,8 +1,8 @@
 # GPS Action — Reviewer Checklist
 
-*What to verify after a Claude Code session completes, before merging its work. Runs through seven disciplines in concrete terms.*
+_What to verify after a Claude Code session completes, before merging its work. Runs through seven disciplines in concrete terms._
 
-*Version: 0.1 · April 2026*
+_Version: 0.1 · April 2026_
 
 ---
 
@@ -56,6 +56,7 @@ Are the right things tested?
 - [ ] **Accessibility tests present** for new UI components (axe or equivalent).
 
 **Not required** (counter-intuitive but important):
+
 - [ ] 100% coverage — not the goal. Coverage of critical paths is.
 - [ ] Tests for trivial functions (getters, simple UI). Skip these; they waste maintenance.
 
@@ -188,26 +189,31 @@ Can we run and debug this in production?
 For a standard session, here's the order:
 
 **Minute 1-3: Scope check**
+
 - Git diff → check paths match brief
 - Spot-check no unexpected changes
 
 **Minute 4-7: Types and tests**
+
 - Run `tsc` and `npm test`
 - Scan for `any` / `@ts-ignore` / skipped tests
 - Quick check coverage of new code
 
 **Minute 8-14: Manual walk-through**
+
 - `npm run dev`
 - Open the feature
 - Click through each scenario from the brief
 - Toggle light/dark mode; check tab navigation
 
 **Minute 15-18: Code review skim**
+
 - Open each modified file briefly
 - Check for shared component usage, token usage
 - Read the README updates
 
 **Minute 19-20: Final verdict**
+
 - Either: merge
 - Or: list specific blockers, send back for revision
 
@@ -216,6 +222,7 @@ For a standard session, here's the order:
 ## When to reject vs. when to fix forward
 
 **Reject and send back:**
+
 - Scope violations (out-of-scope changes)
 - Type safety violations
 - Missing acceptance criteria
@@ -224,6 +231,7 @@ For a standard session, here's the order:
 - Broken scenarios
 
 **Fix forward (merge, create follow-up):**
+
 - Minor documentation gaps
 - Cosmetic style drift (small)
 - Non-critical test additions

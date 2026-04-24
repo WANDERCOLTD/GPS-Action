@@ -140,7 +140,13 @@ export const entityMetadata: Record<string, EntityMetadataEntry> = {
   auditLog: {
     displayField: 'id',
     displayTemplate: '{action} on {entityType}',
-    listColumns: ['action', 'entityType', 'user.displayName', 'targetUser.displayName', 'createdAt'],
+    listColumns: [
+      'action',
+      'entityType',
+      'user.displayName',
+      'targetUser.displayName',
+      'createdAt',
+    ],
     searchableFields: ['action', 'entityType', 'entityId'],
     defaultSort: { createdAt: 'desc' },
     requiresRole: { view: 'admin', edit: 'admin' },
@@ -151,7 +157,14 @@ export const entityMetadata: Record<string, EntityMetadataEntry> = {
 
   featureFlag: {
     displayField: 'name',
-    listColumns: ['name', 'purpose', 'enabledGlobally', 'rolloutPercentage', 'ttlRemoveAfter', 'owner.displayName'],
+    listColumns: [
+      'name',
+      'purpose',
+      'enabledGlobally',
+      'rolloutPercentage',
+      'ttlRemoveAfter',
+      'owner.displayName',
+    ],
     searchableFields: ['name', 'description'],
     defaultSort: { name: 'asc' },
     bulkActions: ['softDelete'],

@@ -14,13 +14,13 @@ The schema is built up **one slice at a time**. Each slice is its own Build
 Unit (or Build-Unit-prep), with a session brief, an ADR if it makes a non-
 obvious choice, and an extension to the Mermaid diagram in `erd.md`.
 
-| Slice | Status | Entities |
-|---|---|---|
+| Slice | Status    | Entities                                                                                                   |
+| ----- | --------- | ---------------------------------------------------------------------------------------------------------- |
 | **1** | ✅ landed | User, Region, UserRegion, WorkItem, RoleGrant, CoordinatorProfile, CoordinatorGroup, AuditLog, FeatureFlag |
-| 1.5 | planned | Group, GroupMembership |
-| 2 | planned | Post, Comment, Reaction, Attachment + dedup fields |
-| 3 | planned | Application, Flag, OutcomeReview, EditRequest, ContentSubmission, Vouch |
-| 4 | planned | Contact, Resource, Route, DispatchEvent, PartnerOrg |
+| 1.5   | planned   | Group, GroupMembership                                                                                     |
+| 2     | planned   | Post, Comment, Reaction, Attachment + dedup fields                                                         |
+| 3     | planned   | Application, Flag, OutcomeReview, EditRequest, ContentSubmission, Vouch                                    |
+| 4     | planned   | Contact, Resource, Route, DispatchEvent, PartnerOrg                                                        |
 
 Rules:
 

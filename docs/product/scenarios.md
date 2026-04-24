@@ -1,8 +1,8 @@
 # GPS Action — Scenarios Library
 
-*Lived-in walkthroughs for the things members, coordinators, and directors actually do. Each scenario is concrete enough to build against and honest enough to surface friction.*
+_Lived-in walkthroughs for the things members, coordinators, and directors actually do. Each scenario is concrete enough to build against and honest enough to surface friction._
 
-*Version: 0.1 · April 2026*
+_Version: 0.1 · April 2026_
 
 ---
 
@@ -17,6 +17,7 @@ Each scenario is a short prose story from one person's point of view, walking th
 - **End where the task ends.** Success or give-up, both are valid endings.
 
 When a scenario surfaces a feature that doesn't exist, either:
+
 - Add it to the spec (if critical),
 - Or park it (see Parking Lot document),
 - Or explicitly flag the scenario as "this doesn't work yet" — useful for testing.
@@ -28,6 +29,7 @@ Scenarios feed session briefs. Every Claude Code session building a feature gets
 ## Index
 
 **Member scenarios**
+
 1. Sharon sees a Sky News bias post and boosts it
 2. Emma has a concern about leafleting at her child's school
 3. David reacts to a Shabbat Shalom post
@@ -35,24 +37,13 @@ Scenarios feed session briefs. Every Claude Code session building a feature gets
 5. Michael loses his phone, needs to log in on a new device
 6. Claire publishes an outcome post about a successful letter placement
 
-**Writer scenarios**
-7. Sharon (as writers lead) creates a Writers event
-8. Grant drafts an urgent council-motion action post
-9. Claire responds to a newspaper op-ed
+**Writer scenarios** 7. Sharon (as writers lead) creates a Writers event 8. Grant drafts an urgent council-motion action post 9. Claire responds to a newspaper op-ed
 
-**Coordinator scenarios**
-10. Maya triages her flagged-content queue
-11. Jeremy edits a miscategorised regional post
-12. Sharon vets a new enrolment application
+**Coordinator scenarios** 10. Maya triages her flagged-content queue 11. Jeremy edits a miscategorised regional post 12. Sharon vets a new enrolment application
 
-**Director scenarios**
-13. Jeremy pins a network-wide urgent post
-14. Jeremy reviews an escalated vetting case
-15. Jeremy investigates a voucher's lineage
+**Director scenarios** 13. Jeremy pins a network-wide urgent post 14. Jeremy reviews an escalated vetting case 15. Jeremy investigates a voucher's lineage
 
-**Admin / operational scenarios**
-16. Coordinator dispatches a Boost/Remove post to WhatsApp
-17. System auto-comments on a closing campaign
+**Admin / operational scenarios** 16. Coordinator dispatches a Boost/Remove post to WhatsApp 17. System auto-comments on a closing campaign
 
 ---
 
@@ -60,7 +51,7 @@ Scenarios feed session briefs. Every Claude Code session building a feature gets
 
 ### Scenario 1 — Sharon sees a Sky News bias post and boosts it
 
-*Sharon, member, writers group lead. Sunday afternoon, on the sofa with tea.*
+_Sharon, member, writers group lead. Sunday afternoon, on the sofa with tea._
 
 Sharon is scrolling her GPS Action feed when she sees a post from Maya — a Sky News coverage complaint. The card shows a graphic with the Sky News logo and "ACTION ON ANTISEMITISM" in a corner. She taps the card to open the detail.
 
@@ -84,12 +75,14 @@ WhatsApp's recipient picker appears. She picks her local synagogue's group, past
 A quiet toast: "Shared · thanks!" The engage strip now shows "💬 2 groups · by you, Grant" (Grant dispatched earlier). Her participation is visible without being trumpeted.
 
 **What the scenario surfaces:**
-- The co-branding logo (Action on Antisemitism) appears *on* Maya's post. Sharon sees it but doesn't need to do anything with it.
+
+- The co-branding logo (Action on Antisemitism) appears _on_ Maya's post. Sharon sees it but doesn't need to do anything with it.
 - "Click — Sign — Send" copy won't fit in the design system's button component — need to allow multi-phrase button labels
 - Personal dispatch is separate from coordinated dispatch. Both coexist.
 - Share-to-WhatsApp toast is reassuring, non-competitive tone ("thanks!" not "+1 dispatch counted")
 
 **Friction found:**
+
 - Will the ActivistMailer window return her to GPS Action? Browser behaviour. Maybe we need a "back to GPS Action" CTA on ActivistMailer's thank-you page (integration concern).
 - Sharon didn't actually confirm whether her WhatsApp send happened. The toast trusts her. Is this enough for analytics? Flag: optional follow-up ping.
 
@@ -97,7 +90,7 @@ A quiet toast: "Shared · thanks!" The engage strip now shows "💬 2 groups · 
 
 ### Scenario 2 — Emma has a concern about leafleting at her child's school
 
-*Emma, new member. Tuesday, walking home from school pickup. On her phone.*
+_Emma, new member. Tuesday, walking home from school pickup. On her phone._
 
 Emma has spotted people handing out anti-Israel leaflets at the school gate. She took a photo. She's panicking slightly — what does she do? She opens GPS Action.
 
@@ -120,12 +113,14 @@ Emma opens the David DM. He's reassuring. He asks her to send him the photo dire
 Within 45 minutes she has a plan, a template letter, and someone holding her hand. The post on the feed serves its purpose — surfacing the issue, gathering suggestions, routing to the coordinator — but the actual coordination happens in DM.
 
 **What the scenario surfaces:**
+
 - Quick Snap → infers Seeking post type from framing. Good.
 - Coordinator needs to DM the author quickly when posts involve child safety. The flag-queue workflow should prioritise "involves minors" posts.
 - Emma's post contains a photo of the leaflet that maybe shouldn't be public. The system should prompt: "Photo contains possible child visibility — review before public?" Needs content-safety hint in composer.
 - The top suggestion bubble (Sarah's advice) is visible on the post card — useful UI.
 
 **Friction found:**
+
 - Can Emma redact or hide her original photo after posting, once David advises? Edit permission for her own content within window, yes. After window, needs coordinator help.
 - How does Emma know to trust Sarah's advice? Verified tick helps. But a new member may not know what "verified" means. Needs light onboarding: "Members with ✓ have been with us for over 6 months in good standing."
 
@@ -133,7 +128,7 @@ Within 45 minutes she has a plan, a template letter, and someone holding her han
 
 ### Scenario 3 — David reacts to a Shabbat Shalom post
 
-*David, member, 4 months in. Friday 18:40. At home, candles already lit.*
+_David, member, 4 months in. Friday 18:40. At home, candles already lit._
 
 David checks GPS Action on his phone for the last scroll before turning it off. A post at the top: "Shabbat Shalom" — the official GPS account post with a gentle gradient, a candle illustration, warm copy.
 
@@ -144,18 +139,20 @@ He scrolls down. The filter at the top says "Discussion" — he sees Sharon's wa
 He closes the app. Two minutes of connection, no friction.
 
 **What the scenario surfaces:**
+
 - Community/Shabbat posts need the "no system events" experience by default
 - Reactions are quiet and multi-select — he picked two without effort
 - The warmth of the content matters more than the functionality
 
 **Friction found:**
+
 - None, really. This scenario is about verifying nothing gets in the way.
 
 ---
 
 ### Scenario 4 — Rachel attends a local gathering — RSVP and follow-up
 
-*Rachel, member in Leicester. Thursday evening, on her laptop at the kitchen table.*
+_Rachel, member in Leicester. Thursday evening, on her laptop at the kitchen table._
 
 Rachel sees a post in her feed: "Leicester solidarity gathering — Saturday 2pm" by the Leicester coordinator. It's an Event type post. Card shows a venue photo, date, address, a map thumbnail, and an "I'll come →" button.
 
@@ -168,12 +165,14 @@ The button on the card now reads "You're coming · +1 · Change". She can tap to
 The post's system-comment area shows: "✓ Event concluded · 34 RSVP / 32 attended." Rachel reacts 💕 to the thank-you comment. Done.
 
 **What the scenario surfaces:**
+
 - RSVP is bound to the post, not a separate booking system
 - Post-event update keeps the thread alive; outcome is a coordinator action
 - Photos of children's events need privacy — may need to stay off GPS Action entirely, even members-only
 - System comment "Event concluded" is appropriate; default filter (Discussion) would hide it unless she switched to All
 
 **Friction found:**
+
 - The system tracked 34 RSVP but only 32 attended. Who recorded actual attendance? Coordinator manually? Or just an estimate? Needs a clear data model.
 - What if Rachel booked but can't come? Cancel RSVP reduces the count. System handles, but does it notify the coordinator? Probably for small events, yes.
 
@@ -181,7 +180,7 @@ The post's system-comment area shows: "✓ Event concluded · 34 RSVP / 32 atten
 
 ### Scenario 5 — Michael loses his phone, needs to log in on a new device
 
-*Michael, member 18 months in, moderately tech-savvy. Saturday morning, panicked — phone lost at a wedding yesterday.*
+_Michael, member 18 months in, moderately tech-savvy. Saturday morning, panicked — phone lost at a wedding yesterday._
 
 Michael buys a new phone, restores from backup. GPS Action app is there, opens, asks him to log in. He enters his email and password. GPS Action says: "We've sent a verification code to your phone." But his phone is gone.
 
@@ -196,12 +195,14 @@ A message appears: "Grant has been notified. He'll verify your identity and help
 15 minutes later Michael is back in.
 
 **What the scenario surfaces:**
+
 - Account recovery must exist, not an afterthought
 - Coordinator is the trust anchor for recovery — no central password-reset flow that could be social-engineered
 - Email as confirmation channel is necessary even though it's secondary
 - Voice/phone verification between member and coordinator is the out-of-band check
 
 **Friction found:**
+
 - What if Michael doesn't know who his coordinator is? Needs a fallback: "request recovery, wait for any director to respond."
 - What if the lost phone is compromised (stolen, not just lost)? The recovery flow needs to invalidate the old device's sessions. This is critical.
 - Timing: 15 minutes is the happy path. What if Grant's out of reach? Need an escalation timer — after X hours, other coordinators or directors get notified.
@@ -210,7 +211,7 @@ A message appears: "Grant has been notified. He'll verify your identity and help
 
 ### Scenario 6 — Claire publishes an outcome post about a successful letter placement
 
-*Claire, writer, Nottinghamshire. Monday 09:15 — she just got the email.*
+_Claire, writer, Nottinghamshire. Monday 09:15 — she just got the email._
 
 Claire wrote to the Nottingham Post about an inaccurate op-ed. The paper published her letter. She wants to share the win.
 
@@ -229,11 +230,13 @@ Confirmation prompt: "Did you send? ✓ Yes to both." She confirms.
 The post appears in the feed with a "💬 2 groups · by Claire" indicator. Soon: reactions flow in. 🎯, 💪, ❤️. Sharon comments: "Brilliant work 💕". System comment appears (in Activity filter): "✓ Verified by Sharon · 09:22".
 
 **What the scenario surfaces:**
+
 - Outcome posts have simple, well-defined routes
 - Writer pride moments deserve lightweight celebration, not heavy gamification
 - Self-verification by the writers' lead shortly after publish
 
 **Friction found:**
+
 - The two WhatsApp round-trips take a minute. Is that acceptable? Yes — the sharing is the point, one paste each is fine.
 - She didn't attach the original letter as a PDF. Should the composer prompt "Add the letter as evidence"? Useful for record-keeping. Worth adding as optional.
 
@@ -243,7 +246,7 @@ The post appears in the feed with a "💬 2 groups · by Claire" indicator. Soon
 
 ### Scenario 7 — Sharon creates a Writers event
 
-*Sharon, writers lead. Thursday morning, planning Monday's Writers session.*
+_Sharon, writers lead. Thursday morning, planning Monday's Writers session._
 
 She needs to announce next Monday's event to the Writers team. Opens GPS Action, taps +, picks "Start a Post."
 
@@ -258,18 +261,20 @@ She publishes. Dispatch modal: matched routes are NEWS – WRITERS ADVICE (team 
 On the card: the Join meeting button is disabled until Monday 18:45 (15 min before). Closer to time, it activates and members can tap to join.
 
 **What the scenario surfaces:**
+
 - Coordination posts have audience selection. Not all posts go to all members.
 - Join-a-meeting action type: Zoom/Meet/Teams link; button has time-based activation
 - Routing matrix differentiates Writers internal (Advice) from Writers member-facing (Written & Posted)
 
 **Friction found:**
+
 - How does a member who joined the Writers team later see the Monday event? If they weren't in the feed when it was posted, do they get a "pinned" version? Worth: upcoming events pinned until they happen.
 
 ---
 
 ### Scenario 8 — Grant drafts an urgent council-motion action post
 
-*Grant, coordinator East Midlands, also a writer. Thursday 14:00 — just saw the motion in tomorrow's Derbyshire CC agenda.*
+_Grant, coordinator East Midlands, also a writer. Thursday 14:00 — just saw the motion in tomorrow's Derbyshire CC agenda._
 
 Grant opens GPS Action, taps + → Start a Post → Urgent action → Councillor-email action.
 
@@ -288,6 +293,7 @@ He adjusts: unticks BDS (too broad), keeps Action Network + LA Team. Self-dispat
 On the feed, the post shows as Urgent with a countdown timer ("18 hours remaining"). Cap-fill bar starts empty.
 
 **What the scenario surfaces:**
+
 - Template-driven composition for recurring action types
 - Councillor picklist pulls from Contacts directory
 - Merge fields for per-recipient personalisation (per SRS §14)
@@ -295,6 +301,7 @@ On the feed, the post shows as Urgent with a countdown timer ("18 hours remainin
 - Cap-fill bar is a progress indicator
 
 **Friction found:**
+
 - What if the Contacts directory doesn't have all Derbyshire CC councillors? Grant has to add them. Contacts directory needs a quick-add from composer.
 - The 15 target councillors need individual merge. Behind the scenes: 15 separate emails queued? Or one dispatch that fans out? System design detail.
 
@@ -302,7 +309,7 @@ On the feed, the post shows as Urgent with a countdown timer ("18 hours remainin
 
 ### Scenario 9 — Claire responds to a newspaper op-ed
 
-*Claire, writer. Sees the op-ed in the morning Guardian.*
+_Claire, writer. Sees the op-ed in the morning Guardian._
 
 Opens GPS Action, but notices Maya has already posted about this op-ed with a call for responses. Claire doesn't need to create a new post; she engages with Maya's.
 
@@ -315,12 +322,14 @@ She taps Send. GPS Action opens her email client with the response pre-filled (T
 "✓ Response sent — thanks!" Post cap-fill increments.
 
 **What the scenario surfaces:**
+
 - Email action type opens pre-filled email, not a web form
 - Writers can customise before send
 - Confirmation is honest — we trusted her send, no verification
 - Template-based composer reduces writing fatigue
 
 **Friction found:**
+
 - Gmail/Outlook/default email apps handle pre-fills differently. Need testing across mail clients.
 - Her draft doesn't save if she bounces. Should composer state be preserved if she leaves and returns?
 
@@ -330,7 +339,7 @@ She taps Send. GPS Action opens her email client with the response pre-filled (T
 
 ### Scenario 10 — Maya triages her flagged-content queue
 
-*Maya, Tower Hamlets coordinator. Monday morning, coffee and laptop.*
+_Maya, Tower Hamlets coordinator. Monday morning, coffee and laptop._
 
 Maya opens GPS Action on desktop. Left sidebar shows admin items. She taps "Flag queue — 6 pending."
 
@@ -345,6 +354,7 @@ Item 3: a post from a brand new member with links to what looks like a separate 
 She clears three items in 20 minutes. Three others need follow-up today.
 
 **What the scenario surfaces:**
+
 - Flag queue is a real daily tool, not a rare edge
 - "Dismiss with note" is as important as "remove" — explains to flagger
 - Child-safety escalation is a specific workflow
@@ -352,6 +362,7 @@ She clears three items in 20 minutes. Three others need follow-up today.
 - Brand impersonation is a real concern — co-branding feature needs verification
 
 **Friction found:**
+
 - Maya works on desktop. The sidebar admin layout matters. Mobile admin is secondary but must exist for on-the-go moments.
 - She doesn't want to lose her place if she navigates away mid-triage. Queue state must persist.
 
@@ -359,7 +370,7 @@ She clears three items in 20 minutes. Three others need follow-up today.
 
 ### Scenario 11 — Jeremy edits a miscategorised regional post
 
-*Jeremy, director. Late evening, checking the network on his iPad.*
+_Jeremy, director. Late evening, checking the network on his iPad._
 
 He sees a post tagged "Bristol" but the content is about Brent (London). Clear mistake — the member typed Bristol when they meant Brent. The post is getting dispatched to the Bristol region feed.
 
@@ -374,12 +385,14 @@ Thread auto-comment (filtered out by Discussion default): "🔧 Region corrected
 Author later sees, understands, says thank you. No ill feeling.
 
 **What the scenario surfaces:**
+
 - Metadata edits are common and need to be low-friction
 - Required justification for edits keeps the audit trail useful
 - Author notification is real-time, not surprised-weeks-later
 - Auto-comment is filtered out of default view but visible to those who care
 
 **Friction found:**
+
 - What if the author objects? There's a formal "object" flow. But for most cases, gentle notification + audit is enough.
 - Speed matters: Jeremy expects this to take 15 seconds, not 2 minutes.
 
@@ -387,7 +400,7 @@ Author later sees, understands, says thank you. No ill feeling.
 
 ### Scenario 12 — Sharon vets a new enrolment application
 
-*Sharon, vetter (she's a writer with the vetter permission flag). Wednesday evening.*
+_Sharon, vetter (she's a writer with the vetter permission flag). Wednesday evening._
 
 Opens the Vetting queue. "New: 2, In progress: 1, Awaiting voucher: 3."
 
@@ -402,12 +415,14 @@ System sends Grant an in-app DM prompt: "Anna has applied naming you as voucher.
 Anna gets an approval email with a signup link. The vouch ledger gets a new entry: (voucher: Grant, applicant: Anna-new-user-id, vetter: Sharon).
 
 **What the scenario surfaces:**
+
 - Picklist context (tenure, past vouches, own voucher) is crucial for vetters
 - Voucher confirmation flow is asynchronous — Sharon doesn't block waiting
 - Required summary at approval produces auditable decisions
 - The vouch ledger entry is created at approval, not at application
 
 **Friction found:**
+
 - What if Sharon leaves the case mid-way and the voucher responds No? Who re-picks it up? Needs status indication: "case awaiting decision."
 - What if the voucher doesn't respond in 7 days? Escalation to director.
 
@@ -417,7 +432,7 @@ Anna gets an approval email with a signup link. The vouch ledger gets a new entr
 
 ### Scenario 13 — Jeremy pins a network-wide urgent post
 
-*Jeremy, director. Thursday evening — major news just broke.*
+_Jeremy, director. Thursday evening — major news just broke._
 
 A significant event has happened (some example: a BBC piece). Multiple members have posted reactions. Jeremy wants to consolidate — lift one good post to the top.
 
@@ -430,6 +445,7 @@ The post now shows "📌 Pinned network-wide" at the top of everyone's feed, abo
 System auto-comment on the post: "📌 Pinned network-wide by Jeremy — 48h." Members who had reacted see a notification that the post was pinned (a subtle signal of endorsement).
 
 **What the scenario surfaces:**
+
 - Director pins supersede coordinator pins
 - Pin has a scope (National vs regional)
 - Duration is configurable with sensible defaults
@@ -437,6 +453,7 @@ System auto-comment on the post: "📌 Pinned network-wide by Jeremy — 48h." M
 - Members get notified when their reacted post is pinned (optional notification)
 
 **Friction found:**
+
 - What if the post author is a coordinator who'd already pinned it regionally? Does national override or stack? National supersedes, the regional pin becomes redundant but is preserved in history.
 - Discovery: members need to know their feed has new pinned content without jarring.
 
@@ -444,7 +461,7 @@ System auto-comment on the post: "📌 Pinned network-wide by Jeremy — 48h." M
 
 ### Scenario 14 — Jeremy reviews an escalated vetting case
 
-*Jeremy, director. Tuesday morning.*
+_Jeremy, director. Tuesday morning._
 
 An applicant was escalated to director by a vetter because the named voucher said No. The applicant has re-nominated: "Actually I mean Miriam, not Sharon."
 
@@ -457,12 +474,14 @@ Jeremy confirms the re-nomination, sends a prompt to Miriam. Miriam responds Yes
 Jeremy approves with summary: "Re-nominated voucher confirmed. Clean lineage. Applicant's social presence verified as consistent with values."
 
 **What the scenario surfaces:**
+
 - Director has the "lineage check" tool; coordinators don't
 - Re-nomination flow is supported
 - Decision summary is required even at director level
 - The vouch graph is a useful investigative tool, not ornamental
 
 **Friction found:**
+
 - "Lineage check" needs good UX. A list? A tree? A path from founder?
 - What if Miriam says No too? Third attempt? At some point, decline gracefully — no hard limit but explicit director discretion.
 
@@ -470,11 +489,12 @@ Jeremy approves with summary: "Re-nominated voucher confirmed. Clean lineage. Ap
 
 ### Scenario 15 — Jeremy investigates a voucher's lineage
 
-*Jeremy, director. Friday — just got a flag from Sarah that David M (member) may have posted something problematic.*
+_Jeremy, director. Friday — just got a flag from Sarah that David M (member) may have posted something problematic._
 
 Jeremy needs to understand David's trust context before deciding.
 
 Opens David's profile. Admin view shows:
+
 - Member since: Feb 2026 (3 months)
 - Vouched by: Miriam Klein (Nov 2024 · 4 vouches, all in good standing · vouched by Rebecca)
 - Has vouched for: 0 (he's new)
@@ -487,12 +507,14 @@ Jeremy decides: not immediately actionable but watch. He makes a private admin n
 He DMs Maya (the flagger) to explain his approach. Maya appreciates it.
 
 **What the scenario surfaces:**
+
 - Admin profile view is structured, not just raw logs
 - Flag incident history is preserved with outcomes
 - Private admin notes on profile are coordinator-visible but hidden from member
 - Director's time is protected — he makes a note, doesn't take immediate action, follows up
 
 **Friction found:**
+
 - Admin notes on profiles need privacy rules. Members shouldn't see these. Ever. But if subpoenaed? Lawful basis for retention?
 - "Track — watch this week" is a follow-up task. Does Jeremy get a weekly digest on this? Or does he need to remember? Tasks/follow-ups system might be needed.
 
@@ -502,7 +524,7 @@ He DMs Maya (the flagger) to explain his approach. Maya appreciates it.
 
 ### Scenario 16 — Coordinator dispatches a Boost/Remove post to WhatsApp
 
-*Grant, coordinator. Wednesday 09:00.*
+_Grant, coordinator. Wednesday 09:00._
 
 A member has just published a Boost post — a positive X post from a Jewish MP that deserves amplification. Grant saw it in the dispatch queue (the member skipped self-dispatch).
 
@@ -517,12 +539,14 @@ Original author (member) gets a notification: "Grant dispatched your post to the
 Total elapsed time: 25 seconds.
 
 **What the scenario surfaces:**
+
 - Fallback dispatch (when author skipped) is fast and seamless
 - Dispatch record attribution is clear: dispatcher, not author
 - Author is told their post was acted on
 - The chain: member posts → skip → coordinator dispatches → WhatsApp team amplifies → X gets retweets
 
 **Friction found:**
+
 - What if two coordinators both see the queue and both dispatch? Race condition. The first dispatch "claims" — the queue item disappears for the second.
 - What if the clipboard fails (some OSes)? Fallback: show the message inline with a copy button.
 
@@ -530,7 +554,7 @@ Total elapsed time: 25 seconds.
 
 ### Scenario 17 — System auto-comments on a closing campaign
 
-*A post created days ago approaching its cap and expiry. The author is Grant.*
+_A post created days ago approaching its cap and expiry. The author is Grant._
 
 The campaign is: "Email Derbyshire CC councillors before tomorrow's vote." Cap was 50. It's 19:45, vote starts at 20:00. 48/50 sent.
 
@@ -551,12 +575,14 @@ Some members scrolling back see Grant's thank-you, react 🎯💪❤️.
 **The next morning** — Grant creates a new Outcome post summarising the win. Cross-linked to the original campaign post. The lifecycle is complete.
 
 **What the scenario surfaces:**
+
 - Auto-comments at milestones (75%, 100%, closure) are useful without being spammy
 - Default filter (Discussion) hides them; Activity filter shows them
 - The member-authored outcome comment is the human story; system comments are the data layer
 - Cross-post linking (outcome refers to original action) is a pattern
 
 **Friction found:**
+
 - Who's watching to see those 19:45 alerts? System notifications for Grant — yes. Members? Opt-in per-post "watch this" would be useful.
 - The auto-comment at 75% could arrive at an awkward time (19:45 = mid-family-dinner). Rate limiting and quiet-hours respected.
 

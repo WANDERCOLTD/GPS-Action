@@ -15,16 +15,16 @@ For visual context, read [`docs/architecture/erd.md`](../../docs/architecture/er
 
 ```typescript
 interface EntityMetadataEntry {
-  displayField: string;          // Field shown as the row's identifier
-  displayTemplate?: string;      // Composed identifier for join-tables / audit rows
-  listColumns: string[];         // Columns in admin list view (in order)
-  searchableFields?: string[];   // Fields searched by the list view's search box
-  defaultSort?: SortSpec;        // Default sort
-  bulkActions?: string[];        // Bulk-action procedure names
-  requiresRole: { view, edit };  // Role gating
-  workflow: 'queue' | null;      // 'queue' renders under /queue, null under /admin
-  softDelete: boolean;           // Whether the model has deletedAt
-  notes?: string;                // Free-text note shown in the admin header
+  displayField: string; // Field shown as the row's identifier
+  displayTemplate?: string; // Composed identifier for join-tables / audit rows
+  listColumns: string[]; // Columns in admin list view (in order)
+  searchableFields?: string[]; // Fields searched by the list view's search box
+  defaultSort?: SortSpec; // Default sort
+  bulkActions?: string[]; // Bulk-action procedure names
+  requiresRole: { view; edit }; // Role gating
+  workflow: 'queue' | null; // 'queue' renders under /queue, null under /admin
+  softDelete: boolean; // Whether the model has deletedAt
+  notes?: string; // Free-text note shown in the admin header
 }
 ```
 
@@ -36,13 +36,13 @@ The full type lives in [`entity-metadata.ts`](./entity-metadata.ts).
 
 The map extends one slice at a time, mirroring `prisma/schema.prisma`:
 
-| Slice | Status | Entries |
-|---|---|---|
+| Slice | Status    | Entries                                                                                                    |
+| ----- | --------- | ---------------------------------------------------------------------------------------------------------- |
 | **1** | ✅ landed | user, region, userRegion, workItem, roleGrant, coordinatorProfile, coordinatorGroup, auditLog, featureFlag |
-| 1.5 | planned | group, groupMembership |
-| 2 | planned | post, comment, reaction, attachment |
-| 3 | planned | application, flag, outcomeReview, editRequest, contentSubmission, vouch |
-| 4 | planned | contact, resource, route, dispatchEvent, partnerOrg |
+| 1.5   | planned   | group, groupMembership                                                                                     |
+| 2     | planned   | post, comment, reaction, attachment                                                                        |
+| 3     | planned   | application, flag, outcomeReview, editRequest, contentSubmission, vouch                                    |
+| 4     | planned   | contact, resource, route, dispatchEvent, partnerOrg                                                        |
 
 Rules:
 
@@ -122,7 +122,7 @@ the schema and metadata so BU-001 has something to read.
 - **Define columns.** That's the schema (`prisma/schema.prisma`).
 - **Define validation rules.** That's the Zod schemas in `server/routers/`.
 - **Define authorisation logic.** That's tRPC middleware (`requireRole`); the
-  metadata only declares the *required role*.
+  metadata only declares the _required role_.
 - **Define UI components.** That's `components/admin/*` (BU-001).
 - **Define audit-log behaviour.** That's the audit middleware that wraps all
   admin mutations.

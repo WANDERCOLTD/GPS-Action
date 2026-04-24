@@ -36,12 +36,12 @@ share-out flow exists to deliver them appropriately for each platform.
 
 ## The four platforms — honest reality check
 
-| Platform | API quality | Friction | MVP status |
-|---|---|---|---|
-| **WhatsApp** | Limited (deep-link only for groups) | Medium (~9 taps) | ✅ Primary channel |
-| **X (Twitter)** | Good (Web Intent) | Low (~6 taps) | ✅ Supported |
-| **Facebook** | Degraded (text stripped) | High (~15 taps + re-typing) | ⚠️ Supported with warnings |
-| **Instagram** | Effectively none for links | Highest | ❌ Deferred (Phase 1.5) |
+| Platform        | API quality                         | Friction                    | MVP status                 |
+| --------------- | ----------------------------------- | --------------------------- | -------------------------- |
+| **WhatsApp**    | Limited (deep-link only for groups) | Medium (~9 taps)            | ✅ Primary channel         |
+| **X (Twitter)** | Good (Web Intent)                   | Low (~6 taps)               | ✅ Supported               |
+| **Facebook**    | Degraded (text stripped)            | High (~15 taps + re-typing) | ⚠️ Supported with warnings |
+| **Instagram**   | Effectively none for links          | Highest                     | ❌ Deferred (Phase 1.5)    |
 
 **Honest summary:** WhatsApp and X are the primary outbound channels.
 Facebook is supported but the experience is degraded by Meta's policy.
@@ -68,6 +68,7 @@ re-type their commentary.
 
 Members can pre-configure their commonly-used WhatsApp groups as
 **Routes**. A Route is a saved destination with:
+
 - Name ("North London Boost Channel")
 - Optional notes
 - A WhatsApp `chat_id` if discoverable, otherwise just a name (member
@@ -241,6 +242,7 @@ She reviews the preview, optionally toggles the hashtag and GPS Action
 link. Taps "Open in X".
 
 GPS Action constructs the Web Intent URL:
+
 ```
 https://twitter.com/intent/tweet?text=...&url=...&hashtags=GPSAction
 ```
@@ -375,7 +377,7 @@ of GPS Action's audience.
 
 ### Facebook Groups specifically
 
-When a member's Facebook share is going into a *group* (not their wall),
+When a member's Facebook share is going into a _group_ (not their wall),
 Facebook may or may not let them pick the group from the share dialog.
 This is inconsistent across Facebook UI versions. We can't reliably
 target a specific group.
@@ -391,6 +393,7 @@ the group, paste. Outside our share flow.
 ### Why deferred
 
 Instagram has effectively no link-sharing intent. Its strengths are:
+
 - Stories (visual content with optional link sticker)
 - Posts (image-first, caption text, link in bio only)
 - Reels (video-first)
@@ -424,10 +427,10 @@ generation infrastructure exists.
 The Instagram option simply isn't in the share menu in MVP. If a member
 asks "where's Instagram?", in-app help explains:
 
-> *"Instagram doesn't allow sharing links the way other platforms do.
+> _"Instagram doesn't allow sharing links the way other platforms do.
 > We're working on a way to share visual cards to Stories — coming soon.
 > For now, if you want to mention this on Instagram, copy the GPS Action
-> link and add it to your Story manually."*
+> link and add it to your Story manually."_
 
 Honest. No false promises.
 
@@ -462,12 +465,13 @@ dispatch indicator:
 
 This is per the dedup spec — visible dispatch state prevents
 double-dispatch. Other members see this and can choose to dispatch to
-*different* destinations.
+_different_ destinations.
 
 ### Multi-platform parallel dispatch
 
 If Sharon picks WhatsApp routes + X + Facebook in one share session, GPS
 Action handles them sequentially:
+
 1. Cycle through WhatsApp routes (per WhatsApp flow above)
 2. Then X (open X compose, return, confirm)
 3. Then Facebook (warning + open + confirm)
@@ -480,6 +484,7 @@ has its own success/skip state.
 
 A member can return to a post and share it to additional destinations
 later. The dispatch indicator updates each time. Useful when:
+
 - Sharon shared to WhatsApp first, decides to also tweet later
 - Sharon shared to her own groups, decides to share to a different
   group after a conversation
@@ -518,27 +523,27 @@ enum DispatchState {
 
 model DispatchEvent {
   id                 String           @id @default(uuid())
-  
+
   postId             String
   post               Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
-  
+
   dispatchedByUserId String
   dispatchedBy       User             @relation("dispatches", fields: [dispatchedByUserId], references: [id], onDelete: Cascade)
-  
+
   platform           DispatchPlatform
   routeId            String?          // FK to Route table if WhatsApp; null for ad-hoc
   destinationLabel   String?          // human-readable: "North London Boost", "X (@sharoncohen)", etc.
-  
+
   state              DispatchState    @default(initiated)
-  
+
   initiatedAt        DateTime         @default(now())
   confirmedAt        DateTime?
   abandonedAt        DateTime?
-  
+
   // Optional context
   messageContent     String?          // what we sent (or attempted to)
   errorReason        String?          // if state = failed
-  
+
   @@index([postId, platform, state])
   @@index([dispatchedByUserId, initiatedAt])
 }
@@ -551,20 +556,20 @@ model Route {
   id          String          @id @default(uuid())
   userId      String
   user        User            @relation("routes", fields: [userId], references: [id], onDelete: Cascade)
-  
+
   name        String          // "North London Boost"
   notes       String?
   platform    DispatchPlatform @default(whatsapp)
-  
+
   // For WhatsApp: optional chat_id if known (most members won't have this)
   externalChatId String?
-  
+
   // Soft delete
   deletedAt   DateTime?
-  
+
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
-  
+
   @@index([userId, deletedAt])
 }
 ```
@@ -573,17 +578,17 @@ model Route {
 
 ## tRPC procedures
 
-| Procedure | Purpose | Auth |
-|---|---|---|
-| `share.listMyRoutes` | List my configured routes | member |
-| `share.createRoute` | Create a new route | member |
-| `share.updateRoute` | Update a route | member |
-| `share.archiveRoute` | Soft-delete a route | member |
-| `share.composeShareMessage` | Generate the platform-specific message text | member |
-| `share.recordDispatchInitiated` | Record that share was initiated | member |
-| `share.recordDispatchConfirmed` | Member confirms share completed | member |
-| `share.recordDispatchSkipped` | Member skipped this destination | member |
-| `share.listDispatchesForPost` | List all dispatches for a post (for indicator) | member |
+| Procedure                       | Purpose                                        | Auth   |
+| ------------------------------- | ---------------------------------------------- | ------ |
+| `share.listMyRoutes`            | List my configured routes                      | member |
+| `share.createRoute`             | Create a new route                             | member |
+| `share.updateRoute`             | Update a route                                 | member |
+| `share.archiveRoute`            | Soft-delete a route                            | member |
+| `share.composeShareMessage`     | Generate the platform-specific message text    | member |
+| `share.recordDispatchInitiated` | Record that share was initiated                | member |
+| `share.recordDispatchConfirmed` | Member confirms share completed                | member |
+| `share.recordDispatchSkipped`   | Member skipped this destination                | member |
+| `share.listDispatchesForPost`   | List all dispatches for a post (for indicator) | member |
 
 Server-side cron sweeps `state = initiated` events older than 1 hour
 and marks them `abandoned`.
@@ -592,14 +597,14 @@ and marks them `abandoned`.
 
 ## Analytics events
 
-| Event | Properties |
-|---|---|
-| `share_menu_opened` | `postId`, `platforms_available` (array) |
-| `share_destination_picked` | `postId`, `platform` |
-| `dispatch_initiated` | `postId`, `platform`, `route_id?` |
-| `dispatch_confirmed` | `postId`, `platform`, `time_to_confirm_seconds` |
-| `dispatch_abandoned` | `postId`, `platform`, `time_to_abandon_seconds` |
-| `dispatch_skipped` | `postId`, `platform`, `reason?` |
+| Event                      | Properties                                      |
+| -------------------------- | ----------------------------------------------- |
+| `share_menu_opened`        | `postId`, `platforms_available` (array)         |
+| `share_destination_picked` | `postId`, `platform`                            |
+| `dispatch_initiated`       | `postId`, `platform`, `route_id?`               |
+| `dispatch_confirmed`       | `postId`, `platform`, `time_to_confirm_seconds` |
+| `dispatch_abandoned`       | `postId`, `platform`, `time_to_abandon_seconds` |
+| `dispatch_skipped`         | `postId`, `platform`, `reason?`                 |
 
 These feed a "Share-out funnel" dashboard showing per-platform completion
 rates, abandonment patterns, and which platforms are most-used.
@@ -618,10 +623,10 @@ rates, abandonment patterns, and which platforms are most-used.
    relevance grows.
 4. **Email sharing.** Member opens default email app with pre-filled
    subject and body. Easy to add via mailto: link. Probably belongs in
-   MVP. *(Adding to "What lands" below.)*
+   MVP. _(Adding to "What lands" below.)_
 5. **Copy-link as a first-class destination.** Members can always copy
    the GPS Action URL. Worth a explicit "Copy link" option in the share
-   menu. *(Adding to MVP.)*
+   menu. _(Adding to MVP.)_
 6. **Pre-share editing of the message.** Member sees the message preview
    and edits it before sending. UX consideration; for MVP, message is
    auto-composed and not editable in the GPS Action UI (member can
@@ -641,6 +646,7 @@ rates, abandonment patterns, and which platforms are most-used.
 ## What lands in MVP
 
 **MVP day 1:**
+
 - WhatsApp share with Routes (pre-configured groups)
 - X (Twitter) share via Web Intent
 - Facebook share with honest "text stripped" warning
@@ -652,12 +658,14 @@ rates, abandonment patterns, and which platforms are most-used.
 - Sweep of abandoned dispatches (server cron)
 
 **Phase 1.5:**
+
 - Instagram Stories share (via generated story card, depends on image
   bank infrastructure)
 - Pre-share message editing in the GPS Action UI
 - Better Facebook UX (more guidance for groups)
 
 **Phase 2:**
+
 - WhatsApp Business API for Channels (automation)
 - LinkedIn sharing
 - Telegram sharing
@@ -665,6 +673,7 @@ rates, abandonment patterns, and which platforms are most-used.
 - Ghost-mode sharing
 
 **Phase 3:**
+
 - Cross-platform analytics integration (member-authorised pulls of
   X/Facebook/etc. analytics back into GPS Action — see
   deep-linking-and-tracking.md)

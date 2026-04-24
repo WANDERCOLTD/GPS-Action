@@ -101,9 +101,10 @@
   background: transparent;
   color: var(--colour-text-primary);
   cursor: pointer;
-  transition: background var(--motion-fast) var(--ease-standard),
-              border-color var(--motion-fast) var(--ease-standard),
-              color var(--motion-fast) var(--ease-standard);
+  transition:
+    background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
   user-select: none;
 }
 
@@ -113,7 +114,7 @@
 }
 
 .gps-btn:disabled,
-.gps-btn[aria-disabled="true"] {
+.gps-btn[aria-disabled='true'] {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -249,23 +250,48 @@
   white-space: nowrap;
   transition: background var(--motion-fast) var(--ease-standard);
 }
-.gps-chip:hover { background: var(--colour-border-subtle); }
+.gps-chip:hover {
+  background: var(--colour-border-subtle);
+}
 
 .gps-chip--active {
   background: var(--colour-primary-subtle);
   color: var(--colour-primary);
 }
 
-.gps-chip--static { cursor: default; }
+.gps-chip--static {
+  cursor: default;
+}
 
 /* Tone variants — for tag rows */
-.gps-chip--primary   { background: var(--colour-primary-subtle);   color: var(--colour-primary); }
-.gps-chip--success   { background: var(--colour-success-subtle);   color: var(--colour-success); }
-.gps-chip--warning   { background: var(--colour-warning-subtle);   color: var(--colour-warning); }
-.gps-chip--urgent    { background: var(--colour-urgent-subtle);    color: var(--colour-urgent); }
-.gps-chip--danger    { background: var(--colour-danger-subtle);    color: var(--colour-danger); }
-.gps-chip--info      { background: var(--colour-info-subtle);      color: var(--colour-info); }
-.gps-chip--cultural  { background: var(--colour-cultural-subtle);  color: var(--colour-cultural); }
+.gps-chip--primary {
+  background: var(--colour-primary-subtle);
+  color: var(--colour-primary);
+}
+.gps-chip--success {
+  background: var(--colour-success-subtle);
+  color: var(--colour-success);
+}
+.gps-chip--warning {
+  background: var(--colour-warning-subtle);
+  color: var(--colour-warning);
+}
+.gps-chip--urgent {
+  background: var(--colour-urgent-subtle);
+  color: var(--colour-urgent);
+}
+.gps-chip--danger {
+  background: var(--colour-danger-subtle);
+  color: var(--colour-danger);
+}
+.gps-chip--info {
+  background: var(--colour-info-subtle);
+  color: var(--colour-info);
+}
+.gps-chip--cultural {
+  background: var(--colour-cultural-subtle);
+  color: var(--colour-cultural);
+}
 
 /* Reaction pill — WhatsApp-style aggregate */
 .gps-pill {
@@ -367,14 +393,33 @@
   background: var(--colour-text-secondary); /* default; overridden per user */
 }
 
-.gps-avatar--xs { width: 18px; height: 18px; font-size: 9px; }
-.gps-avatar--sm { width: 22px; height: 22px; font-size: 10px; }
-.gps-avatar--lg { width: 48px; height: 48px; font-size: var(--text-md); }
+.gps-avatar--xs {
+  width: 18px;
+  height: 18px;
+  font-size: 9px;
+}
+.gps-avatar--sm {
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+}
+.gps-avatar--lg {
+  width: 48px;
+  height: 48px;
+  font-size: var(--text-md);
+}
 
 /* Avatar stack (overlapping) */
-.gps-avatar-stack { display: inline-flex; }
-.gps-avatar-stack .gps-avatar { border: 2px solid var(--colour-surface-raised); margin-left: -6px; }
-.gps-avatar-stack .gps-avatar:first-child { margin-left: 0; }
+.gps-avatar-stack {
+  display: inline-flex;
+}
+.gps-avatar-stack .gps-avatar {
+  border: 2px solid var(--colour-surface-raised);
+  margin-left: -6px;
+}
+.gps-avatar-stack .gps-avatar:first-child {
+  margin-left: 0;
+}
 
 /* Verified tick (overlay on avatar or beside name) */
 .gps-verified-tick {
@@ -410,11 +455,26 @@
   color: var(--colour-urgent-contrast);
 }
 
-.gps-badge--new     { background: var(--colour-primary);  color: var(--colour-primary-contrast); }
-.gps-badge--warning { background: var(--colour-warning);  color: var(--colour-warning-contrast); }
-.gps-badge--urgent  { background: var(--colour-urgent);   color: var(--colour-urgent-contrast); }
-.gps-badge--danger  { background: var(--colour-danger);   color: var(--colour-danger-contrast); }
-.gps-badge--success { background: var(--colour-success);  color: var(--colour-success-contrast); }
+.gps-badge--new {
+  background: var(--colour-primary);
+  color: var(--colour-primary-contrast);
+}
+.gps-badge--warning {
+  background: var(--colour-warning);
+  color: var(--colour-warning-contrast);
+}
+.gps-badge--urgent {
+  background: var(--colour-urgent);
+  color: var(--colour-urgent-contrast);
+}
+.gps-badge--danger {
+  background: var(--colour-danger);
+  color: var(--colour-danger-contrast);
+}
+.gps-badge--success {
+  background: var(--colour-success);
+  color: var(--colour-success-contrast);
+}
 
 /* Severity dot (on post meta) */
 .gps-sev {
@@ -424,9 +484,15 @@
   border-radius: var(--radius-circle);
   background: var(--colour-text-tertiary);
 }
-.gps-sev--high    { background: var(--colour-danger); }
-.gps-sev--medium  { background: var(--colour-warning); }
-.gps-sev--low     { background: var(--colour-text-tertiary); }
+.gps-sev--high {
+  background: var(--colour-danger);
+}
+.gps-sev--medium {
+  background: var(--colour-warning);
+}
+.gps-sev--low {
+  background: var(--colour-text-tertiary);
+}
 
 /* Notification dot (small marker for unread) */
 .gps-dot {
@@ -451,11 +517,21 @@
   color: var(--colour-text-secondary);
 }
 
-.gps-type--action     { color: var(--colour-text-secondary); }
-.gps-type--seeking    { color: var(--colour-info); }
-.gps-type--outcome    { color: var(--colour-success); }
-.gps-type--community  { color: var(--colour-cultural); }
-.gps-type--coord      { color: var(--colour-warning); }
+.gps-type--action {
+  color: var(--colour-text-secondary);
+}
+.gps-type--seeking {
+  color: var(--colour-info);
+}
+.gps-type--outcome {
+  color: var(--colour-success);
+}
+.gps-type--community {
+  color: var(--colour-cultural);
+}
+.gps-type--coord {
+  color: var(--colour-warning);
+}
 
 /* ─────────────────────────────────────────────────────────────────────────
  * PROGRESS / CAP BAR
@@ -500,8 +576,12 @@
   justify-content: center;
   padding: var(--space-5);
 }
-.gps-modal-stage--open { display: flex; }
-.gps-modal-stage--bottom { align-items: flex-end; }
+.gps-modal-stage--open {
+  display: flex;
+}
+.gps-modal-stage--bottom {
+  align-items: flex-end;
+}
 
 .gps-modal {
   background: var(--colour-surface-raised);
@@ -529,25 +609,55 @@
   font-size: var(--text-sm);
   line-height: var(--line-snug);
 }
-.gps-banner--success { background: var(--colour-success-subtle);  border-left-color: var(--colour-success); }
-.gps-banner--warning { background: var(--colour-warning-subtle);  border-left-color: var(--colour-warning); }
-.gps-banner--urgent  { background: var(--colour-urgent-subtle);   border-left-color: var(--colour-urgent); }
-.gps-banner--danger  { background: var(--colour-danger-subtle);   border-left-color: var(--colour-danger); }
+.gps-banner--success {
+  background: var(--colour-success-subtle);
+  border-left-color: var(--colour-success);
+}
+.gps-banner--warning {
+  background: var(--colour-warning-subtle);
+  border-left-color: var(--colour-warning);
+}
+.gps-banner--urgent {
+  background: var(--colour-urgent-subtle);
+  border-left-color: var(--colour-urgent);
+}
+.gps-banner--danger {
+  background: var(--colour-danger-subtle);
+  border-left-color: var(--colour-danger);
+}
 
 /* ─────────────────────────────────────────────────────────────────────────
  * UTILITIES
  * Low-level helpers. Keep lean.
  * ───────────────────────────────────────────────────────────────────────── */
 
-.gps-stack { display: flex; flex-direction: column; gap: var(--space-3); }
-.gps-stack--tight { gap: var(--space-2); }
-.gps-stack--loose { gap: var(--space-5); }
+.gps-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.gps-stack--tight {
+  gap: var(--space-2);
+}
+.gps-stack--loose {
+  gap: var(--space-5);
+}
 
-.gps-row { display: flex; align-items: center; gap: var(--space-3); }
-.gps-row--wrap { flex-wrap: wrap; }
-.gps-row--tight { gap: var(--space-2); }
+.gps-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.gps-row--wrap {
+  flex-wrap: wrap;
+}
+.gps-row--tight {
+  gap: var(--space-2);
+}
 
-.gps-spacer { flex: 1; }
+.gps-spacer {
+  flex: 1;
+}
 
 /* Divider */
 .gps-divider {

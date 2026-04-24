@@ -19,6 +19,7 @@ values. Keep variables simple: first names, counts, relative times. No complex
 formatting logic.
 
 **Voice rules** (from design-philosophy):
+
 - Warm, not corporate (principle 2: Sharon-warmth)
 - Honest about what happens (principle 5)
 - Plain English (principle 5)
@@ -29,18 +30,19 @@ formatting logic.
 
 ## Deduplication strings (BU-009)
 
-| Key | Copy | Notes |
-|---|---|---|
-| `dedup.interstitial.headline` | `{author_first_name} posted this {relative_time}` | Headline on the interstitial Abby sees |
-| `dedup.interstitial.reassurance` | `Your thoughts will be added as a comment so we keep it all in one place.` | Explains what happens |
-| `dedup.interstitial.primary_cta` | `Add my comment` | Default button |
-| `dedup.interstitial.secondary_cta` | `Post separately instead` | Visible, not buried |
-| `dedup.comment.default_framing` | `{author_first_name} saw this too and wants to share.` | Pre-populated in the comment composer |
-| `dedup.comment.disclosure_label` | `Include what you wrote?` | Collapsed disclosure; expands to show draft |
-| `dedup.notification.specific` | `{commenter_first_name} saw this too and added their thoughts to your post.` | Sharon's notification — uses "their", neutral |
-| `dedup.interstitial.self_authored` | `You posted this {relative_time}. Want to add a new comment instead?` | Edge case: re-posting own URL within window |
+| Key                                | Copy                                                                         | Notes                                         |
+| ---------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------- |
+| `dedup.interstitial.headline`      | `{author_first_name} posted this {relative_time}`                            | Headline on the interstitial Abby sees        |
+| `dedup.interstitial.reassurance`   | `Your thoughts will be added as a comment so we keep it all in one place.`   | Explains what happens                         |
+| `dedup.interstitial.primary_cta`   | `Add my comment`                                                             | Default button                                |
+| `dedup.interstitial.secondary_cta` | `Post separately instead`                                                    | Visible, not buried                           |
+| `dedup.comment.default_framing`    | `{author_first_name} saw this too and wants to share.`                       | Pre-populated in the comment composer         |
+| `dedup.comment.disclosure_label`   | `Include what you wrote?`                                                    | Collapsed disclosure; expands to show draft   |
+| `dedup.notification.specific`      | `{commenter_first_name} saw this too and added their thoughts to your post.` | Sharon's notification — uses "their", neutral |
+| `dedup.interstitial.self_authored` | `You posted this {relative_time}. Want to add a new comment instead?`        | Edge case: re-posting own URL within window   |
 
 **Variables used here:**
+
 - `{author_first_name}` — first name of the canonical post's author
 - `{commenter_first_name}` — first name of the merged commenter (Abby in examples)
 - `{relative_time}` — human-friendly: "2 hours ago," "yesterday," "earlier today"

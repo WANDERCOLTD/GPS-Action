@@ -5,7 +5,7 @@
 **Authoritative schema:** [`prisma/schema.prisma`](../../prisma/schema.prisma)
 **Metadata map:** [`server/admin/entity-metadata.ts`](../../server/admin/entity-metadata.ts)
 
-This document explains the *why* alongside the *what*. The Prisma file is the
+This document explains the _why_ alongside the _what_. The Prisma file is the
 source of truth for shape; this file is the source of truth for rationale and
 the slice plan.
 
@@ -18,13 +18,13 @@ The ERD lands one slice at a time. Each slice **adds** to
 are not refactored without an ADR. The Mermaid diagram below extends with each
 slice — earlier entities never disappear.
 
-| Slice | Status | Contents |
-|---|---|---|
+| Slice | Status    | Contents                                                                                                   |
+| ----- | --------- | ---------------------------------------------------------------------------------------------------------- |
 | **1** | ✅ landed | User, Region, UserRegion, WorkItem, RoleGrant, CoordinatorProfile, CoordinatorGroup, AuditLog, FeatureFlag |
-| 1.5 | planned | Group, GroupMembership (per D043) |
-| 2 | planned | Post, Comment, Reaction, Attachment + dedup fields (per dedup-and-cosurfacing.md) |
-| 3 | planned | Application (vetting), Flag, OutcomeReview, EditRequest, ContentSubmission, Vouch |
-| 4 | planned | Contact, Resource, Route, DispatchEvent, PartnerOrg |
+| 1.5   | planned   | Group, GroupMembership (per D043)                                                                          |
+| 2     | planned   | Post, Comment, Reaction, Attachment + dedup fields (per dedup-and-cosurfacing.md)                          |
+| 3     | planned   | Application (vetting), Flag, OutcomeReview, EditRequest, ContentSubmission, Vouch                          |
+| 4     | planned   | Contact, Resource, Route, DispatchEvent, PartnerOrg                                                        |
 
 When a future slice begins, the brief lists the new entities, names the
 relations to existing entities, and adds them to this diagram. No previous
@@ -182,17 +182,17 @@ erDiagram
 
 ## Entities — at a glance
 
-| Entity | Purpose | Soft-deleted? | Key invariants enforced where |
-|---|---|---|---|
-| **User** | Identity for any human. No location fields per D041. | Yes (`deletedAt`) | App-level: cannot self-revoke admin; cannot revoke last admin |
-| **Region** | Hierarchy-only place model (national / region / council). No geospatial data per D041. | Yes (`deletedAt`) | App-level: parent chain acyclic |
-| **UserRegion** | Member ↔ region affinity. Informational only per D041 — does not drive feed or queue filtering. **Purpose needs confirmation.** | No | DB: composite unique on `(userId, regionId)` |
-| **WorkItem** | Unified queue primitive (D040). All claimable workflows. | Yes (`deletedAt`) | DB: indexes for queue + region informational queries. App-level: atomic claim, TTL + 4-hour cap, claimed/resolved field invariants |
-| **RoleGrant** | Dynamic role provenance (D042). Active = `revokedAt IS NULL`. | No — revocation is a status change, not a delete | App-level: one active grant per (user, role); admin-grant special rules |
-| **CoordinatorProfile** | Member's identity as a coordinator of external communities (D042). One-to-one with User. | Yes (`deletedAt`) | DB: unique on `userId` |
-| **CoordinatorGroup** | A specific external group a coordinator runs (WhatsApp, newsletter, etc.). | Yes (`deletedAt`) | Cascade-deletes with the parent profile |
-| **AuditLog** | Immutable record of sensitive events (B07). Append-only. | No — never deleted | App-level: routers must not expose update or delete procedures. `userId` and `targetUserId` use `SetNull` so user hard-deletes leave the chain intact |
-| **FeatureFlag** | Homegrown DB-driven flags (D036). Server-side evaluation. | Yes (`deletedAt`) | App-level: rollout flags require `ttlRemoveAfter`; kill switches require `ownerUserId`; new flags default OFF |
+| Entity                 | Purpose                                                                                                                         | Soft-deleted?                                    | Key invariants enforced where                                                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **User**               | Identity for any human. No location fields per D041.                                                                            | Yes (`deletedAt`)                                | App-level: cannot self-revoke admin; cannot revoke last admin                                                                                         |
+| **Region**             | Hierarchy-only place model (national / region / council). No geospatial data per D041.                                          | Yes (`deletedAt`)                                | App-level: parent chain acyclic                                                                                                                       |
+| **UserRegion**         | Member ↔ region affinity. Informational only per D041 — does not drive feed or queue filtering. **Purpose needs confirmation.** | No                                               | DB: composite unique on `(userId, regionId)`                                                                                                          |
+| **WorkItem**           | Unified queue primitive (D040). All claimable workflows.                                                                        | Yes (`deletedAt`)                                | DB: indexes for queue + region informational queries. App-level: atomic claim, TTL + 4-hour cap, claimed/resolved field invariants                    |
+| **RoleGrant**          | Dynamic role provenance (D042). Active = `revokedAt IS NULL`.                                                                   | No — revocation is a status change, not a delete | App-level: one active grant per (user, role); admin-grant special rules                                                                               |
+| **CoordinatorProfile** | Member's identity as a coordinator of external communities (D042). One-to-one with User.                                        | Yes (`deletedAt`)                                | DB: unique on `userId`                                                                                                                                |
+| **CoordinatorGroup**   | A specific external group a coordinator runs (WhatsApp, newsletter, etc.).                                                      | Yes (`deletedAt`)                                | Cascade-deletes with the parent profile                                                                                                               |
+| **AuditLog**           | Immutable record of sensitive events (B07). Append-only.                                                                        | No — never deleted                               | App-level: routers must not expose update or delete procedures. `userId` and `targetUserId` use `SetNull` so user hard-deletes leave the chain intact |
+| **FeatureFlag**        | Homegrown DB-driven flags (D036). Server-side evaluation.                                                                       | Yes (`deletedAt`)                                | App-level: rollout flags require `ttlRemoveAfter`; kill switches require `ownerUserId`; new flags default OFF                                         |
 
 ---
 
@@ -232,26 +232,26 @@ procedures, not the generic admin (per admin-surface.md).
 
 ## Indexes — what's queried
 
-| Entity | Index | Why |
-|---|---|---|
-| User | `(deletedAt)`, `(verifiedAt)` | Soft-delete filter; vetting status filter |
-| Region | `(type)`, `(parentId)`, `(deletedAt)` | List by tier; hierarchy walks; soft-delete filter |
-| UserRegion | `(userId, regionId)` unique; `(userId)`, `(regionId)` | Affinity lookup both directions |
-| WorkItem | `(status, priority, createdAt)` | Queue list (default sort) |
-| WorkItem | `(claimedByUserId, status)` | "What am I working on?" |
-| WorkItem | `(type, status)` | Per-type queue filtering |
-| WorkItem | `(regionSlug, status)` | Informational region rollups |
-| WorkItem | `(deletedAt)` | Soft-delete filter |
-| RoleGrant | `(userId, role, revokedAt)` | Active-role test |
-| RoleGrant | `(grantedAt)` | History view sort |
-| CoordinatorProfile | `(deletedAt)` | Soft-delete filter |
-| CoordinatorGroup | `(coordinatorProfileId, deletedAt)` | List a coordinator's groups |
-| AuditLog | `(userId, createdAt)` | "What did Sharon do this week?" |
-| AuditLog | `(targetUserId, createdAt)` | "What was done to this user?" |
-| AuditLog | `(entityType, entityId)` | Entity history view |
-| AuditLog | `(action, createdAt)` | Filter by event type |
-| AuditLog | `(createdAt)` | General time-range queries |
-| FeatureFlag | `(purpose)`, `(enabledGlobally)`, `(ttlRemoveAfter)`, `(deletedAt)` | Filter by type, find expiring flags |
+| Entity             | Index                                                               | Why                                               |
+| ------------------ | ------------------------------------------------------------------- | ------------------------------------------------- |
+| User               | `(deletedAt)`, `(verifiedAt)`                                       | Soft-delete filter; vetting status filter         |
+| Region             | `(type)`, `(parentId)`, `(deletedAt)`                               | List by tier; hierarchy walks; soft-delete filter |
+| UserRegion         | `(userId, regionId)` unique; `(userId)`, `(regionId)`               | Affinity lookup both directions                   |
+| WorkItem           | `(status, priority, createdAt)`                                     | Queue list (default sort)                         |
+| WorkItem           | `(claimedByUserId, status)`                                         | "What am I working on?"                           |
+| WorkItem           | `(type, status)`                                                    | Per-type queue filtering                          |
+| WorkItem           | `(regionSlug, status)`                                              | Informational region rollups                      |
+| WorkItem           | `(deletedAt)`                                                       | Soft-delete filter                                |
+| RoleGrant          | `(userId, role, revokedAt)`                                         | Active-role test                                  |
+| RoleGrant          | `(grantedAt)`                                                       | History view sort                                 |
+| CoordinatorProfile | `(deletedAt)`                                                       | Soft-delete filter                                |
+| CoordinatorGroup   | `(coordinatorProfileId, deletedAt)`                                 | List a coordinator's groups                       |
+| AuditLog           | `(userId, createdAt)`                                               | "What did Sharon do this week?"                   |
+| AuditLog           | `(targetUserId, createdAt)`                                         | "What was done to this user?"                     |
+| AuditLog           | `(entityType, entityId)`                                            | Entity history view                               |
+| AuditLog           | `(action, createdAt)`                                               | Filter by event type                              |
+| AuditLog           | `(createdAt)`                                                       | General time-range queries                        |
+| FeatureFlag        | `(purpose)`, `(enabledGlobally)`, `(ttlRemoveAfter)`, `(deletedAt)` | Filter by type, find expiring flags               |
 
 ---
 
@@ -313,8 +313,9 @@ DB-level enforcement, we add a partial unique index via a raw migration.
 
 **Default chosen:** `national | region | council`. Confirm or expand.
 Edge cases that may surface:
-- *Borough* / *unitary authority* / *parish* — currently all under `council`
-- *Devolved nation* (Scotland, Wales, NI) — currently under `region`
+
+- _Borough_ / _unitary authority_ / _parish_ — currently all under `council`
+- _Devolved nation_ (Scotland, Wales, NI) — currently under `region`
 
 ### 3. Seed Region data
 
@@ -325,6 +326,7 @@ documents the expected seed shape.
 ### 4. `User` baseline fields
 
 **Default chosen** (open question 4 in the brief, picked):
+
 - `email` (unique, required)
 - `displayName` (required)
 - `phoneNumber` (optional — for future MFA)
@@ -337,6 +339,7 @@ join table) will be added when the auth Build Unit lands.
 ### 5. `AuditLog` shape
 
 **Default chosen:**
+
 - `id`, `action` (string), `entityType` (string), `entityId` (string)
 - `userId` (actor — nullable for system-generated entries)
 - `targetUserId` (nullable)

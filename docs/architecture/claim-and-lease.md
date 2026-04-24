@@ -25,6 +25,7 @@ represents one unit of work. Type-driven UI renders the right form for each
 type.
 
 **Why one table:**
+
 - One claim mechanism, not six
 - One audit pattern
 - One notification system
@@ -33,18 +34,19 @@ type.
 
 **Eight work item types (MVP):**
 
-| Type | What needs human judgement |
-|---|---|
-| `vetting` | New member application requires identity + suitability check |
-| `flag` | A member has flagged a post for moderation |
-| `outcome_review` | A posted outcome requires verification before "Verified" tag |
-| `dedup_merge` | Edge case where dedup detection wasn't confident |
-| `edit_request` | Member has asked for their post to be edited (e.g. fix a typo after publish) |
-| `incident` | Anything escalated from elsewhere — security, safety, urgent ops |
+| Type                 | What needs human judgement                                                             |
+| -------------------- | -------------------------------------------------------------------------------------- |
+| `vetting`            | New member application requires identity + suitability check                           |
+| `flag`               | A member has flagged a post for moderation                                             |
+| `outcome_review`     | A posted outcome requires verification before "Verified" tag                           |
+| `dedup_merge`        | Edge case where dedup detection wasn't confident                                       |
+| `edit_request`       | Member has asked for their post to be edited (e.g. fix a typo after publish)           |
+| `incident`           | Anything escalated from elsewhere — security, safety, urgent ops                       |
 | `content_submission` | Member submitted a graphic / fact sheet / toolkit for the content library (per SRS §8) |
-| `link_submission` | Member submitted a link for the Useful Links repository (parking lot, future) |
+| `link_submission`    | Member submitted a link for the Useful Links repository (parking lot, future)          |
 
 The types list extends as features mature. Adding a new type:
+
 1. Add to the `WorkItemType` enum
 2. Define its context shape (TypeScript type + Zod schema)
 3. Register its form component in the type-driven renderer
@@ -55,11 +57,14 @@ The types list extends as features mature. Adding a new type:
 ## The five design decisions (locked)
 
 ### Q1 — What needs claiming
+
 The eight work-item types above. Posts, comments, reactions, feed items do
 **not** need claiming — they're not single-worker workflows.
 
 ### Q2 — How claims are surfaced
+
 **Tab split.** The queue page has two tabs:
+
 - **Available** — `WHERE status = 'unclaimed'`
 - **In Progress** — `WHERE status IN ('claimed', 'in_review')`
 
@@ -67,14 +72,16 @@ Claimant's avatar shows next to each in-progress item. Tap to see name and
 claim age.
 
 ### Q3 — Claims are exclusive
+
 Once claimed, only the claimant can perform resolution actions on that work
 item. The API rejects resolution attempts from other users with
 `TRPCError({ code: "FORBIDDEN", message: "Claimed by Sharon" })`.
 
 Other queue managers can still **view** the work item and its underlying
-content. The lock is on the *resolve action*, not on visibility.
+content. The lock is on the _resolve action_, not on visibility.
 
 ### Q4 — Three tiers of release
+
 1. **Self-release.** The claimant can release their own claim at any time,
    one click. "Done" or "won't action" are both legitimate.
 2. **Admin force-release.** Users with `admin` role can release anyone's
@@ -83,8 +90,10 @@ content. The lock is on the *resolve action*, not on visibility.
    trigger automatic release. No notification (silent).
 
 ### Q5 — Scope of the lock
+
 The claim locks the **work item**, not the underlying entity. If Paul has
 claimed flag #42 (which is about post #99), Sharon can still:
+
 - View post #99
 - Comment on post #99
 - React on post #99
@@ -100,6 +109,7 @@ What Sharon cannot do is resolve flag #42. That's Paul's, while it's claimed.
 filtering of the queue.
 
 Reasons:
+
 - Pilot cohort is small — a shared workload with many eyes is robust
 - Workload self-balances without admin intervention
 - Coverage gaps don't exist because everyone covers everything
@@ -129,6 +139,7 @@ isn't renewed before expiry, the work item auto-releases on the next queue
 read or scheduled sweep.
 
 30 minutes is a balance:
+
 - Long enough for genuine work (read context, make a decision, action it)
 - Short enough that a forgotten claim doesn't block the queue all day
 
@@ -156,6 +167,7 @@ Even with continuous heartbeats, a claim is force-released after 4 hours.
 This catches the "left it open on another monitor" failure mode.
 
 When max-duration force-release happens:
+
 - Work item returns to `unclaimed`
 - Claimant gets a notification: "Your claim on X was released after 4 hours.
   If you're still working on it, claim it again."
@@ -235,6 +247,7 @@ needed.
 A small, well-defined feature on every claimed work item:
 
 **On the queue list (In Progress tab):**
+
 - Each row shows the claimant's avatar (24px circle) at the right edge
 - Tap/hover reveals: claimant name + claim age ("Sharon, claimed 12 minutes
   ago")
@@ -242,18 +255,20 @@ A small, well-defined feature on every claimed work item:
   20-min mark)
 
 **On the work-item detail page:**
+
 - Header shows the claimant's avatar + name + claim age + "Release" button
   (visible to claimant only)
 - For admins viewing a claim they don't own: avatar + name + "Force release
   (admin)" button
 
 **Copy** (per design philosophy):
+
 - "Claimed by Sharon, 12 minutes ago" — honest, plain
 - "Released by Paul" — past-tense, factual
 - "Released automatically (no activity for 30 minutes)" — explains the why
 
 This is sufficient social-awareness for MVP. Full presence indicators
-(stacked avatars showing who's *currently viewing*) are deferred — see
+(stacked avatars showing who's _currently viewing_) are deferred — see
 parking lot.
 
 ---
@@ -304,37 +319,37 @@ model WorkItem {
   type                WorkItemType
   status              WorkItemStatus      @default(unclaimed)
   priority            WorkItemPriority    @default(normal)
-  
+
   // Type-specific payload — references to underlying entities + summary
   context             Json
-  
+
   // Region tag (informational only in MVP — not used for access control per D041)
   regionSlug          String?
-  
+
   // Lifecycle
   createdAt           DateTime            @default(now())
   createdByUserId     String?             // nullable — some work items system-generated
   createdBy           User?               @relation("workItemsCreated", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  
+
   // Claim fields (all nullable until claim happens)
   claimedByUserId     String?
   claimedBy           User?               @relation("workItemsClaimed", fields: [claimedByUserId], references: [id], onDelete: SetNull)
   claimedAt           DateTime?
   claimExpiresAt      DateTime?
   lastHeartbeatAt     DateTime?
-  
+
   // Resolution fields (populated on resolution)
   resolvedAt          DateTime?
   resolvedByUserId    String?
   resolvedBy          User?               @relation("workItemsResolved", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
   resolution          WorkItemResolution?
   resolutionNotes     String?
-  
+
   // Soft delete (per admin-surface convention)
   deletedAt           DateTime?
-  
+
   updatedAt           DateTime            @updatedAt
-  
+
   @@index([status, priority, createdAt])
   @@index([claimedByUserId, status])
   @@index([type, status])
@@ -347,17 +362,17 @@ model WorkItem {
 ```prisma
 model User {
   // ... existing fields ...
-  
+
   workItemsCreated    WorkItem[]   @relation("workItemsCreated")
   workItemsClaimed    WorkItem[]   @relation("workItemsClaimed")
   workItemsResolved   WorkItem[]   @relation("workItemsResolved")
-  
+
   // Role grants (per admin-surface.md — separate model)
   roleGrants          RoleGrant[]  @relation("roleGrants")
-  
+
   // Coordinator profile (per admin-surface.md — optional, separate model)
   coordinatorProfile  CoordinatorProfile? @relation("coordinatorProfile")
-  
+
   // ... existing fields ...
 }
 ```
@@ -405,16 +420,16 @@ data layer carries the human-readable label.
 
 The work-item router exposes these procedures:
 
-| Procedure | Purpose | Auth |
-|---|---|---|
-| `workItem.list` | List work items with filters (status, type, claimed-by-me) | queue_manager |
-| `workItem.get` | Get one work item by ID | queue_manager |
-| `workItem.claim` | Claim an unclaimed work item | queue_manager |
-| `workItem.heartbeat` | Extend the lease while page is open | queue_manager (must be claimant) |
-| `workItem.release` | Release own claim | queue_manager (must be claimant) |
-| `workItem.forceRelease` | Force-release someone else's claim | admin |
-| `workItem.resolve` | Resolve the work item (per type-specific resolution flow) | queue_manager (must be claimant) |
-| `workItem.escalate` | Escalate to admin (creates a follow-on work item) | queue_manager (must be claimant) |
+| Procedure               | Purpose                                                    | Auth                             |
+| ----------------------- | ---------------------------------------------------------- | -------------------------------- |
+| `workItem.list`         | List work items with filters (status, type, claimed-by-me) | queue_manager                    |
+| `workItem.get`          | Get one work item by ID                                    | queue_manager                    |
+| `workItem.claim`        | Claim an unclaimed work item                               | queue_manager                    |
+| `workItem.heartbeat`    | Extend the lease while page is open                        | queue_manager (must be claimant) |
+| `workItem.release`      | Release own claim                                          | queue_manager (must be claimant) |
+| `workItem.forceRelease` | Force-release someone else's claim                         | admin                            |
+| `workItem.resolve`      | Resolve the work item (per type-specific resolution flow)  | queue_manager (must be claimant) |
+| `workItem.escalate`     | Escalate to admin (creates a follow-on work item)          | queue_manager (must be claimant) |
 
 All procedures follow api-contract-discipline.md rules. All actions emit
 audit-log entries. All resolutions emit analytics events.
@@ -425,17 +440,17 @@ audit-log entries. All resolutions emit analytics events.
 
 Every claim lifecycle transition writes an audit-log entry:
 
-| Action | When |
-|---|---|
-| `claim_created` | Successful claim |
-| `claim_renewed` | Heartbeat received (logged at low frequency — once per claim, not per heartbeat) |
-| `claim_self_released` | Claimant released own claim |
-| `claim_force_released` | Admin force-released, with reason |
-| `claim_ttl_expired` | Auto-released by sweeper (TTL) |
-| `claim_max_duration_expired` | Auto-released by sweeper (4-hour cap) |
-| `claim_released_on_role_revoke` | Auto-released because claimant's role was revoked |
-| `work_item_resolved` | Final resolution (approved/rejected/etc.) |
-| `work_item_escalated` | Escalated, follow-on work item created |
+| Action                          | When                                                                             |
+| ------------------------------- | -------------------------------------------------------------------------------- |
+| `claim_created`                 | Successful claim                                                                 |
+| `claim_renewed`                 | Heartbeat received (logged at low frequency — once per claim, not per heartbeat) |
+| `claim_self_released`           | Claimant released own claim                                                      |
+| `claim_force_released`          | Admin force-released, with reason                                                |
+| `claim_ttl_expired`             | Auto-released by sweeper (TTL)                                                   |
+| `claim_max_duration_expired`    | Auto-released by sweeper (4-hour cap)                                            |
+| `claim_released_on_role_revoke` | Auto-released because claimant's role was revoked                                |
+| `work_item_resolved`            | Final resolution (approved/rejected/etc.)                                        |
+| `work_item_escalated`           | Escalated, follow-on work item created                                           |
 
 ---
 
@@ -443,12 +458,12 @@ Every claim lifecycle transition writes an audit-log entry:
 
 For pilot visibility:
 
-| Event | Properties |
-|---|---|
-| `work_item_claimed` | `type`, `priority`, `time_in_queue_seconds` |
-| `work_item_resolved` | `type`, `resolution`, `time_to_resolve_minutes`, `was_escalated` |
-| `work_item_released_unfinished` | `type`, `time_held_minutes` (signals abandonment patterns) |
-| `claim_force_released` | `type`, `reason_category` (admin override behaviour) |
+| Event                           | Properties                                                       |
+| ------------------------------- | ---------------------------------------------------------------- |
+| `work_item_claimed`             | `type`, `priority`, `time_in_queue_seconds`                      |
+| `work_item_resolved`            | `type`, `resolution`, `time_to_resolve_minutes`, `was_escalated` |
+| `work_item_released_unfinished` | `type`, `time_held_minutes` (signals abandonment patterns)       |
+| `claim_force_released`          | `type`, `reason_category` (admin override behaviour)             |
 
 These feed a "Queue manager activity" dashboard in PostHog.
 
@@ -456,7 +471,7 @@ These feed a "Queue manager activity" dashboard in PostHog.
 
 ## What members see
 
-Members never see the queue or admin surfaces. But the *state* of their
+Members never see the queue or admin surfaces. But the _state_ of their
 related work items affects what members see:
 
 - A member who filed a flag sees: "Your flag is being reviewed" (not

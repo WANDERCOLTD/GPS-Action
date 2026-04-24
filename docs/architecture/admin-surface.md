@@ -21,8 +21,8 @@ approving vetting cases, resolving flags, editing posts, adjusting feature
 flags — through a generic admin interface that's auto-generated from the
 schema.
 
-This isn't "we'll build admin later." It's the *default operating mode during
-build*. The polished member UI is a layer that arrives later. The admin
+This isn't "we'll build admin later." It's the _default operating mode during
+build_. The polished member UI is a layer that arrives later. The admin
 surface is what makes the product real on day one.
 
 ---
@@ -57,6 +57,7 @@ exactly as a member-facing edit UI would. The form is generic; the backend
 is the same.
 
 **This rules out:**
+
 - Direct database edits via Prisma Studio in production (Studio stays
   dev-only)
 - External admin tools (Retool, Forest) that connect directly to the database
@@ -75,7 +76,7 @@ to retrofit.
 
 ### 1. Every entity has a human-readable display field
 
-Every table has a `displayName`, `title`, `name`, or equivalent — *something*
+Every table has a `displayName`, `title`, `name`, or equivalent — _something_
 the admin list view can render to identify rows beyond UUIDs.
 
 ```prisma
@@ -104,6 +105,7 @@ related fields.
 `deleted_at TIMESTAMP NULL` instead of `DELETE FROM ...`.
 
 Reasons:
+
 - Admins occasionally need to recover deleted rows
 - Audit trail is preserved
 - Foreign-key cascades don't surprise you
@@ -168,43 +170,43 @@ configuration the admin needs:
 // server/admin/entity-metadata.ts
 export const entityMetadata = {
   post: {
-    displayField: "title",
-    listColumns: ["title", "author.displayName", "regionTag", "status", "createdAt"],
-    searchableFields: ["title", "body"],
-    defaultSort: { createdAt: "desc" },
-    bulkActions: ["delete", "verify", "unverify"],
-    requiresRole: { view: "queue_manager", edit: "admin" },
+    displayField: 'title',
+    listColumns: ['title', 'author.displayName', 'regionTag', 'status', 'createdAt'],
+    searchableFields: ['title', 'body'],
+    defaultSort: { createdAt: 'desc' },
+    bulkActions: ['delete', 'verify', 'unverify'],
+    requiresRole: { view: 'queue_manager', edit: 'admin' },
     workflow: null,
   },
   workItem: {
-    displayField: "id",
-    displayTemplate: "{type} — {context.summary}",
-    listColumns: ["type", "status", "priority", "claimedBy.displayName", "createdAt"],
-    searchableFields: ["type", "context"],
-    defaultSort: [{ priority: "desc" }, { createdAt: "asc" }],
-    bulkActions: ["release_claim"],
-    requiresRole: { view: "queue_manager", edit: "queue_manager" },
-    workflow: "queue",  // → renders in /queue, not generic /admin
+    displayField: 'id',
+    displayTemplate: '{type} — {context.summary}',
+    listColumns: ['type', 'status', 'priority', 'claimedBy.displayName', 'createdAt'],
+    searchableFields: ['type', 'context'],
+    defaultSort: [{ priority: 'desc' }, { createdAt: 'asc' }],
+    bulkActions: ['release_claim'],
+    requiresRole: { view: 'queue_manager', edit: 'queue_manager' },
+    workflow: 'queue', // → renders in /queue, not generic /admin
   },
   coordinatorProfile: {
-    displayField: "user.displayName",
-    listColumns: ["user.displayName", "groupsCount", "createdAt"],
-    searchableFields: ["user.displayName", "groups.name"],
-    defaultSort: { createdAt: "desc" },
-    requiresRole: { view: "admin", edit: "admin" },
+    displayField: 'user.displayName',
+    listColumns: ['user.displayName', 'groupsCount', 'createdAt'],
+    searchableFields: ['user.displayName', 'groups.name'],
+    defaultSort: { createdAt: 'desc' },
+    requiresRole: { view: 'admin', edit: 'admin' },
     workflow: null,
   },
   roleGrant: {
-    displayField: "user.displayName",
-    displayTemplate: "{role} for {user.displayName}",
-    listColumns: ["user.displayName", "role", "grantedBy.displayName", "grantedAt", "revokedAt"],
-    searchableFields: ["user.displayName"],
-    defaultSort: { grantedAt: "desc" },
-    requiresRole: { view: "admin", edit: "admin" },
+    displayField: 'user.displayName',
+    displayTemplate: '{role} for {user.displayName}',
+    listColumns: ['user.displayName', 'role', 'grantedBy.displayName', 'grantedAt', 'revokedAt'],
+    searchableFields: ['user.displayName'],
+    defaultSort: { grantedAt: 'desc' },
+    requiresRole: { view: 'admin', edit: 'admin' },
     workflow: null,
   },
   // ... one entry per entity
-}
+};
 ```
 
 This metadata file is the single source of truth for what the admin UI does
@@ -263,11 +265,11 @@ patterns.
 
 Three roles, with two of them managed dynamically:
 
-| Role | What they can do | How it's granted |
-|---|---|---|
-| **member** | Baseline: post, comment, react, view feed. Everyone has this. | Automatic on signup + vetting approval |
-| **queue_manager** | Everything a member can do, PLUS: claim and resolve work items, view the queue, use admin-scaffolded views for entities they moderate. Cannot edit config, feature flags, or manage roles. | Admin-granted; revocable at will |
-| **admin** | Full access. Everything a queue manager can do, PLUS: grant/revoke queue_manager role, manage feature flags, edit system config, force-release claims, delete/restore any entity. | Admin-granted; revocable at will (by another admin) |
+| Role              | What they can do                                                                                                                                                                           | How it's granted                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
+| **member**        | Baseline: post, comment, react, view feed. Everyone has this.                                                                                                                              | Automatic on signup + vetting approval              |
+| **queue_manager** | Everything a member can do, PLUS: claim and resolve work items, view the queue, use admin-scaffolded views for entities they moderate. Cannot edit config, feature flags, or manage roles. | Admin-granted; revocable at will                    |
+| **admin**         | Full access. Everything a queue manager can do, PLUS: grant/revoke queue_manager role, manage feature flags, edit system config, force-release claims, delete/restore any entity.          | Admin-granted; revocable at will (by another admin) |
 
 ### Coordinator — NOT a role
 
@@ -323,19 +325,19 @@ model RoleGrant {
   userId           String
   user             User       @relation("roleGrants", fields: [userId], references: [id], onDelete: Cascade)
   role             SystemRole
-  
+
   grantedAt        DateTime   @default(now())
   grantedByUserId  String
   grantedBy        User       @relation("roleGrantsMade", fields: [grantedByUserId], references: [id], onDelete: Restrict)
   grantedReason    String     // required — why was this granted?
-  
+
   revokedAt        DateTime?
   revokedByUserId  String?
   revokedBy        User?      @relation("roleGrantsRevoked", fields: [revokedByUserId], references: [id], onDelete: Restrict)
   revokedReason    String?    // required on revocation — why was this revoked?
-  
+
   createdAt        DateTime   @default(now())
-  
+
   @@index([userId, role, revokedAt])
   @@index([grantedAt])
 }
@@ -421,15 +423,15 @@ model CoordinatorProfile {
   id         String              @id @default(uuid())
   userId     String              @unique
   user       User                @relation("coordinatorProfile", fields: [userId], references: [id], onDelete: Cascade)
-  
+
   notes      String?             // admin-only notes about this coordinator
-  
+
   createdAt  DateTime            @default(now())
   updatedAt  DateTime            @updatedAt
   deletedAt  DateTime?
-  
+
   groups     CoordinatorGroup[]
-  
+
   @@index([deletedAt])
 }
 
@@ -437,17 +439,17 @@ model CoordinatorGroup {
   id                     String              @id @default(uuid())
   coordinatorProfileId   String
   coordinatorProfile     CoordinatorProfile  @relation(fields: [coordinatorProfileId], references: [id], onDelete: Cascade)
-  
+
   name                   String              // "AJ6 North London WhatsApp"
   description            String?             // optional longer description
   logoUrl                String?             // uploaded image
   reachEstimate          Int?                // points the way to future 2-way sync
   reachVerifiedAt        DateTime?           // populated by future analytics integration
-  
+
   createdAt              DateTime            @default(now())
   updatedAt              DateTime            @updatedAt
   deletedAt              DateTime?
-  
+
   @@index([coordinatorProfileId, deletedAt])
 }
 ```
@@ -459,9 +461,10 @@ coordinators and add their groups without admin approval. The data is
 treated as self-reported.
 
 **Where it's captured:**
+
 1. **Onboarding (optional):** during signup, after vetting approval, an
-   optional question: *"Do you run a WhatsApp group, newsletter, or other
-   community?"* Skippable. If they say yes, collect group details.
+   optional question: _"Do you run a WhatsApp group, newsletter, or other
+   community?"_ Skippable. If they say yes, collect group details.
 2. **Profile settings (anytime):** members can add/edit/remove groups at
    any time via their profile settings page.
 
@@ -469,6 +472,7 @@ Both entry points create/update the same `CoordinatorProfile` + `CoordinatorGrou
 records.
 
 **What's captured per group:**
+
 - `name` — free text, required
 - `description` — free text, optional
 - `logoUrl` — image upload, optional
@@ -487,6 +491,7 @@ can be added in a future migration when analytics reliability matters.
 ### What coordinators can do
 
 Exactly what any member can do. Coordinator status unlocks:
+
 - Their groups appearing on their profile
 - Being counted in future "amplification reach" analytics
 - Identification by admins for outreach ("we'd like to coordinate a push
@@ -521,6 +526,7 @@ Similar entries for: `role_revoked`, `role_self_revoked`,
 entity CRUD actions.
 
 Audit entries are visible at:
+
 - `/admin/audit` — full audit log (admin role only)
 - `/admin/[entity]/[id]/history` — audit entries for a specific entity
   (any queue_manager with view rights)
@@ -559,6 +565,7 @@ first Build Unit after ERD. Approximately:
 Estimated total: 8 Claude Code sessions, roughly 2 weeks.
 
 **Why this is BU-001 specifically:**
+
 - Every other Build Unit benefits from "I can edit this entity in admin"
 - It's a forcing function on schema quality
 - It enables queue-manager workflows immediately, not after every feature ships

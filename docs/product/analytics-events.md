@@ -56,6 +56,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 ### Identity & onboarding (5)
 
 #### `signup_started`
+
 **When:** User lands on invite link and the signup screen renders.
 **Properties:** `invite_source` (enum: whatsapp, email, direct, other), `referring_member_id_hash?`
 **Fired from:** Signup page (client-side, on mount).
@@ -63,6 +64,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Answers:** Q5 (funnel entry)
 
 #### `signup_completed`
+
 **When:** Account record created, user entered vetting queue.
 **Properties:** `has_referrer` (bool)
 **Fired from:** `server/routers/auth.ts:createAccount` (server-side)
@@ -70,6 +72,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Answers:** Q5
 
 #### `vetting_approved`
+
 **When:** Admin approves a vetting case.
 **Properties:** `time_to_approval_hours` (number)
 **Fired from:** `server/routers/vetting.ts:approve` (server-side)
@@ -77,6 +80,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Answers:** Q5, Q7
 
 #### `first_post_published`
+
 **When:** User publishes their first-ever post.
 **Properties:** `days_since_approval` (number), `post_type`
 **Fired from:** `server/routers/post.ts:publish` (server-side, checked via count)
@@ -84,6 +88,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Answers:** Q5, Q1
 
 #### `first_action_taken`
+
 **When:** User taps their first-ever action.
 **Properties:** `days_since_first_post` (number), `action_type`
 **Fired from:** `server/routers/action.ts:take` (server-side, checked via count)
@@ -93,6 +98,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 ### Core activity (6)
 
 #### `post_viewed`
+
 **When:** A post renders in the feed AND is >50% visible for >500ms.
 **Properties:** `post_type`, `position_in_feed` (int), `source` (enum: feed, region, search, direct)
 **Fired from:** `app/components/FeedItem.tsx` (client-side, IntersectionObserver)
@@ -101,6 +107,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Sampling:** Rate-limited to one per post per session to avoid noise.
 
 #### `post_published`
+
 **When:** A post is successfully created.
 **Properties:** `post_type`, `region_slug`, `has_image` (bool), `body_length_bucket` (enum: short, medium, long), `is_action_post` (bool)
 **Fired from:** `server/routers/post.ts:publish`
@@ -108,6 +115,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Answers:** Q1, Q3, Q6
 
 #### `action_taken`
+
 **When:** User taps the action CTA on a post.
 **Properties:** `action_type`, `post_id_hash`, `time_since_post_created_seconds` (number)
 **Fired from:** `server/routers/action.ts:take`
@@ -115,6 +123,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Answers:** Q4, Q6
 
 #### `comment_added`
+
 **When:** Comment successfully posted.
 **Properties:** `post_id_hash`, `is_system_generated` (bool), `has_attachment` (bool)
 **Fired from:** `server/routers/comment.ts:add`
@@ -122,6 +131,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Answers:** Q1, Q6
 
 #### `reaction_added`
+
 **When:** User taps a reaction emoji.
 **Properties:** `reaction` (enum, 14 core + 3 seasonal), `post_id_hash`, `is_comment` (bool)
 **Fired from:** `server/routers/reaction.ts:add`
@@ -129,6 +139,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Answers:** Q1, Q6
 
 #### `post_shared_out`
+
 **When:** User completes a 1-click share (not just tapping share, but the share actually dispatching).
 **Properties:** `destination` (enum: whatsapp, x, email, copy_link, other), `post_type`, `post_id_hash`
 **Fired from:** `app/components/ShareMenu.tsx` (client, after OS confirms handoff)
@@ -138,6 +149,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 ### Moderation (3)
 
 #### `post_flagged`
+
 **When:** User submits a flag on a post.
 **Properties:** `reason_category` (enum), `post_id_hash`, `time_since_post_published_hours` (number)
 **Fired from:** `server/routers/flag.ts:flagPost`
@@ -145,6 +157,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Answers:** Q7
 
 #### `vetting_case_opened`
+
 **When:** Admin opens a vetting case for review.
 **Properties:** `case_age_hours` (number)
 **Fired from:** `server/routers/vetting.ts:open`
@@ -152,6 +165,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Answers:** Q7
 
 #### `vetting_case_resolved`
+
 **When:** Vetting case is closed.
 **Properties:** `outcome` (enum: approve, reject, request_info, ban), `time_open_hours` (number)
 **Fired from:** `server/routers/vetting.ts:resolve`
@@ -161,6 +175,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 ### Dispatch (2)
 
 #### `dispatch_started`
+
 **When:** User opens the dispatch modal on a post.
 **Properties:** `post_type`, `post_id_hash`
 **Fired from:** `app/components/DispatchModal.tsx` (client, on open)
@@ -168,6 +183,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Answers:** Q3
 
 #### `dispatch_completed`
+
 **When:** User completes the dispatch flow (destinations confirmed).
 **Properties:** `num_destinations` (int), `destinations_categories` (enum array), `time_to_dispatch_seconds` (number)
 **Fired from:** `server/routers/dispatch.ts:complete`
@@ -180,15 +196,15 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 
 These have been considered and deferred — don't add them without a decision:
 
-| Event | Why not |
-|---|---|
-| Scroll depth granularity | Too noisy at this scale; pilot too small for the signal |
-| Click heatmaps | Over-engineering; not needed for pilot decisions |
-| Time-on-screen per view | Battery drain + PII risk + weak signal |
-| Search queries | Skip until search is a priority feature |
-| Keystroke timing / typing patterns | Creepy; no clear use |
-| Individual comment text or post body | PII — never track content |
-| Referral viral coefficient | Meaningful only at scale; revisit post-pilot |
+| Event                                | Why not                                                 |
+| ------------------------------------ | ------------------------------------------------------- |
+| Scroll depth granularity             | Too noisy at this scale; pilot too small for the signal |
+| Click heatmaps                       | Over-engineering; not needed for pilot decisions        |
+| Time-on-screen per view              | Battery drain + PII risk + weak signal                  |
+| Search queries                       | Skip until search is a priority feature                 |
+| Keystroke timing / typing patterns   | Creepy; no clear use                                    |
+| Individual comment text or post body | PII — never track content                               |
+| Referral viral coefficient           | Meaningful only at scale; revisit post-pilot            |
 
 ---
 
@@ -213,7 +229,7 @@ Named owner for each — that person keeps them current.
    an ADR.
 2. **Events are fire-and-forget.** Never block a user action waiting for
    analytics to ack. Failures are logged to Sentry but do not surface to the user.
-3. **Server-side when possible, client-side when necessary.** 
+3. **Server-side when possible, client-side when necessary.**
    - State changes (publish, flag, resolve) = **server**.
    - Purely user-visible events (view, modal-opened) = **client**.
    - Double-tracking the same logical event from both client and server is a bug.
@@ -231,6 +247,7 @@ Named owner for each — that person keeps them current.
 ## PII policy
 
 **Never send:**
+
 - Raw `user_id` (use `distinct_id = sha256(user_id || salt)` only)
 - Email, display name, phone, postcode, IP
 - Post body, comment text, flag free-text reason
@@ -238,6 +255,7 @@ Named owner for each — that person keeps them current.
 - URLs of user-uploaded content (the URL itself can be identifying)
 
 **Safe to send:**
+
 - Hashed user IDs
 - Hashed post/comment IDs (for correlation across events)
 - Enums (post_type, action_type, reason_category, outcome)
@@ -246,6 +264,7 @@ Named owner for each — that person keeps them current.
 - Region slugs (public; already visible in UI)
 
 **Edge cases — ask before sending:**
+
 - Timestamps at millisecond precision (possible fingerprinting vector; use minute-bucketed where feasible)
 - Combined location + time data (can re-identify even with hashed ID)
 
@@ -256,14 +275,14 @@ Named owner for each — that person keeps them current.
 These are hypotheses we'll test. Not guarantees. Reviewed fortnightly; adjusted
 with Jeremy and Sharon based on what we learn.
 
-| Metric | Target | Source event(s) |
-|---|---|---|
-| DAU/WAU ratio at week 4 | > 0.5 | `post_viewed`, `post_published`, `action_taken` |
-| Onboarding funnel: signup → first post | ≥ 60% within 7 days | The 5 identity events |
-| Actions per action-post | ≥ 1.0 average | `action_taken` ÷ action posts |
-| Flag rate | < 5% of posts | `post_flagged` ÷ `post_published` |
-| Median vetting time | < 24 hours | `vetting_case_resolved.time_open_hours` |
-| Week 2 → Week 4 retention | > 70% | Cohort from `signup_completed` |
+| Metric                                 | Target              | Source event(s)                                 |
+| -------------------------------------- | ------------------- | ----------------------------------------------- |
+| DAU/WAU ratio at week 4                | > 0.5               | `post_viewed`, `post_published`, `action_taken` |
+| Onboarding funnel: signup → first post | ≥ 60% within 7 days | The 5 identity events                           |
+| Actions per action-post                | ≥ 1.0 average       | `action_taken` ÷ action posts                   |
+| Flag rate                              | < 5% of posts       | `post_flagged` ÷ `post_published`               |
+| Median vetting time                    | < 24 hours          | `vetting_case_resolved.time_open_hours`         |
+| Week 2 → Week 4 retention              | > 70%               | Cohort from `signup_completed`                  |
 
 When a metric misses the target, the fortnightly review discusses: **is the
 metric wrong, is the feature wrong, or is the cohort wrong?** One of the three.

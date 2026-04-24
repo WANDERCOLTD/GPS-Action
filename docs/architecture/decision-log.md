@@ -1,8 +1,8 @@
 # GPS Action — Decision Log
 
-*Every significant decision made in designing GPS Action. Captures what was decided, why, and when. Helps future-us remember why things are the way they are.*
+_Every significant decision made in designing GPS Action. Captures what was decided, why, and when. Helps future-us remember why things are the way they are._
 
-*Version: 0.1 · April 2026*
+_Version: 0.1 · April 2026_
 
 ---
 
@@ -14,6 +14,7 @@
 - Three tiers: Foundation (changing is expensive), Architecture (cascades), Feature (local)
 
 Each entry has:
+
 - **Date** when decided
 - **Tier** of decision
 - **Context** — what prompted the decision
@@ -33,13 +34,14 @@ Each entry has:
 **Tier:** Foundation
 **Context:** GPS currently runs via ~20 WhatsApp groups. Coordination is ad-hoc, visibility is poor, member onboarding has no memory, and the signal-to-noise ratio is degrading.
 **Options considered:**
+
 - Keep WhatsApp, add better processes (rejected — doesn't scale)
 - Build on an existing platform like Slack or Discord (rejected — not tuned for activism, wrong mental model)
 - Build a purpose-built platform (chosen)
-**Decision:** Build a purpose-built platform called GPS Action.
-**Reasoning:** GPS's specific needs (action-focused posts, WhatsApp integration, vetting workflows, regional routing) aren't served by general platforms. The work required to retrofit is similar to building something right.
-**Consequences:** Significant engineering investment. Multi-month build. Pilot required before wide rollout.
-**Status:** Active
+  **Decision:** Build a purpose-built platform called GPS Action.
+  **Reasoning:** GPS's specific needs (action-focused posts, WhatsApp integration, vetting workflows, regional routing) aren't served by general platforms. The work required to retrofit is similar to building something right.
+  **Consequences:** Significant engineering investment. Multi-month build. Pilot required before wide rollout.
+  **Status:** Active
 
 ### D002 · Post-first platform, not information-management platform
 
@@ -47,12 +49,13 @@ Each entry has:
 **Tier:** Foundation
 **Context:** Initial framing was "information management" — monitoring, tracking, analysis. That frames GPS as an intelligence operation rather than a community.
 **Options considered:**
+
 - Information-first (rejected — passive, centralises power)
 - Post-first (chosen)
-**Decision:** GPS Action is a post-first platform where anyone can publish.
-**Reasoning:** Matches how GPS actually operates — distributed members spotting things and amplifying. Framing as "information gathering" subordinates members to central operators.
-**Consequences:** Every member is a producer. Moderation happens through community norms not gatekeeping. Design privileges publishing velocity.
-**Status:** Active
+  **Decision:** GPS Action is a post-first platform where anyone can publish.
+  **Reasoning:** Matches how GPS actually operates — distributed members spotting things and amplifying. Framing as "information gathering" subordinates members to central operators.
+  **Consequences:** Every member is a producer. Moderation happens through community norms not gatekeeping. Design privileges publishing velocity.
+  **Status:** Active
 
 ### D003 · TypeScript / Next.js / Prisma / tRPC stack
 
@@ -60,14 +63,15 @@ Each entry has:
 **Tier:** Foundation
 **Context:** Need to choose a stack for parallel one-shot Claude Code builds.
 **Options considered:**
+
 - TypeScript full-stack with strict type flow (chosen)
 - Python/Django + React (rejected — weaker type flow, manual contract work)
 - Ruby on Rails + React (rejected — similar trade-off)
 - Go backend + React (rejected — more contract boundaries)
-**Decision:** Next.js + Prisma + tRPC + strict TypeScript.
-**Reasoning:** Claude Code strongest in TypeScript. Types flow from DB schema to API to client automatically. Unifies frontend + backend in one language. Single source of truth via Prisma schema.
-**Consequences:** Commits team to TypeScript. Requires Node.js hosting. Mobile native apps require React Native or separate codebase.
-**Status:** Active
+  **Decision:** Next.js + Prisma + tRPC + strict TypeScript.
+  **Reasoning:** Claude Code strongest in TypeScript. Types flow from DB schema to API to client automatically. Unifies frontend + backend in one language. Single source of truth via Prisma schema.
+  **Consequences:** Commits team to TypeScript. Requires Node.js hosting. Mobile native apps require React Native or separate codebase.
+  **Status:** Active
 
 ### D004 · UK data residency, AWS eu-west-2
 
@@ -75,13 +79,14 @@ Each entry has:
 **Tier:** Foundation
 **Context:** UK GDPR requires data residency considerations. Members are UK-based.
 **Options considered:**
+
 - AWS eu-west-2 (London) — chosen
 - AWS eu-west-1 (Ireland) — valid but suboptimal
 - Google Cloud or Azure UK regions — considered, AWS chosen for KMS + RDS maturity
-**Decision:** AWS, eu-west-2 region.
-**Reasoning:** UK-resident data. AWS KMS for envelope encryption. Mature Postgres via RDS. GPS can be transparent with members about where their data lives.
-**Consequences:** Costs in GBP. Compliance with UK GDPR tractable. Commits to AWS ecosystem.
-**Status:** Active
+  **Decision:** AWS, eu-west-2 region.
+  **Reasoning:** UK-resident data. AWS KMS for envelope encryption. Mature Postgres via RDS. GPS can be transparent with members about where their data lives.
+  **Consequences:** Costs in GBP. Compliance with UK GDPR tractable. Commits to AWS ecosystem.
+  **Status:** Active
 
 ---
 
@@ -93,13 +98,14 @@ Each entry has:
 **Tier:** Architecture
 **Context:** GPS's existing network relies on personal trust. Members are vouched for informally through the Welcome group.
 **Options considered:**
+
 - Open signup (rejected — exposes network to bad actors)
 - Invite-only, casual (existing WhatsApp approach, breaks at scale)
 - Vouching with explicit ledger (chosen)
-**Decision:** Every member is vouched for by an existing member. Vouches are recorded in an append-only ledger.
-**Reasoning:** Structured vouching makes the trust graph visible. If bad behaviour surfaces, vouching chains can be investigated. Also produces honest accountability — "I stood for X" is a commitment.
-**Consequences:** Enrolment requires voucher. Founding members seeded as graph roots. Vouch ledger is a first-class primitive.
-**Status:** Active
+  **Decision:** Every member is vouched for by an existing member. Vouches are recorded in an append-only ledger.
+  **Reasoning:** Structured vouching makes the trust graph visible. If bad behaviour surfaces, vouching chains can be investigated. Also produces honest accountability — "I stood for X" is a commitment.
+  **Consequences:** Enrolment requires voucher. Founding members seeded as graph roots. Vouch ledger is a first-class primitive.
+  **Status:** Active
 
 ### D011 · Permission flags orthogonal to role hierarchy
 
@@ -107,12 +113,13 @@ Each entry has:
 **Tier:** Architecture
 **Context:** Some members do specialist work (vetting, boost/remove team) not captured by a simple role hierarchy.
 **Options considered:**
+
 - Add more roles (rejected — role explosion)
 - Permission flags alongside roles (chosen)
-**Decision:** Roles are member/writer/coordinator/director. Orthogonal flags: vetter, boost_remove_team, founding_member.
-**Reasoning:** Specialist responsibilities don't require promoting to coordinator. Can be granted independently.
-**Consequences:** Permission matrix more complex. Checks use `checkPermission(user, action)` not just role comparison.
-**Status:** Active
+  **Decision:** Roles are member/writer/coordinator/director. Orthogonal flags: vetter, boost_remove_team, founding_member.
+  **Reasoning:** Specialist responsibilities don't require promoting to coordinator. Can be granted independently.
+  **Consequences:** Permission matrix more complex. Checks use `checkPermission(user, action)` not just role comparison.
+  **Status:** Active
 
 ### D012 · No member-to-member DMs
 
@@ -120,13 +127,14 @@ Each entry has:
 **Tier:** Architecture
 **Context:** Members might reasonably want to DM each other. But DM-at-scale is a moderation nightmare.
 **Options considered:**
+
 - Full DMs with moderation (rejected — too much surface area)
 - Admin DMs only (chosen — coordinators can DM members)
 - No DMs at all (considered — too restrictive)
-**Decision:** Coordinator-to-member DMs exist. Member-to-member DMs do not. @mentions in comments serve the peer-communication role.
-**Reasoning:** GPS's needs are coordinator-led. Member-to-member discussion lives in public (comments) where it's visible and accountable. Private member-to-member opens abuse and harassment surface.
-**Consequences:** Harassment risk reduced. Some legitimate use cases (planning between members) push to WhatsApp or email. Director reserves right to enable DM pair if a specific need emerges.
-**Status:** Active
+  **Decision:** Coordinator-to-member DMs exist. Member-to-member DMs do not. @mentions in comments serve the peer-communication role.
+  **Reasoning:** GPS's needs are coordinator-led. Member-to-member discussion lives in public (comments) where it's visible and accountable. Private member-to-member opens abuse and harassment surface.
+  **Consequences:** Harassment risk reduced. Some legitimate use cases (planning between members) push to WhatsApp or email. Director reserves right to enable DM pair if a specific need emerges.
+  **Status:** Active
 
 ### D013 · Self-dispatch default; dispatch queue as fallback
 
@@ -134,13 +142,14 @@ Each entry has:
 **Tier:** Architecture
 **Context:** Posts need to reach WhatsApp. A queue + dispatcher rota was initial design. Simpler if poster handles their own dispatch.
 **Options considered:**
+
 - Dispatcher queue with rota (initial)
 - Self-dispatch from poster's device (chosen)
 - Hybrid — self-dispatch default, queue for exceptions (final)
-**Decision:** Poster dispatches from own device via dispatch modal. Queue exists for skipped posts and restricted routes.
-**Reasoning:** WhatsApp Business API can't post into groups. Manual dispatch is the only reliable way. Poster-as-dispatcher is faster, more accountable, scales better than a small rota.
-**Consequences:** Every member learns the dispatch flow. Team-owned queue still exists for fallbacks. Dispatcher permission flag removed.
-**Status:** Active
+  **Decision:** Poster dispatches from own device via dispatch modal. Queue exists for skipped posts and restricted routes.
+  **Reasoning:** WhatsApp Business API can't post into groups. Manual dispatch is the only reliable way. Poster-as-dispatcher is faster, more accountable, scales better than a small rota.
+  **Consequences:** Every member learns the dispatch flow. Team-owned queue still exists for fallbacks. Dispatcher permission flag removed.
+  **Status:** Active
 
 ### D014 · Auto-comments in thread with user-level filter
 
@@ -148,13 +157,14 @@ Each entry has:
 **Tier:** Architecture
 **Context:** System events (dispatches, cap milestones, edits) could be hidden in audit logs or visible in thread. Each has trade-offs.
 **Options considered:**
+
 - Audit logs only (rejected — reduces member awareness of amplification)
 - Separate activity sidebar (considered — cleaner but disconnected)
 - Auto-comments in thread with filter (chosen)
-**Decision:** System events become auto-comments in the thread. Members filter via three-way control: All / Discussion / Activity. Default is Discussion.
-**Reasoning:** Members get the narrative without clutter. Those who want the trail find it. Default respects warmth of ordinary conversation.
-**Consequences:** Comment primitive gains is_system, event_type, visibility_level. Filter UI on every thread. Slight complexity to model.
-**Status:** Active
+  **Decision:** System events become auto-comments in the thread. Members filter via three-way control: All / Discussion / Activity. Default is Discussion.
+  **Reasoning:** Members get the narrative without clutter. Those who want the trail find it. Default respects warmth of ordinary conversation.
+  **Consequences:** Comment primitive gains is_system, event_type, visibility_level. Filter UI on every thread. Slight complexity to model.
+  **Status:** Active
 
 ### D015 · Partner organisations as co-branding
 
@@ -162,13 +172,14 @@ Each entry has:
 **Tier:** Architecture
 **Context:** Members may be affiliated with other orgs (Action on Antisemitism, CST, etc.). Posts should accommodate co-branding.
 **Options considered:**
+
 - No co-branding, GPS only (rejected — doesn't match reality)
 - Free text attribution (rejected — unverifiable, brand risk)
 - Structured partner orgs with verified affiliations (chosen)
-**Decision:** Partner Organisation as entity. Members declare affiliations. Posts optionally attribute. Logo displayed on card.
-**Reasoning:** Real GPS posts already co-brand. Need a controlled way to do it. Verification layer prevents impersonation.
-**Consequences:** New entities: Partner, Affiliation. UI composer gains attribution picker. Admin surface for partner CRUD. Enrolment form may gain affiliation question.
-**Status:** Active
+  **Decision:** Partner Organisation as entity. Members declare affiliations. Posts optionally attribute. Logo displayed on card.
+  **Reasoning:** Real GPS posts already co-brand. Need a controlled way to do it. Verification layer prevents impersonation.
+  **Consequences:** New entities: Partner, Affiliation. UI composer gains attribution picker. Admin surface for partner CRUD. Enrolment form may gain affiliation question.
+  **Status:** Active
 
 ### D016 · Self-dispatch uses copy-and-deeplink pattern, not Business API
 
@@ -176,14 +187,15 @@ Each entry has:
 **Tier:** Architecture
 **Context:** WhatsApp's APIs have sharp limits. Business API posts to Channels only, not Groups. Unofficial APIs risk account bans.
 **Options considered:**
+
 - Business API for everything (blocked — groups not supported)
 - Unofficial APIs (rejected — ToS violation, account ban risk)
 - Copy-and-deeplink manual send (chosen)
 - Manual send with no software help (rejected — too friction-heavy)
-**Decision:** System formats message, copies to clipboard, deep-links to WhatsApp. User pastes, sends. Self-reports completion.
-**Reasoning:** Only reliable option. Takes ~4 seconds per send. Scales without central bottleneck.
-**Consequences:** Phase 2 can add Business API for Channels. Self-report introduces mild trust issue (user might claim sent when they didn't) — acceptable trade.
-**Status:** Active
+  **Decision:** System formats message, copies to clipboard, deep-links to WhatsApp. User pastes, sends. Self-reports completion.
+  **Reasoning:** Only reliable option. Takes ~4 seconds per send. Scales without central bottleneck.
+  **Consequences:** Phase 2 can add Business API for Channels. Self-report introduces mild trust issue (user might claim sent when they didn't) — acceptable trade.
+  **Status:** Active
 
 ---
 
@@ -299,13 +311,14 @@ Never edit past entries. Append corrections as new entries. This preserves the t
 **Tier:** Architecture
 **Context:** GPS members are often affiliated with other campaigning organisations (Action on Antisemitism, CST, etc.). WhatsApp screenshot showed Action on Antisemitism logo on a Sky News complaint post — co-branding is already happening informally.
 **Options considered:**
+
 - No co-branding, GPS only (rejected — doesn't match reality)
 - Free text attribution (rejected — unverifiable, brand-impersonation risk)
 - Structured Partner Organisation entity with verified affiliations (chosen)
-**Decision:** Partner Organisation as first-class entity. Members declare Affiliations. Posts may attribute to one or more Partners (max 3). Logo renders on card. Admin-managed Partner records. Self-declared affiliations with verification layer.
-**Reasoning:** Real GPS posts already co-brand. Need a controlled way to do it that prevents impersonation. Verified affiliations carry a tick; unverified appear without it. Partnership archive (not retroactive removal) preserves history.
-**Consequences:** New entities — Partner, UserAffiliation. Composer gains attribution picker. Card rendering supports logo + tick. Routing engine matches partner-attributed posts to partner-specific WhatsApp routes. Profile lists user's affiliations. Affects enrolment form (asks about existing affiliations).
-**Status:** Active. To absorb into Feature Spec v0.6 as §3.30.
+  **Decision:** Partner Organisation as first-class entity. Members declare Affiliations. Posts may attribute to one or more Partners (max 3). Logo renders on card. Admin-managed Partner records. Self-declared affiliations with verification layer.
+  **Reasoning:** Real GPS posts already co-brand. Need a controlled way to do it that prevents impersonation. Verified affiliations carry a tick; unverified appear without it. Partnership archive (not retroactive removal) preserves history.
+  **Consequences:** New entities — Partner, UserAffiliation. Composer gains attribution picker. Card rendering supports logo + tick. Routing engine matches partner-attributed posts to partner-specific WhatsApp routes. Profile lists user's affiliations. Affects enrolment form (asks about existing affiliations).
+  **Status:** Active. To absorb into Feature Spec v0.6 as §3.30.
 
 ### D016 · 1-click social sharing as primary universal feature
 
@@ -313,12 +326,13 @@ Never edit past entries. Append corrections as new entries. This preserves the t
 **Tier:** Architecture
 **Context:** WhatsApp screenshot shows 9,411 links across the network — overwhelming evidence that the dominant member behaviour is **amplifying content on social media**. Earlier spec treated "share" as one action type among 12. That mis-frames priority.
 **Options considered:**
+
 - Keep share as one action type (rejected — under-prioritises the dominant behaviour)
 - 1-click share strip on every shareable post, multi-platform (chosen)
-**Decision:** Every shareable post carries a 1-click share strip: X, Facebook, Instagram, LinkedIn, WhatsApp, Telegram, email, plus native OS share sheet. Composer produces per-platform text variants and image crops (1:1 / 9:16 / 16:9 / 1.91:1). System tracks share-button taps (not completion — privacy by design). UTM params on outgoing URLs.
-**Reasoning:** Order-of-magnitude friction reduction at the most important moment. A member encounters bad content → wants to amplify → 1-click instead of 5-step manual flow. Without this, members will continue using WhatsApp directly and bypass GPS Action entirely.
-**Consequences:** Post primitive gains text variants + image crops fields. Composer adds platform-specific authoring with previews. Card UI gains share strip. Tracking infrastructure for tap events + UTM attribution. Boost/share as a generic action type becomes less central — sharing is universal on every post.
-**Status:** Active. To absorb into Feature Spec v0.6 as §3.31. **Critical for pilot.**
+  **Decision:** Every shareable post carries a 1-click share strip: X, Facebook, Instagram, LinkedIn, WhatsApp, Telegram, email, plus native OS share sheet. Composer produces per-platform text variants and image crops (1:1 / 9:16 / 16:9 / 1.91:1). System tracks share-button taps (not completion — privacy by design). UTM params on outgoing URLs.
+  **Reasoning:** Order-of-magnitude friction reduction at the most important moment. A member encounters bad content → wants to amplify → 1-click instead of 5-step manual flow. Without this, members will continue using WhatsApp directly and bypass GPS Action entirely.
+  **Consequences:** Post primitive gains text variants + image crops fields. Composer adds platform-specific authoring with previews. Card UI gains share strip. Tracking infrastructure for tap events + UTM attribution. Boost/share as a generic action type becomes less central — sharing is universal on every post.
+  **Status:** Active. To absorb into Feature Spec v0.6 as §3.31. **Critical for pilot.**
 
 ### D017 · Boost/Remove simplification — just a post + verdict
 
@@ -326,12 +340,13 @@ Never edit past entries. Append corrections as new entries. This preserves the t
 **Tier:** Architecture
 **Context:** Earlier spec over-engineered Boost/Remove with separate composer flows, complex cap management, distinct moderation treatment. User clarified: it's nothing more than a post + verdict, into a designated WhatsApp channel.
 **Options considered:**
+
 - Maintain separate Boost and Remove flows (rejected — over-complex)
 - Single composer with verdict field, dispatch routes to verdict-specific channel (chosen)
-**Decision:** Boost ✅ / Remove ❌ are a `verdict: 'boost' | 'remove' | null` field on Post. Dispatch routes verdict-carrying posts to the "Network Tick or Cross" WhatsApp channel with the appropriate prefix. No special UI flows. WhatsApp team manually actions the channel as they do today (retweet/like for boost, mass-report for remove).
-**Reasoning:** Matches existing GPS practice exactly. No invention. Lowest engineering cost. Highest fidelity to the workflow Sharon and team already run.
-**Consequences:** Spec simplifies materially. Verdict field on Post primitive. One additional Route record for the boost/remove channel. Dispatched message format prefixes ✅ or ❌. No bespoke moderation pipeline needed.
-**Status:** Active. Supersedes earlier over-engineered Boost/Remove design. To absorb into Feature Spec v0.6 §3.22.
+  **Decision:** Boost ✅ / Remove ❌ are a `verdict: 'boost' | 'remove' | null` field on Post. Dispatch routes verdict-carrying posts to the "Network Tick or Cross" WhatsApp channel with the appropriate prefix. No special UI flows. WhatsApp team manually actions the channel as they do today (retweet/like for boost, mass-report for remove).
+  **Reasoning:** Matches existing GPS practice exactly. No invention. Lowest engineering cost. Highest fidelity to the workflow Sharon and team already run.
+  **Consequences:** Spec simplifies materially. Verdict field on Post primitive. One additional Route record for the boost/remove channel. Dispatched message format prefixes ✅ or ❌. No bespoke moderation pipeline needed.
+  **Status:** Active. Supersedes earlier over-engineered Boost/Remove design. To absorb into Feature Spec v0.6 §3.22.
 
 ### D018 · Inbound sharing — share INTO GPS Action
 
@@ -339,14 +354,15 @@ Never edit past entries. Append corrections as new entries. This preserves the t
 **Tier:** Architecture
 **Context:** Inverse of share-out. When a member encounters content elsewhere (X, Safari, an article), they should be able to send it INTO GPS Action with one tap, not copy-paste-switch-app.
 **Options considered:**
+
 - Manual flow only — copy URL, switch app, paste (current — high friction)
 - URL endpoint as foundation + bookmarklet for MVP (chosen MVP)
 - Native OS share sheet integration (Phase 2, requires native app or PWA Share Target)
 - Browser extension (Phase 2, polish)
-**Decision (MVP):** Build `/share?url=...&title=...&note=...` endpoint. Build a bookmarklet that members install in their browser bookmarks bar — one click while viewing any page opens the GPS Action composer pre-filled. **Decision (Phase 2):** Native share sheet via PWA Share Target API or native app integration.
-**Reasoning:** Removes the same order-of-magnitude friction as share-out, at the inbound moment. Bookmarklet is universal (works in every browser), needs no app-store approval, ships in days. URL endpoint is the foundation everything else builds on (native share, browser extension, automation tools).
-**Consequences:** New `/share` route in app. Composer accepts URL parameters and pre-fills. Bookmarklet code distributed to pilot users on day one. Share Target API specified in PWA manifest (Phase 2).
-**Status:** Active. Parked for v0.6 or v0.7 depending on capacity.
+  **Decision (MVP):** Build `/share?url=...&title=...&note=...` endpoint. Build a bookmarklet that members install in their browser bookmarks bar — one click while viewing any page opens the GPS Action composer pre-filled. **Decision (Phase 2):** Native share sheet via PWA Share Target API or native app integration.
+  **Reasoning:** Removes the same order-of-magnitude friction as share-out, at the inbound moment. Bookmarklet is universal (works in every browser), needs no app-store approval, ships in days. URL endpoint is the foundation everything else builds on (native share, browser extension, automation tools).
+  **Consequences:** New `/share` route in app. Composer accepts URL parameters and pre-fills. Bookmarklet code distributed to pilot users on day one. Share Target API specified in PWA manifest (Phase 2).
+  **Status:** Active. Parked for v0.6 or v0.7 depending on capacity.
 
 ### D019 · Useful Links repository (member-contributed, admin-curated)
 
@@ -384,13 +400,14 @@ Never edit past entries. Append corrections as new entries. This preserves the t
 **Tier:** Foundation
 **Context:** Need to commit to a repo organisation before code lands.
 **Options considered:**
+
 - Polyrepo (separate frontend/backend repos) — rejected, over-engineering for MVP
 - Monorepo with feature-first directories — rejected, breaks layer boundaries
 - Monorepo with layer-first directories (chosen)
-**Decision:** Single repo `gps-action`. Directories organise by layer (`/app`, `/server/routers`, `/server/services`, `/server/db`, `/server/lib`, `/shared`, `/components`, `/styles`, `/prisma`, `/tests`, `/scripts`, `/docs`). Features cut across layers — a "dispatch" feature has files in `/server/services/dispatch.ts`, `/server/routers/dispatch.ts`, `/app/(member)/dispatch/...`.
-**Reasoning:** Layer-first preserves MVC discipline at the file-system level. ESLint boundary rules enforce import direction. Feature-first directories make boundaries conventional (easily violated); layer-first makes them physical.
-**Consequences:** Sessions building one feature touch multiple directories — that's expected and correct. Reviewers check layer boundaries by file location alone. Architecture decisions don't drift.
-**Status:** Active. Skeleton script implements this structure.
+  **Decision:** Single repo `gps-action`. Directories organise by layer (`/app`, `/server/routers`, `/server/services`, `/server/db`, `/server/lib`, `/shared`, `/components`, `/styles`, `/prisma`, `/tests`, `/scripts`, `/docs`). Features cut across layers — a "dispatch" feature has files in `/server/services/dispatch.ts`, `/server/routers/dispatch.ts`, `/app/(member)/dispatch/...`.
+  **Reasoning:** Layer-first preserves MVC discipline at the file-system level. ESLint boundary rules enforce import direction. Feature-first directories make boundaries conventional (easily violated); layer-first makes them physical.
+  **Consequences:** Sessions building one feature touch multiple directories — that's expected and correct. Reviewers check layer boundaries by file location alone. Architecture decisions don't drift.
+  **Status:** Active. Skeleton script implements this structure.
 
 ---
 
@@ -422,6 +439,7 @@ but never chose tooling. Every substantial feature must ship behind a flag. With
 a locked approach, each Claude Code session invents its own pattern.
 
 **Options considered:**
+
 - **LaunchDarkly** — industry leader, per-user targeting, full audit. Rejected: ~$180/month
   baseline, scales punishingly, vendor lock-in, overkill pre-revenue.
 - **Unleash (self-hosted)** — OSS, feature-complete. Rejected for MVP: adds another
@@ -448,6 +466,7 @@ Config values (max post length, rate limits) are **not flags** — they live in
 `config/` and change via PR.
 
 **Schema:**
+
 ```
 feature_flags:
   id              uuid
@@ -478,6 +497,7 @@ feature_flags:
 9. Every flag is listed in `docs/product/feature-flag-register.md` (live registry).
 
 **Consequences:**
+
 - One Claude Code session builds the service + admin UI (~half day).
 - Adds a `feature_flags` table and corresponding audit entries.
 - ESLint rule enforces `isFeatureEnabled` wrapping for new features (custom rule).
@@ -498,6 +518,7 @@ stack chosen. Three audiences need different tools: operators (is it up, fast?),
 product (are people using it?), incident responders (what broke at 3am?).
 
 **Options considered:**
+
 - **Datadog (all-in-one)** — Rejected: excellent, expensive, lock-in.
 - **Grafana Cloud + Loki + Tempo** — Rejected for MVP: assembly required, three
   tools to learn, team size doesn't justify the DIY premium now. Reconsider if
@@ -509,11 +530,11 @@ product (are people using it?), incident responders (what broke at 3am?).
 
 **Decision:**
 
-| Concern | Tool | Why |
-|---|---|---|
-| Errors + performance traces | **Sentry** | Next.js integration in minutes; free tier covers MVP; the best tool for "what broke in this user's session" |
-| Product analytics + funnels + cohorts | **PostHog** | Event model in `docs/product/analytics-events.md`; self-hostable later if costs rise; strong free tier |
-| Structured logs + uptime monitoring + alerts | **Better Stack (Logtail + Uptime)** | Cheap; searchable; alerting via multiple channels |
+| Concern                                      | Tool                                | Why                                                                                                         |
+| -------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Errors + performance traces                  | **Sentry**                          | Next.js integration in minutes; free tier covers MVP; the best tool for "what broke in this user's session" |
+| Product analytics + funnels + cohorts        | **PostHog**                         | Event model in `docs/product/analytics-events.md`; self-hostable later if costs rise; strong free tier      |
+| Structured logs + uptime monitoring + alerts | **Better Stack (Logtail + Uptime)** | Cheap; searchable; alerting via multiple channels                                                           |
 
 **Instrumentation discipline (enforced in every feature):**
 
@@ -529,6 +550,7 @@ product (are people using it?), incident responders (what broke at 3am?).
    `docs/product/analytics-events.md`.
 
 **PII policy (non-negotiable):**
+
 - `user_id` → hashed (sha256 + salt) before logging or analytics
 - Email addresses → never logged, never sent to analytics
 - Post/comment bodies → never logged, never sent to analytics
@@ -536,6 +558,7 @@ product (are people using it?), incident responders (what broke at 3am?).
 - Tokens/secrets → filtered by framework-level middleware; any leak is a P1
 
 **Deployment order (Phase 0, before feature #1):**
+
 1. Sentry SDK in both Next.js app and server
 2. PostHog SDK in Next.js; server-side event emission from tRPC procedures
 3. Logtail transport for Pino/Winston structured logger
@@ -543,6 +566,7 @@ product (are people using it?), incident responders (what broke at 3am?).
 5. Alert rules: error rate spike, P95 latency spike, uptime loss, queue depth
 
 **Consequences:**
+
 - Three vendor accounts to manage + secrets in the vault.
 - ~£50/month at MVP scale. Scales with volume; review at 6 months.
 - Every feature ships with a dashboard (a saved PostHog insight or Grafana panel).
@@ -571,7 +595,7 @@ YAML block:
 ---
 id: SCN-04
 name: Sharon flags a post
-spec_sections: ["3.15", "3.15.2", "3.22"]
+spec_sections: ['3.15', '3.15.2', '3.22']
 build_units: [BU-012]
 related_scenarios: [SCN-05, SCN-12]
 ---
@@ -586,7 +610,7 @@ id: BU-012
 name: Flagging pipeline
 status: proposed | ready | in_progress | done | blocked
 scenarios: [SCN-04, SCN-05, SCN-12]
-spec_sections: ["3.15", "3.15.2", "3.22"]
+spec_sections: ['3.15', '3.15.2', '3.22']
 adrs: [D019]
 erd_entities: [Flag, Post, User]
 trpc_procedures: [flagPost, listFlags, resolveFlag]
@@ -627,6 +651,7 @@ procedure name, component name, event name, ADR ID) and prints the full dependen
 tree both directions.
 
 **Consequences:**
+
 - Adds ~5 minutes per Build Unit to maintain.
 - Adds ~10 seconds per file to annotate (auto-generated by Claude Code if the
   session brief includes the Build Unit ID — which it should).
@@ -651,6 +676,7 @@ Claude Code needs scoped work packages. Humans need "tickets" to pick up. Both
 need a unit that maps cleanly down to session briefs and up to scenarios.
 
 **Options considered:**
+
 - **GitHub Issues as tickets** — Rejected as sole mechanism: no structured links
   to scenarios/ADRs/components; search is weak; lives outside the repo.
 - **Jira / Linear** — Rejected: weight, cost, context-switch, outside the repo.
@@ -661,6 +687,7 @@ need a unit that maps cleanly down to session briefs and up to scenarios.
 Schema defined in D038. Ordered in `docs/build/plan.md` by phase.
 
 **A Build Unit:**
+
 - Covers one or more scenarios end-to-end
 - Delivers a viewable artifact (scenario demo, Storybook entry, or preview deploy)
 - Is chunky enough to represent real progress (1–3 Claude Code sessions)
@@ -678,6 +705,7 @@ and hides integration problems until late.
 external collaborator asks. They do **not** replace Build Units for planned work.
 
 **Consequences:**
+
 - Planning cadence: weekly pull of 1–3 Build Units from `ready` into `in_progress`.
 - No stand-ups, no sprint planning ceremony, no Jira grooming. The Build Plan +
   Build Units + weekly demo is sufficient ritual for a team this size.
@@ -725,6 +753,7 @@ what's being worked on. Schema spec lives in `docs/architecture/claim-and-lease.
 as features add new claimable workflows.
 
 **Reasoning:**
+
 - One place coordinators look ("what needs me?" → /queue)
 - Cross-type queries become trivial ("Sharon's open work this week",
   "average resolution time by type")
@@ -733,6 +762,7 @@ as features add new claimable workflows.
 - Adding a new claimable type is metadata, not new infrastructure
 
 **Consequences:**
+
 - ERD must include `work_items` per spec in claim-and-lease.md (the schema
   block in §"Schema for ERD")
 - The `context` JSONB carries type-specific payload; each type defines its
@@ -760,6 +790,7 @@ phone location; radius-based filters). After discussion, a simpler answer
 emerged.
 
 **Options considered:**
+
 - **Region-as-identity + structured filtering** (original lean). Rejected:
   locks us into a specific model of "where members belong" that may not
   match the community texture.
@@ -775,6 +806,7 @@ managers see every work item regardless of region. No location services,
 no postcode collection, no geospatial queries in MVP.
 
 **Schema implications:**
+
 - `Region` table exists (hierarchy: national / region / council) for
   tagging and future council-action features
 - `Post.regionTagId` is an optional foreign key to `Region`
@@ -783,6 +815,7 @@ no postcode collection, no geospatial queries in MVP.
 - No PostGIS extension needed
 
 **Reasoning:**
+
 - Pilot scale is small; everyone seeing everything is feature, not bug
 - Cross-regional solidarity is a value in the movement
 - Defers privacy question cleanly (no member location ever collected)
@@ -792,6 +825,7 @@ no postcode collection, no geospatial queries in MVP.
   Glasgow") work with region-as-tag even without filtering
 
 **Consequences:**
+
 - Default feed query: `posts ORDER BY createdAt DESC` with no region filter
 - Queue UI: every queue manager sees every work item
 - Region picker in post composer: optional dropdown, can be left blank
@@ -811,10 +845,11 @@ memo.
 different things: (a) a member who runs other communities/groups outside
 GPS Action, and (b) a member with elevated permissions to work GPS Action's
 queues. Jeremy clarified these are different — coordinators in the
-movement sense are *community bridges*, not queue workers. Queue work is
+movement sense are _community bridges_, not queue workers. Queue work is
 separate.
 
 **Options considered:**
+
 - **One role with multiple capabilities** (the confused earlier model).
   Rejected: conflates identity with permission; "coordinator" carries
   movement-specific meaning that shouldn't be tied to admin privileges.
@@ -824,6 +859,7 @@ separate.
 
 **1. Coordinator identity** — data attached to a member describing what
 external communities/groups they run.
+
 - Table: `coordinator_profile` (one-to-one optional with User)
 - Table: `coordinator_group` (one-to-many under coordinator_profile)
 - Captures: group name, optional description, optional logo, optional
@@ -835,6 +871,7 @@ external communities/groups they run.
 
 **2. Queue manager permission** — dynamic grant-based permission to work
 queues.
+
 - Table: `role_grants` (with columns for grant provenance and revocation)
 - Roles: `queue_manager`, `admin`
 - Single-admin grant (MVP); two-admin approval deferred (revisit past ~5
@@ -846,18 +883,21 @@ queues.
   last admin
 
 **The two are independent.** Any member can be:
+
 - Just a member (most common)
 - A coordinator only (movement bridge, no queue access)
 - A queue manager only (queue access, no external groups)
 - Both
 
 **Schema implications:**
+
 - `User` gets optional relation to `CoordinatorProfile`
 - `User` gets one-to-many relation to `RoleGrant`
 - Active role test = exists RoleGrant where `revoked_at IS NULL`
 - Admin surface has two new areas: `/admin/coordinators` and `/admin/roles`
 
 **Reasoning:**
+
 - "Coordinator" has real movement-specific meaning that shouldn't be
   tied to admin privileges
 - Queue management is a job; coordinator is an identity
@@ -868,6 +908,7 @@ queues.
   `user.role` column
 
 **Consequences:**
+
 - BU-001 (admin scaffolding) builds role-grants UI and coordinator-
   profile admin views
 - Future amplification analytics can sum reach across coordinators
@@ -887,6 +928,7 @@ cohorts, skill-based teams. The question: should we have group-style
 features, and if so, what do they actually do?
 
 **Options considered:**
+
 - **No groups at all** — keeps unified-feed principle pure. Rejected:
   members do organise into affinities; surfacing this in the data model
   enables operational value (queue routing) and identity (badges).
@@ -907,6 +949,7 @@ or expand what members can see. The unified feed remains; groups are
 identity + soft routing only.
 
 **Schema implications:**
+
 - New `Group` table (slug, displayName, description, logoUrl, joinPolicy)
 - New `GroupMembership` table (user × group, with role member|lead)
 - `WorkItem.groupTags` (string[] of group slugs)
@@ -914,6 +957,7 @@ identity + soft routing only.
 - Per-group `joinPolicy` (open | request_to_join | admin_only)
 
 **Reasoning:**
+
 - Members organise into affinities anyway; data-modelling them enables
   operational value
 - Queue routing benefits enormously from "show me items relevant to my
@@ -924,6 +968,7 @@ identity + soft routing only.
   most stay open
 
 **Consequences:**
+
 - BU-007a (Groups foundation) builds the entity, membership, admin UI
 - Group filter in queue UI lets queue managers focus
 - Group badges visible on profiles, post bylines (subtle)
@@ -945,6 +990,7 @@ case (share a link) requires the most fields when actually it needs the
 fewest. WhatsApp-native posting is ~5 taps; we should match it.
 
 **Options considered:**
+
 - **Single generic composer with type-picker** (original implied model).
   Rejected: 14+ taps for share-a-link; treats every post the same when
   posts have shapes.
@@ -954,6 +1000,7 @@ fewest. WhatsApp-native posting is ~5 taps; we should match it.
   (chosen).
 
 **Decision:** The FAB opens a card overlay with 6 intent cards:
+
 - 🔗 Share a link
 - 📢 Call for action now
 - ✊ Boost something
@@ -966,6 +1013,7 @@ appropriate to that intent. The "I'm not sure" card opens the fully
 generic composer with a type-picker for unusual cases.
 
 **Specifics:**
+
 - "Share a link" auto-pastes clipboard URL and fetches og:metadata,
   achieving 4-tap parity with WhatsApp-native sharing
 - Each card has its own visibility default (public for amplification
@@ -977,6 +1025,7 @@ generic composer with a type-picker for unusual cases.
   unusual intents
 
 **Reasoning:**
+
 - Most posts are share-a-link; optimise the common case ruthlessly
 - Different intents have different field needs; one composer can't
   optimise for all
@@ -984,6 +1033,7 @@ generic composer with a type-picker for unusual cases.
 - The "I'm not sure" card preserves freedom for cases that don't fit
 
 **Consequences:**
+
 - BU-003a (Composer foundation) and BU-003b (Intent cards) become
   separate Build Units
 - Post schema gains `intentCard` and `composerVersion` fields
@@ -1004,8 +1054,9 @@ join. Without that, GPS Action is invisible to recipients. The question:
 should posts be readable by non-members via deep link?
 
 **Options considered:**
+
 - **All posts members-only.** Recipients tapping a deep link see "join
-  to view." Rejected: most posts are *meant* to be amplified; gating
+  to view." Rejected: most posts are _meant_ to be amplified; gating
   defeats the purpose.
 - **All posts public.** Anyone can read any post. Rejected: some posts
   (vetting context, incident reports, internal coordination) must NOT
@@ -1015,6 +1066,7 @@ should posts be readable by non-members via deep link?
 
 **Decision:** Every post has a `visibility` enum field with three
 values:
+
 - `public` — anyone with the deep link can read; renders server-side
   with og:metadata
 - `members_only` — signed-in members only; non-members see a gated
@@ -1022,6 +1074,7 @@ values:
 - `private` — author and admins only; non-members see a 404
 
 Defaults vary by post type:
+
 - Share a link / Call for action / Boost / Event / Outcome → `public`
 - General writing → `members_only` (conservative)
 - Incident report → `private`
@@ -1030,6 +1083,7 @@ Author can override per-post in the composer; can change after
 posting (with audit log entry).
 
 **Reasoning:**
+
 - The "share a link" use case requires public visibility to fulfil its
   purpose
 - Author judgment is the right default-setter; per-type defaults guide
@@ -1039,6 +1093,7 @@ posting (with audit log entry).
   meaningful cases without over-engineering
 
 **Consequences:**
+
 - Public posts render server-side with proper og:image, og:title, etc.
 - Non-members landing on public posts see a public view with comments
   hidden; gated by membership for action and engagement
@@ -1063,6 +1118,7 @@ heavy. The question: which image features are essential for MVP day 1,
 and which can phase in later?
 
 **Options considered:**
+
 - **Build everything at once** — all image features (avatar, hero,
   bank, logos, generated cards) in one Build Unit. Rejected: large
   scope, delays MVP.
@@ -1074,6 +1130,7 @@ and which can phase in later?
 **Decision:** Three phases of image richness.
 
 **MVP day 1:**
+
 - Member avatars: upload at signup, or auto-generated initials
 - Post hero images: scraped from URL og:metadata, or type-default
   placeholder
@@ -1083,6 +1140,7 @@ and which can phase in later?
 - Alt text auto-generated for scraped, member-supplied for uploads
 
 **Phase 1.5:**
+
 - Group logos (admin upload)
 - Coordinator group logos (member upload)
 - Curated image bank (~30 images, admin-curated)
@@ -1090,12 +1148,14 @@ and which can phase in later?
 - Bank submission queue for member-submitted images
 
 **Phase 2:**
+
 - Member-uploaded post hero images
 - Content moderation API integration
 - Per-post admin override
 - "Show preview images" member setting
 
 **Reasoning:**
+
 - og:image scraping covers the most common case (most posts share URLs
   with og:images)
 - Generated cards (Tier 2) are polished but require infrastructure;
@@ -1105,6 +1165,7 @@ and which can phase in later?
 - EXIF stripping at MVP for privacy; non-negotiable
 
 **Consequences:**
+
 - BU-015 (Image handling foundation) covers MVP day 1
 - Object storage + CDN serving from day 1
 - Schema additions phased: avatars in Slice 1, post hero in Slice 2,
@@ -1124,6 +1185,7 @@ platform impressions, engagement, onward forwarding). Many products
 inflate reach numbers using multipliers and guesswork. We will not.
 
 **Options considered:**
+
 - **Inflated reach estimates** — "estimated 12,000 reached based on
   multipliers." Rejected: dishonest; design philosophy principle 5
   forbids it.
@@ -1133,6 +1195,7 @@ inflate reach numbers using multipliers and guesswork. We will not.
   we cannot** (chosen).
 
 **Decision:** Track and surface to members:
+
 - Outbound dispatch initiations and confirmations (per platform)
 - Inbound deep-link views (anonymous, hashed sessions)
 - Non-member landings on public posts
@@ -1140,23 +1203,27 @@ inflate reach numbers using multipliers and guesswork. We will not.
 - Per-post "reach scoreboard" showing the above honestly
 
 Do NOT track or surface:
+
 - Estimated platform impressions (we don't know)
 - Estimated likes, retweets, etc. on third-party shares (we can't see)
 - Inferred audience reach via multipliers (made-up numbers)
 - Onward forwarding beyond first hop (invisible to us)
 
 **Future enhancements (parking-lot, all opt-in):**
+
 - Member self-reporting of platform stats
 - Member-authorised API integrations with their X/Facebook accounts
 - UTM tagging on outbound URLs (with member consent)
 
 **Reasoning:**
+
 - Honest copy is non-negotiable (design philosophy principle 5)
 - Inflated numbers degrade member trust when discovered
 - The honest measurements (5 events) are sufficient for pilot decisions
 - Future enhancements can add real data without compromising honesty
 
 **Consequences:**
+
 - The "Reach scoreboard" UI shows only verified numbers
 - UI copy is precise: "47 views via direct link" not "reached 12,000"
 - Schema includes counters for verified events only
