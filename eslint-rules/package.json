@@ -1,0 +1,9 @@
+{
+  "name": "eslint-plugin-local-rules",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GPS Action local ESLint rules — enforces traceability, PII safety, and contract discipline.",
+  "type": "module",
+  "main": "./index.js",
+  "exports": "./index.js"
+}
