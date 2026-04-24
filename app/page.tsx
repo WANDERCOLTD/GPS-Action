@@ -1,17 +1,30 @@
 /**
- * @build-unit BU-000-scaffold
+ * @build-unit BU-000-scaffold BU-feed
  * @spec architecture/decision-log.md (D003)
  *
- * Landing page — skeleton placeholder. Real landing page lands in its
- * own session (see BU-005 in the engineering roadmap).
+ * Landing page — redirects authenticated users to /feed,
+ * shows a login prompt otherwise.
  */
 
-export default function Page() {
+import { redirect } from 'next/navigation';
+import { createTRPCContext } from '@/server/routers/context';
+
+export default async function Page() {
+  const ctx = await createTRPCContext();
+
+  if (ctx.user) {
+    redirect('/feed');
+  }
+
   return (
     <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
       <h1 style={{ fontSize: 'var(--text-3xl)', marginBottom: 'var(--space-3)' }}>GPS Action</h1>
       <p style={{ color: 'var(--colour-text-secondary)' }}>
-        Skeleton running. Next: build the ERD, then features.
+        Please{' '}
+        <a href="/dev/login" style={{ color: 'var(--colour-text-link)' }}>
+          log in
+        </a>{' '}
+        to get started.
       </p>
     </main>
   );

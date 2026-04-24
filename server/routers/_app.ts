@@ -8,11 +8,13 @@
 
 import { router, createCallerFactory } from '@/server/lib/trpc';
 import { devRouter } from '@/server/routers/dev';
+import { postRouter } from '@/server/routers/post';
 
 export const appRouter = router({
   // Dev-only router: user picker, login helpers. Unreachable in production.
   ...(process.env.NODE_ENV !== 'production' ? { dev: devRouter } : {}),
-  // Feature routers land here: posts, users, dispatch, vetting, etc.
+  // Feature routers
+  post: postRouter,
 });
 
 export type AppRouter = typeof appRouter;
