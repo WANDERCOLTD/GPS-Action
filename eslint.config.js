@@ -3,6 +3,7 @@ import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import boundaries from 'eslint-plugin-boundaries';
 import globals from 'globals';
+import localRules from './eslint-rules/index.js';
 
 export default [
   js.configs.recommended,
@@ -71,7 +72,64 @@ export default [
       ],
     },
   },
+  // ───────────────────────────────────────────────────────────────────────────
+  // F06 — local custom rules (per docs/build/session-briefs/f06-eslint-rules.md)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  // Rule 1 (require-build-unit-header) — feature code paths only
   {
-    ignores: ['node_modules/**', '.next/**', 'dist/**', 'build/**'],
+    files: [
+      'app/**/*.{ts,tsx}',
+      'server/routers/**/*.ts',
+      'server/services/**/*.ts',
+      'components/**/*.{ts,tsx}',
+    ],
+    plugins: { 'local-rules': localRules },
+    rules: {
+      'local-rules/require-build-unit-header': 'error',
+    },
+  },
+
+  // Rule 2 (no-trpc-any) and rule 4 (no-inline-auth-check) — tRPC routers only
+  {
+    files: ['server/routers/**/*.ts'],
+    plugins: { 'local-rules': localRules },
+    rules: {
+      'local-rules/no-trpc-any': 'error',
+      'local-rules/no-inline-auth-check': 'error',
+    },
+  },
+
+  // Rule 3 (no-pii-in-logs) — all app + server source
+  {
+    files: ['app/**/*.{ts,tsx}', 'server/**/*.ts', 'components/**/*.{ts,tsx}'],
+    plugins: { 'local-rules': localRules },
+    rules: {
+      'local-rules/no-pii-in-logs': 'error',
+    },
+  },
+
+  // Rule 5 (feature-must-have-flag) — opt-in via `// @feature-gated` directive,
+  // applied broadly so any file using the directive is checked
+  {
+    files: ['app/**/*.{ts,tsx}', 'server/**/*.ts', 'components/**/*.{ts,tsx}'],
+    plugins: { 'local-rules': localRules },
+    rules: {
+      'local-rules/feature-must-have-flag': 'error',
+    },
+  },
+
+  {
+    ignores: [
+      'node_modules/**',
+      '.next/**',
+      'dist/**',
+      'build/**',
+      'eslint-rules/**',
+      'prisma/**',
+      'tests/**',
+      '**/*.test.ts',
+      '**/*.test.tsx',
+    ],
   },
 ];
