@@ -266,6 +266,325 @@ insufficient.*
 
 ---
 
+## Region & location — deferred from MVP (per D041/D042)
+
+### PARKED · Member region filtering
+
+Members opt into one or more preferred regions; their default feed hides
+posts tagged outside those regions (untagged/national posts always show).
+Currently MVP shows everyone everything regardless of region.
+
+**Trigger:** members complain about feed volume, OR coordinators request
+that their community see more focused local content, OR pilot grows past
+~200 members and the feed becomes noisy.
+
+**When triggered:**
+- Add `user_region_preferences` join table (or extend `UserRegion`)
+- Add "preferred regions" to profile settings
+- Update feed query to apply `WHERE region_tag IN (user_preferred_regions) OR region_tag IS NULL`
+- Keep national/untagged posts always visible
+
+*Origin: D041, 23 April 2026. Deferred to preserve solidarity across
+regions at pilot scale.*
+
+### PARKED · Location services (phone location for proximity features)
+
+Phone location used to compute "near me" feeds, event proximity, etc.
+Not collected in MVP (no postcode, no lat/lng, no permission requests).
+
+**Trigger:** members request "what's near me" feature, OR events become a
+first-class feature and proximity matters for attendance decisions.
+
+**When triggered:**
+- Add `home_postcode`, `home_lat`, `home_lng`, `default_radius_miles` to
+  User
+- Add onboarding step for location permission (honest opt-in pattern)
+- Add PostGIS extension to Postgres for distance queries
+- Add `location_lat/lng` to Event entity (or extend Post)
+- Add "near me" filter option to feed
+- Privacy considerations documented in security-baseline.md
+
+*Origin: D041 considered and deferred, 23 April 2026.*
+
+### PARKED · Coordinator profile verification
+
+Admins verify that claimed external groups are real before the
+coordinator's profile counts in analytics or displays a verified badge.
+Currently self-claim with no verification.
+
+**Trigger:** amplification-reach analytics feature is being built AND
+data reliability matters for decision-making, OR a member is found to
+have falsely claimed groups.
+
+**When triggered:**
+- Add `verified_at`, `verified_by_user_id` to `coordinator_group` (or
+  profile)
+- Add admin verification queue (new work-item type or existing admin UI)
+- Verified-only filter on reach analytics queries
+- Badge display in UI for verified groups
+
+*Origin: D042 + M3a, 23 April 2026. MVP uses self-claim (M3a) for
+minimal friction; verification added when analytics use-cases emerge.*
+
+### PARKED · Self-nomination for queue_manager role
+
+Members apply to become queue managers via a form; the application
+enters a vetting-style queue for admin decision. Currently
+admin-initiation only.
+
+**Trigger:** volunteer demand exceeds admin ability to identify and
+invite queue managers, OR pilot feedback shows members want to
+self-offer.
+
+**When triggered:**
+- Add new work-item type: `queue_manager_application`
+- Add "volunteer to help moderate" form in profile settings
+- Admin approval flow identical to other work-item types
+- Grant on approval creates a `role_grant` with provenance
+
+*Origin: D042 + M2, 23 April 2026. Admin-only initiation keeps the
+cohort trusted at MVP scale.*
+
+### PARKED · Two-admin approval for role grants
+
+High-sensitivity role grants (especially admin role) require a second
+admin's approval before taking effect. Currently single-admin grant.
+
+**Trigger:** admin team grows past ~5 people, OR a contested grant
+causes internal discussion, OR compliance/governance requirements
+emerge.
+
+**When triggered:**
+- Add pending-approval state to `role_grants` table
+- Second-admin approval UI
+- Notification flow for pending approvals
+- Timeout behaviour (approval expires if not seconded within N days?)
+
+*Origin: D042 + M1, 23 April 2026. Single-admin grant with audit
+accountability is proportionate to MVP admin team size.*
+
+### PARKED · Amplification reach analytics
+
+Dashboard showing total reach across coordinators for given posts. "This
+post was shared by 12 coordinators covering ~8,000 people in external
+channels." Enables Jeremy to see the movement's multiplier effect.
+
+**Trigger:** coordinator cohort reaches ~20 members AND reach estimates
+are seeded, OR Jeremy asks for this view, OR a post needs
+"amplification value" scoring for prioritisation.
+
+**When triggered:**
+- Sum reach estimates across active coordinators
+- Show per-post "amplification potential" if shared by all coordinators
+- Show actual amplification activity (requires share tracking —
+  dependency on external share integrations)
+- May need coordinator verification (deferred above) for data
+  reliability
+
+*Origin: D042 + M6, 23 April 2026. The coordinator_group.reach_estimate
+field "points the way" per M6.*
+
+---
+
+## Deep linking, sharing, images, composer — deferred from MVP (per D043-D047)
+
+### PARKED · Generated og:image cards (Tier 2)
+
+Branded GPS Action share cards generated for every public post via
+@vercel/og or equivalent. Replaces Tier 1 (which uses pulled-through
+og:image from the linked URL).
+
+**Trigger:** MVP day 1 ships with Tier 1; Tier 2 lands in Phase 1.5
+once og:image generation infrastructure is built. No external trigger
+needed — it's planned.
+
+*Origin: D045 + D046, 23 April 2026.*
+
+### PARKED · Member-uploaded post hero images
+
+Members upload their own image as a post's hero (rather than only
+URL-derived or placeholder). Requires content moderation pipeline.
+
+**Trigger:** Members request it AND content moderation API is
+integrated, OR Phase 2 is reached.
+
+*Origin: D046, 23 April 2026.*
+
+### PARKED · Curated image bank with member-pickable browse
+
+Library of ~30 admin-curated images members can pick from when
+composing. Phase 1.5 launch alongside groups.
+
+**Trigger:** Phase 1.5 — paired with Groups feature for visual
+identity work.
+
+*Origin: D046, 23 April 2026.*
+
+### PARKED · Image bank submission queue
+
+Members submit images to the bank; admin review approves with metadata.
+New work-item type `image_bank_submission`.
+
+**Trigger:** Phase 2 — once member uploads exist (depends on previous
+parked item).
+
+*Origin: D046, 23 April 2026.*
+
+### PARKED · Content moderation API integration
+
+Auto-detection of graphic / inappropriate images on upload and on
+og:image scrape. Third-party API (AWS Rekognition / Sightengine /
+Google Vision).
+
+**Trigger:** Member uploads enabled OR a sensitive-content incident
+prompts proactive detection.
+
+*Origin: D046, 23 April 2026.*
+
+### PARKED · "Show preview images" member setting
+
+Toggle in member settings to disable preview images on the feed.
+For members concerned about graphic content from linked articles.
+
+**Trigger:** Member requests OR sensitive-content incident.
+
+*Origin: D046, 23 April 2026.*
+
+### PARKED · Member self-reporting of platform stats
+
+Member manually enters "my X tweet got 4,200 impressions" from their
+X analytics. Adds real reach data to the Reach Scoreboard.
+
+**Trigger:** Members ask for richer reach data; willingness to do
+manual entry confirmed.
+
+*Origin: D047, 23 April 2026.*
+
+### PARKED · Member-authorised API integrations for platform stats
+
+OAuth-flow where Sharon authorises GPS Action to pull her X/Facebook
+analytics. Real numbers without manual entry.
+
+**Trigger:** Self-reporting (above) shows demand AND engineering
+capacity available; significant privacy implications.
+
+*Origin: D047, 23 April 2026.*
+
+### PARKED · UTM tagging on outbound URLs
+
+When sharing to X/etc., the linked URL gets `?utm_source=gpsaction&...`
+appended. BBC's analytics can see GPS Action drove traffic. We don't
+get the data but help broader signal.
+
+**Trigger:** A specific request from a partner (e.g., a news outlet
+asks "where's our traffic coming from?") OR an analytics-led decision
+to enable.
+
+*Origin: D047, 23 April 2026.*
+
+### PARKED · Instagram Stories share (via generated story card)
+
+Share to Instagram Stories by generating a 1080x1920 image card with
+post text, GPS Action branding. Member opens Story, drops the image,
+adds link sticker manually.
+
+**Trigger:** Phase 1.5 — depends on og:image generation infrastructure
+being built.
+
+*Origin: share-out-mechanics.md, 23 April 2026.*
+
+### PARKED · LinkedIn / Telegram / WhatsApp Channels (Business API)
+
+Additional outbound platforms beyond MVP's WhatsApp/X/Facebook/Email/
+Copy-link.
+
+**Trigger:** Members request a specific platform AND that platform has
+a usable share intent.
+
+*Origin: share-out-mechanics.md, 23 April 2026.*
+
+### PARKED · Native group chat / group-private feeds
+
+Groups within GPS Action gaining their own feeds, members-only chat
+threads, group-specific notifications.
+
+**Trigger:** Pilot reveals strong demand for group-private spaces AND
+the unified-feed approach (D041) is reconsidered.
+
+*Origin: D043, 23 April 2026. Currently DEFERRED in favour of
+unified-feed principle.*
+
+### PARKED · Hide-my-groups privacy setting
+
+Member toggle to hide their group memberships from other members
+(memberships still affect queue routing).
+
+**Trigger:** A specific member raises a privacy concern OR a
+sensitive group launches (e.g., support-related).
+
+*Origin: D043, 23 April 2026.*
+
+### PARKED · Custom domains for posts
+
+Vanity URLs like sharon.gpsaction.org/post/abc instead of generic
+gpsaction.org/p/abc.
+
+**Trigger:** Strong member demand OR a coordinator group with their
+own brand wants attribution.
+
+*Origin: D045, 23 April 2026.*
+
+### PARKED · QR codes for posts
+
+Generate QR codes for post URLs for printed materials, signage,
+in-person sharing.
+
+**Trigger:** A member organises an in-person event needing QR codes
+OR Phase 2 reached.
+
+*Origin: D045, 23 April 2026.*
+
+### PARKED · Embed codes for posts
+
+"Embed this post on your blog" — generates an iframe-able snippet.
+
+**Trigger:** A coordinator with a blog asks for it OR partner
+organisations request embeddable content.
+
+*Origin: D045, 23 April 2026.*
+
+### PARKED · Composer enhancements (Phase 2+)
+
+Edit-post flow, mention autocomplete, markdown/rich text, scheduled
+posting, voice input, keyboard shortcuts. All Phase 2 polish on the
+composer.
+
+**Trigger:** Per-feature member demand or pilot feedback identifying
+the specific friction.
+
+*Origin: D044, 23 April 2026.*
+
+### PARKED · Multimedia composer
+
+Multiple images per post, video uploads, polls, quizzes.
+
+**Trigger:** Phase 2 / 3 — depends on storage costs and moderation
+infrastructure.
+
+*Origin: D044, 23 April 2026.*
+
+### PARKED · Post templates
+
+Pre-shaped starter posts ("BDS motion alert template", "Op-ed response
+template") that load into the composer.
+
+**Trigger:** Several similar posts crafted manually; templates would
+have saved time.
+
+*Origin: D044 + earlier parking-lot entry, 23 April 2026.*
+
+---
+
 ## Resources & reference material
 
 ### PARKED · Useful Links repository (member-contributed, admin-curated)

@@ -747,3 +747,421 @@ as features add new claimable workflows.
 
 **Status:** Active. Foundational for ERD. All claimable workflows route
 through this primitive.
+
+### D041 · Region as optional tag only; no filtering in MVP
+
+**Date:** April 2026
+**Tier:** Foundation
+**Context:** Region in GPS Action could mean many things: where members
+live, where posts are "for," where events happen, what scope coordinators
+have. The initial assumption was that region is identity (pick one at
+signup; derive filtering from there). A reframe considered proximity (use
+phone location; radius-based filters). After discussion, a simpler answer
+emerged.
+
+**Options considered:**
+- **Region-as-identity + structured filtering** (original lean). Rejected:
+  locks us into a specific model of "where members belong" that may not
+  match the community texture.
+- **Region-as-proximity, phone-location-driven** (Paul's reframe).
+  Rejected: privacy surface, geospatial complexity, council-action still
+  needs structured regions anyway.
+- **Region as optional informational tag; no filtering in MVP** (chosen,
+  per Jeremy's reframe).
+
+**Decision:** Region is an optional tag attached to posts. Members see
+every post in their feed regardless of the post's region tag. Queue
+managers see every work item regardless of region. No location services,
+no postcode collection, no geospatial queries in MVP.
+
+**Schema implications:**
+- `Region` table exists (hierarchy: national / region / council) for
+  tagging and future council-action features
+- `Post.regionTagId` is an optional foreign key to `Region`
+- `WorkItem.regionSlug` is informational only (display, not filtering)
+- `User` has no `homePostcode`, `homeLat/Lng`, or location-permission fields
+- No PostGIS extension needed
+
+**Reasoning:**
+- Pilot scale is small; everyone seeing everything is feature, not bug
+- Cross-regional solidarity is a value in the movement
+- Defers privacy question cleanly (no member location ever collected)
+- Preserves optionality — filtering can be added later without schema
+  change
+- Example use cases ("Event in Manchester," "Urgent — people needed now in
+  Glasgow") work with region-as-tag even without filtering
+
+**Consequences:**
+- Default feed query: `posts ORDER BY createdAt DESC` with no region filter
+- Queue UI: every queue manager sees every work item
+- Region picker in post composer: optional dropdown, can be left blank
+- Future filtering feature is a parking-lot item with clear trigger
+- Council-action features (future Module 11) still use the Region table for
+  structured councillor-contact lookup
+
+**Status:** Active. Foundational for ERD Slice 1. See
+`docs/product/region-and-proximity-decision.md` for the full decision
+memo.
+
+### D042 · Coordinator identity vs queue_manager permission — split into two concepts
+
+**Date:** April 2026
+**Tier:** Foundation
+**Context:** In early discussions, "coordinator" was conflated with two
+different things: (a) a member who runs other communities/groups outside
+GPS Action, and (b) a member with elevated permissions to work GPS Action's
+queues. Jeremy clarified these are different — coordinators in the
+movement sense are *community bridges*, not queue workers. Queue work is
+separate.
+
+**Options considered:**
+- **One role with multiple capabilities** (the confused earlier model).
+  Rejected: conflates identity with permission; "coordinator" carries
+  movement-specific meaning that shouldn't be tied to admin privileges.
+- **Separate tables, separate semantics** (chosen).
+
+**Decision:** Split into two orthogonal concepts:
+
+**1. Coordinator identity** — data attached to a member describing what
+external communities/groups they run.
+- Table: `coordinator_profile` (one-to-one optional with User)
+- Table: `coordinator_group` (one-to-many under coordinator_profile)
+- Captures: group name, optional description, optional logo, optional
+  reach estimate (self-reported)
+- Self-claim with no verification for MVP (per M3a); admin-verification
+  is parking-lot (add when analytics reliability matters)
+- Captured at onboarding (optional) and via profile settings (editable)
+- Confers no special powers in GPS Action
+
+**2. Queue manager permission** — dynamic grant-based permission to work
+queues.
+- Table: `role_grants` (with columns for grant provenance and revocation)
+- Roles: `queue_manager`, `admin`
+- Single-admin grant (MVP); two-admin approval deferred (revisit past ~5
+  admins)
+- Admin-initiated only (MVP); self-nomination deferred
+- Full audit provenance: who granted, when, why; who revoked, when, why
+- Revocation auto-releases any claimed work items
+- Admin role has special safeguards: no self-revoke; cannot remove the
+  last admin
+
+**The two are independent.** Any member can be:
+- Just a member (most common)
+- A coordinator only (movement bridge, no queue access)
+- A queue manager only (queue access, no external groups)
+- Both
+
+**Schema implications:**
+- `User` gets optional relation to `CoordinatorProfile`
+- `User` gets one-to-many relation to `RoleGrant`
+- Active role test = exists RoleGrant where `revoked_at IS NULL`
+- Admin surface has two new areas: `/admin/coordinators` and `/admin/roles`
+
+**Reasoning:**
+- "Coordinator" has real movement-specific meaning that shouldn't be
+  tied to admin privileges
+- Queue management is a job; coordinator is an identity
+- Separating them enables future amplification-reach analytics (which
+  coordinators amplify to how many people) without tying to admin
+  privileges
+- Dynamic role grants with provenance is more auditable than a static
+  `user.role` column
+
+**Consequences:**
+- BU-001 (admin scaffolding) builds role-grants UI and coordinator-
+  profile admin views
+- Future amplification analytics can sum reach across coordinators
+- Queue-manager cohort can be sized to workload without affecting
+  coordinator identification
+
+**Status:** Active. Foundational for ERD Slice 1. See
+`docs/architecture/admin-surface.md` for the full role model and schema.
+
+### D043 · Groups as identity markers + queue filters (not permission gates)
+
+**Date:** April 2026
+**Tier:** Foundation
+**Context:** GPS Action's design has one unified feed (per D041). But
+members have natural affinities — writers, BDS responders, geographic
+cohorts, skill-based teams. The question: should we have group-style
+features, and if so, what do they actually do?
+
+**Options considered:**
+- **No groups at all** — keeps unified-feed principle pure. Rejected:
+  members do organise into affinities; surfacing this in the data model
+  enables operational value (queue routing) and identity (badges).
+- **Strong groups with their own feeds and permissions** — Slack/Discord
+  pattern. Rejected: fragments the feed; contradicts D041.
+- **Light groups: identity + soft queue filtering, no permission impact**
+  (chosen).
+
+**Decision:** Groups exist as first-class entities with names,
+descriptions, optional logos. Members can join and display group
+badges on profiles. Groups can be tagged on posts and work items as
+informational metadata. Queue managers can filter the queue by group
+to focus on items relevant to communities they identify with.
+
+Crucially: **groups confer no permissions**. Joining a group doesn't
+gate visibility, doesn't grant queue-manager rights, doesn't restrict
+or expand what members can see. The unified feed remains; groups are
+identity + soft routing only.
+
+**Schema implications:**
+- New `Group` table (slug, displayName, description, logoUrl, joinPolicy)
+- New `GroupMembership` table (user × group, with role member|lead)
+- `WorkItem.groupTags` (string[] of group slugs)
+- `Post.groupTags` (string[] of group slugs)
+- Per-group `joinPolicy` (open | request_to_join | admin_only)
+
+**Reasoning:**
+- Members organise into affinities anyway; data-modelling them enables
+  operational value
+- Queue routing benefits enormously from "show me items relevant to my
+  groups"
+- Identity badges support member visibility and recognition
+- Avoiding permission impact preserves D041's unified-feed principle
+- Per-group join policy lets sensitive groups be admin-curated while
+  most stay open
+
+**Consequences:**
+- BU-007a (Groups foundation) builds the entity, membership, admin UI
+- Group filter in queue UI lets queue managers focus
+- Group badges visible on profiles, post bylines (subtle)
+- Initial seed of ~10 starter groups (Writers, Newsletter Editors,
+  Vetting Team, etc.) bootstraps the model
+- Phase 2 may revisit: hide-my-groups privacy, group-private feeds,
+  algorithmic suggestions
+
+**Status:** Active. ERD Slice 1.5 includes Group + GroupMembership.
+Full spec in `docs/product/groups.md`.
+
+### D044 · Intent-first post creation (FAB cards model)
+
+**Date:** April 2026
+**Tier:** Foundation
+**Context:** A generic composer with a type-picker dropdown imposes 14+
+taps for what should be a 4-tap action (sharing a link). The most common
+case (share a link) requires the most fields when actually it needs the
+fewest. WhatsApp-native posting is ~5 taps; we should match it.
+
+**Options considered:**
+- **Single generic composer with type-picker** (original implied model).
+  Rejected: 14+ taps for share-a-link; treats every post the same when
+  posts have shapes.
+- **Multiple composers, no shared shell** — separate pages per type.
+  Rejected: code duplication; inconsistent UX; harder to add new types.
+- **Intent-first FAB cards leading to purpose-shaped composers**
+  (chosen).
+
+**Decision:** The FAB opens a card overlay with 6 intent cards:
+- 🔗 Share a link
+- 📢 Call for action now
+- ✊ Boost something
+- 📅 Tell us about an event
+- ✏️ Just write something
+- 🤔 I'm not sure (escape hatch → generic composer)
+
+Each card opens a purpose-shaped composer with smart defaults
+appropriate to that intent. The "I'm not sure" card opens the fully
+generic composer with a type-picker for unusual cases.
+
+**Specifics:**
+- "Share a link" auto-pastes clipboard URL and fetches og:metadata,
+  achieving 4-tap parity with WhatsApp-native sharing
+- Each card has its own visibility default (public for amplification
+  cards, members_only for general writing)
+- Clipboard detection at FAB tap highlights "Share a link"
+- Each post records `intentCard` + `postType` so analytics can
+  measure card adoption
+- "I'm not sure" remains the escape hatch — full flexibility for
+  unusual intents
+
+**Reasoning:**
+- Most posts are share-a-link; optimise the common case ruthlessly
+- Different intents have different field needs; one composer can't
+  optimise for all
+- Defaults shape behaviour without removing flexibility
+- The "I'm not sure" card preserves freedom for cases that don't fit
+
+**Consequences:**
+- BU-003a (Composer foundation) and BU-003b (Intent cards) become
+  separate Build Units
+- Post schema gains `intentCard` and `composerVersion` fields
+- Drafts model needed (per the spec) for resume-later support
+- Live preview becomes a first-class composer feature
+- Help text and smart defaults are integral to the composer, not
+  optional polish
+
+**Status:** Active. Full spec in `docs/product/post-creation-flow.md`.
+
+### D045 · Public-by-default post visibility with author override
+
+**Date:** April 2026
+**Tier:** Foundation
+**Context:** When members share GPS Action posts to WhatsApp/X/etc.,
+recipients need a path back to GPS Action — to comment, take action, or
+join. Without that, GPS Action is invisible to recipients. The question:
+should posts be readable by non-members via deep link?
+
+**Options considered:**
+- **All posts members-only.** Recipients tapping a deep link see "join
+  to view." Rejected: most posts are *meant* to be amplified; gating
+  defeats the purpose.
+- **All posts public.** Anyone can read any post. Rejected: some posts
+  (vetting context, incident reports, internal coordination) must NOT
+  be visible to non-members.
+- **Per-post visibility with public default for amplification post types**
+  (chosen).
+
+**Decision:** Every post has a `visibility` enum field with three
+values:
+- `public` — anyone with the deep link can read; renders server-side
+  with og:metadata
+- `members_only` — signed-in members only; non-members see a gated
+  landing page
+- `private` — author and admins only; non-members see a 404
+
+Defaults vary by post type:
+- Share a link / Call for action / Boost / Event / Outcome → `public`
+- General writing → `members_only` (conservative)
+- Incident report → `private`
+
+Author can override per-post in the composer; can change after
+posting (with audit log entry).
+
+**Reasoning:**
+- The "share a link" use case requires public visibility to fulfil its
+  purpose
+- Author judgment is the right default-setter; per-type defaults guide
+  toward right answer
+- Conservative default for general writing prevents surprise
+- Three-tier model (public / members_only / private) covers the
+  meaningful cases without over-engineering
+
+**Consequences:**
+- Public posts render server-side with proper og:image, og:title, etc.
+- Non-members landing on public posts see a public view with comments
+  hidden; gated by membership for action and engagement
+- Members-only posts return a gated landing page to non-members
+- Private posts return 404 (indistinguishable from deleted)
+- Search engine indexing: public posts opt-in by post type (Boost,
+  Event, Action default index; others default noindex)
+- Schema additions: `Post.shortId`, `Post.visibility`, deep-link view
+  tracking
+- BU-014 (Deep linking + public post views) becomes its own Build Unit
+
+**Status:** Active. ERD Slice 2 includes the Post visibility model.
+Full spec in `docs/product/deep-linking-and-tracking.md`.
+
+### D046 · Image handling phased — day 1 simple, richer later
+
+**Date:** April 2026
+**Tier:** Foundation
+**Context:** Images appear in many places (avatars, post heroes, group
+logos, og:image cards). Building all image features at once would be
+heavy. The question: which image features are essential for MVP day 1,
+and which can phase in later?
+
+**Options considered:**
+- **Build everything at once** — all image features (avatar, hero,
+  bank, logos, generated cards) in one Build Unit. Rejected: large
+  scope, delays MVP.
+- **Skip images entirely for MVP** — text-only product. Rejected:
+  posts without images look dead; sharing without preview cards has
+  no impact; member identity needs avatars.
+- **Phased adoption: simple day 1, richer in 1.5+** (chosen).
+
+**Decision:** Three phases of image richness.
+
+**MVP day 1:**
+- Member avatars: upload at signup, or auto-generated initials
+- Post hero images: scraped from URL og:metadata, or type-default
+  placeholder
+- og:image for outbound shares: pulled-through from post hero (Tier 1)
+- 5 type-default placeholder images shipped with the app
+- EXIF stripping on uploads
+- Alt text auto-generated for scraped, member-supplied for uploads
+
+**Phase 1.5:**
+- Group logos (admin upload)
+- Coordinator group logos (member upload)
+- Curated image bank (~30 images, admin-curated)
+- Tier 2 generated og:image cards (GPS Action branded; @vercel/og)
+- Bank submission queue for member-submitted images
+
+**Phase 2:**
+- Member-uploaded post hero images
+- Content moderation API integration
+- Per-post admin override
+- "Show preview images" member setting
+
+**Reasoning:**
+- og:image scraping covers the most common case (most posts share URLs
+  with og:images)
+- Generated cards (Tier 2) are polished but require infrastructure;
+  Tier 1 is acceptable while we ship
+- Group logos depend on Groups feature itself (Slice 1.5)
+- Member uploads add moderation complexity; defer until volume warrants
+- EXIF stripping at MVP for privacy; non-negotiable
+
+**Consequences:**
+- BU-015 (Image handling foundation) covers MVP day 1
+- Object storage + CDN serving from day 1
+- Schema additions phased: avatars in Slice 1, post hero in Slice 2,
+  group logos in Slice 1.5, image bank in Phase 1.5
+- Sensitive content concerns documented but not auto-detected at MVP
+
+**Status:** Active. Full spec in `docs/product/image-handling.md`.
+
+### D047 · Honest tracking only (no inflated reach numbers)
+
+**Date:** April 2026
+**Tier:** Foundation (process discipline)
+**Context:** When members share posts to external platforms, GPS Action
+can measure some things reliably (outbound dispatch initiation,
+inbound deep-link views) and cannot measure others (third-party
+platform impressions, engagement, onward forwarding). Many products
+inflate reach numbers using multipliers and guesswork. We will not.
+
+**Options considered:**
+- **Inflated reach estimates** — "estimated 12,000 reached based on
+  multipliers." Rejected: dishonest; design philosophy principle 5
+  forbids it.
+- **No tracking at all** — privacy-maximalist. Rejected: members
+  legitimately want to know if their shares are landing.
+- **Honest tracking of what we can measure, transparent about what
+  we cannot** (chosen).
+
+**Decision:** Track and surface to members:
+- Outbound dispatch initiations and confirmations (per platform)
+- Inbound deep-link views (anonymous, hashed sessions)
+- Non-member landings on public posts
+- Attributed signups within 7 days of a non-member landing
+- Per-post "reach scoreboard" showing the above honestly
+
+Do NOT track or surface:
+- Estimated platform impressions (we don't know)
+- Estimated likes, retweets, etc. on third-party shares (we can't see)
+- Inferred audience reach via multipliers (made-up numbers)
+- Onward forwarding beyond first hop (invisible to us)
+
+**Future enhancements (parking-lot, all opt-in):**
+- Member self-reporting of platform stats
+- Member-authorised API integrations with their X/Facebook accounts
+- UTM tagging on outbound URLs (with member consent)
+
+**Reasoning:**
+- Honest copy is non-negotiable (design philosophy principle 5)
+- Inflated numbers degrade member trust when discovered
+- The honest measurements (5 events) are sufficient for pilot decisions
+- Future enhancements can add real data without compromising honesty
+
+**Consequences:**
+- The "Reach scoreboard" UI shows only verified numbers
+- UI copy is precise: "47 views via direct link" not "reached 12,000"
+- Schema includes counters for verified events only
+- Five new analytics events: dispatch_initiated, dispatch_confirmed,
+  deep_link_view, non_member_landed, non_member_signup_attributed
+
+**Status:** Active. Discipline applies to all share/reach UI. Full
+context in `docs/product/deep-linking-and-tracking.md`.

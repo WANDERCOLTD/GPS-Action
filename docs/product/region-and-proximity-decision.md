@@ -1,23 +1,19 @@
 # Region & proximity — decision memo
 
-**Status:** OPEN — awaiting product decision before Slice 1 of the ERD lands.
-**Owner:** Paul, with input from Jeremy and Sharon.
-**Decision recorded by:** *(name and date when decided)*
+**Status:** DECIDED — 23 April 2026.
+**Owner:** Paul, with input from Jeremy.
+**Decision recorded by:** Paul.
 
 ---
 
 ## What this memo is
 
-A working document to think through how GPS Action handles **place** —
-where members are, what they see, how coordinators are scoped, how content
+A working document that thought through how GPS Action handles **place** —
+where members are, what they see, how queue managers are scoped, how content
 flows.
 
-This memo is not a recommendation document — it's a *thinking* document. It
-lays out the three questions that need answers, the tradeoffs honestly, and
-proposed positions you can adopt, modify, or reject.
-
-When the decision is made, the answers go at the bottom of this file
-(section "The decision") and the schema in `docs/architecture/erd.md` follows.
+The decision has now been made (see §"The decision" at the bottom). The
+schema in `docs/architecture/erd.md` follows from these answers.
 
 ---
 
@@ -27,7 +23,7 @@ Every other entity in the system references "region" or "location" in some
 way:
 - **Users** are *somewhere* (or live multiple places)
 - **Posts** are *for* someone (national? local? everywhere?)
-- **Coordinators** are scoped to *somewhere* (their patch)
+- **Queue managers** are scoped to *somewhere* (their patch)
 - **Events** happen *at* a place
 - **Council action** requires knowing *which council*
 
@@ -35,9 +31,7 @@ If we get this wrong in Slice 1 of the schema, we're retrofitting it later
 across every feature. If we get it right, every feature inherits a clean
 spatial model.
 
-This is the most important product decision in the schema. It's also the one
-where I (Claude) cannot decide for you — it's about how you want GPS Action
-to *feel*, not about what's technically optimal.
+This is the most important product decision in the schema.
 
 ---
 
@@ -51,7 +45,12 @@ right now* — derived from phone location at the moment of need.
 
 Both are coherent. They're genuinely different products. The truth is
 probably layered — proximity for the user-facing experience, structured
-regions underneath for council action and coordinator scope.
+regions underneath for council action and queue-manager scope.
+
+**Jeremy's reframe (23 April, later same day):** neither. Region is simply
+an **optional tag on posts**. No filtering for members in MVP. No region
+scope for queue managers in MVP. Solidarity across regions is a feature,
+not a bug, at pilot scale.
 
 ---
 
@@ -63,302 +62,245 @@ A list of UK places with hierarchy:
 - National
 - Region (London, North West, Scotland, etc.)
 - Council / borough (Brent, Camden, Manchester, etc.)
-- Optionally: ward (within a council)
 
 Each entry has:
 - A name and slug
-- A position (lat/lng centroid)
-- Optionally: a boundary shape
 - A parent (for hierarchy queries)
 - Council-specific data (council website, councillor contacts) — populated
   later for the council-action features
 
-**Why we need this layer regardless of how proximity is used:**
-- Council action ("email your councillor") needs structured regions —
-  there's no "councillor for a 25-mile radius"
-- Coordinator scoping is cleanest with structured assignments
-- Reporting and analytics group naturally by structured regions
-- The Module 11 councillor campaign engine in the original SRS is built on
-  this
+**Used for:** tagging posts, informational display in the UI, future filter
+features. **Not used in MVP for:** member feed filtering, queue-manager
+access scoping.
 
 ### Layer 2 — Member proximity
 
-The user-facing layer. A member's "near me" is computed from:
-- Phone location (if permission granted)
-- OR home postcode (a fallback single point)
-- AND a radius preference (default 25 miles, member can change)
+**Deferred.** No phone location, no postcode collection, no distance
+calculations in MVP.
 
-This is what powers the default "what's happening near me" feed.
+Considered for future if pilot shows members want "near me" filtering.
 
 ### Layer 3 — Post location
 
 A post can have:
-- One or more structured region tags (Brent, London, National)
-- A precise lat/lng (for events, incident reports, place-specific content)
-- An "is national" flag (overrides regional filtering)
+- One optional region tag (Manchester, London, National)
+- Precise lat/lng — **deferred to when events ship as a first-class type**
 
-Most posts are tagged with a structured region; events and incidents add
-precise location too; some posts are explicitly national.
+Most posts in MVP will be untagged (global/everyone). Some will be tagged
+("Event in Manchester") as informational display.
 
 ### Layer 4 — The filter chain
 
-A member's default feed becomes a query roughly like:
-> Show me posts where any of: I've subscribed to that structured region, OR
-> the post's location is within my radius, OR the post is national.
+For MVP: **no filtering.** Every member sees every post. Region is an
+informational tag, not a filter.
 
-Each filter is a member-configurable preference.
+**Future filter:** member chooses one or more preferred regions; posts
+tagged outside those regions get hidden from their default feed. Untagged
+posts always show. Trigger: members complain about feed volume, or
+coordinators want their community to see more focused content.
 
 ---
 
-## The three questions for the decision
+## The three questions — and what was decided
 
-The questions are not "which schema to use" — that follows from the
-answers. They're "how should GPS Action *feel* on these three dimensions?"
+The original memo posed three positions per question. The actual decision
+went outside those positions on Q2 and Q3 — into a new Position 2D and 3D
+that are genuinely simpler.
 
 ---
 
 ### Q1 — Default privacy posture for location
 
-**The question:** When Sharon signs up, what's the relationship between
-GPS Action and her phone's location?
+**Original positions:**
+- 1A — Postcode-only, location strictly optional
+- 1B — Honest opt-in at onboarding
+- 1C — Strongly encourage location
 
-**Three positions:**
+**DECIDED: N/A — no location services in MVP.**
 
-#### Position 1A — Postcode-only, location strictly optional
-- Signup asks for a postcode. That's the only spatial input required.
-- Location services are never proactively requested.
-- Members who want fresher proximity (e.g. while travelling) can enable it
-  later in settings.
-- **Posture:** "We respect your location is yours. Postcode is enough."
+No postcode collected. No location permissions requested. Location is not
+part of the MVP data model for members.
 
-#### Position 1B — Honest opt-in at onboarding (recommended starting point)
-- Signup asks for postcode (always).
-- Onboarding includes a clear, honest moment: *"Allow GPS Action to use your
-  location? We use this to show you content and events near you. You can
-  always say no — your postcode will work."*
-- Members who allow location get fresher proximity. Members who don't get
-  the postcode-derived experience.
-- **Posture:** "We're honest about why we'd want this. We respect 'no'."
-
-#### Position 1C — Strongly encourage location
-- Signup nudges towards location-on. Postcode is the fallback.
-- Onboarding implies location is the "proper" experience.
-- **Posture:** "GPS Action works best with location."
-
-**Tradeoffs:**
-- 1A is most privacy-respectful but loses the "near me" feel for travelling
-  members.
-- 1B is the honest middle ground — most users say yes when asked clearly.
-- 1C feels coercive in the current cultural moment. Avoid.
-
-**Considerations specific to GPS Action:**
-- Members may be concerned about being tracked given the sensitive nature
-  of GPS work. Many will be deliberate about location permissions.
-- Older or less tech-comfortable members may decline by default.
-- Coordinators may have strong opinions on what they want.
-
-**Default lean if no decision made:** Position 1B.
+**Reasoning:** Starting with no filtering means location isn't needed. If
+later we add region filtering, members can simply tick which structured
+regions they care about. Location services can be added Phase 2 if
+proximity features are requested.
 
 ---
 
 ### Q2 — Default feed behaviour for a new member
 
-**The question:** Sharon has just signed up. She hasn't customised
-anything. What does she see when she opens GPS Action for the first time?
+**Original positions:**
+- 2A — National only until customised
+- 2B — National + 25-mile radius from postcode
+- 2C — Everything by default; member filters down
 
-**Three positions:**
+**NEW POSITION 2D: Everyone sees everything. Region is an optional
+informational tag on posts.**
 
-#### Position 2A — National only until customised
-- Default feed = posts marked `is_national = true`
-- Sharon sees national-interest content from day one.
-- A prominent prompt invites her to add her postcode / regions for local
-  content.
-- **Posture:** "Here's the national picture. Tell us where you are for the
-  local picture."
+- Default feed = every published post, ordered by recency
+- No region filter, no proximity filter
+- Posts may carry a region tag ("Manchester", "Glasgow") for informational
+  display
+- Members see these tags but cannot filter by them in MVP
 
-#### Position 2B — National + 25-mile radius from postcode (recommended starting point)
-- Postcode collected at signup → 25-mile default radius
-- Default feed = national posts + posts within 25 miles of her postcode
-- Sharon sees something concrete and locally relevant immediately
-- A subtle UI prompt to widen / narrow / adjust regions
-- **Posture:** "Here's what's near you and what's happening nationally."
+**DECIDED: Position 2D.**
 
-#### Position 2C — Everything by default; member filters down
-- Default feed = every post in the system
-- Filters available: by region, by topic, by post type
-- Sharon decides what to remove
-- **Posture:** "Here's everything. Filter what doesn't matter to you."
+**Reasoning:**
+- At pilot scale, feed volume is low enough that everyone seeing everything
+  is a feature, not a bug — cross-regional solidarity
+- Defers the privacy question
+- Zero geospatial complexity
+- Preserves the option to add filtering later without a schema change
+  (regions already exist as a table; just enable the WHERE clause when
+  needed)
+- Member self-filtering is future work — add when members ask for it
 
-**Tradeoffs:**
-- 2A is safe but boring on day one — Sharon may not understand what GPS
-  Action *is* if she only sees national headlines.
-- 2B feels relevant out of the box, prompts the natural next action
-  (adjust filters), but assumes location is enough to define relevance.
-- 2C overwhelms — first-time members will bounce off the firehose.
-
-**Considerations specific to GPS Action:**
-- A pilot member should have a "wow" moment, not a blank screen.
-- Local action is a core value — surfacing it by default reinforces what
-  the product is *for*.
-- 2C might suit power users (coordinators) but breaks for newcomers.
-
-**Default lean if no decision made:** Position 2B.
+**Example use cases that work cleanly:**
+- "Event happening in Manchester" — tagged Manchester; everyone in the
+  pilot sees it and understands where it is
+- "Urgent — people needed now in Glasgow" — tagged Glasgow; everyone sees
+  it; members not in Glasgow can still amplify or share with Glasgow
+  contacts
 
 ---
 
-### Q3 — Coordinator scope: structured or fuzzy?
+### Q3 — Queue manager scope (originally "coordinator scope")
 
-**The question:** When Grant is "the South-West London coordinator," what
-does that mean technically? What can he see in the queue? What does the
-admin surface show him?
+**Original positions:**
+- 3A — Structured regions only
+- 3B — Radius from anchor postcode
+- 3C — Hybrid
 
-**Three positions:**
+**NEW POSITION 3D: No region scope for queue managers. Dynamic cohort,
+single global queue.**
 
-#### Position 3A — Structured regions only (recommended starting point)
-- Each coordinator is assigned to one or more structured regions
-  (e.g. Grant: Wandsworth, Lambeth, Merton)
-- His queue shows work items tagged with those regions
-- Clear, predictable, no ambiguity
-- "National" coordinators have access to all regions
-- **Posture:** Coordinator scope is a list, not a fuzzy area.
+- Queue managers work from one unified queue regardless of region
+- Dynamic cohort: admins grant and revoke queue_manager role at will
+- No region filtering on queue views
+- Region tags visible on work items but informational only
 
-#### Position 3B — Radius from anchor postcode
-- Each coordinator has a postcode + radius
-- His queue shows work items whose region's centroid is within the radius
-- More flexible (Grant can be the "primary coordinator" for what's actually
-  near him)
-- **Posture:** Coordinator scope is "near me, professionally."
+**DECIDED: Position 3D.**
 
-#### Position 3C — Hybrid
-- Coordinator has *both* a list of structured regions AND a radius
-- His queue shows work items matching either
-- "I cover Wandsworth, Lambeth, Merton — and anything within 10 miles of
-  my postcode that isn't yet claimed"
-- **Posture:** Both clean assignment and flexible reach.
+**Reasoning:**
+- Pilot cohort of queue managers is small — a shared workload with many
+  eyes is more robust than regional assignments
+- Workload self-balances without admin intervention
+- Coverage gaps don't exist — everyone covers everything
+- Simpler queue UX — no "switch region" mental overhead
 
-**Tradeoffs:**
-- 3A is operationally clean. If a flag is in Brent, Brent's coordinators
-  see it. No ambiguity. Easy to govern, easy to audit, easy to load-balance.
-- 3B is fuzzy. If Grant's postcode is in West London with a 10-mile
-  radius, his queue overlaps with five other coordinators' radiuses. Whose
-  flag is whose? Conflict-prone.
-- 3C tries to give both, but the "either" logic creates the same conflict
-  problem as 3B for the radius portion.
-
-**Considerations specific to GPS Action:**
-- Coordinator workload balancing matters — if everyone in London sees every
-  London flag, no one feels owned. Structured assignment forces ownership.
-- Coverage gaps (a region with no assigned coordinator) need explicit
-  handling — they become "national" or "unassigned" by default.
-- Members get fuzzy proximity (they're casually browsing); coordinators get
-  clean assignments (they're working).
-
-**Default lean if no decision made:** Position 3A.
+**Revisit trigger:** if pilot reveals queue managers want region-focused
+queues ("I'm better at vetting Londoners"), re-evaluate. Likely driver:
+queue volume grows past the point where everyone seeing everything becomes
+noisy.
 
 ---
 
-## What changes based on the answers
+## Related decision — coordinator role
 
-The schema implications differ meaningfully:
+A separate but intertwined decision made in the same conversation:
 
-| Component | If 1A + 2A + 3A | If 1B + 2B + 3A | If 1C + 2C + 3C |
-|---|---|---|---|
-| `User.homeLat/Lng` | Optional, postcode-derived | Optional, two sources | Required |
-| `User.allowLocationServices` | Default false | Default false, nudged | Default true |
-| `Region` table | Hierarchy + centroids | Hierarchy + centroids + boundaries | Same as 1B |
-| `Post.location` | Tags only | Tags + optional lat/lng | Tags + lat/lng + radius |
-| Feed query complexity | Simple | Moderate (geospatial) | Complex (geospatial + multi-source) |
-| PostGIS extension | Optional | Recommended | Required |
-| Coordinator scope query | Simple (region IN ...) | Simple (region IN ...) | Complex (region OR radius) |
+**"Coordinator" is an identifying fact about a member, not a permission.**
 
-**The default lean (1B + 2B + 3A) is moderate complexity** — geospatial
-queries for member feeds, structured queries for coordinator scopes. PostGIS
-recommended but not strictly required for MVP.
+Coordinators run external communities (WhatsApp groups, newsletters,
+community networks). GPS Action tracks this so future features can surface
+amplification reach. But coordinator status grants no special powers in
+GPS Action.
+
+Queue management is a separate role (`queue_manager`) granted by admins
+and revocable at will. A member can be:
+- Just a member (most)
+- A coordinator only (labelled, but no queue access)
+- A queue manager only (queue access, no external groups)
+- Both (labelled and has queue access)
+
+Full detail: see D042 in the decision log, and admin-surface.md's role
+model.
+
+---
+
+## Schema implications (what got simpler)
+
+Compared to the default-lean I'd originally proposed (1B + 2B + 3A), the
+actual decision simplifies significantly:
+
+| Component | Under decided model | Notes |
+|---|---|---|
+| `User.homeLat/Lng` | **Not in schema** | No location collection |
+| `User.allowLocationServices` | **Not in schema** | No location permissions |
+| `Region` table | Yes, but simpler | Hierarchy only; no centroids, no boundaries |
+| `Post.location` | Optional region tag (FK) | No lat/lng for MVP |
+| `Post.regionTag` | Optional, FK to Region | Used for display only |
+| Feed query complexity | **Simple** | `ORDER BY createdAt DESC` with no region filter |
+| PostGIS extension | **Not needed** | No geospatial queries |
+| Queue manager scope | **Not scoped** | Global queue, all items visible |
+| Coordinator identity | Separate tables | See D042 and admin-surface.md |
+
+**No geospatial infrastructure in MVP.** No PostGIS, no distance
+calculations, no radius queries. This is a meaningful simplification.
 
 ---
 
 ## What this memo does NOT cover
 
-(The pattern — naming what's deferred.)
-
-1. **Member moves house** — what happens to their feed and subscriptions
-   when their postcode changes. Worth a paragraph in the spec; not a
-   product call.
-2. **Multiple homes** — members with a London base and a country place,
-   or family in two regions. Default: one postcode, one radius. Multi-home
-   support is parking lot.
-3. **International members** — UK Jewish community has diaspora ties.
-   Postcode + radius assumes UK; international members would need different
-   handling. Defer.
-4. **Region naming** — "London Borough of Brent" vs "Brent" vs "Brent
-   Council." Editorial. Not part of this decision.
-5. **Region creation by admins** — can admins add new regions, or is the
-   list fixed? Default: pre-loaded from ONS data; admins request additions.
-6. **Region merge / boundary changes** — councils occasionally merge or
-   reorganise. Operational concern; not relevant to MVP.
-7. **Visualisation of regions** — maps in the UI, region pickers, etc.
-   UI concerns; ERD supports either way.
-
----
-
-## Suggested process for making the decision
-
-If you're making the call alone:
-1. Read each question. Sit with the position you'd default to.
-2. Ask yourself: would Sharon agree? Would Jeremy? If unsure on either,
-   raise it before deciding.
-3. Record your answer below.
-
-If you're making it with Jeremy and Sharon:
-1. Send them this memo before the conversation
-2. Half-hour call, walk through the three questions
-3. Aim for one position per question, not consensus on every detail
-4. Record the outcome below
-
-If you can't get a decision in a reasonable timeframe:
-1. Adopt the default leans (1B + 2B + 3A) provisionally
-2. Note the assumption in the schema
-3. Commit to revisiting after pilot week 2 with real data
+1. **Member moves house / life changes** — no home captured, so no change
+   semantics to worry about
+2. **Multiple homes** — same reason; out of scope
+3. **International members** — region table is UK-focused; international
+   reach would need an extended region model
+4. **Region naming conventions** — editorial call for when we populate the
+   table
+5. **Region creation by admins** — per M5, regions pre-loaded (~20 major
+   UK places + all standard regions + national), growable by admins on
+   request
+6. **Region merge / boundary changes** — operational concern, not relevant
+   to MVP
+7. **UI visualisation of regions** — admin dropdowns and post-tagging
+   pickers; standard UI concern
 
 ---
 
 ## The decision
 
-*To be filled in when made. Format:*
-
-> **Q1 (privacy posture):** Position __ — *(brief reasoning)*
+> **Q1 (privacy posture):** N/A — no location services in MVP. Location
+> can be added Phase 2 if proximity features are requested.
 >
-> **Q2 (default feed):** Position __ — *(brief reasoning)*
+> **Q2 (default feed):** Position 2D (new) — everyone sees everything.
+> Region is an optional informational tag on posts. No filtering in MVP.
 >
-> **Q3 (coordinator scope):** Position __ — *(brief reasoning)*
+> **Q3 (queue manager scope):** Position 3D (new) — no region scope for
+> queue managers. Single global queue. Dynamic cohort: admins grant/revoke
+> queue_manager role at will.
 >
-> **Decided by:** _____________
-> **Date:** _____________
-> **Anyone consulted:** _____________
-
-Once recorded, this memo's status changes to **DECIDED** and the schema in
-`docs/architecture/erd.md` follows from the answers.
+> **Decided by:** Paul, in consultation with Jeremy.
+> **Date:** 23 April 2026.
+> **Follow-on decisions:**
+> - D041 (Region as optional tag only)
+> - D042 (Coordinator identity vs queue_manager permission split)
 
 ---
 
 ## What happens after the decision
 
-1. ERD Slice 1 is briefed with the chosen positions baked in
-2. Slice 1 includes the `Region`, `UserRegion`, `User` (with home location
-   fields per the chosen position), and other foundation entities
-3. PostGIS extension is enabled or not based on Q2's choice
-4. The default feed query pattern is documented for BU-005 (Feed) to follow
-5. The coordinator-scope middleware pattern is documented for BU-001 (Admin
-   scaffolding) to follow
+1. ✅ ERD Slice 1 brief writes with these answers baked in
+2. ✅ `Region` table is simple — hierarchy only, no geospatial data
+3. ✅ `User` has no location fields
+4. ✅ `Post` has an optional `regionTagId` FK
+5. ✅ `WorkItem` has an informational `regionSlug` (for display, not filtering)
+6. ✅ The default feed query pattern for BU-005 is `posts ORDER BY createdAt DESC` with no region filter
+7. ✅ The queue UI for BU-001 shows every work item to every queue manager
+8. ✅ Coordinator profile and role_grants schemas specified in admin-surface.md
 
 ---
 
 ## Related docs
 
-- `docs/architecture/admin-surface.md` — coordinator role model assumes
-  region scoping per Q3
-- `docs/architecture/claim-and-lease.md` — `WorkItem.regionSlug` field
-  assumes structured regions
-- `docs/product/parking-lot.md` — multi-home, international members,
-  member-defined regions all parked
-- `docs/architecture/decision-log.md` — once decided, this becomes ADR D041
+- `docs/architecture/admin-surface.md` — role model (member / queue_manager
+  / admin), coordinator-identity schema
+- `docs/architecture/claim-and-lease.md` — WorkItem.regionSlug is
+  informational only per this decision
+- `docs/architecture/decision-log.md` — D041 and D042 record these decisions
+  as formal ADRs
+- `docs/product/parking-lot.md` — member region filtering (future), location
+  services (future), coordinator verification (future), reach analytics
+  (future)

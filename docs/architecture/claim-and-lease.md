@@ -1,17 +1,18 @@
 # Claim and lease — multi-user work coordination
 
-**Purpose:** Multiple coordinators work the queues from day one. Without
-explicit claim semantics, two coordinators can grab the same item and create
-duplicate work, conflicting decisions, and audit confusion. This document
-defines the unified work-items model, the claim/lease mechanics, and the
-schema implications for ERD.
+**Purpose:** Multiple queue managers work the queues from day one. Without
+explicit claim semantics, two queue managers can grab the same item and
+create duplicate work, conflicting decisions, and audit confusion. This
+document defines the unified work-items model, the claim/lease mechanics,
+and the schema implications for ERD.
 
 **Status:** Architectural. ERD must include the `work_items` table per spec
 below.
-**Related ADR:** D040 (work_items as unified queue primitive — to be added to
-decision log).
-**Build Unit:** BU-001 (admin scaffolding) builds the queue UI; the work-items
-table is a foundational schema concern.
+**Related ADR:** D040 (work_items as unified queue primitive), D041 (region
+as tag only, no queue-side filtering), D042 (coordinator identity vs
+queue-manager permission split).
+**Build Unit:** BU-001 (admin scaffolding) builds the queue UI; the
+work-items table is a foundational schema concern.
 **Related:** admin-surface.md, security-baseline.md, B07 (audit log spec).
 
 ---
@@ -19,7 +20,7 @@ table is a foundational schema concern.
 ## The model — one queue, type-driven
 
 All work that requires human judgement and could be picked up by any of
-several coordinators flows through a single `work_items` table. Each row
+several queue managers flows through a single `work_items` table. Each row
 represents one unit of work. Type-driven UI renders the right form for each
 type.
 
@@ -27,7 +28,7 @@ type.
 - One claim mechanism, not six
 - One audit pattern
 - One notification system
-- One queue UI ("what needs me?") — the only place coordinators look
+- One queue UI ("what needs me?") — the only place queue managers look
 - Cross-type queries become trivial ("Sharon's open work this week")
 
 **Eight work item types (MVP):**
@@ -70,7 +71,7 @@ Once claimed, only the claimant can perform resolution actions on that work
 item. The API rejects resolution attempts from other users with
 `TRPCError({ code: "FORBIDDEN", message: "Claimed by Sharon" })`.
 
-Other coordinators can still **view** the work item and its underlying
+Other queue managers can still **view** the work item and its underlying
 content. The lock is on the *resolve action*, not on visibility.
 
 ### Q4 — Three tiers of release
@@ -93,6 +94,32 @@ What Sharon cannot do is resolve flag #42. That's Paul's, while it's claimed.
 
 ---
 
+## No region scope in MVP (per D041)
+
+**Every queue manager sees every work item.** There is no region-based
+filtering of the queue.
+
+Reasons:
+- Pilot cohort is small — a shared workload with many eyes is robust
+- Workload self-balances without admin intervention
+- Coverage gaps don't exist because everyone covers everything
+- Simpler queue UX — no "switch region" mental overhead
+
+Region still appears as **informational** on work items — a vetting case
+tagged "Manchester" shows that tag in the list — but it does not filter what
+any queue manager can see.
+
+**Implication:** `WorkItem.regionSlug` is populated (inherited from the
+underlying entity or post) but is not used for access control. It's a
+display field only.
+
+**Revisit trigger:** if pilot reveals that queue managers want region-
+focused queues ("I'm better at vetting Londoners"), re-evaluate. Likely
+driver: queue volume grows past the point where everyone seeing everything
+becomes noisy.
+
+---
+
 ## Lease mechanics
 
 ### TTL — default 30 minutes
@@ -110,7 +137,7 @@ review) might use 60 minutes; quick flag triage might use 15.
 
 ### Heartbeat — every 60 seconds while page is open
 
-While a coordinator has the work-item detail page open, the client sends a
+While a queue manager has the work-item detail page open, the client sends a
 heartbeat every 60 seconds:
 
 ```
@@ -120,8 +147,8 @@ trpc.workItem.heartbeat.mutate({ workItemId })
 
 Heartbeat is idempotent — only the claimant's heartbeat extends the lease.
 
-If the coordinator closes the tab or loses connection, heartbeats stop, lease
-expires within 30 minutes, item returns to queue.
+If the queue manager closes the tab or loses connection, heartbeats stop,
+lease expires within 30 minutes, item returns to queue.
 
 ### Maximum claim duration — 4 hours hard cap
 
@@ -155,13 +182,20 @@ WHERE status = 'claimed'
 Audit entries written for each release. Notifications sent for max-duration
 releases (TTL releases are silent).
 
+### Role revocation also releases claims
+
+Per admin-surface.md, when an admin revokes a user's `queue_manager` role,
+all of that user's currently-claimed work items are auto-released
+immediately. This is a forced release with a different audit reason:
+`claim_released_on_role_revoke`.
+
 ---
 
 ## The race condition — atomic claim
 
-Two coordinators tap "Claim" on the same item within the same second. Naive
-implementation: both reads see `status = 'unclaimed'`; both writes succeed;
-both think they have it.
+Two queue managers tap "Claim" on the same item within the same second.
+Naive implementation: both reads see `status = 'unclaimed'`; both writes
+succeed; both think they have it.
 
 **Solution: atomic conditional update.**
 
@@ -188,8 +222,8 @@ TRPCError({
 })
 ```
 
-The second coordinator's UI handles the error gracefully: "Sharon got there
-first. Here's the next available item."
+The second queue manager's UI handles the error gracefully: "Sharon got
+there first. Here's the next available item."
 
 This is solved entirely at the database level. No application-level locking
 needed.
@@ -274,7 +308,7 @@ model WorkItem {
   // Type-specific payload — references to underlying entities + summary
   context             Json
   
-  // Region (for region-scoped queues)
+  // Region tag (informational only in MVP — not used for access control per D041)
   regionSlug          String?
   
   // Lifecycle
@@ -304,7 +338,7 @@ model WorkItem {
   @@index([status, priority, createdAt])
   @@index([claimedByUserId, status])
   @@index([type, status])
-  @@index([regionSlug, status])
+  @@index([regionSlug, status])  // still indexed for informational queries
 }
 ```
 
@@ -317,6 +351,12 @@ model User {
   workItemsCreated    WorkItem[]   @relation("workItemsCreated")
   workItemsClaimed    WorkItem[]   @relation("workItemsClaimed")
   workItemsResolved   WorkItem[]   @relation("workItemsResolved")
+  
+  // Role grants (per admin-surface.md — separate model)
+  roleGrants          RoleGrant[]  @relation("roleGrants")
+  
+  // Coordinator profile (per admin-surface.md — optional, separate model)
+  coordinatorProfile  CoordinatorProfile? @relation("coordinatorProfile")
   
   // ... existing fields ...
 }
@@ -367,14 +407,14 @@ The work-item router exposes these procedures:
 
 | Procedure | Purpose | Auth |
 |---|---|---|
-| `workItem.list` | List work items with filters (status, type, region, claimed-by-me) | coordinator |
-| `workItem.get` | Get one work item by ID | coordinator |
-| `workItem.claim` | Claim an unclaimed work item | coordinator |
-| `workItem.heartbeat` | Extend the lease while page is open | coordinator (must be claimant) |
-| `workItem.release` | Release own claim | coordinator (must be claimant) |
+| `workItem.list` | List work items with filters (status, type, claimed-by-me) | queue_manager |
+| `workItem.get` | Get one work item by ID | queue_manager |
+| `workItem.claim` | Claim an unclaimed work item | queue_manager |
+| `workItem.heartbeat` | Extend the lease while page is open | queue_manager (must be claimant) |
+| `workItem.release` | Release own claim | queue_manager (must be claimant) |
 | `workItem.forceRelease` | Force-release someone else's claim | admin |
-| `workItem.resolve` | Resolve the work item (per type-specific resolution flow) | coordinator (must be claimant) |
-| `workItem.escalate` | Escalate to admin (creates a follow-on work item) | coordinator (must be claimant) |
+| `workItem.resolve` | Resolve the work item (per type-specific resolution flow) | queue_manager (must be claimant) |
+| `workItem.escalate` | Escalate to admin (creates a follow-on work item) | queue_manager (must be claimant) |
 
 All procedures follow api-contract-discipline.md rules. All actions emit
 audit-log entries. All resolutions emit analytics events.
@@ -393,6 +433,7 @@ Every claim lifecycle transition writes an audit-log entry:
 | `claim_force_released` | Admin force-released, with reason |
 | `claim_ttl_expired` | Auto-released by sweeper (TTL) |
 | `claim_max_duration_expired` | Auto-released by sweeper (4-hour cap) |
+| `claim_released_on_role_revoke` | Auto-released because claimant's role was revoked |
 | `work_item_resolved` | Final resolution (approved/rejected/etc.) |
 | `work_item_escalated` | Escalated, follow-on work item created |
 
@@ -409,7 +450,7 @@ For pilot visibility:
 | `work_item_released_unfinished` | `type`, `time_held_minutes` (signals abandonment patterns) |
 | `claim_force_released` | `type`, `reason_category` (admin override behaviour) |
 
-These feed a "Coordinator activity" dashboard in PostHog.
+These feed a "Queue manager activity" dashboard in PostHog.
 
 ---
 
@@ -418,15 +459,15 @@ These feed a "Coordinator activity" dashboard in PostHog.
 Members never see the queue or admin surfaces. But the *state* of their
 related work items affects what members see:
 
-- A member who filed a flag sees: "Your flag is being reviewed" (not "claimed
-  by Paul" — they don't need that detail)
-- An applicant in vetting sees: "Your application is being reviewed. Usually
-  takes 24 hours" — no claim details exposed
+- A member who filed a flag sees: "Your flag is being reviewed" (not
+  "claimed by Paul" — they don't need that detail)
+- An applicant in vetting sees: "Your application is being reviewed.
+  Usually takes 24 hours" — no claim details exposed
 - When the work item resolves, the member gets the appropriate notification
   ("Your flag was actioned" / "Your application was approved")
 
-Honest copy throughout. No claim mechanics surfaced to members. State changes
-are summarised, not detailed.
+Honest copy throughout. No claim mechanics surfaced to members. State
+changes are summarised, not detailed.
 
 ---
 
@@ -435,27 +476,28 @@ are summarised, not detailed.
 1. **Type-specific resolution forms.** Each work-item type has its own
    resolution UI (vetting needs different fields than flag review). These
    are per-type concerns specified when the related Build Units are briefed.
-2. **Coordinator workload balancing.** "Sharon has 12 active claims; route
-   new vetting cases to Paul" — Phase 2 feature; needs more pilot data first.
-3. **Cross-region escalation rules.** When does a North-West coordinator's
-   work item route to a national-level admin? Editorial policy, not
-   architectural — covered in operational runbook later.
-4. **Notification preferences for coordinators.** "Don't notify me when
-   urgent work appears in my region after 9pm" — Phase 2.
-5. **Bulk operations on work items.** "Release all my claims" — admin can do
+2. **Queue manager workload balancing.** "Sharon has 12 active claims; route
+   new vetting cases to Paul" — Phase 2 feature; needs more pilot data
+   first. With no region scoping in MVP, workload self-balances naturally.
+3. **Notification preferences for queue managers.** "Don't notify me when
+   urgent work appears after 9pm" — Phase 2.
+4. **Bulk operations on work items.** "Release all my claims" — admin can do
    this via the admin surface; no specific bulk UI.
-6. **Work-item dependencies.** Item B can't be resolved until item A is —
+5. **Work-item dependencies.** Item B can't be resolved until item A is —
    not in MVP. Add when needed.
-7. **Recurring work items.** "Every Monday, create a 'check pending vetting'
+6. **Recurring work items.** "Every Monday, create a 'check pending vetting'
    work item" — out of MVP scope.
+7. **Conflict of interest detection.** "Sharon is about to review someone
+   she knows" — informal norm in MVP; formal detection deferred.
 
 ---
 
 ## Implementation order
 
-1. **ERD lands** with `work_items` table per this spec → unblocks everything below
+1. **ERD lands** with `work_items` table per this spec → unblocks everything
+   below
 2. **BU-001** (admin scaffolding) builds the generic queue UI on top of
-   `work_items`
+   `work_items`, plus role-grants and coordinator-profile scaffolding
 3. **First Build Unit that creates work items** (probably BU-002 vetting or
    BU-012 flagging) populates the queue with real data
 4. **Auto-release sweeper** runs as a Vercel cron job — half-day to set up,
