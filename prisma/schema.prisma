@@ -24,7 +24,7 @@
 // Slice 1: foundation entities — User, Region, UserRegion, WorkItem,
 // RoleGrant, CoordinatorProfile, CoordinatorGroup, AuditLog, FeatureFlag.
 // Slice 1.5: Groups entities — Group, GroupMembership + WorkItem.groupTags.
-// Slice 2 (minimal): Post, PostType, PostVisibility — demo-path schema.
+// Slice 2 (minimal): Post, PostVisibility — demo-path schema (PostType deferred per D048).
 // Feature entities (Comment, Reaction, Flag, Application, etc.) arrive in
 // Slices 2 (full)–4. See README for the slice plan.
 

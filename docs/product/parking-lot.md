@@ -805,3 +805,48 @@ When an idea hits you:
 3. **Never:** delete an idea, even if declining — record the reason so it's not re-argued
 
 The parking lot grows. That's fine. It's a record of thinking, not a backlog to clear.
+
+## PostType taxonomy + PostTone enum — revisit at composer design
+
+**Status:** PARKED — revisit during composer design session (BU-composer)
+
+**Summary:** Post has no `type` field in MVP. The demo only needs one
+kind of post ("click this, send an email via Activist Mailer") so no
+branching on type is needed. Beyond the demo, the composer design
+session will decide the final taxonomy, informed by real scenarios
+and the 10 orthogonal axes in ADR D048.
+
+**What's parked:**
+
+- `PostType` enum — the final value list
+- `PostTone` enum — cultural_moment vs standard (part of Axis 2 in D048)
+- `subjectTags String[]` field on Post (Axis 3 in D048)
+- `expiresAt DateTime?` field on Post (Axis 10 in D048)
+
+**Reference:**
+
+- `docs/architecture/decision-log.md` D048 — the 10 axes framing and
+  decision rationale
+- `docs/product/post-creation-flow.md` — has an old 7-value draft list
+  that's preserved as starting material for the composer design
+  session (annotated as "superseded" pending that session)
+
+**Trigger for revisit:**
+
+- Composer design session begins, OR
+- A feature needs to filter/branch on post type before composer lands
+  (in which case surface the need and decide whether to pull this
+  forward or handle the feature differently)
+
+**Why parked rather than killed:**
+
+Every post does have a "kind" — pretending otherwise is dishonest. But
+the right taxonomy depends on the composer UX, which hasn't been
+designed yet. Premature commitment would constrain composer design.
+Later addition is cheap (additive Prisma migration).
+
+**Not parked (already built):**
+
+- `Post.groupTags` — group affiliation (Axis 5)
+- `Post.visibility` — audience reach (Axis 6)
+- `Post.activistMailerUrl` — one CTA mechanism (part of Axis 8)

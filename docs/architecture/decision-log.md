@@ -1232,3 +1232,291 @@ Do NOT track or surface:
 
 **Status:** Active. Discipline applies to all share/reach UI. Full
 context in `docs/product/deep-linking-and-tracking.md`.
+
+# D048 — Post axes taxonomy + deferred PostType
+
+**Status:** Accepted · April 2026
+**Context:** ERD Slice 2 minimal session, April 2026
+**Superseded by:** —
+**Supersedes:** the functional-type list in `docs/product/post-creation-flow.md`
+(which is retained as draft reference for future composer design)
+
+---
+
+## Context
+
+During ERD Slice 2 minimal implementation, a contradiction surfaced:
+
+- The session brief specified a 5-value `PostType` enum
+  (`dispatch`, `cultural_moment`, `action_call`, `news_share`, `question`)
+  — intent/tone-driven
+- `docs/product/post-creation-flow.md` specified a different 7-value list
+  (`share_link`, `call_for_action`, `boost`, `event`, `general`, `outcome`,
+  `incident_report`) — function-driven
+
+Neither is a subset of the other. They solve different problems.
+
+Claude Code surfaced the question: which list should land?
+
+On inspection, we concluded:
+
+1. The two lists mix categorical axes that are genuinely independent
+2. Neither list was authoritative — both were working drafts
+3. The demo path (Eddie sees a feed of "click-this-and-send-an-email"
+   posts, writes one, ships) does not branch on post type at all
+4. Committing to either taxonomy now is a premature architectural
+   commitment that will constrain the composer design session later
+5. A thinking-in-axes framing captures the design space better than any
+   single enum
+
+## Decision
+
+### Deferred
+
+**PostType is NOT included in ERD Slice 2 minimal.** Post has no `type`
+field. The composer design session (BU-composer) makes the taxonomy
+decision, informed by real product scenarios and the 10-axis framing
+below.
+
+### The 10 orthogonal axes of a Post
+
+These are the ways a Post can vary, independent of each other. Each
+axis can be picked without constraining the others.
+
+#### Axis 1 — Intent / ask-type
+
+What is the author trying to elicit from the reader?
+
+- **Send action** — click this, send an email, sign this, donate
+- **Show up** — event, attend, gather
+- **Read / absorb** — news, context, explainer
+- **Respond / contribute** — question, discussion, request for input
+- **Report back** — outcome, incident, observation
+- **Amplify / share outward** — boost to your network
+
+#### Axis 2 — Tone / register
+
+The emotional quality, independent of intent.
+
+- **Urgent** — time-pressure, emergency response
+- **Steady** — planned campaign, normal cadence
+- **Quiet / cultural** — Shabbat, yahrzeit, remembrance, celebration
+  (bordeaux colour treatment per design-philosophy.md)
+- **Warm / community** — welcome, congratulations, milestone
+- **Grave** — antisemitic incident, serious concern
+
+#### Axis 3 — Subject / topic domain
+
+What the post is about.
+
+Expected to be free-text or extensible tags. Examples: council name,
+MP name, media outlet, institution, union, police, NHS, education,
+international focus, antisemitic-incident specifics. Not an enum —
+likely 20-50+ items over time.
+
+#### Axis 4 — Geographic scope
+
+Authorial intent about where this matters.
+
+- National
+- Regional (e.g., London)
+- Local (single council / borough / ward)
+- Diaspora-wide (non-UK relevance)
+- Specific venue
+
+Per D041, regions are tags not filter targets in MVP. This axis is
+authored metadata, not access control.
+
+#### Axis 5 — Group affiliation
+
+Which internal community this post speaks to or from.
+
+- Already implemented as `Post.groupTags: String[]` (Slice 2 minimal)
+  and `WorkItem.groupTags` (Slice 1.5).
+- Per D043 — identity markers + queue filters, not permission gates.
+- Can be empty, single, or multiple groups.
+
+#### Axis 6 — Audience reach (visibility)
+
+Who can see this post.
+
+- Already implemented as `Post.visibility` enum (Slice 2 minimal).
+- Per D045: `public` default, `authenticated_only` per-post override.
+- Independent of every other axis.
+
+#### Axis 7 — Artefact type
+
+What the post contains.
+
+- Just text
+- Text + external URL (news article, AM campaign, petition)
+- Text + image
+- Text + video
+- Text + document attachment
+- Multi-media
+
+Per `image-handling.md`, rich media is phased. MVP = text + optional
+external URL. Full artefact support lands with the Attachment model
+in Slice 2 full (post-demo).
+
+#### Axis 8 — Call-to-action mechanism
+
+If the post has an action, how does it work?
+
+- **External link** — AM campaign, external petition, news article
+  (the demo's only mechanism)
+- **Internal action** — reply with your postcode, join this group,
+  sign up for workshop
+- **WhatsApp dispatch** — forward to your network (D017 boost-as-verdict
+  pattern)
+- **No action** — informational or cultural moments
+
+#### Axis 9 — Authorship type
+
+Who made the post, in what role?
+
+- Personal (individual member)
+- Group-on-behalf (posting as a group's lead)
+- Partner organisation (when partner orgs exist — parking lot)
+- Official GPS / admin (broadcast from national team)
+
+Mostly derivable from the `author` relation + role grants + group
+memberships. No schema field needed initially.
+
+#### Axis 10 — Temporal relevance
+
+How long does this post matter?
+
+- Time-critical (vote tomorrow, deadline Friday)
+- Near-term (this week, this month)
+- Evergreen (reference material, ongoing campaign)
+- Historical / outcome (retrospective, lessons learned)
+
+Independent of tone urgency. Could surface later as `expiresAt
+DateTime?` on Post.
+
+### What each axis requires
+
+| Axis                    | Status                      | Where it lives                        |
+| ----------------------- | --------------------------- | ------------------------------------- |
+| 1 — Intent              | Deferred to composer design | Likely small enum                     |
+| 2 — Tone                | Deferred                    | Small enum `PostTone`                 |
+| 3 — Subject             | Deferred                    | Free-text tags `subjectTags String[]` |
+| 4 — Geographic scope    | Covered via regions         | Region tags (existing pattern)        |
+| 5 — Group affiliation   | ✅ Implemented              | `groupTags String[]`                  |
+| 6 — Audience reach      | ✅ Implemented              | `visibility PostVisibility`           |
+| 7 — Artefact type       | Phased                      | Attachment model (Slice 2 full)       |
+| 8 — CTA mechanism       | Partially                   | `activistMailerUrl` is one kind       |
+| 9 — Authorship type     | Derived                     | From author + roles + groups          |
+| 10 — Temporal relevance | Deferred                    | Optional `expiresAt DateTime?`        |
+
+### Build sequence implications
+
+**Demo path** uses only Axes 5, 6, 8 (partial via AM URL), and 9
+(implicit via author relation). No new enums needed.
+
+**Post-demo** adds axes in approximate order:
+
+1. Tone (Axis 2) — small enum, high UX value. Cultural moments need
+   the bordeaux treatment soon.
+2. Intent (Axis 1) — drives FAB composer cards per D044
+3. Artefact types (Axis 7) — Attachment model, Slice 2 full
+4. Subject tags (Axis 3) — extensible tag system
+5. Temporal (Axis 10) — `expiresAt`, enables filtering stale posts
+6. Richer CTA mechanisms (Axis 8) — beyond just AM URLs
+
+## Consequences
+
+### Positive
+
+- **Demo path is unblocked.** No premature taxonomy decision.
+- **Design space stays visible.** Future composer design session
+  inherits a well-documented multi-axis framework, not one preset
+  enum that pre-constrains the conversation.
+- **Each axis can be added independently.** Phase 2 work becomes
+  incremental and commit-sized.
+- **Avoids the collapsing-axes-into-one-enum trap.** Both `PostType`
+  drafts (the 5-value and 7-value lists) were trying to collapse
+  intent + function into one field. This decision says: don't do
+  that; they're independent.
+
+### Negative
+
+- **Temporary ambiguity.** Demo posts have no explicit type — readers
+  and authors have to infer from content + context. Mitigated: every
+  demo post follows the same pattern ("click this, send an email") so
+  there's nothing to disambiguate.
+- **Admin UI is slightly less rich for demo.** Post listings can't be
+  filtered/grouped by type. Fine — demo has <20 posts; scrolling works.
+- **Doc drift risk.** `post-creation-flow.md` still mentions its 7-value
+  list. Mitigation: annotate that doc with a pointer to this ADR and
+  mark the list as draft-pending-composer-session.
+
+### Neutral
+
+- **Seed data doesn't need type branching.** Every seed Post is the
+  same kind. This is fine — it's a demo, not a taxonomy showcase.
+- **Future migration is cheap.** Adding an enum to an existing table
+  is a simple Prisma migration. No data corruption risk.
+
+## Alternatives considered
+
+### Alternative 1 — Ship with the 5-value brief list
+
+Rejected because:
+
+- The 5 values conflate intent and tone
+- `dispatch` vs `action_call` was a known overlap
+- Would lock in a taxonomy without composer design input
+
+### Alternative 2 — Ship with the 7-value post-creation-flow.md list
+
+Rejected because:
+
+- `boost` is a verdict per D017, not a post type
+- `general` is a catch-all — a smell of insufficient categorisation
+- Would lock in a taxonomy without composer design input
+
+### Alternative 3 — Reconcile to a new 6-value list now
+
+Rejected because:
+
+- It's making a taxonomy decision under time pressure during schema
+  implementation, rather than during composer design with full context
+- Schema urgency shouldn't drive UX taxonomy decisions
+
+### Alternative 4 — Keep a placeholder enum with one value
+
+Considered. Rejected because:
+
+- Adds dead schema
+- "general" as the only value invites "just use general" as a habit
+- Future migration from enum-with-one-value to real enum is no easier
+  than adding an enum fresh
+
+### Alternative 5 — Defer entirely (chosen)
+
+Chosen because:
+
+- Demo path doesn't need it
+- Axes framing preserves the design space for composer session
+- Additive migration later is cheap
+
+## Related decisions
+
+- **D017** — Boost/remove as verdict, not post type. (Why `boost`
+  shouldn't appear in PostType.)
+- **D041** — Regions as tags, not filter targets in MVP. (Axis 4
+  context.)
+- **D043** — Groups as identity markers + queue filters, not
+  permission gates. (Axis 5 implementation.)
+- **D044** — FAB intent-cards composer. (Will drive Axis 1
+  finalisation.)
+- **D045** — Post visibility defaults. (Axis 6 implementation.)
+- **D046** — Phased image handling. (Axis 7 timeline.)
+
+## Reference
+
+- Originating conversation: April 2026 planning session (post-F03)
+- Implementation: ERD Slice 2 minimal PR (amended to remove PostType)
+- Future refinement: composer design session (BU-composer brief, TBD)
