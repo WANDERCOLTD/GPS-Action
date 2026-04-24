@@ -220,7 +220,6 @@ erDiagram
     Post {
         uuid           id PK
         uuid           authorId FK
-        PostType       type "dispatch | cultural_moment | ..."
         string         title
         string         body
         PostVisibility visibility "default public"
@@ -321,7 +320,6 @@ procedures, not the generic admin (per admin-surface.md).
 | GroupMembership    | `(deletedAt)`                                                       | Soft-delete filter                                 |
 | Post               | `(visibility, createdAt DESC)`                                      | Feed query (visibility filter + chronological)     |
 | Post               | `(authorId, createdAt DESC)`                                        | "Posts by X" queries                               |
-| Post               | `(type, createdAt DESC)`                                            | Per-type filtering                                 |
 | Post               | `(groupTags)` GIN                                                   | Group-based post filtering                         |
 | Post               | `(deletedAt)`                                                       | Soft-delete filter                                 |
 
@@ -403,9 +401,17 @@ spaces (per D041, D043).
 
 ### What was added and why
 
-Slice 2 (minimal) introduces one new entity (**Post**) and two new enums
-(**PostType**, **PostVisibility**). It also adds a `posts Post[]`
-back-reference on **User**.
+Slice 2 (minimal) introduces one new entity (**Post**) and one new enum
+(**PostVisibility**). It also adds a `posts Post[]` back-reference on **User**.
+
+**PostType is explicitly deferred.** The demo needs exactly one kind of post —
+"click this, send an email via Activist Mailer." No branching UI logic, no
+filter, and no analytics cut requires a type discriminator for the demo. Two
+competing taxonomies exist (the brief's 5-value set and post-creation-flow.md's
+7-value set), but committing to either would be premature. The proper taxonomy
+lands with the composer design session, informed by the broader 10-axis framing
+(intent, tone, subject, scope, group, visibility, artefact, CTA mechanism,
+authorship, temporal). See ADR D048.
 
 **Motivation (D045):** GPS Action's core content primitive. A member writes a
 Post and it enters the feed. This minimal slice provides just enough schema to
@@ -414,24 +420,24 @@ unblock the demo path — feed rendering and simple composing. Full Slice 2
 
 ### Key design choices
 
-| Choice                                                     | Rationale                                                                                                                                      |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `onDelete: Restrict` on `Post.author`                      | Cannot hard-delete a user who has posts — preserves community history. Soft-delete the user instead; UI shows "deleted user" label             |
-| `PostType` has 5 values (not 7 from post-creation-flow.md) | Brief is authoritative for this slice. The 7-value set in post-creation-flow.md is pre-decision product thinking; reconcile before BU-composer |
-| `PostVisibility` uses `authenticated_only` not `members`   | Unambiguous — avoids overloading "members" with group members vs. logged-in users. Per D045 language                                           |
-| `groupTags String[]` (not FK)                              | Mirrors WorkItem pattern; Postgres arrays + GIN index; FK constraints on arrays are impossible. Informational only in MVP (D041, D043)         |
-| No title length at DB level                                | Application-level Zod validation limits sensibly. Different post types may want different limits                                               |
-| `body` is plain `String` (Prisma maps to Postgres `text`)  | No rich-text model needed at schema level. Frontend treats as Markdown in MVP. Richer formats are a parking-lot concern                        |
-| No `activistMailerUrl` index                               | No expected queries filter by this field. URL validation is app-level (Zod in the router)                                                      |
-| No draft state                                             | Compose-and-publish is MVP; drafts are a parking-lot item                                                                                      |
+| Choice                                                    | Rationale                                                                                                                              |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `onDelete: Restrict` on `Post.author`                     | Cannot hard-delete a user who has posts — preserves community history. Soft-delete the user instead; UI shows "deleted user" label     |
+| **PostType deferred entirely (D048)**                     | Demo needs one post kind only. Two competing taxonomies exist; committing to either is premature. Lands with composer design session   |
+| `PostVisibility` uses `authenticated_only` not `members`  | Unambiguous — avoids overloading "members" with group members vs. logged-in users. Per D045 language                                   |
+| `groupTags String[]` (not FK)                             | Mirrors WorkItem pattern; Postgres arrays + GIN index; FK constraints on arrays are impossible. Informational only in MVP (D041, D043) |
+| No title length at DB level                               | Application-level Zod validation limits sensibly                                                                                       |
+| `body` is plain `String` (Prisma maps to Postgres `text`) | No rich-text model needed at schema level. Frontend treats as Markdown in MVP. Richer formats are a parking-lot concern                |
+| No `activistMailerUrl` index                              | No expected queries filter by this field. URL validation is app-level (Zod in the router)                                              |
+| No draft state                                            | Compose-and-publish is MVP; drafts are a parking-lot item                                                                              |
 
 ### How Slice 2 (minimal) supports the scenarios
 
 - **Eddie writes a new post.** Post row created with `authorId = eddie.id`,
-  `visibility = public` (default), `type = dispatch`, optional
-  `activistMailerUrl`. Uses `(visibility, createdAt DESC)` index for feed. ✓
-- **Eddie writes a private cultural moment.** `visibility = authenticated_only`,
-  `type = cultural_moment`. Unauthenticated feed renders exclude it. ✓
+  `visibility = public` (default), optional `activistMailerUrl`. Uses
+  `(visibility, createdAt DESC)` index for feed. ✓
+- **Eddie writes a private post.** `visibility = authenticated_only`.
+  Unauthenticated feed renders exclude it. ✓
 - **Admin soft-deletes an offensive post.** `deletedAt` set; post disappears
   from default feed query (`WHERE deletedAt IS NULL`). ✓
 - **Eddie adds the "Writers" group tag.** `groupTags = ['writers']`. Future
@@ -646,20 +652,14 @@ delete them instead to preserve community history. Alternatives considered:
 **Default chosen:** `Restrict`. Consistent with `Group.createdBy` and
 `FeatureFlag.createdBy` pattern.
 
-### 19. `PostType` enum values — tension with `post-creation-flow.md`
+### 19. `PostType` enum — RESOLVED (D048)
 
-The brief specifies 5 values: `dispatch`, `cultural_moment`, `action_call`,
-`news_share`, `question`. However, `docs/product/post-creation-flow.md`
-specifies a different set of 7 values: `share_link`, `call_for_action`, `boost`,
-`event`, `general`, `outcome`, `incident_report`.
-
-These are **different vocabularies**. The brief is authoritative for this slice.
-The post-creation-flow values are pre-decision product thinking that predates
-D045 and the demo-path decision. The two sets must be reconciled before
-BU-composer lands.
-
-**Default chosen:** Brief's 5 values shipped. Flag this for reconciliation
-before BU-composer.
+**Resolved by deletion.** PostType removed entirely from the demo schema. The
+demo needs exactly one kind of post ("click this, send an email via Activist
+Mailer"). Two competing taxonomies existed (brief's 5 values vs.
+post-creation-flow.md's 7 values); committing to either would be premature.
+The proper taxonomy lands with the composer design session, informed by the
+10-axis framing. See ADR D048.
 
 ### 20. `PostVisibility` enum naming
 
@@ -704,14 +704,10 @@ They do NOT grant access or fragment the feed.
 
 **Default chosen:** Documented in the model comment. Same caveat as WorkItem.
 
-### 26. `dispatch` vs `action_call` overlap
+### 26. `dispatch` vs `action_call` overlap — RESOLVED (D048)
 
-`dispatch` is described as "here's a thing to do" and `action_call` as
-"explicit please do this — letter to MP, petition link." These overlap
-semantically. The brief includes both, so both are shipped. Consider whether
-these should merge in the reconciliation pass (question 19).
-
-**Default chosen:** Both values shipped per brief. Flagged for reconciliation.
+**Resolved by deletion.** Both values removed along with the entire PostType
+enum. See Q19 and ADR D048.
 
 ---
 

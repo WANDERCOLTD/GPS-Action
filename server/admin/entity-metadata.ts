@@ -224,7 +224,7 @@ export const entityMetadata: Record<string, EntityMetadataEntry> = {
 
   post: {
     displayField: 'title',
-    listColumns: ['title', 'author.displayName', 'type', 'visibility', 'createdAt'],
+    listColumns: ['title', 'author.displayName', 'visibility', 'createdAt'],
     searchableFields: ['title', 'body'],
     defaultSort: { createdAt: 'desc' },
     bulkActions: ['softDelete', 'restore'],

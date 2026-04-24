@@ -568,14 +568,6 @@ model GroupMembership {
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
-enum PostType {
-  dispatch // "here's a thing to do" — action call, boost/remove, etc.
-  cultural_moment // Shabbat, remembrance, celebration — quieter tone
-  action_call // explicit "please do this" — letter to MP, petition link
-  news_share // article + commentary
-  question // open question to the community
-}
-
 enum PostVisibility {
   public // visible to anyone who can see the feed (including unauthed if we allow)
   authenticated_only // author chose to require login (D045 override)
@@ -584,9 +576,12 @@ enum PostVisibility {
 // ─── Post ────────────────────────────────────────────────────────────────────
 //
 // Core content entity. A member writes a Post and it enters the feed.
-// Types distinguish tone (cultural moments vs. urgent action calls).
 // Minimum viable for the demo (ERD Slice 2 minimal). Full Slice 2
 // (Comment, Reaction, Attachment, dedup) lands post-demo.
+//
+// Type field deferred — demo doesn't need branching on post type;
+// full taxonomy lands with composer design. See ADR D048 and
+// parking-lot.md "PostType taxonomy".
 //
 // App-level invariants:
 //   - Posts with visibility='authenticated_only' must be filtered out
@@ -605,7 +600,6 @@ model Post {
   authorId String
   author   User   @relation("authorPosts", fields: [authorId], references: [id], onDelete: Restrict)
 
-  type       PostType
   title      String
   body       String
   visibility PostVisibility @default(public)
@@ -621,7 +615,6 @@ model Post {
 
   @@index([visibility, createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
-  @@index([type, createdAt(sort: Desc)])
   @@index([groupTags], type: Gin)
   @@index([deletedAt])
 }
