@@ -1,0 +1,3 @@
+# This directory holds session handoff docs when long Claude Code
+# sessions need to be continued in a fresh session.
+# See docs/process/session-hygiene.md for the handoff doc template.

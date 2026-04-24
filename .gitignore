@@ -6,8 +6,12 @@ node_modules/
 # Build output
 .next/
 out/
-build/
+/build/
 dist/
+
+# Exception: do not ignore docs/build/ — it's our build documentation
+!docs/build/
+!docs/build/**
 
 # Environment
 .env

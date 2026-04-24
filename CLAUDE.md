@@ -29,6 +29,27 @@ Before doing ANY work, read these:
 2. `docs/process/security-baseline.md` — data protection rules
 3. `docs/process/ratchet-discipline.md` — forward-only progress
 4. `docs/process/reviewer-checklist.md` — what "done" means
+5. `docs/process/session-hygiene.md` — context management and handoff discipline for long sessions
+
+## Session hygiene
+
+Long Claude Code sessions hit context limits. Before that happens, the
+discipline is:
+
+- **Commit per logical chunk** — never accumulate more than one
+  reviewable unit of work uncommitted. After each chunk: commit, push,
+  proceed.
+- **Watch context usage** — at ~70% full with substantial work
+  remaining, stop and hand off rather than push through. The next hour's
+  work in a tired session is worse than the first hour in a fresh one.
+- **Hand off via written doc** — if a session ends mid-brief, write a
+  handoff doc in `docs/build/session-handoffs/` so the next session can
+  continue. The next session reads the brief AND the handoff.
+- **Surface, don't assume** — when context is unclear, ask. Better one
+  surfaced question than ten silent assumptions.
+
+See `docs/process/session-hygiene.md` for the full discipline, the
+handoff doc template, and anti-patterns to avoid.
 
 ## Layer boundaries (enforced by ESLint)
 
