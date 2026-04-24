@@ -6,6 +6,7 @@
  * @spec architecture/admin-surface.md
  * @spec architecture/claim-and-lease.md
  * @spec product/groups.md
+ * @spec product/post-creation-flow.md
  */
 
 import { describe, it, expect } from 'vitest';
@@ -83,7 +84,28 @@ describe('schema smoke — Slice 1.5 entities (Groups)', () => {
     expect(entityMetadata).toHaveProperty('groupMembership');
   });
 
-  it('metadata covers all Slice 1 + 1.5 entities', () => {
+  it('metadata includes Slice 1.5 entities', () => {
+    const slice15Keys = ['group', 'groupMembership'];
+    for (const key of slice15Keys) {
+      expect(entityMetadata).toHaveProperty(key);
+    }
+  });
+});
+
+describe('schema smoke — Slice 2 (minimal) entities (Post)', () => {
+  it('exposes Post on PrismaClient', () => {
+    type ModelKey = keyof Pick<PrismaClient, 'post'>;
+
+    const expected: ReadonlyArray<ModelKey> = ['post'];
+
+    expect(expected).toHaveLength(1);
+  });
+
+  it('has a metadata entry for Post', () => {
+    expect(entityMetadata).toHaveProperty('post');
+  });
+
+  it('metadata covers all Slice 1 + 1.5 + 2m entities', () => {
     const expectedKeys = [
       'auditLog',
       'coordinatorGroup',
@@ -91,6 +113,7 @@ describe('schema smoke — Slice 1.5 entities (Groups)', () => {
       'featureFlag',
       'group',
       'groupMembership',
+      'post',
       'region',
       'roleGrant',
       'user',

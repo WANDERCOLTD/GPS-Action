@@ -5,13 +5,15 @@
  * @spec architecture/admin-surface.md
  * @spec architecture/claim-and-lease.md
  * @spec product/groups.md
+ * @spec product/post-creation-flow.md
  *
  * One entry per Prisma entity. BU-001's generic admin components
  * (`<EntityListPage>`, `<EntityDetailPage>`, `<EntityForm>`) read this map to
  * render list/detail/form views without per-entity code.
  *
  * Slice 1 covers nine foundation entities; Slice 1.5 adds Group and
- * GroupMembership (D043). Future slices extend this map
+ * GroupMembership (D043); Slice 2 (minimal) adds Post (D045).
+ * Future slices extend this map
  * — never remove entries, never rename keys (keys are the URL segment in
  * `/admin/[entity]`).
  *
@@ -216,6 +218,21 @@ export const entityMetadata: Record<string, EntityMetadataEntry> = {
     softDelete: true,
     notes:
       'leftAt tracks voluntary departures; deletedAt tracks admin removal. One active membership per (user, group).',
+  },
+
+  // ── Slice 2 (minimal) — Post (D045) ──────────────────────────────────────────
+
+  post: {
+    displayField: 'title',
+    listColumns: ['title', 'author.displayName', 'visibility', 'createdAt'],
+    searchableFields: ['title', 'body'],
+    defaultSort: { createdAt: 'desc' },
+    bulkActions: ['softDelete', 'restore'],
+    requiresRole: { view: 'queue_manager', edit: 'admin' },
+    workflow: null,
+    softDelete: true,
+    notes:
+      'Core content entity. Visibility defaults to public (D045). groupTags are informational only (D041). Full Slice 2 adds Comment, Reaction, Attachment.',
   },
 };
 

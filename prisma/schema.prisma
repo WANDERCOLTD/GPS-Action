@@ -5,7 +5,8 @@
 // @spec architecture/claim-and-lease.md
 // @spec product/region-and-proximity-decision.md
 // @spec product/groups.md
-// @adr D003 D022 D036 D038 D040 D041 D042 D043 B07
+// @spec product/post-creation-flow.md
+// @adr D003 D022 D036 D038 D040 D041 D042 D043 D045 B07
 //
 // This file is the authoritative model of all entities. The visual ERD and
 // rationale live in `docs/architecture/erd.md`. The slice convention (this
@@ -23,8 +24,9 @@
 // Slice 1: foundation entities — User, Region, UserRegion, WorkItem,
 // RoleGrant, CoordinatorProfile, CoordinatorGroup, AuditLog, FeatureFlag.
 // Slice 1.5: Groups entities — Group, GroupMembership + WorkItem.groupTags.
-// Feature entities (Post, Comment, Flag, Application, etc.) arrive in
-// Slices 2–4. See README for the slice plan.
+// Slice 2 (minimal): Post, PostVisibility — demo-path schema (PostType deferred per D048).
+// Feature entities (Comment, Reaction, Flag, Application, etc.) arrive in
+// Slices 2 (full)–4. See README for the slice plan.
 
 generator client {
   provider = "prisma-client-js"
@@ -142,6 +144,9 @@ model User {
   groupMemberships GroupMembership[] @relation("groupMemberships")
   groupsCreated    Group[]           @relation("groupsCreated")
   groupApprovals   GroupMembership[] @relation("groupApprovals")
+
+  // Posts (Slice 2 minimal — D045)
+  posts Post[] @relation("authorPosts")
 
   // Feature flags
   featureFlagsOwned   FeatureFlag[] @relation("featureFlagsOwned")
@@ -554,5 +559,62 @@ model GroupMembership {
   @@unique([userId, groupId])
   @@index([userId])
   @@index([groupId, leftAt])
+  @@index([deletedAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SLICE 2 (minimal) — Post schema for demo path (D045)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum PostVisibility {
+  public // visible to anyone who can see the feed (including unauthed if we allow)
+  authenticated_only // author chose to require login (D045 override)
+}
+
+// ─── Post ────────────────────────────────────────────────────────────────────
+//
+// Core content entity. A member writes a Post and it enters the feed.
+// Minimum viable for the demo (ERD Slice 2 minimal). Full Slice 2
+// (Comment, Reaction, Attachment, dedup) lands post-demo.
+//
+// Type field deferred — demo doesn't need branching on post type;
+// full taxonomy lands with composer design. See ADR D048 and
+// parking-lot.md "PostType taxonomy".
+//
+// App-level invariants:
+//   - Posts with visibility='authenticated_only' must be filtered out
+//     of any unauthenticated feed render
+//   - activistMailerUrl must pass URL validation + domain allowlist
+//     at the router layer (not enforced at DB)
+//   - groupTags are slugs, not IDs — matches WorkItem convention;
+//     informational only in MVP (per D041, D043)
+//
+// onDelete choices:
+//   - author: Restrict (cannot hard-delete a user with posts; soft-
+//     delete them instead to preserve community history)
+model Post {
+  id String @id @default(uuid())
+
+  authorId String
+  author   User   @relation("authorPosts", fields: [authorId], references: [id], onDelete: Restrict)
+
+  title      String
+  body       String
+  visibility PostVisibility @default(public)
+
+  activistMailerUrl String?
+
+  // Group tags — array of Group slugs (mirrors WorkItem pattern; informational only in MVP)
+  groupTags String[] @default([])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([visibility, createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([groupTags], type: Gin)
   @@index([deletedAt])
 }

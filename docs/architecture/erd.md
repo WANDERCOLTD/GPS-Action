@@ -22,7 +22,8 @@ slice — earlier entities never disappear.
 | ------- | --------- | ---------------------------------------------------------------------------------------------------------- |
 | **1**   | ✅ landed | User, Region, UserRegion, WorkItem, RoleGrant, CoordinatorProfile, CoordinatorGroup, AuditLog, FeatureFlag |
 | **1.5** | ✅ landed | Group, GroupMembership + WorkItem.groupTags (per D043)                                                     |
-| 2       | planned   | Post, Comment, Reaction, Attachment + dedup fields (per dedup-and-cosurfacing.md)                          |
+| **2m**  | ✅ landed | Post, PostType, PostVisibility — demo-path minimum (per D045)                                              |
+| 2f      | planned   | Comment, Reaction, Attachment + dedup fields (per dedup-and-cosurfacing.md)                                |
 | 3       | planned   | Application (vetting), Flag, OutcomeReview, EditRequest, ContentSubmission, Vouch                          |
 | 4       | planned   | Contact, Resource, Route, DispatchEvent, PartnerOrg                                                        |
 
@@ -32,7 +33,7 @@ slice's schema changes without an ADR documenting why.
 
 ---
 
-## Slices 1 + 1.5 — Mermaid diagram
+## Slices 1 + 1.5 + 2m — Mermaid diagram
 
 ```mermaid
 erDiagram
@@ -63,6 +64,8 @@ erDiagram
     User ||--o{ GroupMembership : "approved"
 
     Group ||--o{ GroupMembership : "members"
+
+    User ||--o{ Post : "authored"
 
     User {
         uuid     id PK
@@ -213,6 +216,19 @@ erDiagram
         datetime            updatedAt
         datetime            deletedAt "nullable - soft delete"
     }
+
+    Post {
+        uuid           id PK
+        uuid           authorId FK
+        string         title
+        string         body
+        PostVisibility visibility "default public"
+        string         activistMailerUrl "nullable"
+        string_arr     groupTags "Group slugs - GIN indexed"
+        datetime       createdAt
+        datetime       updatedAt
+        datetime       deletedAt "nullable - soft delete"
+    }
 ```
 
 ---
@@ -232,6 +248,7 @@ erDiagram
 | **FeatureFlag**        | Homegrown DB-driven flags (D036). Server-side evaluation.                                                                       | Yes (`deletedAt`)                                | App-level: rollout flags require `ttlRemoveAfter`; kill switches require `ownerUserId`; new flags default OFF                                         |
 | **Group**              | Internal affiliation marker (D043). Identity + soft queue filtering; no permission impact, no feed fragmentation.               | Yes (`deletedAt`)                                | DB: unique on `slug`. App-level: slug immutable after creation; soft-deleted groups hidden from default queries                                       |
 | **GroupMembership**    | Join table: User ↔ Group. Tracks how they joined and (optionally) who approved.                                                 | Yes (`deletedAt` + `leftAt` for departures)      | DB: `@@unique([userId, groupId])`. App-level: one active membership per pair; re-join creates new row                                                 |
+| **Post**               | Core content entity. Member writes a Post, it enters the feed. Types distinguish tone/intent (D045).                            | Yes (`deletedAt`)                                | DB: indexes for feed, author, type queries. App-level: visibility filtering, AM URL validation, groupTags informational only                          |
 
 ---
 
@@ -258,6 +275,7 @@ principles:
    - `FeatureFlag.updatedBy` → `User`: `Restrict`
    - `Region.parent` → `Region`: `Restrict` (don't orphan child regions silently)
    - `Group.createdBy` → `User`: `Restrict` (preserves "who created this group" audit chain)
+   - `Post.author` → `User`: `Restrict` (preserves community history; soft-delete the user instead)
 
 3. **Historical-actor references null.** Where the relation is "who did this
    at the time," losing the actor doesn't invalidate the record itself —
@@ -300,6 +318,10 @@ procedures, not the generic admin (per admin-surface.md).
 | GroupMembership    | `(userId)`                                                          | "What groups is this user in?"                     |
 | GroupMembership    | `(groupId, leftAt)`                                                 | Active members of a group                          |
 | GroupMembership    | `(deletedAt)`                                                       | Soft-delete filter                                 |
+| Post               | `(visibility, createdAt DESC)`                                      | Feed query (visibility filter + chronological)     |
+| Post               | `(authorId, createdAt DESC)`                                        | "Posts by X" queries                               |
+| Post               | `(groupTags)` GIN                                                   | Group-based post filtering                         |
+| Post               | `(deletedAt)`                                                       | Soft-delete filter                                 |
 
 ---
 
@@ -372,6 +394,58 @@ spaces (per D041, D043).
   against WorkItem, using the GIN index. ✓
 - **Admin archives a group.** `deletedAt` set on Group; memberships remain
   but group hidden from default queries. ✓
+
+---
+
+## Slice 2 (minimal) — Post
+
+### What was added and why
+
+Slice 2 (minimal) introduces one new entity (**Post**) and one new enum
+(**PostVisibility**). It also adds a `posts Post[]` back-reference on **User**.
+
+**PostType is explicitly deferred.** The demo needs exactly one kind of post —
+"click this, send an email via Activist Mailer." No branching UI logic, no
+filter, and no analytics cut requires a type discriminator for the demo. Two
+competing taxonomies exist (the brief's 5-value set and post-creation-flow.md's
+7-value set), but committing to either would be premature. The proper taxonomy
+lands with the composer design session, informed by the broader 10-axis framing
+(intent, tone, subject, scope, group, visibility, artefact, CTA mechanism,
+authorship, temporal). See ADR D048.
+
+**Motivation (D045):** GPS Action's core content primitive. A member writes a
+Post and it enters the feed. This minimal slice provides just enough schema to
+unblock the demo path — feed rendering and simple composing. Full Slice 2
+(Comment, Reaction, Attachment, dedup fields) lands post-demo.
+
+### Key design choices
+
+| Choice                                                    | Rationale                                                                                                                              |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `onDelete: Restrict` on `Post.author`                     | Cannot hard-delete a user who has posts — preserves community history. Soft-delete the user instead; UI shows "deleted user" label     |
+| **PostType deferred entirely (D048)**                     | Demo needs one post kind only. Two competing taxonomies exist; committing to either is premature. Lands with composer design session   |
+| `PostVisibility` uses `authenticated_only` not `members`  | Unambiguous — avoids overloading "members" with group members vs. logged-in users. Per D045 language                                   |
+| `groupTags String[]` (not FK)                             | Mirrors WorkItem pattern; Postgres arrays + GIN index; FK constraints on arrays are impossible. Informational only in MVP (D041, D043) |
+| No title length at DB level                               | Application-level Zod validation limits sensibly                                                                                       |
+| `body` is plain `String` (Prisma maps to Postgres `text`) | No rich-text model needed at schema level. Frontend treats as Markdown in MVP. Richer formats are a parking-lot concern                |
+| No `activistMailerUrl` index                              | No expected queries filter by this field. URL validation is app-level (Zod in the router)                                              |
+| No draft state                                            | Compose-and-publish is MVP; drafts are a parking-lot item                                                                              |
+
+### How Slice 2 (minimal) supports the scenarios
+
+- **Eddie writes a new post.** Post row created with `authorId = eddie.id`,
+  `visibility = public` (default), optional `activistMailerUrl`. Uses
+  `(visibility, createdAt DESC)` index for feed. ✓
+- **Eddie writes a private post.** `visibility = authenticated_only`.
+  Unauthenticated feed renders exclude it. ✓
+- **Admin soft-deletes an offensive post.** `deletedAt` set; post disappears
+  from default feed query (`WHERE deletedAt IS NULL`). ✓
+- **Eddie adds the "Writers" group tag.** `groupTags = ['writers']`. Future
+  queue/filter by group will pick it up. ✓
+- **Feed query.** `WHERE visibility IN (...) AND deletedAt IS NULL ORDER BY
+createdAt DESC LIMIT 20` — uses `(visibility, createdAt DESC)` index. ✓
+- **Posts by Eddie.** `WHERE authorId = ? AND deletedAt IS NULL ORDER BY
+createdAt DESC` — uses `(authorId, createdAt DESC)` index. ✓
 
 ---
 
@@ -563,6 +637,77 @@ departed). `deletedAt` = admin-level soft-delete. They serve different
 purposes, similar to how `RoleGrant` has `revokedAt` as a domain marker
 (though RoleGrant doesn't have `deletedAt` since revocation IS the status
 change).
+
+## Open questions surfaced in Slice 2 (minimal)
+
+### 18. `onDelete` for `Post.author`
+
+Brief recommends `Restrict` — a user with posts cannot be hard-deleted; soft-
+delete them instead to preserve community history. Alternatives considered:
+
+- `SetNull` — requires nullable `authorId`, loses author attribution. Rejected.
+- `Cascade` — hard-deleting a user wipes their posts, destroying community
+  history. Rejected.
+
+**Default chosen:** `Restrict`. Consistent with `Group.createdBy` and
+`FeatureFlag.createdBy` pattern.
+
+### 19. `PostType` enum — RESOLVED (D048)
+
+**Resolved by deletion.** PostType removed entirely from the demo schema. The
+demo needs exactly one kind of post ("click this, send an email via Activist
+Mailer"). Two competing taxonomies existed (brief's 5 values vs.
+post-creation-flow.md's 7 values); committing to either would be premature.
+The proper taxonomy lands with the composer design session, informed by the
+10-axis framing. See ADR D048.
+
+### 20. `PostVisibility` enum naming
+
+`public` / `authenticated_only` — verbose but unambiguous. `members` was
+considered but overloads with group members. `logged_in` was considered but
+feels technical.
+
+**Default chosen:** `authenticated_only`. Matches D045 language.
+
+### 21. Title length enforcement
+
+No DB-level cap. Application-level Zod validation will limit sensibly (e.g.,
+200 chars). Different post types may want different limits (cultural moments
+could be title-only; news shares want room for a headline).
+
+**Default chosen:** No `@db.VarChar(N)`. Validated at router.
+
+### 22. `body` field type
+
+In Prisma 5, `String` maps to Postgres `text` by default — same unlimited
+length. No `@db.Text` annotation needed (it would be redundant). Noted for
+reviewer clarity.
+
+### 23. File-header `@build-unit` value
+
+**Default chosen:** `BU-001-prep`. Slice 2 minimal still feeds into BU-001
+admin scaffolding prep, consistent with Slice 1 and 1.5.
+
+### 24. Indexing on `activistMailerUrl`
+
+No index proposed. No expected queries filter or sort by this field. The
+Activist Mailer URL is read when rendering a single post, not queried across
+posts.
+
+**Default chosen:** No index.
+
+### 25. `groupTags` informational-only caveat
+
+Per D041 and D043, `groupTags` on Post mirrors the WorkItem pattern: group
+slugs stored as an array for informational tagging and soft queue filtering.
+They do NOT grant access or fragment the feed.
+
+**Default chosen:** Documented in the model comment. Same caveat as WorkItem.
+
+### 26. `dispatch` vs `action_call` overlap — RESOLVED (D048)
+
+**Resolved by deletion.** Both values removed along with the entire PostType
+enum. See Q19 and ADR D048.
 
 ---
 

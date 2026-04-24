@@ -1,3 +1,32 @@
+> **Status note — April 2026:**
+>
+> This doc was drafted before the ERD Slice 2 minimal session. Its
+> 7-value PostType list (`share_link`, `call_for_action`, `boost`,
+> `event`, `general`, `outcome`, `incident_report`) is preserved below
+> as useful starting material — but it is **NOT** the authoritative
+> taxonomy.
+>
+> Per **ADR D048** (Post axes taxonomy), the final PostType (and
+> related PostTone) are deferred until the composer design session
+> (BU-composer). D048 establishes that Post varies along 10
+> orthogonal axes; this doc's list collapses several of those axes
+> into a single enum, which D048 explicitly defers.
+>
+> Specifically:
+>
+> - `boost` is not a post type — it's a verdict per D017
+> - `cultural_moment` is better modelled as a tone (Axis 2) than a type
+> - The split between "intent" (what the author wants) and "function"
+>   (what artefact this is) should be two axes, not one conflated
+>   value
+>
+> Use this doc as starting material for composer design, not as a
+> decided spec. The list below will be revised when the composer
+> session runs.
+>
+> See: `docs/architecture/decision-log.md` D048 ·
+> `docs/product/parking-lot.md` "PostType taxonomy" entry
+
 # Post creation flow
 
 **Purpose:** Define how members create posts in GPS Action — specifically
