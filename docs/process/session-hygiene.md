@@ -213,6 +213,105 @@ Claude Code proceeds but surfaces context usage every hour.
 
 ---
 
+## Brief-ahead cadence — keep the buffer full
+
+**The pattern:** the brief-writer (assistant, operating in chat) stays
+1-2 briefs ahead of what Claude Code is executing. Never zero; never
+more than 2-3.
+
+### Why 1-2 ahead
+
+- **The assistant is the slower producer**, not Claude Code. Writing
+  a good brief takes longer than executing one. If Claude Code ever
+  sits idle waiting for the next brief, that's wasted capacity.
+- **Adjacent briefs inform each other.** Writing BU-001-lite and
+  BU-feed in the same thinking session catches consistency issues
+  (shared auth context, audit service contract, naming conventions)
+  that would be harder to catch later.
+- **Each execution teaches the next.** Writing too far ahead means
+  later briefs can't benefit from lessons in earlier executions.
+- **It creates a clear signal.** When the buffer is empty, the brief-
+  writer is behind. When it's 3+ deep, time is being wasted on
+  speculation.
+
+### The operational rhythm
+
+1. **Paul runs Claude Code on brief N.**
+2. **In parallel, assistant writes brief N+1 (to v1.0) and brief N+2
+   (to v0.9 draft).** N+2 draft captures scope and gotchas without
+   nailing every detail — that's deferred until after N executes.
+3. **Brief N completes and merges.**
+4. **Paul pastes execution results to assistant.**
+5. **Assistant refines N+2 to v1.0** based on learnings, and starts
+   v0.9 draft of N+3.
+6. **Paul runs brief N+1 in Claude Code.**
+7. **Cycle continues.**
+
+### What makes a good v0.9 draft
+
+A v0.9 draft of a brief has:
+
+- **Objective, Scope, Out-of-scope** — fully written; these rarely
+  change
+- **Contracts (inputs / outputs)** — clear enough to understand what
+  the session produces
+- **Acceptance criteria** — the "will tighten" ones; major ones in,
+  edge cases may be added
+- **Known gotchas** — as many as can be anticipated
+- **Open questions** — pre-identified; more likely to be added during
+  refinement
+- **Context** — listed
+- **An explicit v0.9 marker** at the top, noting what will be
+  refined at v1.0 and when
+
+### What "refinement to v1.0" means
+
+When the previous brief executes, assistant:
+
+1. Reads Claude Code's final summary carefully
+2. Identifies anything that surprised: new open questions surfaced,
+   patterns that worked well, conventions established
+3. Updates the v0.9 draft with those learnings — not rewriting,
+   tightening
+4. Marks as v1.0
+5. Ships to Paul for placement + commit
+
+Refinement is usually small — often 30-40% changes to an existing
+v0.9. It's faster than writing from scratch but slower than just
+using the v0.9 as-is.
+
+### When NOT to maintain a v0.9 buffer
+
+- **When the next brief is trivial.** A 100-line brief may not benefit
+  from 2-stage drafting. Just write it.
+- **When pivots are likely.** If Paul indicates that priorities may
+  change soon, don't write 3 briefs ahead that might be thrown away.
+- **When Paul is at a natural stopping point.** Writing brief N+2 when
+  Paul is about to sleep for the night is fine to defer — morning
+  clarity may change the brief's shape.
+
+### The anti-pattern: writing all briefs upfront
+
+Sometimes it's tempting to just write all 5 remaining briefs in one
+go. Don't. Each execution teaches something that improves the next
+brief. Writing all 5 upfront loses that compounding value and
+produces worse briefs 3-5.
+
+### Visible-state tracking
+
+The buffer state should be visible. At any point, Paul or assistant
+can ask:
+
+- **"What's the buffer state?"** — how many briefs ahead is the
+  assistant? v1.0 or v0.9? What's next in queue?
+
+An honest answer keeps the rhythm stable. If assistant has only v0.9
+ahead, that's a signal to prioritise refinement. If assistant has v1.0
+
+- v1.0 + v0.9, that's a healthy buffer.
+
+---
+
 ## Session size anti-patterns
 
 From accumulated experience. Flag these when spotted:
