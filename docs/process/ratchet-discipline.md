@@ -1,14 +1,15 @@
 # GPS Action — Ratchet Discipline
 
-*The process rules that keep the build moving forward instead of looping backward. Ensures work accumulates, doesn't dissolve.*
+_The process rules that keep the build moving forward instead of looping backward. Ensures work accumulates, doesn't dissolve._
 
-*Version: 0.1 · April 2026*
+_Version: 0.1 · April 2026_
 
 ---
 
 ## Why a ratchet
 
 Software projects drift. Without deliberate forward-motion, every week produces:
+
 - Revisited decisions that were settled
 - Work that needs rebuilding because it was never quite finished
 - Features that nobody uses because the user changed their mind
@@ -42,11 +43,12 @@ Three mechanisms at three scales.
 - What sessions need to be re-briefed
 - What migrations are needed
 
-ADRs are lightweight (half a page usually). But they force the change to be *proposed* and *reviewed* before landing, not sneaked in by a session.
+ADRs are lightweight (half a page usually). But they force the change to be _proposed_ and _reviewed_ before landing, not sneaked in by a session.
 
 **Why:** parallel sessions depend on stable contracts. A contract change mid-phase breaks sessions in flight. Forcing an ADR makes the break visible and approved.
 
 **How to enforce:**
+
 - Git-protect the contract files. Changes require PR with ADR reference.
 - Reviewer checklist includes "Did this change any contract file? If yes, where's the ADR?"
 - Versioned — every contract carries a version, every consumer references a specific version.
@@ -60,12 +62,14 @@ ADRs are lightweight (half a page usually). But they force the change to be *pro
 **Why:** half-finished work is a slower poison than no work at all. It looks like progress while actually blocking progress — the next session builds against incomplete contracts and breaks.
 
 **How to enforce:**
+
 - Session Brief Template includes Definition-of-done as a section
 - Reviewer Checklist is the final gate
 - CI enforces the automatable parts (tests pass, types compile, lint clean)
 - Manual checks (scenarios click-through, README updated) visible in PR description
 
 **What counts as "done":**
+
 - All files in brief's "Build" list created or modified
 - All "Do NOT touch" files unchanged
 - Zero TypeScript errors, zero ESLint errors
@@ -76,6 +80,7 @@ ADRs are lightweight (half a page usually). But they force the change to be *pro
 - PR description summarises changes
 
 **What doesn't:**
+
 - "It basically works"
 - "The happy path is done, edge cases later"
 - "Tests are coming in a follow-up"
@@ -95,33 +100,41 @@ This produces the forward-only view. Stalled work is named. Completed work is ac
 ## Week of [date]
 
 ### Shipped
+
 - [Feature] — merged [date]. Session brief #N.
 - [Feature] — merged [date]. Session brief #N.
 
 ### In progress
+
 - [Feature] — session started [date]. ETA [date]. Blocked on [what].
 
 ### Blocked
+
 - [Feature] — blocked on [what]. Owner [who]. Target unblock [when].
 
 ### Not yet started
+
 - [Feature] — scheduled for [week].
 
 ### ADRs this week
+
 - ADR-0001: [decision]
 - ADR-0002: [decision]
 
 ### Parking lot review
+
 - 3 items moved from PARKED to ABSORBING for next phase
 - 2 items moved from PARKED to DECLINED
 
 ### Lessons
+
 - [what we learned; what changes in the process]
 ```
 
 **Why:** makes blockers visible immediately. Prevents the "I thought someone else was doing that" failure mode. Gives the team a rhythm.
 
 **How to enforce:**
+
 - Every Friday (or consistent day), status document updates
 - 15-minute review of the doc
 - Anything stalled for 2 weeks = explicit decision: continue, de-scope, or abandon
@@ -136,17 +149,20 @@ Scope changes are the most common source of drift. Handle them explicitly.
 ### Types of scope change
 
 **Mid-session discovery** (session in progress, realises it needs something not in the brief):
+
 - Session surfaces the question in "Open questions" section of its output
 - Human decides: absorb into session (new brief), defer to next session (parking lot), or decline
 - Session doesn't just build it — never
 
 **Mid-phase request** (something arose, want it in this version):
+
 - Document the request, evaluate against phase goals
 - If critical: new session brief, plan when it slots in
 - If non-critical: park for next phase
 - Never accept "just this one thing, in addition" — it cascades
 
 **End-of-phase request** (add X before shipping):
+
 - Default: no. Phase closes, ship what's done, next phase considers
 - Exception: critical security or legal issue
 
@@ -208,11 +224,13 @@ Main branch is always in a working state.
 - Incomplete work stays on branch indefinitely or is abandoned explicitly
 
 **What this prevents:**
+
 - "Oh, that's WIP, don't test that path yet"
 - "The main branch is broken because we haven't finished X"
 - Legacy half-features that nobody wants to finish or remove
 
 **How to enforce:**
+
 - CI runs on main and blocks merge if broken
 - PR reviews reject incomplete work
 - Weekly status review identifies stuck branches
@@ -225,16 +243,19 @@ Main branch is always in a working state.
 For every major feature, define up-front: when do we cut this rather than fix it?
 
 **Example for Dispatch Queue:**
+
 - If pilot users don't dispatch at least 20 posts total in the first 2 weeks, reconsider the feature
 - If the self-dispatch success rate is <50% (users bail before WhatsApp round-trip), redesign
 - If dispatchers spend more than 30 min/day dealing with queue backlog, something's broken
 
 **Why this matters:**
+
 - Features that don't work often live forever because "we spent time on them"
 - Sunk-cost fallacy. Having kill criteria makes "cut it" intellectually easier
 - Protects you from accumulating features that exist but don't serve users
 
 **The rule:**
+
 - Every feature's brief includes "kill criteria — what would make us remove this?"
 - Measured against in pilot
 - If criteria hit, explicit decision: remove, redesign, or accept the failure mode
@@ -244,6 +265,7 @@ For every major feature, define up-front: when do we cut this rather than fix it
 ## The "nothing new" week
 
 Halfway through the build, schedule one week where:
+
 - No new features land
 - Only: bug fixes, polish, documentation, tests, accessibility improvements
 - Explicit in the build plan, not optional
@@ -251,6 +273,7 @@ Halfway through the build, schedule one week where:
 **Why:** tech debt accumulates silently. A dedicated cleanup week prevents compounding. Teams that skip this always regret it.
 
 **What to do with the week:**
+
 - Review Parking Lot — park more items decisively, clear stale entries
 - Walk the Reviewer Checklist across recent features — find drift
 - Update documentation that fell behind
@@ -301,6 +324,7 @@ Small practices that keep discipline visible:
 ### Session close ceremony
 
 At end of each session:
+
 - Update the session's README with final state
 - Log any judgement calls made
 - Flag any follow-ups needed
@@ -309,6 +333,7 @@ At end of each session:
 ### Phase close ceremony
 
 At end of each phase:
+
 - Merge all complete work
 - Abandon incomplete work (with decisions logged)
 - Update parking lot — absorb, defer, decline
@@ -345,7 +370,7 @@ Don't let exceptions become the rule. Emergency mode is exhausting; avoid needin
 
 ## Closing note
 
-The ratchet is not about moving faster. It's about moving *reliably*. A project that ships every 2 weeks predictably beats one that might ship in 4 weeks but might take 12.
+The ratchet is not about moving faster. It's about moving _reliably_. A project that ships every 2 weeks predictably beats one that might ship in 4 weeks but might take 12.
 
 GPS Action has a pilot target. Missing the target has real cost — momentum lost, trust eroded, network engagement fades. The ratchet makes the target real by making commitments real.
 

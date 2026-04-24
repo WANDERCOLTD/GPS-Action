@@ -1,8 +1,8 @@
 # GPS Action — Session Brief Template
 
-*The reusable prompt structure for every Claude Code session. Copy this template, fill it in, paste it to Claude Code. Session is a one-shot build against the brief.*
+_The reusable prompt structure for every Claude Code session. Copy this template, fill it in, paste it to Claude Code. Session is a one-shot build against the brief._
 
-*Version: 0.1 · April 2026*
+_Version: 0.1 · April 2026_
 
 ---
 
@@ -49,7 +49,7 @@ it's a scope change that needs a new brief.
 
 - /server/db/schema.prisma (locked this phase — schema changes via ADR)
 - /server/routers/post.ts (owned by different session)
-- /components/design-system/* (locked — use existing components)
+- /components/design-system/\* (locked — use existing components)
 - Any file not listed in "Build in this session"
 
 ### Out of scope for this session
@@ -103,12 +103,12 @@ Measurable, testable outcomes. Not "works well" — concrete observable behaviou
 
 Who can do what in this feature. Shared function: checkPermission(user, action).
 
-| Action | Member | Writer | Coordinator | Director |
-|---|---|---|---|---|
-| Dispatch own post | ✓ | ✓ | ✓ | ✓ |
-| Dispatch others' posts | — | — | ✓ (region) | ✓ |
-| Skip dispatch | ✓ | ✓ | ✓ | ✓ |
-| View dispatch status | ✓ (own posts) | ✓ (own) | ✓ (region) | ✓ (all) |
+| Action                 | Member        | Writer  | Coordinator | Director |
+| ---------------------- | ------------- | ------- | ----------- | -------- |
+| Dispatch own post      | ✓             | ✓       | ✓           | ✓        |
+| Dispatch others' posts | —             | —       | ✓ (region)  | ✓        |
+| Skip dispatch          | ✓             | ✓       | ✓           | ✓        |
+| View dispatch status   | ✓ (own posts) | ✓ (own) | ✓ (region)  | ✓ (all)  |
 
 Use <PermissionGate> wrapper; never inline permission checks.
 
@@ -116,17 +116,17 @@ Use <PermissionGate> wrapper; never inline permission checks.
 
 Enumerate every state the UI must handle.
 
-| State | Trigger | What user sees | What user can do |
-|---|---|---|---|
-| Initial | Post just published | Modal with route checklist | Tick/untick routes; Send or Skip |
-| Loading matches | First render | Skeleton route list | Wait |
-| Zero matches | No routes match post | "No dispatch routes" message | Skip only |
-| Multi-route | Multiple matched routes | Checklist with per-route Send buttons | Tick, untick, send per route |
-| Dispatching | Send tapped | Button shows "Opening WhatsApp..." | Wait briefly |
-| Returned from WA | After WA backgrounded | "Did you send?" prompt | Yes / Not yet / Skip |
-| All sent | Last route confirmed | Success state, modal closes | Close; return to post |
-| Route blocked | Permission denied | Muted row with explanation | Understand; move on |
-| Network error | API call failed | Error banner, retry button | Retry |
+| State            | Trigger                 | What user sees                        | What user can do                 |
+| ---------------- | ----------------------- | ------------------------------------- | -------------------------------- |
+| Initial          | Post just published     | Modal with route checklist            | Tick/untick routes; Send or Skip |
+| Loading matches  | First render            | Skeleton route list                   | Wait                             |
+| Zero matches     | No routes match post    | "No dispatch routes" message          | Skip only                        |
+| Multi-route      | Multiple matched routes | Checklist with per-route Send buttons | Tick, untick, send per route     |
+| Dispatching      | Send tapped             | Button shows "Opening WhatsApp..."    | Wait briefly                     |
+| Returned from WA | After WA backgrounded   | "Did you send?" prompt                | Yes / Not yet / Skip             |
+| All sent         | Last route confirmed    | Success state, modal closes           | Close; return to post            |
+| Route blocked    | Permission denied       | Muted row with explanation            | Understand; move on              |
+| Network error    | API call failed         | Error banner, retry button            | Retry                            |
 
 ## Tests required
 
@@ -136,12 +136,14 @@ Enumerate every state the UI must handle.
 - Accessibility test (keyboard navigation, screen reader labels)
 
 Not required:
+
 - Performance benchmarks
 - End-to-end with real WhatsApp (manual)
 
 ## Scenarios to verify against
 
 See `GPS_Action_Scenarios.md` sections:
+
 - Scenario 1 (Sharon sees a Sky News bias post and boosts it)
 - Scenario 6 (Claire publishes an outcome post)
 - Scenario 16 (Coordinator dispatches a Boost/Remove post to WhatsApp)
@@ -223,16 +225,19 @@ Supporting information. Read these before starting.
 How big should a session be?
 
 **Right-sized (one brief):**
+
 - Build a single feature end-to-end (service + router + UI + tests)
 - Implement a cross-cutting concern (audit service, notification router)
 - Add a well-bounded primitive (Route entity, its CRUD)
 
 **Too big (split):**
+
 - "Build the admin surface" — too many screens, split per surface
 - "Build all scenarios for Feature X" — if Feature X has many scenarios, each scenario might need its own session
 - "Refactor the post model" — refactors are their own thing; split into schema change, migration, code updates
 
 **Too small (batch):**
+
 - "Change a button colour" — a PR, not a session
 - "Fix a typo" — a PR, not a session
 

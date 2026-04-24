@@ -26,15 +26,15 @@ content that was being amplified (the BBC link, the petition URL).
 
 This affects **who GPS Action is for**:
 
-- If we don't link back: GPS Action is a *backstage tool* — invisible to
+- If we don't link back: GPS Action is a _backstage tool_ — invisible to
   the wider audience, used only by members
-- If we do link back: GPS Action becomes a *destination* recipients can
+- If we do link back: GPS Action becomes a _destination_ recipients can
   reach, see, and choose to join
 
 Both are legitimate. The current design lands on **a hybrid** — the
 shared content is the immediate value (watch the video, sign the
 petition), but a GPS Action deep link is also included so recipients
-*can* discover the discussion if they want.
+_can_ discover the discussion if they want.
 
 This document defines how that works.
 
@@ -124,6 +124,7 @@ the destination.
 What they see depends on the **post's visibility setting**:
 
 #### Visibility: `public` (default for most post types)
+
 They see a **public post view**:
 
 - Post body, hero image, original linked content
@@ -138,6 +139,7 @@ The page renders server-side, includes proper Open Graph metadata, and is
 indexable by search engines (a separate decision, see below).
 
 #### Visibility: `members_only`
+
 They see a **gentle members-only page**:
 
 - "This post is shared within GPS Action's members."
@@ -146,6 +148,7 @@ They see a **gentle members-only page**:
 - **The post content itself is NOT shown** — not even an excerpt
 
 #### Visibility: `private`
+
 They see a **404 / not-found page**:
 
 - Indistinguishable from a deleted or non-existent post
@@ -159,11 +162,11 @@ They see a **404 / not-found page**:
 
 Every post has a `visibility` field with three values:
 
-| Value | Default for | Recipient (non-member) sees | Indexed by search engines |
-|---|---|---|---|
-| `public` | Boost, Action, Event, generic | Public post view | Yes (with noindex opt-out) |
-| `members_only` | Internal coordination, sensitive ops | "Members only" page | No |
-| `private` | Incident reports, vetting context, anything author chooses | 404 | No |
+| Value          | Default for                                                | Recipient (non-member) sees | Indexed by search engines  |
+| -------------- | ---------------------------------------------------------- | --------------------------- | -------------------------- |
+| `public`       | Boost, Action, Event, generic                              | Public post view            | Yes (with noindex opt-out) |
+| `members_only` | Internal coordination, sensitive ops                       | "Members only" page         | No                         |
+| `private`      | Incident reports, vetting context, anything author chooses | 404                         | No                         |
 
 ### Defaults by post type
 
@@ -219,17 +222,18 @@ The deep-link URL **must** render server-side. Two reasons:
 The page at `gpsaction.org/p/abc123` returns HTML with these meta tags:
 
 ```html
-<meta property="og:title" content="Sharon shared on GPS Action">
-<meta property="og:description" content="[first ~150 chars of post body]">
-<meta property="og:image" content="https://gpsaction.org/p/abc123/og-image">
-<meta property="og:url" content="https://gpsaction.org/p/abc123">
-<meta property="og:type" content="article">
-<meta property="og:site_name" content="GPS Action">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:site" content="@gpsaction">
+<meta property="og:title" content="Sharon shared on GPS Action" />
+<meta property="og:description" content="[first ~150 chars of post body]" />
+<meta property="og:image" content="https://gpsaction.org/p/abc123/og-image" />
+<meta property="og:url" content="https://gpsaction.org/p/abc123" />
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="GPS Action" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@gpsaction" />
 ```
 
 For `members_only` and `private` posts:
+
 - `og:title` is generic ("GPS Action — Members-only post" or "GPS Action")
 - `og:description` is generic ("This post is shared within GPS Action.")
 - `og:image` is a generic GPS Action card (no post content leaked)
@@ -341,6 +345,7 @@ native app instead of Safari.
 Five events worth tracking, all anonymous-by-default:
 
 ### 1. `dispatch_initiated`
+
 **When:** Member taps a share destination (WhatsApp / X / Facebook /
 Instagram) in the share menu.
 **Properties:** `postId`, `destinationPlatform`, `destinationDetail?`
@@ -349,6 +354,7 @@ Instagram) in the share menu.
 **What it tells us:** "How often are members sharing? To which platforms?"
 
 ### 2. `dispatch_confirmed`
+
 **When:** Member returns to GPS Action after the platform handoff and
 confirms the share completed.
 **Properties:** `postId`, `destinationPlatform`, `timeFromInitiationMs`
@@ -358,6 +364,7 @@ Some shares get done but never confirmed.
 them? Where do drop-offs happen per platform?"
 
 ### 3. `deep_link_view`
+
 **When:** Anyone (member or non-member) loads `gpsaction.org/p/{shortId}`.
 **Properties:** `postId`, `referrerDomain` (whatsapp.com, twitter.com,
 direct, etc.), `wasAuthenticated` (bool), anonymous session hash.
@@ -366,6 +373,7 @@ direct, etc.), `wasAuthenticated` (bool), anonymous session hash.
 shares? Which platforms drove them?"
 
 ### 4. `non_member_landed`
+
 **When:** Subset of `deep_link_view` where `wasAuthenticated = false`.
 **Properties:** Same as above.
 **Reliability:** High.
@@ -373,6 +381,7 @@ shares? Which platforms drove them?"
 shares actually reaching new audiences?"
 
 ### 5. `non_member_signup_attributed`
+
 **When:** A new signup happens within 7 days of a `non_member_landed`
 event from the same anonymous session.
 **Properties:** `postId` (the landing post), `daysFromLanding`
@@ -383,16 +392,19 @@ posts are most magnetic?"
 ### Combined dashboard
 
 These five events feed a "Reach scoreboard" per post, visible to:
+
 - The author (their own post's reach)
 - Admins (any post)
 
 The scoreboard shows:
+
 - Number of dispatches, by platform
 - Number of deep-link views, by referrer platform
 - Number of non-member landings
 - (Eventually) number of attributed signups
 
 **What we explicitly do NOT show on the scoreboard:**
+
 - Estimated platform reach (likes, retweets, impressions on X) — we don't
   know
 - Estimated WhatsApp forwards — we can't see beyond the first hop
@@ -415,7 +427,7 @@ platforms don't tell us. Period.
 Reactions in the WhatsApp group. Comments on Facebook. Same reason.
 
 **Onward forwarding** — When Sarah forwards Sharon's WhatsApp message to
-*her* WhatsApp groups. Invisible to us. Original deep links continue to
+_her_ WhatsApp groups. Invisible to us. Original deep links continue to
 fire counters but we can't distinguish "Sarah forwarded" from "the
 message went viral organically".
 
@@ -427,11 +439,13 @@ linked, does anything in the world. Outside our visibility entirely.
 In UI copy, we are precise about scope:
 
 ✅ **Honest:**
+
 - "47 views via direct GPS Action link"
 - "Shared by 12 members to WhatsApp groups"
 - "3 new members joined after landing on this post"
 
 ❌ **Misleading (banned):**
+
 - "Reached approximately 12,000 people" (made up)
 - "Got 47 likes on Twitter" (we don't know)
 - "Trending on Facebook" (we have no signal for this)
@@ -465,27 +479,27 @@ When the Post entity is built in Slice 2, these fields land:
 ```prisma
 model Post {
   // ... other fields ...
-  
+
   shortId               String              @unique  // 8-char public ID
   visibility            PostVisibility      @default(members_only)  // overridden by composer
-  
+
   // og:image — populated when post is created or updated
   ogImageUrl            String?             // S3/Vercel Blob URL of generated card
   ogImageStatus         OgImageStatus       @default(pending)
   ogImageGeneratedAt    DateTime?
-  
+
   // Indexability
   allowSearchIndex      Boolean             @default(false)  // composer-set; defaults vary by type
-  
+
   // Reach metrics (denormalised counters, updated on event)
   deepLinkViewCount     Int                 @default(0)
   nonMemberViewCount    Int                 @default(0)
-  
+
   // ... other fields ...
-  
+
   views                 PostView[]
   dispatchEvents        DispatchEvent[]
-  
+
   @@index([shortId])
   @@index([visibility, createdAt])
 }
@@ -512,18 +526,18 @@ model PostView {
   id                      String    @id @default(uuid())
   postId                  String
   post                    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  
+
   viewedAt                DateTime  @default(now())
-  
+
   // Anonymous session tracking — hashed, not raw
   anonymousSessionHash    String    // sha256(session_cookie + salt)
-  
+
   // Where they came from
   referrerDomain          String?   // "whatsapp.com", "twitter.com", "direct", etc.
-  
+
   // Were they signed in?
   wasAuthenticated        Boolean   @default(false)
-  
+
   @@index([postId, viewedAt])
   @@index([anonymousSessionHash])  // for de-duplicating bot traffic
 }
@@ -558,6 +572,7 @@ Deep links are public URLs. Bots will hit them.
 ### Deletion behaviour
 
 When an author deletes a post:
+
 - The deep link returns 404 (the post is gone)
 - Cached HTML at the edge is purged
 - Cached og:image is purged
@@ -568,6 +583,7 @@ When an author deletes a post:
 ### Visibility change behaviour
 
 When an author changes visibility from public to members_only:
+
 - Edge cache is purged
 - Future deep-link visits show the gated landing page
 - Existing shared messages with the deep link still work but show the
@@ -616,6 +632,7 @@ When changing private to public: similar audit + cache invalidation.
 To be clear about scope:
 
 **MVP day 1:**
+
 - Short IDs generated on every post
 - Public-by-default per post type, with composer override
 - Server-side rendering for public posts
@@ -628,12 +645,14 @@ To be clear about scope:
 - Rate limiting on public paths
 
 **Phase 1.5 (a few weeks in):**
+
 - Generated og:image cards (Tier 2, the polished version)
 - "Reach scoreboard" UI for authors
 - "Install GPS Action" prompts on browser-rendered public pages
 - Audit log for visibility changes
 
 **Phase 2:**
+
 - Member self-reporting of platform stats
 - Custom domains
 - Embed codes
@@ -642,6 +661,7 @@ To be clear about scope:
 - Native iOS deep linking via Universal Links
 
 **Never (or only on strong product signal):**
+
 - Inflated reach estimates
 - Pretend-engagement metrics
 - Aggressive non-member nag screens

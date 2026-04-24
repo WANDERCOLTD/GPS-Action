@@ -1,7 +1,7 @@
 # Design philosophy
 
 **Purpose:** What every design decision serves. When rules conflict, the order
-below is the tiebreaker. This is the source of truth for *feel* — voice,
+below is the tiebreaker. This is the source of truth for _feel_ — voice,
 interaction, pacing, weight. Specific colours, typography, spacing live in
 `styles/tokens.css`; specific phrases in the copy library; this document says
 what we're optimising for and why.
@@ -27,6 +27,7 @@ friction-removal is the product's main competitive advantage over the tool
 everyone is already using. Lose it and the product has no reason to exist.
 
 **In practice:**
+
 - 1-click share — destination picker is the tap; no "are you sure" modal.
 - 1-click action — action CTA completes the action (with 5-second undo visible).
 - 1-click react — emoji tray appears on the post, tap to react.
@@ -47,14 +48,15 @@ occasionally funny, never corporate. It's a person, not a platform.
 
 **Examples:**
 
-| Context | ✅ Sharon | ❌ Corporate |
-|---|---|---|
-| Home on return | "Welcome back 💕 New in your regions." | "Hello User. You have 3 unread notifications." |
-| First post | "You did it. First post is up." | "Post successfully submitted." |
-| Empty state | "Quiet in here. Anything worth posting?" | "No posts to display." |
+| Context              | ✅ Sharon                                     | ❌ Corporate                                         |
+| -------------------- | --------------------------------------------- | ---------------------------------------------------- |
+| Home on return       | "Welcome back 💕 New in your regions."        | "Hello User. You have 3 unread notifications."       |
+| First post           | "You did it. First post is up."               | "Post successfully submitted."                       |
+| Empty state          | "Quiet in here. Anything worth posting?"      | "No posts to display."                               |
 | Admin confirming ban | "Ban Julia? This blocks her from all of GPS." | "Are you sure you want to proceed with this action?" |
 
 **Emoji policy:**
+
 - ✅ Fine in community-facing copy, welcome messages, reactions (💕🤗🙏)
 - ❌ Not in error messages, admin screens, safety warnings, anything legal
 - ❌ Not in notifications (they look spammy and trigger filters)
@@ -105,6 +107,7 @@ typography, muted urgency, no action CTAs unless explicitly relevant. They
 are read, held, perhaps reacted to — rarely "actioned" in the tactical sense.
 
 **Specific rules:**
+
 - A Shabbat candle-lighting post does not display "time until dispatch" pills.
 - A yahrzeit post uses the bordeaux marker and softer type.
 - The 14-emoji reaction set includes 🕯️ ✡️ 🙏 specifically for these moments.
@@ -126,25 +129,25 @@ wins for destructive or irreversible actions; 1-click wins for additive ones.
 
 **Examples:**
 
-| ✅ Honest | ❌ Dressed up |
-|---|---|
-| "Opening your mail client…" | "We've sent your email!" |
-| "Sending to WhatsApp — tap paste when it opens" | "Dispatched! 🎉" |
-| "Your post is with moderators. Usually reviewed within 24 hours." | "Your post is live!" (if it's not) |
-| "Failed to reach our server. Check your connection." | "Something went wrong. Please try again." |
-| "We'll email you when approved. Check spam too." | "Approval pending." |
-| "Ban Julia? She won't be able to post or comment. She can appeal." | "Confirm ban?" |
+| ✅ Honest                                                          | ❌ Dressed up                             |
+| ------------------------------------------------------------------ | ----------------------------------------- |
+| "Opening your mail client…"                                        | "We've sent your email!"                  |
+| "Sending to WhatsApp — tap paste when it opens"                    | "Dispatched! 🎉"                          |
+| "Your post is with moderators. Usually reviewed within 24 hours."  | "Your post is live!" (if it's not)        |
+| "Failed to reach our server. Check your connection."               | "Something went wrong. Please try again." |
+| "We'll email you when approved. Check spam too."                   | "Approval pending."                       |
+| "Ban Julia? She won't be able to post or comment. She can appeal." | "Confirm ban?"                            |
 
 **Plain English throughout:**
 
-| Use | Not |
-|---|---|
-| Send | Dispatch (user-facing) / Syndicate / Broadcast |
-| Share | Amplify / Propagate |
-| Delete | Terminate / Remove permanently |
-| Approve | Authorise / Validate / Ratify |
-| Post | Publication / Item / Entry |
-| Steward *(testing)* | Coordinator (pending user research, see parking lot) |
+| Use                 | Not                                                  |
+| ------------------- | ---------------------------------------------------- |
+| Send                | Dispatch (user-facing) / Syndicate / Broadcast       |
+| Share               | Amplify / Propagate                                  |
+| Delete              | Terminate / Remove permanently                       |
+| Approve             | Authorise / Validate / Ratify                        |
+| Post                | Publication / Item / Entry                           |
+| Steward _(testing)_ | Coordinator (pending user research, see parking lot) |
 
 **Note:** data model terms can be technical (`verdict: boost`, `dispatch_state: queued`
 are fine in code and logs). Only user-visible copy follows the plain-English rule.
@@ -156,14 +159,14 @@ are fine in code and logs). Only user-visible copy follows the plain-English rul
 **One-click vs Honest copy.** Publishing without a confirmation step is 1-click
 but might let a user publish something they didn't intend.
 
-*Resolution:* the **action** is one tap; the **undo** is visible for 5 seconds
+_Resolution:_ the **action** is one tap; the **undo** is visible for 5 seconds
 after. "Posted — undo" is both 1-click and honest. The user can change their
 mind without a dialog getting in the way.
 
 **No anxiety vs Urgency.** Some posts genuinely are urgent. How do we flag them
 without using the same patterns we've banned?
 
-*Resolution:* urgency is in the **content**, not in **site chrome**. An urgent
+_Resolution:_ urgency is in the **content**, not in **site chrome**. An urgent
 post has an urgency marker in its card (small, clear, not flashing). The app
 itself does not flash, pulse, or shout. Members bring urgency from reading;
 we don't manufacture it with UI.
@@ -171,14 +174,14 @@ we don't manufacture it with UI.
 **Sharon-warmth vs Cultural dignity.** Shabbat and remembrance posts need
 quieter voice; the rest of the product is warm and casual.
 
-*Resolution:* voice matches the post's moment. The system copy around a
+_Resolution:_ voice matches the post's moment. The system copy around a
 cultural post is quieter. The comment composer on a yahrzeit post says
 "Leave a thought" not "Got something to say? 💕". Voice is context-aware.
 
 **One-click vs Cultural dignity.** Destructive actions on culturally-weighted
 content (deleting a yahrzeit post) deserve extra pause.
 
-*Resolution:* delete on a cultural-marker post uses a two-step confirm with
+_Resolution:_ delete on a cultural-marker post uses a two-step confirm with
 a longer message. Rare case, worth the friction.
 
 ---
@@ -186,9 +189,9 @@ a longer message. Rare case, worth the friction.
 ## What this document is NOT
 
 - **Not a style guide.** Colours, typography, spacing — `styles/tokens.css`.
-- **Not a copy library.** Specific blessed phrases — `docs/product/copy-library.md` *(to be written)*.
+- **Not a copy library.** Specific blessed phrases — `docs/product/copy-library.md` _(to be written)_.
 - **Not component guidance.** Reusable primitives — Storybook.
-- **Not an accessibility reference.** WCAG 2.2 AA rules — `docs/process/accessibility-guide.md` *(to be written)*.
+- **Not an accessibility reference.** WCAG 2.2 AA rules — `docs/process/accessibility-guide.md` _(to be written)_.
 
 This document is the **philosophy**. Everything above is why; everything in the
 other docs is how.

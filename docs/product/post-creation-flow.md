@@ -56,6 +56,7 @@ same outcome.
 
 The generic composer treats every post the same. But posts come in
 **shapes**:
+
 - Most posts are share-a-link
 - Some are call-for-action
 - Some are event announcements
@@ -99,6 +100,7 @@ The fastest path. Used when a member has a URL they want others to see
 and amplify.
 
 **Smart behaviours:**
+
 - Clipboard detection: if the clipboard contains a URL when the FAB
   opens, this card is highlighted ("Detected URL — tap to share")
 - Auto-paste the clipboard URL into the composer's URL field on tap
@@ -106,6 +108,7 @@ and amplify.
   pasted
 
 **Composer shape:**
+
 ```
 [Detected URL field — pre-filled]
 https://bbc.co.uk/iplayer/...
@@ -131,6 +134,7 @@ Relevant to: (none) ▾
 ```
 
 **Default values:**
+
 - Post type: `share_link` (a sub-type of "boost" semantically; see schema below)
 - Visibility: `public`
 - Region: none (national / global)
@@ -138,6 +142,7 @@ Relevant to: (none) ▾
 - Hero image: from og:image fetch
 
 **Friction count:**
+
 1. Tap FAB
 2. Tap "Share a link" card
 3. (URL auto-pasted, preview shown)
@@ -152,6 +157,7 @@ Used when the member wants to galvanise the network around an immediate
 action. Higher visual urgency, prompts for clear ask.
 
 **Composer shape:**
+
 ```
 What's the ask?
 [Bold, large input — placeholder: "Email your MP today..."]
@@ -175,6 +181,7 @@ Region: National ▾
 ```
 
 **Default values:**
+
 - Post type: `call_for_action`
 - Visibility: `public`
 - Region: `national`
@@ -189,6 +196,7 @@ The general "amplify this" card. Less link-focused than card 1, more
 about flagging "this matters, share it widely."
 
 **Composer shape:**
+
 ```
 What needs amplifying?
 [Multiline body field — primary]
@@ -212,6 +220,7 @@ Relevant to: (none) ▾
 ```
 
 **Default values:**
+
 - Post type: `boost`
 - Visibility: `public`
 - Region: `national`
@@ -224,6 +233,7 @@ to write commentary first, link as supporting evidence.
 For announcing events members might attend or amplify.
 
 **Composer shape:**
+
 ```
 What's the event?
 [Title — single line]
@@ -257,6 +267,7 @@ Relevant to: (none) ▾
 ```
 
 **Default values:**
+
 - Post type: `event`
 - Visibility: `public`
 - Region: tries to infer from event location; otherwise national
@@ -270,6 +281,7 @@ A general-purpose composer for posts that don't fit other intents —
 opinion pieces, reflections, internal coordination, etc.
 
 **Composer shape:**
+
 ```
 What's on your mind?
 [Multiline body — large primary field]
@@ -293,6 +305,7 @@ Relevant to: (none) ▾
 ```
 
 **Default values:**
+
 - Post type: `general`
 - Visibility: `members_only` (more conservative; this is the "I'm just
   writing" card, not the "this is for the world" card)
@@ -307,6 +320,7 @@ Opens the **fully generic composer** with all fields visible and a
 post-type-picker dropdown at the top. This is the escape hatch.
 
 **Composer shape:**
+
 ```
 What kind of post is this?
 [Dropdown — "Pick a type..."]
@@ -362,7 +376,7 @@ Help arrives as the member types:
   look like in the feed as composed. Reduces "wait what does this look
   like" anxiety.
 - **Smart defaults visible.** Visibility, region, group — defaults are
-  shown but easy to change. Members shouldn't have to *go looking* for
+  shown but easy to change. Members shouldn't have to _go looking_ for
   the override.
 
 ### At the post moment
@@ -392,10 +406,10 @@ A small ❓ icon next to the visibility dropdown:
 
 > **Public:** Anyone with the link can read this post. Recommended for
 > calls for action and content you want amplified.
-> 
+>
 > **Members only:** Only signed-in GPS Action members can read this.
 > Recommended for internal coordination.
-> 
+>
 > **Private:** Only you and admins can read this. Use for sensitive
 > reports.
 
@@ -409,13 +423,13 @@ forced.
 Sharon sees a BBC video she wants to share. She copies the URL from
 Safari.
 
-**Step 1.** She opens the GPS Action PWA. *(Not a tap — just opening
-the app.)*
+**Step 1.** She opens the GPS Action PWA. _(Not a tap — just opening
+the app.)_
 
 **Step 2.** She taps the FAB. **(Tap 1)**
 
 **Step 3.** The card overlay appears. The "🔗 Share a link" card is
-highlighted with: *"Detected URL on clipboard — bbc.co.uk"*. She taps
+highlighted with: _"Detected URL on clipboard — bbc.co.uk"_. She taps
 it. **(Tap 2)**
 
 **Step 4.** The composer opens. The URL field is pre-filled with the
@@ -423,8 +437,8 @@ BBC URL. The og:image, og:title, and og:description have been fetched
 (took ~400ms; visible loading indicator while fetching). A preview card
 shows below the URL.
 
-The optional sentence field is focused. Sharon types: *"Worth a watch —
-actually balanced for once"*. **(Typing — count as one effort)**
+The optional sentence field is focused. Sharon types: _"Worth a watch —
+actually balanced for once"_. **(Typing — count as one effort)**
 
 **Step 5.** She taps Post. **(Tap 3)**
 
@@ -452,6 +466,7 @@ network.
 
 **Step 3.** Generic composer opens. The post-type picker is at the top.
 She reads the options:
+
 - Share a link — no, she has no link
 - Call for action — no, this isn't urgent
 - Boost — no, nothing to boost
@@ -502,9 +517,9 @@ enum PostIntentCard {
 
 model Post {
   // ... existing fields ...
-  
+
   intentCard      PostIntentCard @default(unsure)
-  
+
   // ... existing fields ...
 }
 ```
@@ -512,7 +527,7 @@ model Post {
 ### `Post.postType`
 
 The actual post type (different from intentCard — intentCard is the
-*entry point*, postType is the *result*). Most cards map 1:1, but the
+_entry point_, postType is the _result_). Most cards map 1:1, but the
 "I'm not sure" / generic composer can produce any type:
 
 ```prisma
@@ -528,9 +543,9 @@ enum PostType {
 
 model Post {
   // ... existing fields ...
-  
+
   postType        PostType
-  
+
   // ... existing fields ...
 }
 ```
@@ -546,9 +561,9 @@ designs. Enables A/B testing later if we add it.
 ```prisma
 model Post {
   // ... existing fields ...
-  
+
   composerVersion String         @default("v1")
-  
+
   // ... existing fields ...
 }
 ```
@@ -559,16 +574,17 @@ model Post {
 
 Composer-related procedures (some shared with sharing/dedup):
 
-| Procedure | Purpose | Auth |
-|---|---|---|
+| Procedure               | Purpose                                                     | Auth   |
+| ----------------------- | ----------------------------------------------------------- | ------ |
 | `post.fetchUrlMetadata` | Server fetches og:title, og:description, og:image for a URL | member |
-| `post.publish` | Create a new post (handles dedup, image processing, etc.) | member |
-| `post.saveDraft` | Save a draft (for resume-later) | member |
-| `post.listMyDrafts` | Member's saved drafts | member |
-| `post.discardDraft` | Delete a draft | member |
-| `post.previewAs` | Render the post-as-it-would-appear (for live preview) | member |
+| `post.publish`          | Create a new post (handles dedup, image processing, etc.)   | member |
+| `post.saveDraft`        | Save a draft (for resume-later)                             | member |
+| `post.listMyDrafts`     | Member's saved drafts                                       | member |
+| `post.discardDraft`     | Delete a draft                                              | member |
+| `post.previewAs`        | Render the post-as-it-would-appear (for live preview)       | member |
 
 `post.publish` is the heavy one — it:
+
 1. Validates input (Zod schema, per api-contract-discipline.md)
 2. Fetches and processes hero image if URL provided
 3. Runs dedup check (per BU-009)
@@ -751,15 +767,15 @@ model PostDraft {
   id              String           @id @default(uuid())
   userId          String
   user            User             @relation("postDrafts", fields: [userId], references: [id], onDelete: Cascade)
-  
+
   // Composer state, serialized
   intentCard      PostIntentCard?  // which card was chosen (if any)
   composerState   Json             // the form fields as last edited
-  
+
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   expiresAt       DateTime         // = updatedAt + 30 days
-  
+
   @@index([userId, expiresAt])
 }
 ```
@@ -770,15 +786,15 @@ model PostDraft {
 
 These join the existing analytics catalogue (per `analytics-events.md`):
 
-| Event | When | Properties |
-|---|---|---|
-| `composer_opened` | FAB tapped, card overlay shown | `had_clipboard_url` (bool) |
-| `composer_card_selected` | Member tapped a card | `card` (intentCard enum) |
-| `composer_url_metadata_fetched` | URL og:metadata fetched | `success` (bool), `latency_ms` |
-| `post_published_from_composer` | Post created via composer | `card`, `postType`, `had_url`, `had_image`, `time_in_composer_seconds` |
-| `composer_abandoned` | Composer closed without posting | `card`, `time_in_composer_seconds`, `had_content` (bool) |
-| `draft_saved` | Draft created or updated | `card` |
-| `draft_resumed` | Draft re-opened | `draft_age_hours` |
+| Event                           | When                            | Properties                                                             |
+| ------------------------------- | ------------------------------- | ---------------------------------------------------------------------- |
+| `composer_opened`               | FAB tapped, card overlay shown  | `had_clipboard_url` (bool)                                             |
+| `composer_card_selected`        | Member tapped a card            | `card` (intentCard enum)                                               |
+| `composer_url_metadata_fetched` | URL og:metadata fetched         | `success` (bool), `latency_ms`                                         |
+| `post_published_from_composer`  | Post created via composer       | `card`, `postType`, `had_url`, `had_image`, `time_in_composer_seconds` |
+| `composer_abandoned`            | Composer closed without posting | `card`, `time_in_composer_seconds`, `had_content` (bool)               |
+| `draft_saved`                   | Draft created or updated        | `card`                                                                 |
+| `draft_resumed`                 | Draft re-opened                 | `draft_age_hours`                                                      |
 
 These feed an "Author experience" dashboard — are members posting easily?
 Where do they drop off in the composer?
@@ -815,6 +831,7 @@ Where do they drop off in the composer?
 ## What lands in MVP
 
 **MVP day 1:**
+
 - FAB cards overlay with all 6 cards
 - Each card opens a purpose-shaped composer
 - Clipboard URL detection → highlight share-a-link card
@@ -826,12 +843,14 @@ Where do they drop off in the composer?
 - Drafts: device-local, 30-day expiry
 
 **Phase 1.5:**
+
 - Drafts synced to server (cross-device)
 - Image bank picker (per image-handling.md)
 - Title auto-suggest from URL
 - "First-time poster" onboarding tip
 
 **Phase 2:**
+
 - Edit post flow
 - Mention autocomplete
 - Markdown / rich text
@@ -840,6 +859,7 @@ Where do they drop off in the composer?
 - Composer keyboard shortcuts
 
 **Phase 3:**
+
 - Multimedia composer
 - Post templates
 - AI-assisted writing (per existing parking-lot mention)

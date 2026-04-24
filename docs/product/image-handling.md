@@ -22,14 +22,14 @@ and various entity tables. Will become §3.35 of feature spec.
 There are four different "images" in GPS Action, with different sources,
 storage, lifecycles, and use:
 
-| Concept | What | When set | Where shown |
-|---|---|---|---|
-| **Member avatar** | Photo or initials of a member | At signup; can update later | Post bylines, profile, comments |
-| **Group logo** | Image identifying a group | When admin creates group | Group page, group badges |
-| **Coordinator group logo** | Logo for an external group a member runs | When member adds the group | Coordinator profile, future amplification analytics |
-| **Post hero image** | The visual content of the post itself | At post-creation time | Post card in feed, post detail page |
-| **Outbound og:image** | The preview card non-members see when the post URL is shared externally | Generated server-side from the post | WhatsApp / X / Facebook / etc. link previews |
-| **Ambient styling** | Background colours, accent strips, type-driven visual treatment | Defined by post type | Post card framing |
+| Concept                    | What                                                                    | When set                            | Where shown                                         |
+| -------------------------- | ----------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------- |
+| **Member avatar**          | Photo or initials of a member                                           | At signup; can update later         | Post bylines, profile, comments                     |
+| **Group logo**             | Image identifying a group                                               | When admin creates group            | Group page, group badges                            |
+| **Coordinator group logo** | Logo for an external group a member runs                                | When member adds the group          | Coordinator profile, future amplification analytics |
+| **Post hero image**        | The visual content of the post itself                                   | At post-creation time               | Post card in feed, post detail page                 |
+| **Outbound og:image**      | The preview card non-members see when the post URL is shared externally | Generated server-side from the post | WhatsApp / X / Facebook / etc. link previews        |
+| **Ambient styling**        | Background colours, accent strips, type-driven visual treatment         | Defined by post type                | Post card framing                                   |
 
 (That's six concepts now — splitting "logo" by source clarifies. Five
 images, one styling concept.)
@@ -44,6 +44,7 @@ ship; complexity arrives when use proves value.
 ### Phase: MVP day 1 (the simple ship)
 
 **What members can do:**
+
 - Upload an avatar at signup (or use auto-generated initials placeholder)
 - Paste a URL when composing → server fetches og:image from it; that
   becomes the post's hero image
@@ -51,9 +52,11 @@ ship; complexity arrives when use proves value.
   has no og:image
 
 **What admins can do:**
+
 - Edit any member's avatar (rare; for moderation cases)
 
 **What does NOT exist yet:**
+
 - Member-uploaded post images (they can't upload a hero image directly;
   it's pulled from URLs only)
 - Group logos (groups exist but use default icons)
@@ -64,6 +67,7 @@ ship; complexity arrives when use proves value.
   fallback)
 
 This is genuinely minimal. It works because:
+
 - Most posts will share URLs (BBC, Twitter, news sites) — those have
   og:images
 - Members are humans with avatars; that's all the personalisation MVP
@@ -74,17 +78,20 @@ This is genuinely minimal. It works because:
 ### Phase: 1.5 (a few weeks after MVP launch)
 
 **What members can do (newly):**
+
 - Upload a logo for any group they run (coordinator profile)
 - Pick from a curated image bank when composing (~30 images: flags,
   symbols, generic action graphics)
 
 **What admins can do (newly):**
+
 - Upload group logos (for the GroupS feature)
 - Curate the image bank (add, retire, tag images)
 - See generated og:image cards for outbound shares (Tier 2 — see
   `deep-linking-and-tracking.md`)
 
 **What lands:**
+
 - Member-uploaded image files (with size/type/safety constraints)
 - Image bank: curated, taggable, browsable
 - Generated og:image cards (the "GPS Action share card")
@@ -92,15 +99,18 @@ This is genuinely minimal. It works because:
 ### Phase: 2
 
 **What members can do (newly):**
+
 - Upload custom hero images for their own posts (not just URL-derived)
 - Submit images to the curated bank for admin review
 
 **What admins can do (newly):**
+
 - Manage submitted images (approve/reject queue)
 - Bulk-tag the image bank
 - Curate per-post overrides
 
 **What lands:**
+
 - Member submission queue for image bank additions
 - Per-post image override (admin can swap a bad og:image for a better one)
 - Image moderation pipeline (auto-detect adult content, gore, etc. — third-
@@ -109,6 +119,7 @@ This is genuinely minimal. It works because:
 ### Phase: 3
 
 **Newly:**
+
 - AI-generated images for posts on demand (text → image generation)
 - Animated content (GIFs, short videos)
 - Branded image templates (member can pick a "GPS Action template" and
@@ -137,6 +148,7 @@ update later via profile settings.
 
 The server stores the original at max 1024x1024 and serves three derived
 sizes:
+
 - `avatar_small` — 32x32 (for byline, comment avatars)
 - `avatar_medium` — 96x96 (for profile cards)
 - `avatar_large` — 256x256 (for the profile page itself)
@@ -149,10 +161,10 @@ hash-based cache busting if the original changes).
 ```prisma
 model User {
   // ... existing fields ...
-  
+
   avatarUrl         String?     // null = use generated initials
   avatarUploadedAt  DateTime?
-  
+
   // ... existing fields ...
 }
 ```
@@ -246,13 +258,13 @@ replace the image with a placeholder while the post is reviewed.
 ```prisma
 model Post {
   // ... existing fields ...
-  
+
   heroImageUrl         String?            // S3/Blob URL of cached/uploaded image
   heroImageSource      HeroImageSource    @default(none)
   heroImageOriginalUrl String?            // the URL the og:image was scraped from
   heroImageAltText     String?            // accessibility — auto-generated or member-provided
   heroImageStatus      HeroImageStatus    @default(pending)
-  
+
   // ... existing fields ...
 }
 
@@ -301,7 +313,7 @@ post's hero (which itself was scraped from the linked URL or is a
 placeholder).
 
 ```html
-<meta property="og:image" content="https://cdn.gpsaction.org/img/posts/{contentHash}.jpg">
+<meta property="og:image" content="https://cdn.gpsaction.org/img/posts/{contentHash}.jpg" />
 ```
 
 This works but has a downside: the image is the BBC's article image (or
@@ -321,6 +333,7 @@ Returns: PNG, 1200x630, cached
 ```
 
 The generated card contains:
+
 - The post's first sentence (or full body if short), rendered in clean
   typography
 - The author's first name + their group badge if they have one
@@ -343,11 +356,11 @@ requests serve from cache.
 ```prisma
 model Post {
   // ... existing fields ...
-  
+
   ogImageUrl              String?             // cached generated card URL (Tier 2)
   ogImageStatus           OgImageStatus       @default(pending)
   ogImageGeneratedAt      DateTime?
-  
+
   // ... existing fields ...
 }
 
@@ -391,9 +404,9 @@ Same approach as avatars: original at max 1024x1024, derived sizes at
 ```prisma
 model Group {
   // ... existing fields ...
-  
+
   logoUrl    String?          // null = use default icon
-  
+
   // ... existing fields ...
 }
 ```
@@ -423,9 +436,9 @@ coordinator group to their profile.
 ```prisma
 model CoordinatorGroup {
   // ... existing fields ...
-  
+
   logoUrl    String?          // member-uploaded
-  
+
   // ... existing fields ...
 }
 ```
@@ -445,6 +458,7 @@ A shared library of images members can pick from when composing.
 ### Bootstrap content
 
 Admins curate ~30 images for launch:
+
 - UK flag, Israeli flag
 - Star of David, Menorah, Shabbat candles
 - Generic action symbols (megaphone, raised fist, ballot box, scales of
@@ -455,6 +469,7 @@ Admins curate ~30 images for launch:
 ### Browse and pick UI
 
 In the composer (Phase 1.5+), an "Add image" button opens an image picker:
+
 - Browse by category (flags, symbols, backgrounds, etc.)
 - Search by tag
 - See previews
@@ -463,6 +478,7 @@ In the composer (Phase 1.5+), an "Add image" button opens an image picker:
 ### Member submissions to the bank — Phase 2
 
 A "Submit your own image to the bank" flow:
+
 - Member uploads
 - Adds tags / suggests categories
 - Submission enters a `work_item` queue (type: `image_bank_submission`)
@@ -475,24 +491,24 @@ A "Submit your own image to the bank" flow:
 model ImageBankItem {
   id            String              @id @default(uuid())
   slug          String              @unique
-  
+
   url           String              // primary image URL
   altText       String              // required; admin-curated for accessibility
   tags          String[]            @default([])
   category      String              // "flag", "symbol", "background", etc.
-  
+
   status        ImageBankItemStatus @default(pending)
-  
+
   uploadedByUserId String
   uploadedBy    User                @relation("imageBankUploads", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
   uploadedAt    DateTime            @default(now())
-  
+
   curatedByUserId String?
   curatedBy     User?               @relation("imageBankCurations", fields: [curatedByUserId], references: [id], onDelete: SetNull)
   curatedAt     DateTime?
-  
+
   retiredAt     DateTime?
-  
+
   @@index([status, category])
   @@index([tags], type: Gin)
 }
@@ -514,11 +530,13 @@ enum ImageBankItemStatus {
 A linked article about an attack might have a graphic image. We embed it.
 
 **MVP day 1 mitigation:**
+
 - Member can flag any post → admin reviews → can replace hero with
   placeholder
 - Author judgement is the primary line of defence (they chose to link)
 
 **Phase 2:**
+
 - Third-party content moderation API checks every fetched og:image
 - Auto-flag obviously graphic content for human review before display
 - "Show preview images?" toggle in member settings
@@ -529,6 +547,7 @@ When members can upload their own hero images and bank submissions, the
 risk of inappropriate content rises.
 
 **Phase 2 controls:**
+
 - Same moderation API on uploads
 - Submission queue for bank items
 - Member upload size and type restrictions
@@ -540,6 +559,7 @@ risk of inappropriate content rises.
 A member's avatar is visible to all signed-in members.
 
 **MVP day 1 mitigation:**
+
 - Members upload their own; no third-party detection
 - Admins can replace an inappropriate avatar with placeholder (audit
   logged)
@@ -547,6 +567,7 @@ A member's avatar is visible to all signed-in members.
   the queue
 
 **Phase 2:**
+
 - Same content moderation API on avatar uploads at upload time
 
 ---
@@ -558,16 +579,16 @@ commitment (D034 in decision log).
 
 ### Alt text sources
 
-| Image source | Alt text source |
-|---|---|
-| Member avatar | "Profile photo of [displayName]" |
-| Generated initials avatar | "Initials avatar for [displayName]" |
+| Image source              | Alt text source                                                           |
+| ------------------------- | ------------------------------------------------------------------------- |
+| Member avatar             | "Profile photo of [displayName]"                                          |
+| Generated initials avatar | "Initials avatar for [displayName]"                                       |
 | og:image scraped from URL | Try `og:image:alt`, fallback to `og:title`, then "[domain] preview image" |
-| Member-uploaded post hero | Member provides alt at upload time (composer field) |
-| Image bank item | Curated alt text required at curation |
-| Group logo | "Logo for [group name]" |
-| Coordinator group logo | "Logo for [external group name]" |
-| Type-default placeholder | "Placeholder image for [post type] post" |
+| Member-uploaded post hero | Member provides alt at upload time (composer field)                       |
+| Image bank item           | Curated alt text required at curation                                     |
+| Group logo                | "Logo for [group name]"                                                   |
+| Coordinator group logo    | "Logo for [external group name]"                                          |
+| Type-default placeholder  | "Placeholder image for [post type] post"                                  |
 
 ### What we ban
 
@@ -600,12 +621,14 @@ poor alts. Phase 1.5 enhancement.
 Cost-effective for our scale. CDN-fronted automatically.
 
 Alternatives evaluated:
+
 - Cloudflare R2 — cheap, no egress fees; consider if costs grow
 - Self-hosted (MinIO) — operational overhead too high for MVP
 
 ### Serving via CDN
 
 All image URLs are served via a CDN with edge caching:
+
 - Avatars: 24-hour TTL (members update occasionally)
 - Post heroes: 1-year TTL (immutable; content-hash URLs)
 - og:image cards: 24-hour TTL (might regenerate if post body changes)
@@ -626,13 +649,16 @@ All image URLs are served via a CDN with edge caching:
 Across slices, the image-related schema:
 
 **Slice 1 (User):**
+
 - `User.avatarUrl?`
 - `User.avatarUploadedAt?`
 
 **Slice 1.5 (Groups):**
+
 - `Group.logoUrl?`
 
 **Slice 2 (Post):**
+
 - `Post.heroImageUrl?`
 - `Post.heroImageSource` (enum)
 - `Post.heroImageOriginalUrl?`
@@ -643,9 +669,11 @@ Across slices, the image-related schema:
 - `Post.ogImageGeneratedAt?`
 
 **Phase 1.5 (CoordinatorGroup — already in admin-surface.md):**
+
 - `CoordinatorGroup.logoUrl?`
 
 **Phase 1.5 (ImageBankItem):**
+
 - New table per spec above
 
 ---
@@ -681,6 +709,7 @@ Across slices, the image-related schema:
 ## What lands in MVP
 
 **MVP day 1:**
+
 - Member avatar upload + initials placeholder
 - og:image scraping from URLs in posts
 - 5 type-default placeholder hero images
@@ -691,6 +720,7 @@ Across slices, the image-related schema:
 - Object storage + CDN serving
 
 **Phase 1.5 (a few weeks in):**
+
 - Group logos
 - Coordinator group logos
 - Curated image bank with admin browse/pick UI
@@ -698,6 +728,7 @@ Across slices, the image-related schema:
 - Bank item submission queue (member-submitted)
 
 **Phase 2:**
+
 - Member-uploaded post hero images
 - Content moderation API integration
 - Member settings for "show preview images" toggle
@@ -705,6 +736,7 @@ Across slices, the image-related schema:
 - Watermarking if needed
 
 **Phase 3:**
+
 - AI-generated images
 - Animated content
 - Branded image templates

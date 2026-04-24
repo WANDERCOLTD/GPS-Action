@@ -34,7 +34,7 @@ The canonical post stays singular — it's Sharon's post, authored by Sharon.
 Abby's attempt to post the same content becomes a comment on Sharon's post,
 framed warmly to honour her independent contribution:
 
-> *"Abby saw this too and wants to share."*
+> _"Abby saw this too and wants to share."_
 
 No co-authorship. No shared bylines. No ownership ambiguity. Just Sharon's
 post with Abby's comment sitting naturally beneath it.
@@ -49,6 +49,7 @@ post with Abby's comment sitting naturally beneath it.
 primary content URL, after normalisation, is identical.
 
 **Normalisation rules:**
+
 - Lowercase scheme and host
 - Strip `www.` prefix
 - Remove common tracking parameters: `utm_*`, `fbclid`, `gclid`, `mc_cid`,
@@ -61,6 +62,7 @@ primary content URL, after normalisation, is identical.
   YouTube, `?p=123` on WordPress)
 
 **Explicitly out of scope for MVP:**
+
 - Image perceptual hashing (two posts of the same screenshot)
 - Title similarity matching (same story, two different outlets)
 - Body text similarity matching
@@ -84,9 +86,9 @@ Changes audit-logged. Not a feature flag — it's a config value (per D036).
 Server-side, at post creation time, before the post is persisted. Query:
 
 ```sql
-SELECT id, author_id, created_at 
-FROM posts 
-WHERE normalised_url = $1 
+SELECT id, author_id, created_at
+FROM posts
+WHERE normalised_url = $1
   AND created_at > NOW() - INTERVAL '$2 hours'
   AND status = 'published'
 ORDER BY created_at DESC
@@ -114,6 +116,7 @@ Before the post is created, Abby sees:
 > [Post separately instead]
 
 **Copy rules:**
+
 - Warm, honest (design-philosophy principle 5)
 - Sharon's name is a link that previews her post inline (small card) — Abby
   can see what she's about to join before deciding
@@ -125,7 +128,7 @@ Before the post is created, Abby sees:
 
 1. Abby is taken to a **comment composer** on Sharon's post.
 2. The composer is pre-populated with the system framing:
-   > *"Abby saw this too and wants to share."*
+   > _"Abby saw this too and wants to share."_
 3. Below that, a collapsed disclosure: **"Include what you wrote? [show]"**
 4. If expanded, her original draft is there for her to copy or paste fragments
    from. She can leave the default framing, replace it with her own words, or
@@ -155,13 +158,13 @@ Before the post is created, Abby sees:
 
 ## Read-state rules (summary)
 
-| Who | Their read state for Sharon's canonical post |
-|---|---|
-| Sharon (the author) | Read (she posted it) |
-| Abby, who merged her post as a comment (Path A) | Read |
-| Abby, who chose to post separately (Path B) | Read |
-| Abby, who cancelled the dedup interstitial (Path C) | Read |
-| Any other member | Unread until they view, as normal |
+| Who                                                 | Their read state for Sharon's canonical post |
+| --------------------------------------------------- | -------------------------------------------- |
+| Sharon (the author)                                 | Read (she posted it)                         |
+| Abby, who merged her post as a comment (Path A)     | Read                                         |
+| Abby, who chose to post separately (Path B)         | Read                                         |
+| Abby, who cancelled the dedup interstitial (Path C) | Read                                         |
+| Any other member                                    | Unread until they view, as normal            |
 
 **Rule:** Any interaction with the dedup interstitial marks the canonical post
 as read for the interacting user. Engagement is engagement, regardless of the
@@ -194,7 +197,7 @@ When Abby sees the dedup interstitial, she also sees the dispatch indicator
 (the WhatsApp-logo + groups popover from the v0.5 dispatch discussion):
 
 > **Sharon posted this 2 hours ago**
-> *Sent to: Boost/Remove Channel, North West Coordinators*
+> _Sent to: Boost/Remove Channel, North West Coordinators_
 >
 > Your thoughts will be added as a comment so we keep it all in one place.
 > ...
@@ -202,7 +205,7 @@ When Abby sees the dedup interstitial, she also sees the dispatch indicator
 If Sharon has already dispatched to the groups Abby was planning, Abby sees
 this immediately — preventing double-dispatch without any additional UX.
 
-If Sharon *hasn't* dispatched yet, Abby (or anyone) can still self-dispatch
+If Sharon _hasn't_ dispatched yet, Abby (or anyone) can still self-dispatch
 from the canonical post as normal. Dispatch is a post-level action, not
 author-restricted. This matches D013.
 
@@ -211,10 +214,12 @@ author-restricted. This matches D013.
 ## Data model additions
 
 ### `posts` table
+
 - `normalised_url` (text, indexed) — populated at insert; recomputed if URL changes
 - `has_merged_comments` (boolean, derived) — true if any comment has `origin: duplicate_merged`; UI hint
 
 ### `comments` table
+
 - `origin` (enum: `manual`, `duplicate_merged`, `system_generated`) — default `manual`
 - `attempted_post_draft` (text, nullable) — the original draft Abby had written,
   preserved for her access but not shown publicly by default
@@ -231,6 +236,7 @@ Sharon's post), not a new entity.
 Three new events added to the pilot instrumentation set:
 
 ### `post_merge_suggested`
+
 **When:** Dedup interstitial is shown to a user.
 **Properties:** `canonical_post_id_hash`, `time_since_canonical_hours` (number),
 `attempting_user_id_hash`.
@@ -238,6 +244,7 @@ Three new events added to the pilot instrumentation set:
 **Answers:** "How often is dedup detection firing?"
 
 ### `post_merge_accepted`
+
 **When:** User accepts the merge (Path A).
 **Properties:** `canonical_post_id_hash`, `time_on_interstitial_seconds`,
 `kept_original_draft` (bool — did they include their original text via disclosure).
@@ -245,6 +252,7 @@ Three new events added to the pilot instrumentation set:
 **Answers:** "Is the default working? Are people accepting the merge?"
 
 ### `post_merge_declined`
+
 **When:** User chooses "Post separately instead" (Path B).
 **Properties:** `canonical_post_id_hash`, `time_on_interstitial_seconds`,
 `reason_category` (optional, if we add a lightweight reason picker later).
@@ -263,15 +271,15 @@ the framing is wrong.
 These system-generated strings live in `docs/product/copy-library.md` so
 Claude Code uses them consistently:
 
-| Key | Copy |
-|---|---|
-| `dedup.interstitial.headline` | "{author_first_name} posted this {relative_time}" |
-| `dedup.interstitial.reassurance` | "Your thoughts will be added as a comment so we keep it all in one place." |
-| `dedup.interstitial.primary_cta` | "Add my comment" |
-| `dedup.interstitial.secondary_cta` | "Post separately instead" |
-| `dedup.comment.default_framing` | "{author_first_name} saw this too and wants to share." |
-| `dedup.comment.disclosure_label` | "Include what you wrote?" |
-| `dedup.notification.specific` | "{commenter_first_name} saw this too and added her thoughts to your post." |
+| Key                                | Copy                                                                       |
+| ---------------------------------- | -------------------------------------------------------------------------- |
+| `dedup.interstitial.headline`      | "{author_first_name} posted this {relative_time}"                          |
+| `dedup.interstitial.reassurance`   | "Your thoughts will be added as a comment so we keep it all in one place." |
+| `dedup.interstitial.primary_cta`   | "Add my comment"                                                           |
+| `dedup.interstitial.secondary_cta` | "Post separately instead"                                                  |
+| `dedup.comment.default_framing`    | "{author_first_name} saw this too and wants to share."                     |
+| `dedup.comment.disclosure_label`   | "Include what you wrote?"                                                  |
+| `dedup.notification.specific`      | "{commenter_first_name} saw this too and added her thoughts to your post." |
 
 Note on pronouns: "her" in the notification above assumes Abby is the example.
 Real implementation uses `{commenter_first_name} saw this too and added their
@@ -283,46 +291,55 @@ philosophy (no assumptions about member identity).
 ## Edge cases — thought through
 
 ### What if Sharon's post was deleted?
+
 No dedup match, because the query filters on `status = 'published'`. Abby's
 post goes through as a new top-level post.
 
-### What if Abby's attempt has a *different* URL that normalises to the same?
+### What if Abby's attempt has a _different_ URL that normalises to the same?
+
 Caught — normalisation is the key. e.g. `https://bbc.co.uk/news/12345` and
 `https://www.bbc.co.uk/news/12345?utm_source=twitter` match after normalisation.
 
 ### What if the URL resolves through a shortener to match Sharon's direct URL?
+
 Caught — shortener resolution is part of normalisation. Worth noting this adds
 latency to post creation (resolution can take 200–500ms). Mitigation: cache
 shortener resolutions for 7 days.
 
 ### What about a URL with legitimately distinct content? (e.g. same host, different story)
+
 The normalisation preserves the path and meaningful query params, so
 `bbc.co.uk/news/12345` and `bbc.co.uk/news/67890` do not match. Different
 stories, no false dedup.
 
 ### What if two users hit "Post" within the same second?
-Race condition. Handled via database unique index on `(normalised_url, created_at_hour_bucket)` 
+
+Race condition. Handled via database unique index on `(normalised_url, created_at_hour_bucket)`
 or — simpler — by serializing post-creation on `normalised_url` with a brief
 advisory lock. Second-comer sees the first as already-existing and gets the
-dedup flow. 
+dedup flow.
 
 Decision: **advisory lock** approach. Simpler than bucket indexing, handles
 the race correctly, releases automatically on transaction commit.
 
 ### What if someone wants to post the same URL 25 hours after the first?
+
 No dedup triggers — outside the window. Their post appears as a fresh top-level
 item. If this becomes a pattern ("the same article keeps getting posted every
 day"), that's a product signal worth reviewing; not a dedup problem to solve in
 MVP.
 
 ### What if the canonical post author (Sharon) is the one re-posting her own URL within the window?
+
 Dedup still fires — but the interstitial copy adapts:
+
 > "You posted this earlier today — do you want to add a new comment instead?"
-  
+
 Her old post remains canonical; her new thoughts become a comment. Consistent
 with the principle — the canonical post is singular.
 
 ### What if the post has multiple URLs in its body?
+
 MVP rule: **primary URL only**, where primary = the first URL in the body that's
 not an image embed. Documented as a known limitation. Phase 2 enhancement:
 multi-URL dedup with a disambiguation step if multiple URLs match different

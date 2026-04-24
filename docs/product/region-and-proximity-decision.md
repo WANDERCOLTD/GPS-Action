@@ -21,11 +21,12 @@ schema in `docs/architecture/erd.md` follows from these answers.
 
 Every other entity in the system references "region" or "location" in some
 way:
-- **Users** are *somewhere* (or live multiple places)
-- **Posts** are *for* someone (national? local? everywhere?)
-- **Queue managers** are scoped to *somewhere* (their patch)
-- **Events** happen *at* a place
-- **Council action** requires knowing *which council*
+
+- **Users** are _somewhere_ (or live multiple places)
+- **Posts** are _for_ someone (national? local? everywhere?)
+- **Queue managers** are scoped to _somewhere_ (their patch)
+- **Events** happen _at_ a place
+- **Council action** requires knowing _which council_
 
 If we get this wrong in Slice 1 of the schema, we're retrofitting it later
 across every feature. If we get it right, every feature inherits a clean
@@ -37,11 +38,11 @@ This is the most important product decision in the schema.
 
 ## The reframe that prompted this memo
 
-Initial assumption: region is **identity** — *what region am I in* — picked
+Initial assumption: region is **identity** — _what region am I in_ — picked
 once at signup, derived everything from there.
 
-Paul's reframe (23 April): region might be **proximity** — *what's near me
-right now* — derived from phone location at the moment of need.
+Paul's reframe (23 April): region might be **proximity** — _what's near me
+right now_ — derived from phone location at the moment of need.
 
 Both are coherent. They're genuinely different products. The truth is
 probably layered — proximity for the user-facing experience, structured
@@ -59,11 +60,13 @@ not a bug, at pilot scale.
 ### Layer 1 — Structured regions
 
 A list of UK places with hierarchy:
+
 - National
 - Region (London, North West, Scotland, etc.)
 - Council / borough (Brent, Camden, Manchester, etc.)
 
 Each entry has:
+
 - A name and slug
 - A parent (for hierarchy queries)
 - Council-specific data (council website, councillor contacts) — populated
@@ -83,6 +86,7 @@ Considered for future if pilot shows members want "near me" filtering.
 ### Layer 3 — Post location
 
 A post can have:
+
 - One optional region tag (Manchester, London, National)
 - Precise lat/lng — **deferred to when events ship as a first-class type**
 
@@ -112,6 +116,7 @@ that are genuinely simpler.
 ### Q1 — Default privacy posture for location
 
 **Original positions:**
+
 - 1A — Postcode-only, location strictly optional
 - 1B — Honest opt-in at onboarding
 - 1C — Strongly encourage location
@@ -131,6 +136,7 @@ proximity features are requested.
 ### Q2 — Default feed behaviour for a new member
 
 **Original positions:**
+
 - 2A — National only until customised
 - 2B — National + 25-mile radius from postcode
 - 2C — Everything by default; member filters down
@@ -147,6 +153,7 @@ informational tag on posts.**
 **DECIDED: Position 2D.**
 
 **Reasoning:**
+
 - At pilot scale, feed volume is low enough that everyone seeing everything
   is a feature, not a bug — cross-regional solidarity
 - Defers the privacy question
@@ -157,6 +164,7 @@ informational tag on posts.**
 - Member self-filtering is future work — add when members ask for it
 
 **Example use cases that work cleanly:**
+
 - "Event happening in Manchester" — tagged Manchester; everyone in the
   pilot sees it and understands where it is
 - "Urgent — people needed now in Glasgow" — tagged Glasgow; everyone sees
@@ -168,6 +176,7 @@ informational tag on posts.**
 ### Q3 — Queue manager scope (originally "coordinator scope")
 
 **Original positions:**
+
 - 3A — Structured regions only
 - 3B — Radius from anchor postcode
 - 3C — Hybrid
@@ -183,6 +192,7 @@ single global queue.**
 **DECIDED: Position 3D.**
 
 **Reasoning:**
+
 - Pilot cohort of queue managers is small — a shared workload with many
   eyes is more robust than regional assignments
 - Workload self-balances without admin intervention
@@ -209,6 +219,7 @@ GPS Action.
 
 Queue management is a separate role (`queue_manager`) granted by admins
 and revocable at will. A member can be:
+
 - Just a member (most)
 - A coordinator only (labelled, but no queue access)
 - A queue manager only (queue access, no external groups)
@@ -224,17 +235,17 @@ model.
 Compared to the default-lean I'd originally proposed (1B + 2B + 3A), the
 actual decision simplifies significantly:
 
-| Component | Under decided model | Notes |
-|---|---|---|
-| `User.homeLat/Lng` | **Not in schema** | No location collection |
-| `User.allowLocationServices` | **Not in schema** | No location permissions |
-| `Region` table | Yes, but simpler | Hierarchy only; no centroids, no boundaries |
-| `Post.location` | Optional region tag (FK) | No lat/lng for MVP |
-| `Post.regionTag` | Optional, FK to Region | Used for display only |
-| Feed query complexity | **Simple** | `ORDER BY createdAt DESC` with no region filter |
-| PostGIS extension | **Not needed** | No geospatial queries |
-| Queue manager scope | **Not scoped** | Global queue, all items visible |
-| Coordinator identity | Separate tables | See D042 and admin-surface.md |
+| Component                    | Under decided model      | Notes                                           |
+| ---------------------------- | ------------------------ | ----------------------------------------------- |
+| `User.homeLat/Lng`           | **Not in schema**        | No location collection                          |
+| `User.allowLocationServices` | **Not in schema**        | No location permissions                         |
+| `Region` table               | Yes, but simpler         | Hierarchy only; no centroids, no boundaries     |
+| `Post.location`              | Optional region tag (FK) | No lat/lng for MVP                              |
+| `Post.regionTag`             | Optional, FK to Region   | Used for display only                           |
+| Feed query complexity        | **Simple**               | `ORDER BY createdAt DESC` with no region filter |
+| PostGIS extension            | **Not needed**           | No geospatial queries                           |
+| Queue manager scope          | **Not scoped**           | Global queue, all items visible                 |
+| Coordinator identity         | Separate tables          | See D042 and admin-surface.md                   |
 
 **No geospatial infrastructure in MVP.** No PostGIS, no distance
 calculations, no radius queries. This is a meaningful simplification.
@@ -275,6 +286,7 @@ calculations, no radius queries. This is a meaningful simplification.
 > **Decided by:** Paul, in consultation with Jeremy.
 > **Date:** 23 April 2026.
 > **Follow-on decisions:**
+>
 > - D041 (Region as optional tag only)
 > - D042 (Coordinator identity vs queue_manager permission split)
 
