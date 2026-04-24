@@ -1,10 +1,11 @@
 /**
- * Schema smoke test — proves the generated Prisma client exposes every Slice 1
- * model. Type-only references; no database I/O.
+ * Schema smoke test — proves the generated Prisma client exposes every
+ * Slice 1 + Slice 1.5 model. Type-only references; no database I/O.
  *
  * @build-unit BU-001-prep
  * @spec architecture/admin-surface.md
  * @spec architecture/claim-and-lease.md
+ * @spec product/groups.md
  */
 
 import { describe, it, expect } from 'vitest';
@@ -58,8 +59,6 @@ describe('schema smoke — Slice 1 entities', () => {
     for (const key of expectedKeys) {
       expect(entityMetadata).toHaveProperty(key);
     }
-
-    expect(Object.keys(entityMetadata).sort()).toEqual([...expectedKeys].sort());
   });
 
   it('every metadata entry declares a display field or a display template', () => {
@@ -67,5 +66,38 @@ describe('schema smoke — Slice 1 entities', () => {
       const hasDisplay = entry.displayField.length > 0 || (entry.displayTemplate ?? '').length > 0;
       expect(hasDisplay, `${name} must have displayField or displayTemplate`).toBe(true);
     }
+  });
+});
+
+describe('schema smoke — Slice 1.5 entities (Groups)', () => {
+  it('exposes Group and GroupMembership on PrismaClient', () => {
+    type ModelKey = keyof Pick<PrismaClient, 'group' | 'groupMembership'>;
+
+    const expected: ReadonlyArray<ModelKey> = ['group', 'groupMembership'];
+
+    expect(expected).toHaveLength(2);
+  });
+
+  it('has metadata entries for Group and GroupMembership', () => {
+    expect(entityMetadata).toHaveProperty('group');
+    expect(entityMetadata).toHaveProperty('groupMembership');
+  });
+
+  it('metadata covers all Slice 1 + 1.5 entities', () => {
+    const expectedKeys = [
+      'auditLog',
+      'coordinatorGroup',
+      'coordinatorProfile',
+      'featureFlag',
+      'group',
+      'groupMembership',
+      'region',
+      'roleGrant',
+      'user',
+      'userRegion',
+      'workItem',
+    ];
+
+    expect(Object.keys(entityMetadata).sort()).toEqual(expectedKeys);
   });
 });

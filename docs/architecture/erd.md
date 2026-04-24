@@ -18,13 +18,13 @@ The ERD lands one slice at a time. Each slice **adds** to
 are not refactored without an ADR. The Mermaid diagram below extends with each
 slice — earlier entities never disappear.
 
-| Slice | Status    | Contents                                                                                                   |
-| ----- | --------- | ---------------------------------------------------------------------------------------------------------- |
-| **1** | ✅ landed | User, Region, UserRegion, WorkItem, RoleGrant, CoordinatorProfile, CoordinatorGroup, AuditLog, FeatureFlag |
-| 1.5   | planned   | Group, GroupMembership (per D043)                                                                          |
-| 2     | planned   | Post, Comment, Reaction, Attachment + dedup fields (per dedup-and-cosurfacing.md)                          |
-| 3     | planned   | Application (vetting), Flag, OutcomeReview, EditRequest, ContentSubmission, Vouch                          |
-| 4     | planned   | Contact, Resource, Route, DispatchEvent, PartnerOrg                                                        |
+| Slice   | Status    | Contents                                                                                                   |
+| ------- | --------- | ---------------------------------------------------------------------------------------------------------- |
+| **1**   | ✅ landed | User, Region, UserRegion, WorkItem, RoleGrant, CoordinatorProfile, CoordinatorGroup, AuditLog, FeatureFlag |
+| **1.5** | ✅ landed | Group, GroupMembership + WorkItem.groupTags (per D043)                                                     |
+| 2       | planned   | Post, Comment, Reaction, Attachment + dedup fields (per dedup-and-cosurfacing.md)                          |
+| 3       | planned   | Application (vetting), Flag, OutcomeReview, EditRequest, ContentSubmission, Vouch                          |
+| 4       | planned   | Contact, Resource, Route, DispatchEvent, PartnerOrg                                                        |
 
 When a future slice begins, the brief lists the new entities, names the
 relations to existing entities, and adds them to this diagram. No previous
@@ -32,7 +32,7 @@ slice's schema changes without an ADR documenting why.
 
 ---
 
-## Slice 1 — Mermaid diagram
+## Slices 1 + 1.5 — Mermaid diagram
 
 ```mermaid
 erDiagram
@@ -57,6 +57,12 @@ erDiagram
     User ||--o{ FeatureFlag : "owns"
     User ||--o{ FeatureFlag : "created"
     User ||--o{ FeatureFlag : "updated"
+
+    User ||--o{ Group : "created"
+    User ||--o{ GroupMembership : "member of"
+    User ||--o{ GroupMembership : "approved"
+
+    Group ||--o{ GroupMembership : "members"
 
     User {
         uuid     id PK
@@ -95,6 +101,7 @@ erDiagram
         WorkItemPriority   priority "default normal"
         json               context "type-specific payload"
         string             regionSlug "informational only"
+        string_arr         groupTags "Group slugs - GIN indexed"
         uuid               createdByUserId FK "nullable"
         uuid               claimedByUserId FK "nullable"
         datetime           claimedAt "nullable"
@@ -176,6 +183,36 @@ erDiagram
         datetime           updatedAt
         datetime           deletedAt "nullable - soft delete"
     }
+
+    Group {
+        uuid            id PK
+        string          slug "unique"
+        string          displayName
+        string          description "nullable"
+        string          logoUrl "nullable"
+        GroupJoinPolicy joinPolicy "default open"
+        boolean         isOfficial "default false"
+        uuid            createdByUserId FK
+        datetime        createdAt
+        datetime        updatedAt
+        datetime        deletedAt "nullable - soft delete"
+    }
+
+    GroupMembership {
+        uuid                id PK
+        uuid                userId FK
+        uuid                groupId FK
+        GroupMembershipRole role "default member"
+        datetime            joinedAt
+        JoinSource          joinedVia "default self_join"
+        datetime            leftAt "nullable - voluntary departure"
+        string              leftReason "nullable"
+        uuid                approvedByUserId FK "nullable"
+        datetime            approvedAt "nullable"
+        datetime            createdAt
+        datetime            updatedAt
+        datetime            deletedAt "nullable - soft delete"
+    }
 ```
 
 ---
@@ -193,6 +230,8 @@ erDiagram
 | **CoordinatorGroup**   | A specific external group a coordinator runs (WhatsApp, newsletter, etc.).                                                      | Yes (`deletedAt`)                                | Cascade-deletes with the parent profile                                                                                                               |
 | **AuditLog**           | Immutable record of sensitive events (B07). Append-only.                                                                        | No — never deleted                               | App-level: routers must not expose update or delete procedures. `userId` and `targetUserId` use `SetNull` so user hard-deletes leave the chain intact |
 | **FeatureFlag**        | Homegrown DB-driven flags (D036). Server-side evaluation.                                                                       | Yes (`deletedAt`)                                | App-level: rollout flags require `ttlRemoveAfter`; kill switches require `ownerUserId`; new flags default OFF                                         |
+| **Group**              | Internal affiliation marker (D043). Identity + soft queue filtering; no permission impact, no feed fragmentation.               | Yes (`deletedAt`)                                | DB: unique on `slug`. App-level: slug immutable after creation; soft-deleted groups hidden from default queries                                       |
+| **GroupMembership**    | Join table: User ↔ Group. Tracks how they joined and (optionally) who approved.                                                 | Yes (`deletedAt` + `leftAt` for departures)      | DB: `@@unique([userId, groupId])`. App-level: one active membership per pair; re-join creates new row                                                 |
 
 ---
 
@@ -207,6 +246,7 @@ principles:
    - `CoordinatorProfile` → `User`: `Cascade`
    - `RoleGrant.user` → `User`: `Cascade`
    - `UserRegion.{user, region}` → parent: `Cascade`
+   - `GroupMembership.{user, group}` → parent: `Cascade`
 
 2. **Audit-bearing references restrict.** A user who has granted roles or
    created/owned feature flags cannot be hard-deleted until those references
@@ -217,12 +257,14 @@ principles:
    - `FeatureFlag.createdBy` → `User`: `Restrict`
    - `FeatureFlag.updatedBy` → `User`: `Restrict`
    - `Region.parent` → `Region`: `Restrict` (don't orphan child regions silently)
+   - `Group.createdBy` → `User`: `Restrict` (preserves "who created this group" audit chain)
 
 3. **Historical-actor references null.** Where the relation is "who did this
    at the time," losing the actor doesn't invalidate the record itself —
    nullify the FK so the record persists.
    - `WorkItem.{createdBy, claimedBy, resolvedBy}` → `User`: `SetNull`
    - `AuditLog.{user, targetUser}` → `User`: `SetNull`
+   - `GroupMembership.approvedBy` → `User`: `SetNull`
 
 In practice **soft-delete will be the default**; hard-deletes only happen
 for compliance (DSAR, GDPR right to erasure) and run through dedicated
@@ -232,26 +274,32 @@ procedures, not the generic admin (per admin-surface.md).
 
 ## Indexes — what's queried
 
-| Entity             | Index                                                               | Why                                               |
-| ------------------ | ------------------------------------------------------------------- | ------------------------------------------------- |
-| User               | `(deletedAt)`, `(verifiedAt)`                                       | Soft-delete filter; vetting status filter         |
-| Region             | `(type)`, `(parentId)`, `(deletedAt)`                               | List by tier; hierarchy walks; soft-delete filter |
-| UserRegion         | `(userId, regionId)` unique; `(userId)`, `(regionId)`               | Affinity lookup both directions                   |
-| WorkItem           | `(status, priority, createdAt)`                                     | Queue list (default sort)                         |
-| WorkItem           | `(claimedByUserId, status)`                                         | "What am I working on?"                           |
-| WorkItem           | `(type, status)`                                                    | Per-type queue filtering                          |
-| WorkItem           | `(regionSlug, status)`                                              | Informational region rollups                      |
-| WorkItem           | `(deletedAt)`                                                       | Soft-delete filter                                |
-| RoleGrant          | `(userId, role, revokedAt)`                                         | Active-role test                                  |
-| RoleGrant          | `(grantedAt)`                                                       | History view sort                                 |
-| CoordinatorProfile | `(deletedAt)`                                                       | Soft-delete filter                                |
-| CoordinatorGroup   | `(coordinatorProfileId, deletedAt)`                                 | List a coordinator's groups                       |
-| AuditLog           | `(userId, createdAt)`                                               | "What did Sharon do this week?"                   |
-| AuditLog           | `(targetUserId, createdAt)`                                         | "What was done to this user?"                     |
-| AuditLog           | `(entityType, entityId)`                                            | Entity history view                               |
-| AuditLog           | `(action, createdAt)`                                               | Filter by event type                              |
-| AuditLog           | `(createdAt)`                                                       | General time-range queries                        |
-| FeatureFlag        | `(purpose)`, `(enabledGlobally)`, `(ttlRemoveAfter)`, `(deletedAt)` | Filter by type, find expiring flags               |
+| Entity             | Index                                                               | Why                                                |
+| ------------------ | ------------------------------------------------------------------- | -------------------------------------------------- |
+| User               | `(deletedAt)`, `(verifiedAt)`                                       | Soft-delete filter; vetting status filter          |
+| Region             | `(type)`, `(parentId)`, `(deletedAt)`                               | List by tier; hierarchy walks; soft-delete filter  |
+| UserRegion         | `(userId, regionId)` unique; `(userId)`, `(regionId)`               | Affinity lookup both directions                    |
+| WorkItem           | `(status, priority, createdAt)`                                     | Queue list (default sort)                          |
+| WorkItem           | `(claimedByUserId, status)`                                         | "What am I working on?"                            |
+| WorkItem           | `(type, status)`                                                    | Per-type queue filtering                           |
+| WorkItem           | `(regionSlug, status)`                                              | Informational region rollups                       |
+| WorkItem           | `(deletedAt)`                                                       | Soft-delete filter                                 |
+| RoleGrant          | `(userId, role, revokedAt)`                                         | Active-role test                                   |
+| RoleGrant          | `(grantedAt)`                                                       | History view sort                                  |
+| CoordinatorProfile | `(deletedAt)`                                                       | Soft-delete filter                                 |
+| CoordinatorGroup   | `(coordinatorProfileId, deletedAt)`                                 | List a coordinator's groups                        |
+| AuditLog           | `(userId, createdAt)`                                               | "What did Sharon do this week?"                    |
+| AuditLog           | `(targetUserId, createdAt)`                                         | "What was done to this user?"                      |
+| AuditLog           | `(entityType, entityId)`                                            | Entity history view                                |
+| AuditLog           | `(action, createdAt)`                                               | Filter by event type                               |
+| AuditLog           | `(createdAt)`                                                       | General time-range queries                         |
+| FeatureFlag        | `(purpose)`, `(enabledGlobally)`, `(ttlRemoveAfter)`, `(deletedAt)` | Filter by type, find expiring flags                |
+| WorkItem           | `(groupTags)` GIN                                                   | Queue filtering by group slug array                |
+| Group              | `(deletedAt, isOfficial)`                                           | List non-deleted groups; filter by official status |
+| GroupMembership    | `(userId, groupId)` unique                                          | One active membership per pair                     |
+| GroupMembership    | `(userId)`                                                          | "What groups is this user in?"                     |
+| GroupMembership    | `(groupId, leftAt)`                                                 | Active members of a group                          |
+| GroupMembership    | `(deletedAt)`                                                       | Soft-delete filter                                 |
 
 ---
 
@@ -270,6 +318,60 @@ in later slices, but the foundation must support their data shapes.)
   hold. ✓ (per D042)
 - **Region tagging.** `Region` exists for future `Post.regionTagId` (Slice 2)
   and `WorkItem.regionSlug` is already populated. ✓
+
+---
+
+## Slice 1.5 — Groups
+
+### What was added and why
+
+Slice 1.5 introduces two new entities (**Group**, **GroupMembership**), three
+new enums (**GroupJoinPolicy**, **GroupMembershipRole**, **JoinSource**), and
+extends the existing **WorkItem** with a `groupTags String[]` column.
+
+**Motivation (D043):** GPS Action has one unified feed (D041), but members have
+natural affinities — writers, BDS responders, geographic cohorts. Groups give
+those affinities a data-model home without fragmenting the feed. They serve two
+purposes:
+
+1. **Identity markers** — members join groups and display badges on their
+   profile
+2. **Soft queue filtering** — queue managers can filter work items by group
+   slugs stored in `WorkItem.groupTags`
+
+Groups explicitly do NOT grant permissions, filter the feed, or create private
+spaces (per D041, D043).
+
+### Key design choices
+
+| Choice                                         | Rationale                                                                                                                                         |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Group` vs `CoordinatorGroup` naming           | Different concepts: `Group` = internal GPS Action affiliation; `CoordinatorGroup` = external community a coordinator runs. Per D042/D043          |
+| `groupTags String[]` on WorkItem (not FK)      | A work item can relate to multiple groups; Postgres arrays + GIN index are efficient for `ANY()` queries; FK constraints on arrays are impossible |
+| `GroupMembership.leftAt` alongside `deletedAt` | `leftAt` = domain event (member voluntarily departed); `deletedAt` = admin soft-delete. Different operations with different semantics             |
+| `joinedAt` + `createdAt` on GroupMembership    | `joinedAt` is the domain timestamp; `createdAt` is the convention-4 timestamp. Same pattern as `RoleGrant.grantedAt` + `createdAt`                |
+| `approvedBy` uses `SetNull` (not Restrict)     | Approval is a historical-actor reference; if the approving admin is hard-deleted, the membership record persists                                  |
+| `Group.createdBy` uses `Restrict`              | Preserves "who created this group" audit chain — same rationale as `FeatureFlag.createdBy`                                                        |
+| No `@@index([slug])` on Group                  | `@unique` already creates an index; a separate `@@index` would be redundant. Consistent with `User.email` and `Region.slug` patterns              |
+
+### How Slice 1.5 supports the scenarios
+
+- **Member joins "Writers" (open group).** Single `GroupMembership` row:
+  `joinedVia=self_join`, `leftAt=NULL`. ✓
+- **Member requests to join "Vetting Team" (request_to_join).** Future
+  `WorkItem` of type `group_join_request` created; on approval,
+  `GroupMembership` created with `joinedVia=request_approved`,
+  `approvedByUserId` populated. ✓ (enum value deferred to the implementing
+  Build Unit)
+- **Admin adds member to "Founding Members" (admin_only).**
+  `GroupMembership` with `joinedVia=admin_added`, `approvedByUserId`
+  populated. ✓
+- **Member leaves a group.** `leftAt` + optional `leftReason` set; row stays
+  for history. ✓
+- **Queue manager filters by group.** `WHERE 'writers' = ANY(groupTags)`
+  against WorkItem, using the GIN index. ✓
+- **Admin archives a group.** `deletedAt` set on Group; memberships remain
+  but group hidden from default queries. ✓
 
 ---
 
@@ -390,6 +492,77 @@ Slice 1.5 and `claim-and-lease.md` does not include this field. The brief
 requires "EXACTLY" matching `claim-and-lease.md`.
 
 **Default chosen:** Not added in Slice 1. Slice 1.5 (Groups) adds it.
+
+## Open questions surfaced in Slice 1.5
+
+### 11. GIN index syntax for Prisma 5
+
+Prisma 5.22.0 supports `@@index([groupTags], type: Gin)`. Verified: schema
+validates with this syntax. No fallback needed.
+
+### 12. `JoinSource` enum completeness
+
+Four values shipped: `self_join`, `request_approved`, `admin_added`,
+`admin_invited`. Considered adding `imported` / `migrated` for future
+bulk-migration scenarios.
+
+**Default chosen:** Four values sufficient for MVP. If a migration or import
+flow is needed later, the enum is extended forwards (per slice convention
+rule 4). No action now.
+
+### 13. Seed data for starter groups
+
+This session does NOT seed groups (per out-of-scope). The ~10 starter groups
+listed in `docs/product/groups.md` §"Migration / bootstrap" (Writers,
+Newsletter Editors, Talk Radio Group, Vetting Team, Education Campaigns, BDS
+Response Team, Manchester, North London, South London, etc.) should be
+created by the F10 seed session.
+
+**Recommendation:** F10 references `docs/product/groups.md` for the starter
+list. No additional documentation needed here.
+
+### 14. `WorkItemType` extension for `group_join_request`
+
+`groups.md` describes a `group_join_request` work-item type for
+`request_to_join` groups. The `WorkItemType` enum currently does not include
+it.
+
+**Default chosen:** Deferred. The enum value belongs in the Build Unit that
+implements the join-request workflow. Adding it now would create a type with
+no code path to create or resolve it. Per slice convention rule 4, enums grow
+forwards.
+
+### 15. File-header `@build-unit` value
+
+**Default chosen:** Continue using `BU-001-prep`. Slice 1.5 feeds into BU-001
+admin scaffolding just as Slice 1 does. Both are "prep" for the same Build
+Unit.
+
+### 16. `CoordinatorGroup` vs `Group` naming
+
+Two different concepts share "Group" in their names:
+
+- `CoordinatorGroup` — external community a coordinator runs (WhatsApp,
+  newsletter, shul network). Slice 1, per D042.
+- `Group` — internal GPS Action affiliation marker. Slice 1.5, per D043.
+
+Per D042 and D043, this is the agreed-upon language. The schema comments
+explicitly document the distinction. No tangible naming conflict found — the
+Prisma model names are unambiguous (`CoordinatorGroup` vs `Group`), and the
+admin metadata keys are similarly distinct.
+
+### 17. `GroupMembership.deletedAt` vs `leftAt` (NEW)
+
+`groups.md` uses `leftAt` as the soft-delete marker (comment: "Soft delete
+(left the group)") and does not include `deletedAt`. Convention 2 requires
+`deletedAt DateTime?` on soft-delete-eligible entities. The brief's acceptance
+criteria explicitly requires `deletedAt` on GroupMembership.
+
+**Default chosen:** Include both. `leftAt` = domain event (member voluntarily
+departed). `deletedAt` = admin-level soft-delete. They serve different
+purposes, similar to how `RoleGrant` has `revokedAt` as a domain marker
+(though RoleGrant doesn't have `deletedAt` since revocation IS the status
+change).
 
 ---
 
