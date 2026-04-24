@@ -2,6 +2,8 @@
  * Integration tests for the post.list tRPC procedure.
  *
  * @build-unit BU-feed
+ * @spec architecture/api-contract.md
+ * @spec architecture/decision-log.md (D045)
  *
  * Tests the router → service → prisma chain via createCaller.
  * Mocks prisma at the DB boundary (same pattern as auth-stub.test.ts).

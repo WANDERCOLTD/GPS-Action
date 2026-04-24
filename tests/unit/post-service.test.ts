@@ -2,6 +2,7 @@
  * Unit tests for the post service layer.
  *
  * @build-unit BU-feed
+ * @spec architecture/api-contract.md
  *
  * Tests listPosts filtering logic: visibility, deletedAt, cursor
  * pagination, and author role inclusion. Mocks prisma.

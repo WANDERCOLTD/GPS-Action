@@ -2,6 +2,7 @@
 
 /**
  * @build-unit BU-feed
+ * @spec architecture/api-contract.md
  *
  * Server action for feed pagination. Called by the FeedList client
  * component's "Load more" button. Resolves the current user from
