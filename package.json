@@ -17,7 +17,8 @@
     "db:reset": "prisma migrate reset",
     "db:seed": "tsx scripts/seed.ts",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "prepare": "husky"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -33,6 +34,8 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
     "@types/node": "^22.9.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
@@ -42,6 +45,8 @@
     "eslint-config-next": "^15.0.0",
     "eslint-plugin-boundaries": "^5.0.1",
     "globals": "^17.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.3.3",
     "prisma": "^5.22.0",
     "tsx": "^4.19.2",
