@@ -1,14 +1,14 @@
 /**
- * Root tRPC router.
- * Feature routers merge here. Keep this file small.
+ * @build-unit BU-000-root
+ * @spec architecture/api-contract.md
+ *
+ * Root tRPC router. Sub-routers merge here. Keep this file small.
  */
 
 import { router } from '@/server/lib/trpc';
-import { pingRouter } from './ping';
 
 export const appRouter = router({
-  ping: pingRouter,
-  // Future routers: posts, users, dispatch, vetting, etc.
+  // Feature routers land here: posts, users, dispatch, vetting, etc.
 });
 
 export type AppRouter = typeof appRouter;

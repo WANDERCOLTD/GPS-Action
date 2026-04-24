@@ -34,23 +34,6 @@ datasource db {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TRANSITIONAL — Ping placeholder
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// The original skeleton's hello-world entity. CLAUDE.md says it should be
-// removed once real entities land, but the existing references in
-// `server/services/ping.ts`, `server/routers/ping.ts`, `server/routers/_app.ts`
-// and `scripts/seed.ts` are out of scope for this Slice 1 brief (which forbids
-// touching `/server/{services,routers}/` and `seed.ts`). Kept here so
-// downstream code keeps compiling. Tracked for removal — see the open
-// questions in `docs/architecture/erd.md`.
-model Ping {
-  id        String   @id @default(cuid())
-  message   String
-  createdAt DateTime @default(now())
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // SLICE 1 — Foundation entities
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -193,14 +176,12 @@ model Region {
 
 // ─── UserRegion ──────────────────────────────────────────────────────────────
 //
-// Join table between User and Region. PURPOSE NEEDS CONFIRMATION — see open
-// question 0 in the ERD doc. Current placeholder semantics: "regions a user
-// has flagged as relevant to their activism" (informational only; per D041
-// does NOT drive feed or queue filtering in MVP).
+// Join table between User and Region. Semantics: regions a user has marked
+// as relevant to their activism — informational display on their profile.
+// Per D041 this does NOT drive feed or queue filtering in MVP. Future work
+// may use this for an optional "filter my feed by my regions" preference
+// (see parking-lot.md "Member region filtering").
 //
-// Modelled minimally so the access pattern in the brief's permission matrix
-// can be satisfied without committing to a richer semantic. If this is wrong,
-// it is the cheapest of the nine to revisit in a follow-up ADR.
 model UserRegion {
   id String @id @default(uuid())
 
@@ -280,8 +261,9 @@ model WorkItem {
 //
 // App-level invariants:
 //   - One active grant per (user, role) — Postgres partial unique indexes are
-//     not first-class in Prisma; enforced in the grant procedure. See open
-//     question 1 in the ERD doc.
+//     not first-class in Prisma 5; enforced in the grant procedure (not at
+//     DB level). Revisit with a raw-SQL migration if duplicates appear in
+//     audit.
 //   - Cannot revoke own admin role
 //   - Cannot revoke the last admin
 //   - On revocation: any work items claimed by the user are auto-released
