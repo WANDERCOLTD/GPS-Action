@@ -98,9 +98,15 @@ business logic, design tradeoff), STOP and ask. Don't guess.
 
 ## Current focus
 
-Building the ERD. See `docs/architecture/erd.md` for placeholder context.
-After ERD lands, the Ping placeholder entity in `prisma/schema.prisma`
-will be removed and real entities defined.
+Demo path — see `docs/build/bu-sequence.md`. ERD Slices 1, 1.5, 2
+(minimal) are merged. BU-001-lite (dev auth stub) is next.
+
+## Dev auth (BU-001-lite)
+
+In development, visit `/dev/login` to switch between seeded users.
+Cookie-based, no passwords. The cookie `gps_dev_user_id` persists
+until cleared. `<LoggedInAs />` in the root layout shows who's
+logged in. All dev-only code is gated by `NODE_ENV !== 'production'`.
 
 ---
 
