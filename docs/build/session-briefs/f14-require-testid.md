@@ -471,11 +471,11 @@ Things this session cannot decide autonomously. Surface; do not assume.
    intentional (the rule cannot resolve cross-file constants
    tractably). Confirm or revise.
 
-6. **Future BU-005 (full FAB composer) area.** Per D044, the FAB
+6. **Future BU-composer-fab (full FAB composer) area.** Per D044, the FAB
    intent-cards composer is a future BU. When that lands, do its
    testids share the `compose-` area or split (`fab-`, `intent-`)?
    Current recommendation: `compose-` covers the whole compose
-   experience. Surface for review when BU-005 starts.
+   experience. Surface for review when BU-composer-fab starts.
 
 7. **What about pages, not just elements?** The rule does not check
    that pages have a wrapping testid (e.g. `<main

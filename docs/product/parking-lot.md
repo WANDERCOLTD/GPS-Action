@@ -190,7 +190,7 @@ When two members independently try to post the same URL within a configurable wi
 - Double-dispatch (Abby sees Sharon already sent to WhatsApp groups)
 
 **Full spec:** `docs/product/dedup-and-cosurfacing.md`
-**Build Unit:** BU-009 (to be catalogued after ERD)
+**Build Unit:** BU-dedup (to be catalogued after ERD)
 **Analytics:** three new events — `post_merge_suggested`, `post_merge_accepted`, `post_merge_declined`
 **Copy keys:** seven new keys added to copy library (dedup.interstitial._, dedup.comment._, dedup.notification.specific)
 
@@ -240,7 +240,7 @@ The paths content comes _into_ GPS Action from the outside world. Member sees so
 - The `/share` endpoint means Phase 2 native apps plug into existing backend with no rebuild
 
 **Full spec:** `docs/product/inbound-sharing.md`
-**Build Unit:** BU-010 (to be catalogued after ERD)
+**Build Unit:** BU-inbound-share (to be catalogued after ERD)
 **Engineering roadmap item:** B11 (native iOS for share extension)
 **Analytics:** three new events — `share_intent_started`, `share_intent_completed`, `share_intent_abandoned`; plus `inbound_source` property added to `post_published`
 **Copy keys:** ten new keys added to copy library (share.clipboard._, share.bookmarklet._, share.android._, share.endpoint._)
@@ -958,7 +958,7 @@ URL, site name. This is friction and is below the 2026 expectation
 **Surfaced by:** Scenario 19 conversation (April 2026), captured
 in scenario's "Friction found" section.
 
-**Related:** Scenario 19, the FAB composer (BU-005, D044) which
+**Related:** Scenario 19, the FAB composer (BU-composer-fab, D044) which
 might be the right place to integrate auto-fetch since it's a
 richer composer surface anyway.
 

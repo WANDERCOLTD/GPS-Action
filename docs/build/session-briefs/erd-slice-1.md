@@ -44,7 +44,7 @@ Things this brief is aware of but explicitly not building:
 - **Feature entities** (Post, Comment, Reaction, Flag, Application, OutcomeReview, EditRequest, ContentSubmission, LinkSubmission, Vouch, Group, Contact, Resource, Route, DispatchEvent, PartnerOrg) — these arrive in Slices 2-4
 - **Migration files** — running `prisma migrate dev` to generate the migration is a separate concern; this session produces the schema definition only
 - **Seed data** — F10 in Phase 0 foundations covers seed; not this session
-- **The actual admin UI components** — BU-001 (next Build Unit) builds those; this session provides the schema they'll consume
+- **The actual admin UI components** — BU-admin (next Build Unit) builds those; this session provides the schema they'll consume
 - **PostGIS extension** — explicitly NOT enabled (per D041, no geospatial queries in MVP)
 - **The eight work-item types' context schemas** — defined per-Build-Unit when each feature ships; this session only commits to the JSONB column
 - **Login / authentication flow** — `User` table exists but auth implementation is a separate Build Unit
@@ -79,7 +79,7 @@ conflict, the docs win.
 These are commitments to other sessions. Their shape becomes a contract.
 
 - **Prisma models** for the 9 entities — exported from `prisma/schema.prisma`. Future sessions will reference these models by name.
-- **`entityMetadata` constant** — exported from `server/admin/entity-metadata.ts`. Generic admin scaffolding (BU-001) will read this. Shape:
+- **`entityMetadata` constant** — exported from `server/admin/entity-metadata.ts`. Generic admin scaffolding (BU-admin) will read this. Shape:
   ```typescript
   export const entityMetadata: Record<string, EntityMetadataEntry> = { ... }
   ```
@@ -121,7 +121,7 @@ Each criterion is testable by reading the schema or running `pnpm prisma validat
 
 *(Adapted from template — the schema doesn't enforce permissions directly, but it must support the role model defined in admin-surface.md.)*
 
-The schema must enable these access patterns (BU-001 will implement the actual middleware):
+The schema must enable these access patterns (BU-admin will implement the actual middleware):
 
 | Entity | Member access | queue_manager access | admin access |
 |---|---|---|---|
@@ -355,9 +355,9 @@ future slices inherit it.
    Postgres provisioning — not in this session.
 3. **Test database harness.** Comes with first router-building session.
 4. **Per-type WorkItem.context Zod schemas.** Defined per-Build-Unit when
-   each feature ships (vetting context in BU-002, flag context in BU-012,
+   each feature ships (vetting context in BU-vetting, flag context in BU-flag,
    etc.).
-5. **Generic admin UI.** That's BU-001 — separate session that consumes the
+5. **Generic admin UI.** That's BU-admin — separate session that consumes the
    metadata map this session produces.
 6. **The `isFeatureEnabled()` evaluation function.** Comes with a separate
    session implementing the feature-flag service.

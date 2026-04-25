@@ -18,7 +18,7 @@ future tRPC mutation can gate itself with `.use(requireRole('admin'))`
 and any service can call `auditLog(...)` to write a real row.
 
 **No real auth.** No passwords, no magic links, no 2FA. Those belong
-to BU-002 post-demo, per `docs/build/bu-sequence.md` and
+to BU-auth post-demo, per `docs/build/bu-sequence.md` and
 `docs/architecture/environments.md`.
 
 ---
@@ -79,15 +79,15 @@ to BU-002 post-demo, per `docs/build/bu-sequence.md` and
 - `/docs/architecture/decision-log.md` — no new ADRs needed
 - `/eslint.config.js` — F06 rules apply, don't modify
 - Any file in `/server/admin/` — that directory's contents stay for
-  BU-020
+  BU-admin
 - Any existing tests — add new ones, don't modify existing
 - `/package.json` beyond verifying scripts still work
 
 ### Out of scope for this session
 
 - **Real auth** (magic links, email verification, passwords, 2FA) —
-  BU-002 post-demo
-- **Full admin UI** (entity list, edit pages, grant/revoke UI) — BU-020
+  BU-auth post-demo
+- **Full admin UI** (entity list, edit pages, grant/revoke UI) — BU-admin
   post-demo
 - **Session expiry / refresh** — dev stub has no expiry; cookie
   persists until cleared
@@ -97,10 +97,10 @@ to BU-002 post-demo, per `docs/build/bu-sequence.md` and
   users only
 - **Password hashing infrastructure** — not in dev stub
 - **Role grant UI** — roles are seeded; UI for changing them is
-  BU-020
-- **Coordinator profile admin** — BU-020
+  BU-admin
+- **Coordinator profile admin** — BU-admin
 - **Sophisticated audit log querying / display** — write-only now;
-  read UI is BU-020
+  read UI is BU-admin
 - **Feature flag enforcement** — flags are DB-driven per D036 but no
   UI flips them in MVP; BU-001-lite doesn't build flag UI either
 
@@ -271,7 +271,7 @@ import type { User } from '@prisma/client';
  * @spec architecture/admin-surface.md
  * @spec architecture/environments.md
  *
- * DEV-ONLY auth stub. Refuses in production. Real auth lands in BU-002.
+ * DEV-ONLY auth stub. Refuses in production. Real auth lands in BU-auth.
  */
 
 const COOKIE_NAME = 'gps_dev_user_id';
@@ -279,7 +279,7 @@ const COOKIE_NAME = 'gps_dev_user_id';
 export async function getCurrentUser(): Promise<User | null> {
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
-      '[auth] Dev auth stub invoked in production. Real auth (BU-002) is required.',
+      '[auth] Dev auth stub invoked in production. Real auth (BU-auth) is required.',
     );
   }
   const jar = await cookies();
@@ -452,7 +452,7 @@ Honest copy. No "Welcome! 👋".
 
 ### Don't build a real admin page
 
-If you find yourself starting `/admin/users` — stop. That's BU-020.
+If you find yourself starting `/admin/users` — stop. That's BU-admin.
 The only page this session builds is `/dev/login`.
 
 ### CSS / styling
@@ -562,12 +562,12 @@ Pre-identified. Do not assume silently.
 
 ## What this brief does NOT cover
 
-1. **Real auth** — BU-002
-2. **Full admin surface** — BU-020
+1. **Real auth** — BU-auth
+2. **Full admin surface** — BU-admin
 3. **Signup/register UI** — separate Build Unit post-demo
-4. **Role grant management UI** — BU-020
-5. **Audit log display UI** — BU-020
-6. **Coordinator profile admin** — BU-020
+4. **Role grant management UI** — BU-admin
+5. **Audit log display UI** — BU-admin
+6. **Coordinator profile admin** — BU-admin
 7. **Password hashing** — not part of dev stub
 8. **Session refresh / expiry** — dev stub has none
 9. **Multiple simultaneous sessions** — single cookie per browser

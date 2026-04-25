@@ -85,7 +85,7 @@ quiet cultural moments, news shares, event announcements.
 ### Out of scope for this session
 
 - **Post creation** — BU-composer (next session)
-- **Post editing / deletion UI** — BU-020 post-demo
+- **Post editing / deletion UI** — BU-admin post-demo
 - **Comments, reactions, attachments** — ERD Slice 2 full, post-demo
 - **Filter by group / type / author / region** — post-demo
 - **Real-time updates / polling** — chronological static is fine
@@ -93,7 +93,7 @@ quiet cultural moments, news shares, event announcements.
 - **Image rendering in post body** — Phase 2
 - **Markdown rendering** — plain text with preserved line breaks
 - **Share / boost / dispatch UI on cards** — post-demo
-- **Moderation affordances (flag, report)** — BU-009 post-demo
+- **Moderation affordances (flag, report)** — BU-flag post-demo
 - **Accessibility audit beyond basics** — WCAG pass is a later dedicated
   session
 - **Feed personalisation / algorithmic ranking** — chronological only
@@ -268,7 +268,7 @@ take: limit + 1,  // fetch one extra to detect "has more"
 - `ctx.user != null` → `public` + `authenticated_only` both visible
 
 No `authedProcedure` needed — the feed can be read by an anonymous
-user (they just see fewer posts). When real auth lands (BU-002), the
+user (they just see fewer posts). When real auth lands (BU-auth), the
 public feed may be restricted further; that's a separate decision.
 
 ---

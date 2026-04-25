@@ -4,7 +4,7 @@ _Brief version: 1.0 · Author: Paul + Claude · Date: April 2026_
 _Priority: Phase 2 demo-leverage. First feature after the demo
 milestone (Phase 1 closed). Unblocks Scenario 3 in full and partially
 re-paints the social fabric of the feed._
-_Pairs with: ERD Slice 2 minimal (already merged); BU-007 Comments
+_Pairs with: ERD Slice 2 minimal (already merged); BU-comments Comments
 (future, will reuse the Reaction primitive via `targetType`)._
 
 ---
@@ -132,7 +132,7 @@ card with no further fuss.
 ### Out of scope for this session
 
 - **Reactions on comments.** The `reaction_added` analytics event
-  carries `is_comment` (bool) — but Comments are BU-007, not yet
+  carries `is_comment` (bool) — but Comments are BU-comments, not yet
   built. This BU's `Reaction.targetType` enum exists with one value
   (`post`) so the schema is forward-compatible, but no `comment`
   value is added.
@@ -182,7 +182,7 @@ enum ReactionEmoji {
 }
 
 enum ReactionTargetType {
-  post  // only value at MVP; comment lands with BU-007
+  post  // only value at MVP; comment lands with BU-comments
 }
 
 model Reaction {
@@ -210,7 +210,7 @@ model Reaction {
 **Why the dual `targetId` + `postId`:** `targetType` + `targetId` is
 the polymorphic key for the future when comments use the same
 primitive. `postId` is a concrete FK so cascade-delete works today
-and Prisma can express the relation. When BU-007 lands, a `commentId`
+and Prisma can express the relation. When BU-comments lands, a `commentId`
 column joins them. Surface in open questions if a cleaner pattern
 exists in the codebase.
 
@@ -432,7 +432,7 @@ Click through Scenario 3 manually before claiming done.
 
 - **Polymorphic schema.** `targetType` + `targetId` is forward-
   compatible with comments but the `postId` FK is needed for cascade
-  + Prisma relation expression. When BU-007 (Comments) lands, add a
+  + Prisma relation expression. When BU-comments (Comments) lands, add a
   `commentId` column the same way. Don't try to add `commentId` now
   — YAGNI and untested.
 - **Migration name collision.** If anyone else has run a local
@@ -512,7 +512,7 @@ Things this session cannot decide autonomously. Surface; do not
 assume.
 
 5. **Polymorphic shape (`targetType` + `targetId` + `postId`).**
-   Forward-compatible with comments (BU-007) but slightly redundant
+   Forward-compatible with comments (BU-comments) but slightly redundant
    today. Cleaner pattern would be a discriminated union per target
    type, but Prisma doesn't model that natively. Confirm the dual-
    column approach.
@@ -528,7 +528,7 @@ assume.
    English per CLAUDE.md "no jargon" guidance).
 
 8. **`is_comment` analytics property.** Always `false` here. When
-   BU-007 ships, that property starts varying. Should this BU
+   BU-comments ships, that property starts varying. Should this BU
    modify `analytics-events.md` to say "currently always false"?
    Recommend: leave the doc alone; it already covers the future
    case.
@@ -601,12 +601,12 @@ implementation.)
 
 (Naming gaps explicitly, per the discipline.)
 
-1. **Comments.** BU-007. The Reaction primitive is forward-compat
+1. **Comments.** BU-comments. The Reaction primitive is forward-compat
    for comments, but no comment code lands here.
-2. **Sharing the post.** That's BU-010 (Sharing). The "share to
+2. **Sharing the post.** That's BU-share-out. The "share to
    WhatsApp" affordance Sharon uses in Scenario 1 is a separate
    future BU.
-3. **Dispatch / boost / remove.** BU-006 / D017. Distinct from
+3. **Dispatch / boost / remove.** BU-dispatch / D017. Distinct from
    reactions.
 4. **Notifications on receiving a reaction.** Per design-philosophy
    principle 3. May surface as a parking-lot item later.
@@ -631,7 +631,7 @@ new UI. Commit type `feat(reactions)`. Establishes:
   / when other emoji-bearing fields appear
 - D047 as the canonical decision record for the reactions schema
 
-Future BUs in this family may include BU-007 (Comments — reuses
+Future BUs in this family may include BU-comments (Comments — reuses
 Reaction with `targetType=comment`), an admin-tunable emoji set
 (parking-lot), and reaction-driven ranking signals.
 
@@ -644,11 +644,11 @@ Reaction with `targetType=comment`), an admin-tunable emoji set
 - Reactions render quietly; no celebration; no anxiety-amplifying
   signals
 - Scenario 3 demoable end-to-end
-- The Reaction primitive is in place for BU-007 to reuse
+- The Reaction primitive is in place for BU-comments to reuse
 - The `reaction_added` analytics event is firing in development
 - Feature flag `ff_reactions` registered (per D036), allowing the
   feature to be toggled
 
-Next BU candidate (per the post-demo roadmap): BU-007 Comments, OR
-BU-005 FAB composer + urgent-action templates. Decision belongs to
+Next BU candidate (per the post-demo roadmap): BU-comments, OR
+BU-composer-fab + urgent-action templates. Decision belongs to
 Paul after reactions ships and feels right.
