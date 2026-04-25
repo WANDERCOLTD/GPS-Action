@@ -21,7 +21,11 @@ export default async function Page() {
       <h1 style={{ fontSize: 'var(--text-3xl)', marginBottom: 'var(--space-3)' }}>GPS Action</h1>
       <p style={{ color: 'var(--colour-text-secondary)' }}>
         Please{' '}
-        <a href="/dev/login" style={{ color: 'var(--colour-text-link)' }}>
+        <a
+          href="/dev/login"
+          style={{ color: 'var(--colour-text-link)' }}
+          data-testid="auth-landing-login-link"
+        >
           log in
         </a>{' '}
         to get started.
