@@ -584,58 +584,36 @@ claiming done.
 
 ---
 
-## Open questions to surface
+## Decisions confirmed before build (Paul, 2026-04-26)
 
-Things this session cannot decide autonomously. Surface; do not
-assume.
+These are locked. The build session executes against them.
 
-1. **Body length cap.** 5000 is generous; comments rarely need
-   that much. Alternative: 2000 (keeps threads readable). Brief
-   ships 5000 (matches Post body upper bound). Confirm.
+1. **Body length cap: 5000** characters (matches Post body upper
+   bound). Soft hint at 4000.
+2. **`isNewMember` window: 14 days.** Eddie in SCN-20 is "three
+   days in"; 14-day window covers the chip use case.
+3. **Filter tabs render with empty states.** Discussion / Activity
+   / All all render. Activity + All show empty states until system
+   comments exist (BU-dispatch / BU-flag / BU-outcome-review).
+4. **Author's own comments: no special render.** Role chip already
+   differentiates.
+5. **Comment count on source card: lazy refresh.** Updates on next
+   feed render; no cross-component optimistic.
+6. **Soft-delete UX: none in MVP.** Authors cannot edit or delete
+   their own comments. Manual DB / admin-patch if urgent.
+7. **`/post/[id]` URL slug: UUID.** Pretty slug (`post.shortId`)
+   deferred to a future polish session per D045.
+8. **`members_only` posts for unauthed callers: gated landing**
+   (per D045), not 404. "Sign in to see this post" page.
+9. **Activity filter remains empty until system-comment producers
+   ship.** Trigger: BU-dispatch / BU-flag / BU-outcome-review
+   briefs reference this and add system-comment writes.
+10. **PostCard click target: full-card-as-Link.** Reaction pill +
+    AM button use `e.stopPropagation` to isolate.
 
-2. **`isNewMember` window.** 14 days. Eddie in SCN-20 is "three
-   days in". 14 days is a soft default; could be 7 / 30 / configurable.
-   Brief ships 14. Confirm.
+---
 
-3. **Filter tab behaviour with no system comments.** Activity
-   and All render empty states. Alternative: hide the tabs
-   entirely until system comments exist. Brief ships render-with-
-   empty-state (per SCN-3 precedent — the affordance is canonical;
-   it just shows nothing for now). Confirm.
-
-4. **Author's own comments treatment.** No special render — the
-   author's role chip already differentiates them. Some products
-   pin author replies. Brief ships no special treatment. Confirm.
-
-5. **Comment count update on source feed card.** Lazy refresh on
-   next feed render. Cross-component optimistic update is
-   technically possible but adds complexity. Brief ships lazy.
-   Confirm.
-
-6. **Soft-delete UX.** No delete UI in MVP. If a comment must be
-   removed urgently, it's a manual DB row update or a quick admin
-   patch — not a routine member action. Confirm.
-
-7. **`/post/[id]` URL slug.** UUIDs are ugly. Pretty slug
-   (`post.shortId`) is in D045's scope but not yet built. Brief
-   ships the UUID URL (`/post/abc-123-def-...`). Pretty slug is
-   a future polish item.
-
-8. **404 vs gated landing on `members_only` posts** for unauthed
-   callers. Brief ships gated landing (per D045) — the friendly
-   "Sign in to see this post" page. Some products 404
-   indistinguishably; we don't, since the post being public-ish
-   helps amplification. Confirm.
-
-9. **Activity filter content beyond MVP.** The empty state
-   today; what's the "first non-empty" trigger? Brief: when
-   BU-dispatch / BU-flag / BU-outcome-review ship. The brief
-   author should consult those when they get briefed.
-
-10. **PostCard click target.** Wrapping the whole card in `<Link>`
-    is the cleanest UX. Alternative: a smaller "Open" affordance.
-    Brief ships full-card-as-link with `e.stopPropagation` on the
-    interactive children. Confirm.
+## Open questions still to surface
 
 (Claude Code: add any further judgement calls encountered during
 implementation.)
