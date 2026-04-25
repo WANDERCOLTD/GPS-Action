@@ -47,6 +47,7 @@ export async function loadMorePosts(cursor: FeedCursor): Promise<LoadMoreResult>
           count: r.count,
           mine: r.mine,
         })),
+        commentCount: p.commentCount,
       }),
     ),
     nextCursor: result.nextCursor

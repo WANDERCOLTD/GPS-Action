@@ -1979,3 +1979,142 @@ reference in any doc maps to the corresponding name.
 - `docs/process/ratchet-discipline.md` — same philosophy: forward-
   only, mechanically enforced where possible
 - `CLAUDE.md` — points at this decision as the naming authority
+
+---
+
+# D052 — Comment schema + polymorphic reuse of ReactionTargetType
+
+**Date:** 2026-04-26
+**Tier:** Feature
+**Status:** Accepted
+**Build Unit:** BU-comments
+
+## Context
+
+BU-comments adds the post-detail page with a flat discussion thread
+(per Scenario 20). The schema needs a Comment entity, and reactions
+must be able to target comments — extending the polymorphic shape
+established in D050 for the Reaction primitive.
+
+Comments must be:
+
+- Attachable to posts (only target type at MVP — `comment-on-comment`
+  threading is parking-lot)
+- Soft-deletable (audit-friendly; preserves thread coherence)
+- Reactable, eventually (schema-ready now; UI deferred)
+- Visibility-respecting at the parent post level (comments inherit
+  the post's `visibility`)
+
+## Decisions
+
+### 1. Comment model — flat, post-scoped
+
+`Comment` model carries `postId` (required FK), `authorId` (required
+FK), `body` (string, 1–5000 chars at the validation layer),
+`createdAt`, `updatedAt`, `deletedAt` (soft-delete). Indexes on
+`(postId, createdAt)` for thread render + `(authorId, createdAt)`
+for the "your comments" admin view + `(deletedAt)` for cleanup
+sweeps.
+
+`onDelete` policy:
+
+- `Comment.author`: Restrict (mirrors `Post.author` — a user with
+  comments can't be hard-deleted; soft-delete preserves community
+  history)
+- `Comment.post`: Cascade (if a post is hard-deleted — rare; posts
+  use soft-delete — its comments go with it; no orphans)
+
+### 2. Extend `ReactionTargetType` rather than create a parallel
+
+reaction-on-comment primitive
+
+Per D050, `ReactionTargetType` was designed polymorphic with the
+explicit forward intent of accommodating comments. This BU
+delivers on that intent:
+
+- Add `comment` value to `ReactionTargetType`
+- Add `commentId String?` FK on `Reaction` (nullable, since
+  existing post-reactions remain post-targeted)
+- Cascade on Comment delete (if a comment vanishes, its reactions
+  go with it)
+
+The `(userId, targetType, targetId, emoji)` unique constraint
+already accommodates the new target type without modification.
+
+### 3. No edit / delete UX in MVP
+
+Authors cannot edit or delete their own comments. Coordinators
+cannot remove or pin comments. These all land later (BU-flag /
+BU-admin / a dedicated edit-window BU). The `deletedAt` column
+exists for future use; manual DB / admin-patch is the escape
+hatch if a comment must be removed urgently.
+
+### 4. Body length cap: 5000 characters
+
+Matches the Post body upper bound. Soft hint at 4000 in the UI.
+Zod rejects above 5000.
+
+### 5. Sort: oldest-first
+
+Chronological reading order per Scenario 20. Newest-first was
+considered and rejected — discussion threads read top-to-bottom,
+not bottom-to-top.
+
+### 6. Visibility inheritance
+
+Comments inherit the parent post's `visibility`:
+
+- `public` post → comments visible to everyone (server-render)
+- `members_only` → comments visible only to authed callers; gated
+  landing for unauthed
+- `private` → comments visible only to author + admins; 404 for
+  non-authed (per D045)
+
+The service layer applies the visibility filter at the parent-post
+level, not per-comment. This keeps the model simple.
+
+### 7. `commentCount` on `listPosts`
+
+The feed render shows a "💬 N comments" affordance per card. The
+count is derived from a single `groupBy postId` query joined into
+service code (mirrors the `listReactionsForPosts` bulk pattern from
+D050; avoids N+1).
+
+## Consequences
+
+- New schema: `Comment` model + `ReactionTargetType.comment` enum
+  value + `Reaction.commentId` nullable FK
+- New tRPC router: `comment.add`, `comment.listForPost`
+- `listPosts` returns a `commentCount` field per post
+- New page route: `/post/[id]` — first dynamic route in the app;
+  deep-linkable per D045
+- New components: CommentList, CommentItem, CommentComposer
+- Behind `ff_comments` feature flag (per D036)
+- Reactions-on-comments schema is ready; UI is a follow-up
+- BU-flag / BU-admin can now build moderation surfaces that
+  reference Comment
+
+## Alternatives considered
+
+- **Threaded replies (parentCommentId)** — rejected for MVP. Flat
+  thread is enough for SCN-20. Future addition is non-breaking
+  (add nullable `parentCommentId` later).
+- **Comment-level visibility flags** — rejected. Inherit from the
+  parent post; one source of truth.
+- **Author edit-within-window UI in this BU** — rejected. The
+  `updatedAt` column exists but no UI updates it in MVP. Out of
+  scope per the brief.
+- **Build a separate ReactionOnComment table** — rejected. Reuse
+  the polymorphic shape from D050 instead. One Reaction table is
+  the right primitive.
+
+## Related
+
+- Brief: `docs/build/session-briefs/bu-comments.md`
+- Decision: D050 (Reactions polymorphic schema this BU extends)
+- Decision: D045 (Post visibility — comments inherit)
+- Decision: D036 (Feature flags)
+- Spec: `docs/product/analytics-events.md` (`comment_added` event)
+- Scenario: SCN-20 (Eddie writes his first comment)
+- Parking-lot: "Comment-on-comment threading" (deferred)
+- Parking-lot: "Edit / delete comments UX" (to be added if needed)

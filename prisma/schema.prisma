@@ -151,6 +151,9 @@ model User {
   // Reactions authored (BU-reactions — D050)
   reactions Reaction[] @relation("authorReactions")
 
+  // Comments authored (BU-comments — D052)
+  comments Comment[] @relation("commentAuthor")
+
   // Feature flags
   featureFlagsOwned   FeatureFlag[] @relation("featureFlagsOwned")
   featureFlagsCreated FeatureFlag[] @relation("featureFlagsCreated")
@@ -619,6 +622,9 @@ model Post {
   // Reactions on this post (BU-reactions — D050)
   reactions Reaction[] @relation("postReactions")
 
+  // Comments on this post (BU-comments — D052)
+  comments Comment[] @relation("postComments")
+
   @@index([visibility, createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
   @@index([groupTags], type: Gin)
@@ -657,7 +663,8 @@ enum ReactionEmoji {
 }
 
 enum ReactionTargetType {
-  post // only value at MVP; `comment` lands with BU-007
+  post
+  comment // BU-comments / D052 — reactions on comments are schema-ready, UI deferred
 }
 
 model Reaction {
@@ -672,6 +679,12 @@ model Reaction {
   postId String?
   post   Post?   @relation("postReactions", fields: [postId], references: [id], onDelete: Cascade)
 
+  // BU-comments / D052 — nullable FK so post-targeted reactions remain
+  // unaffected. When targetType='comment', commentId must equal targetId
+  // (enforced at the service layer).
+  commentId String?
+  comment   Comment? @relation("commentReactions", fields: [commentId], references: [id], onDelete: Cascade)
+
   emoji ReactionEmoji
 
   createdAt DateTime @default(now())
@@ -679,4 +692,47 @@ model Reaction {
   @@unique([userId, targetType, targetId, emoji], name: "one_emoji_per_user_per_target")
   @@index([targetType, targetId])
   @@index([postId, emoji])
+  @@index([commentId, emoji])
+}
+
+// ─── Comment ─────────────────────────────────────────────────────────────────
+//
+// BU-comments (D052). Flat discussion thread on a post. Threaded replies
+// (parentCommentId) deferred to a future BU. Edit / delete UX deferred —
+// `deletedAt` exists for future soft-delete; no member-facing UI updates it
+// in MVP.
+//
+// App-level invariants:
+//   - Comments inherit the parent post's visibility — listCommentsForPost
+//     applies the same visibility filter as listPosts at the parent level
+//   - Body is 1–5000 chars (Zod-enforced); soft hint at 4000 in UI
+//   - Soft-deleted comments are excluded from listCommentsForPost output
+//
+// onDelete choices:
+//   - author: Restrict (mirrors Post.author — no hard-delete with comments;
+//     soft-delete the user instead to preserve community history)
+//   - post: Cascade (rare — posts use soft-delete in MVP; cascade prevents
+//     orphans if a post is genuinely hard-deleted)
+
+model Comment {
+  id String @id @default(uuid())
+
+  postId String
+  post   Post   @relation("postComments", fields: [postId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation("commentAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  body String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Reactions on this comment (BU-comments / D052 — schema-ready, UI deferred)
+  reactions Reaction[] @relation("commentReactions")
+
+  @@index([postId, createdAt])
+  @@index([authorId, createdAt])
+  @@index([deletedAt])
 }

@@ -466,6 +466,72 @@ async function main(): Promise<void> {
   });
   console.warn('  ✓ ff_reactions flag enabled');
 
+  // ── Feature flags (BU-comments / D052) ──────────────────────────────
+  await prisma.featureFlag.upsert({
+    where: { name: 'ff_comments' },
+    update: { enabledGlobally: true },
+    create: {
+      name: 'ff_comments',
+      description: 'Post-detail page + flat comment thread (BU-comments / D052).',
+      purpose: 'rollout',
+      enabledGlobally: true,
+      createdBy: { connect: { id: betteId } },
+      updatedBy: { connect: { id: betteId } },
+    },
+  });
+  console.warn('  ✓ ff_comments flag enabled');
+
+  // ── Seed comments (BU-comments / D052) ──────────────────────────────
+  // Idempotent: skip if any comments already exist for the seeded posts.
+  const existingComments = await prisma.comment.count();
+  if (existingComments === 0) {
+    const allPosts = await prisma.post.findMany({
+      where: { deletedAt: null },
+      select: { id: true },
+      orderBy: { createdAt: 'desc' },
+      take: 18,
+    });
+
+    const commenters = [
+      userIds['cary']!,
+      userIds['bette']!,
+      userIds['eddie']!,
+      userIds['humphrey']!,
+      userIds['ingrid']!,
+    ];
+
+    const sampleComments = [
+      'Sent mine on Sunday. Took 90 seconds.',
+      'Brilliant work 💕',
+      'Worth a complaint to Ofcom — template attached below.',
+      'Just saw this. Done.',
+      'First time using GPS Action — the template made it easy. Thanks.',
+      'Echoing — important to keep the pressure consistent.',
+    ];
+
+    let commentsCreated = 0;
+    let commenterIdx = 0;
+    let textIdx = 0;
+    for (const post of allPosts) {
+      const numComments = 2 + (commentsCreated % 3); // 2-4 per post
+      for (let i = 0; i < numComments; i += 1) {
+        await prisma.comment.create({
+          data: {
+            postId: post.id,
+            authorId: commenters[commenterIdx % commenters.length]!,
+            body: sampleComments[textIdx % sampleComments.length]!,
+          },
+        });
+        commenterIdx += 1;
+        textIdx += 1;
+        commentsCreated += 1;
+      }
+    }
+    console.warn(`  ✓ ${commentsCreated} comments seeded across ${allPosts.length} posts`);
+  } else {
+    console.warn(`  ✓ Comments already seeded (${existingComments} present); skipping`);
+  }
+
   console.warn('✓ Seed complete.');
 }
 
