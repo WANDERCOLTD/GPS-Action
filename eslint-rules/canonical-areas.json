@@ -2,5 +2,5 @@
   "_comment": "Canonical area prefixes for data-testid values. Must mirror docs/process/testid-convention.md. Adding an area here AND updating the doc must happen in the same PR.",
   "_buildUnit": "F14",
   "_spec": "process/testid-convention.md",
-  "areas": ["auth", "feed", "compose", "post", "nav", "admin", "network", "inbox", "me"]
+  "areas": ["auth", "feed", "compose", "post", "nav", "admin", "network", "inbox", "me", "reaction"]
 }
