@@ -12,7 +12,7 @@
  */
 
 import { useState } from 'react';
-import type { FeedPost, FeedCursor } from '@/components/PostCard';
+import type { FeedPost, FeedCursor, FeedReactionEmoji } from '@/components/PostCard';
 import { PostCard } from '@/components/PostCard';
 
 export interface LoadMoreResult {
@@ -24,9 +24,21 @@ interface FeedListProps {
   initialPosts: FeedPost[];
   initialCursor: FeedCursor | null;
   loadMore: (cursor: FeedCursor) => Promise<LoadMoreResult>;
+  onAddReaction: (postId: string, emoji: FeedReactionEmoji) => Promise<void>;
+  onRemoveReaction: (postId: string, emoji: FeedReactionEmoji) => Promise<void>;
+  canReact: boolean;
+  reactionsEnabled: boolean;
 }
 
-export function FeedList({ initialPosts, initialCursor, loadMore }: FeedListProps) {
+export function FeedList({
+  initialPosts,
+  initialCursor,
+  loadMore,
+  onAddReaction,
+  onRemoveReaction,
+  canReact,
+  reactionsEnabled,
+}: FeedListProps) {
   const [posts, setPosts] = useState(initialPosts);
   const [cursor, setCursor] = useState(initialCursor);
   const [loading, setLoading] = useState(false);
@@ -62,7 +74,14 @@ export function FeedList({ initialPosts, initialCursor, loadMore }: FeedListProp
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} />
+        <PostCard
+          key={post.id}
+          post={post}
+          onAddReaction={onAddReaction}
+          onRemoveReaction={onRemoveReaction}
+          canReact={canReact}
+          reactionsEnabled={reactionsEnabled}
+        />
       ))}
       {cursor && (
         <button

@@ -148,6 +148,9 @@ model User {
   // Posts (Slice 2 minimal — D045)
   posts Post[] @relation("authorPosts")
 
+  // Reactions authored (BU-reactions — D050)
+  reactions Reaction[] @relation("authorReactions")
+
   // Feature flags
   featureFlagsOwned   FeatureFlag[] @relation("featureFlagsOwned")
   featureFlagsCreated FeatureFlag[] @relation("featureFlagsCreated")
@@ -613,8 +616,67 @@ model Post {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  // Reactions on this post (BU-reactions — D050)
+  reactions Reaction[] @relation("postReactions")
+
   @@index([visibility, createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
   @@index([groupTags], type: Gin)
   @@index([deletedAt])
+}
+
+// ─── Reaction ────────────────────────────────────────────────────────────────
+//
+// BU-reactions (D050). Quiet, multi-select reactions on posts. The
+// targetType + targetId pair is polymorphic so the same primitive
+// covers comments (BU-007) when comments ship — at which point the
+// `comment` value is added to ReactionTargetType and a `commentId`
+// FK is added below alongside `postId`.
+//
+// App-level invariants:
+//   - When targetType='post', postId must equal targetId. The service
+//     layer enforces this at write time.
+//   - The (userId, targetType, targetId, emoji) unique constraint
+//     makes add() idempotent — re-reacting with the same emoji is a no-op.
+//
+// onDelete choices:
+//   - user: Cascade (when a user is hard-deleted their reactions go too;
+//     soft-delete on the User keeps reactions intact)
+//   - post: Cascade (when a post is hard-deleted its reactions go too;
+//     posts use soft-delete in MVP so this rarely fires)
+
+enum ReactionEmoji {
+  candle // 🕯️ — vigil / remembrance / Shabbat
+  pray // 🙏 — prayer / appreciation / thanks
+  heart // ❤️ — solidarity / love
+  strong // 💪 — strength / determination
+  target // 🎯 — agreed / on-point
+  sparkle // 💕 — warmth / community
+  thumbsup // 👍 — acknowledged / understood
+  sad // 😢 — grief / sympathy
+}
+
+enum ReactionTargetType {
+  post // only value at MVP; `comment` lands with BU-007
+}
+
+model Reaction {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation("authorReactions", fields: [userId], references: [id], onDelete: Cascade)
+
+  targetType ReactionTargetType
+  targetId   String
+
+  postId String?
+  post   Post?   @relation("postReactions", fields: [postId], references: [id], onDelete: Cascade)
+
+  emoji ReactionEmoji
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, targetType, targetId, emoji], name: "one_emoji_per_user_per_target")
+  @@index([targetType, targetId])
+  @@index([postId, emoji])
 }
