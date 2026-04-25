@@ -125,7 +125,7 @@ slice convention.
 | Approve pending join request | ✗ | ✗ | ✓ |
 
 Schema must support these access patterns via foreign-key relationships
-and scoping fields. Actual middleware/router enforcement is built in BU-001.
+and scoping fields. Actual middleware/router enforcement is built in BU-admin.
 
 ---
 
@@ -212,7 +212,7 @@ Pre-identified. Claude Code, do not make assumptions silently.
 
 4. **WorkItem enum extension for `group_join_request`.** Groups.md mentions this as a new WorkItemType for request_to_join groups. The enum currently doesn't include it. Options: (a) add now, alongside Group entity; (b) add in the Build Unit that actually implements the join flow. Surface a recommendation.
 
-5. **File-header `@build-unit` value.** Slice 1 used `BU-001-prep`. This slice extends the same schema; same build-unit tag, or a new one like `Slice-1-5`? Suggest: continue `BU-001-prep` since both slices feed into BU-001 admin scaffolding.
+5. **File-header `@build-unit` value.** Slice 1 used `BU-001-prep`. This slice extends the same schema; same build-unit tag, or a new one like `Slice-1-5`? Suggest: continue `BU-001-prep` since both slices feed into BU-admin scaffolding.
 
 6. **`coordinatorGroup` vs `group` naming conflict.** `CoordinatorGroup` already exists in Slice 1 (external communities coordinators run). Now adding `Group` (internal affiliation markers). The two are different concepts but the naming proximity could confuse. Per D042 and D043, this is the agreed-upon language. No action unless you spot a tangible problem.
 
@@ -255,7 +255,7 @@ Future slices (2, 3, 4) follow the same pattern.
 ## What this brief does NOT cover
 
 1. **The request-to-join workflow.** Work item type addition deferred.
-2. **The group-join UI.** BU-001 or a later session.
+2. **The group-join UI.** BU-admin or a later session.
 3. **Group analytics.** Phase 1.5+.
 4. **Group logos upload.** Phase 1.5+ per image-handling.md.
 5. **Group lead permissions.** Soft role in MVP; no middleware.
@@ -269,5 +269,5 @@ Future slices (2, 3, 4) follow the same pattern.
 
 - Group and GroupMembership tables exist
 - WorkItem can carry group tags (filter-ready)
-- Admin surface's generic scaffolding will automatically pick up the new entities when BU-001 lands (no per-entity code needed)
+- Admin surface's generic scaffolding will automatically pick up the new entities when BU-admin lands (no per-entity code needed)
 - The schema is ready for the actual group-feature Build Units to wire up

@@ -62,8 +62,8 @@ Adopt when it genuinely routes reviews.
 **What:** Automated WCAG 2.2 AA checks on every PR, using axe-core against
 Storybook stories and Playwright smoke tests.
 
-**Trigger:** First UI Build Unit merges (likely BU-003 Post publishing or
-BU-005 Feed).
+**Trigger:** First UI Build Unit merges (likely BU-composer Post publishing or
+BU-feed Feed).
 
 **Effort:** Half a day to set up; zero ongoing overhead.
 
@@ -108,7 +108,7 @@ pnpm add -D @testcontainers/postgresql vitest-environment-testcontainers
 ```typescript
 // tests/integration/publish-post.test.ts
 /**
- * @build-unit BU-003
+ * @build-unit BU-composer
  * @scenarios SCN-02
  */
 import { describe, it, expect, beforeAll } from 'vitest'
@@ -138,7 +138,7 @@ The 5 above are the things that must never break silently.
 **What:** Three end-to-end tests that run a real browser against each preview
 deployment: signup, publish, take action.
 
-**Trigger:** BU-005 (Feed) merges — that's the first point an E2E test is
+**Trigger:** BU-feed (Feed) merges — that's the first point an E2E test is
 meaningful.
 
 **Effort:** Half a day setup; ~1 hour per new test.
@@ -232,7 +232,7 @@ question is: when production is bleeding, can the person on-call do it in under
 **What:** Every reusable component has a Storybook story with all meaningful
 states (loading, error, empty, full).
 
-**Trigger:** First shared UI component lands (likely during BU-005 Feed).
+**Trigger:** First shared UI component lands (likely during BU-feed Feed).
 
 **Effort:** Ongoing, embedded in every UI PR. 10–20 minutes per component.
 

@@ -8,11 +8,11 @@ deliberately do NOT measure.
 **Status:** Architectural + product. Affects ERD Slice 2 (Post schema
 additions). Will become §3.33 of feature spec.
 
-**Build Unit:** BU-014 (Deep linking + public post views) — to be created.
+**Build Unit:** BU-deep-link (Deep linking + public post views) — to be created.
 **Related ADR:** D045 (Public-by-default post visibility), D047 (Honest
 tracking only).
-**Related:** `inbound-sharing.md` (BU-010 — content coming in),
-`share-out-mechanics.md` (BU-013 — content going out),
+**Related:** `inbound-sharing.md` (BU-inbound-share — content coming in),
+`share-out-mechanics.md` (BU-share-out — content going out),
 `design-philosophy.md` principle 5 (honest copy).
 
 ---

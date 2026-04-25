@@ -24,7 +24,7 @@ After this session, the demo is functional end-to-end:
 
 **Simple form, not FAB cards.** Per D044, the eventual composer uses
 intent-cards. BU-composer is a stepping stone — proves the wire-up
-works. The full composer is BU-005 post-demo.
+works. The full composer is BU-composer-fab post-demo.
 
 ---
 
@@ -91,10 +91,10 @@ works. The full composer is BU-005 post-demo.
 
 ### Out of scope for this session
 
-- **FAB intent-cards composer** — BU-005 post-demo per D044
+- **FAB intent-cards composer** — BU-composer-fab post-demo per D044
 - **Image / attachment upload** — Phase 2 per `image-handling.md`
 - **Draft saving** — parking-lot
-- **Post editing after creation** — BU-020 admin surface
+- **Post editing after creation** — BU-admin admin surface
 - **Markdown rendering** — body is plain text, line breaks preserved
 - **Live preview** — no preview pane in MVP
 - **Post type selection (PostType)** — deferred per D048
@@ -103,7 +103,7 @@ works. The full composer is BU-005 post-demo.
   post-demo
 - **Schedule for later / `expiresAt`** — post-demo
 - **Mentions / user references** — post-demo
-- **Deep-linking** — `/share?url=...` per D018 is BU-007
+- **Deep-linking** — `/share?url=...` per D018 is BU-inbound-share
 - **Optimistic UI** — full server roundtrip is fine; demo doesn't
   need optimistic
 - **Cache invalidation strategy** — keep simple (full reload via
@@ -699,10 +699,10 @@ Pre-identified. Surface before major design decisions.
 
 ## What this brief does NOT cover
 
-1. **FAB intent-cards composer** — BU-005 post-demo per D044
+1. **FAB intent-cards composer** — BU-composer-fab post-demo per D044
 2. **Image / attachment upload** — Phase 2
 3. **Draft saving / resume**
-4. **Post editing after creation** — BU-020 admin
+4. **Post editing after creation** — BU-admin admin
 5. **Markdown / rich text rendering**
 6. **Live preview**
 7. **Group tagging UI**
@@ -732,9 +732,9 @@ work inherits:
 - F13 catches missing `@spec` from day one (now active)
 
 Future composer work that builds on this:
-- BU-005: FAB intent-cards composer (replaces the simple form per
+- BU-composer-fab: FAB intent-cards composer (replaces the simple form per
   D044)
-- BU-007: Inbound sharing (`/share?url=...` deep-link with prefilled
+- BU-inbound-share: Inbound sharing (`/share?url=...` deep-link with prefilled
   content per D018)
 - Slice 2 full: Comment, Reaction, Attachment models extend what
   composer can create

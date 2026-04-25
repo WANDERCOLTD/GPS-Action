@@ -60,7 +60,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** User lands on invite link and the signup screen renders.
 **Properties:** `invite_source` (enum: whatsapp, email, direct, other), `referring_member_id_hash?`
 **Fired from:** Signup page (client-side, on mount).
-**Build Unit:** BU-002 (Onboarding)
+**Build Unit:** BU-auth (Onboarding)
 **Answers:** Q5 (funnel entry)
 
 #### `signup_completed`
@@ -68,7 +68,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** Account record created, user entered vetting queue.
 **Properties:** `has_referrer` (bool)
 **Fired from:** `server/routers/auth.ts:createAccount` (server-side)
-**Build Unit:** BU-002
+**Build Unit:** BU-auth
 **Answers:** Q5
 
 #### `vetting_approved`
@@ -76,7 +76,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** Admin approves a vetting case.
 **Properties:** `time_to_approval_hours` (number)
 **Fired from:** `server/routers/vetting.ts:approve` (server-side)
-**Build Unit:** BU-004 (Vetting workflow)
+**Build Unit:** BU-vetting (Vetting workflow)
 **Answers:** Q5, Q7
 
 #### `first_post_published`
@@ -84,7 +84,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** User publishes their first-ever post.
 **Properties:** `days_since_approval` (number), `post_type`
 **Fired from:** `server/routers/post.ts:publish` (server-side, checked via count)
-**Build Unit:** BU-003 (Post publishing)
+**Build Unit:** BU-composer (Post publishing)
 **Answers:** Q5, Q1
 
 #### `first_action_taken`
@@ -92,7 +92,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** User taps their first-ever action.
 **Properties:** `days_since_first_post` (number), `action_type`
 **Fired from:** `server/routers/action.ts:take` (server-side, checked via count)
-**Build Unit:** BU-006 (Actions)
+**Build Unit:** BU-actions (Actions)
 **Answers:** Q4, Q5
 
 ### Core activity (6)
@@ -102,7 +102,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** A post renders in the feed AND is >50% visible for >500ms.
 **Properties:** `post_type`, `position_in_feed` (int), `source` (enum: feed, region, search, direct)
 **Fired from:** `app/components/FeedItem.tsx` (client-side, IntersectionObserver)
-**Build Unit:** BU-005 (Feed)
+**Build Unit:** BU-feed (Feed)
 **Answers:** Q1, Q6
 **Sampling:** Rate-limited to one per post per session to avoid noise.
 
@@ -111,7 +111,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** A post is successfully created.
 **Properties:** `post_type`, `region_slug`, `has_image` (bool), `body_length_bucket` (enum: short, medium, long), `is_action_post` (bool)
 **Fired from:** `server/routers/post.ts:publish`
-**Build Unit:** BU-003
+**Build Unit:** BU-composer
 **Answers:** Q1, Q3, Q6
 
 #### `action_taken`
@@ -119,7 +119,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** User taps the action CTA on a post.
 **Properties:** `action_type`, `post_id_hash`, `time_since_post_created_seconds` (number)
 **Fired from:** `server/routers/action.ts:take`
-**Build Unit:** BU-006
+**Build Unit:** BU-actions
 **Answers:** Q4, Q6
 
 #### `comment_added`
@@ -127,7 +127,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** Comment successfully posted.
 **Properties:** `post_id_hash`, `is_system_generated` (bool), `has_attachment` (bool)
 **Fired from:** `server/routers/comment.ts:add`
-**Build Unit:** BU-007 (Comments)
+**Build Unit:** BU-comments (Comments)
 **Answers:** Q1, Q6
 
 #### `reaction_added`
@@ -135,7 +135,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** User taps a reaction emoji.
 **Properties:** `reaction` (enum, 14 core + 3 seasonal), `post_id_hash`, `is_comment` (bool)
 **Fired from:** `server/routers/reaction.ts:add`
-**Build Unit:** BU-008 (Reactions)
+**Build Unit:** BU-reactions (Reactions)
 **Answers:** Q1, Q6
 
 #### `post_shared_out`
@@ -143,7 +143,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** User completes a 1-click share (not just tapping share, but the share actually dispatching).
 **Properties:** `destination` (enum: whatsapp, x, email, copy_link, other), `post_type`, `post_id_hash`
 **Fired from:** `app/components/ShareMenu.tsx` (client, after OS confirms handoff)
-**Build Unit:** BU-010 (Sharing)
+**Build Unit:** BU-share-out (Sharing)
 **Answers:** Q3, Q6
 
 ### Moderation (3)
@@ -153,7 +153,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** User submits a flag on a post.
 **Properties:** `reason_category` (enum), `post_id_hash`, `time_since_post_published_hours` (number)
 **Fired from:** `server/routers/flag.ts:flagPost`
-**Build Unit:** BU-012 (Flagging)
+**Build Unit:** BU-flag (Flagging)
 **Answers:** Q7
 
 #### `vetting_case_opened`
@@ -161,7 +161,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** Admin opens a vetting case for review.
 **Properties:** `case_age_hours` (number)
 **Fired from:** `server/routers/vetting.ts:open`
-**Build Unit:** BU-004
+**Build Unit:** BU-vetting
 **Answers:** Q7
 
 #### `vetting_case_resolved`
@@ -169,7 +169,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** Vetting case is closed.
 **Properties:** `outcome` (enum: approve, reject, request_info, ban), `time_open_hours` (number)
 **Fired from:** `server/routers/vetting.ts:resolve`
-**Build Unit:** BU-004
+**Build Unit:** BU-vetting
 **Answers:** Q7
 
 ### Dispatch (2)
@@ -179,7 +179,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** User opens the dispatch modal on a post.
 **Properties:** `post_type`, `post_id_hash`
 **Fired from:** `app/components/DispatchModal.tsx` (client, on open)
-**Build Unit:** BU-011 (Dispatch)
+**Build Unit:** BU-dispatch (Dispatch)
 **Answers:** Q3
 
 #### `dispatch_completed`
@@ -187,7 +187,7 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **When:** User completes the dispatch flow (destinations confirmed).
 **Properties:** `num_destinations` (int), `destinations_categories` (enum array), `time_to_dispatch_seconds` (number)
 **Fired from:** `server/routers/dispatch.ts:complete`
-**Build Unit:** BU-011
+**Build Unit:** BU-dispatch
 **Answers:** Q3
 
 ---

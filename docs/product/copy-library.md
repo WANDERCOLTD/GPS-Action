@@ -28,7 +28,7 @@ formatting logic.
 
 ---
 
-## Deduplication strings (BU-009)
+## Deduplication strings (BU-dedup)
 
 | Key                                | Copy                                                                         | Notes                                         |
 | ---------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------- |
@@ -54,15 +54,15 @@ formatting logic.
 As features add their own strings, they'll be added below as new sections.
 Keep alphabetical by feature key to make lookup easy.
 
-- `action.*` — (to be added when BU-006 ships)
-- `comment.*` — (to be added when BU-007 ships)
-- `dispatch.*` — (to be added when BU-011 ships)
-- `flag.*` — (to be added when BU-012 ships)
+- `action.*` — (to be added when BU-actions ships)
+- `comment.*` — (to be added when BU-comments ships)
+- `dispatch.*` — (to be added when BU-dispatch ships)
+- `flag.*` — (to be added when BU-flag ships)
 - `notification.*` — (to be added as notifications are defined)
-- `onboarding.*` — (to be added when BU-002 ships)
-- `post.*` — (to be added when BU-003 ships)
-- `reaction.*` — (to be added when BU-008 ships)
-- `vetting.*` — (to be added when BU-004 ships)
+- `onboarding.*` — (to be added when BU-auth ships)
+- `post.*` — (to be added when BU-composer ships)
+- `reaction.*` — (to be added when BU-reactions ships)
+- `vetting.*` — (to be added when BU-vetting ships)
 
 ---
 

@@ -66,7 +66,7 @@ Demo path is done. Next BU should be picked before more work starts.
 Highest demo-leverage candidates:
 
 - **Reactions** — unblocks Scenarios 1, 3 in `docs/product/scenarios.md`.
-  Schema is part of ERD Slice 2 full (BU-021 below). Smaller scope.
+  Schema is part of ERD Slice 2 full (BU-comments + BU-reactions + BU-attachments below). Smaller scope.
 - **FAB composer + urgent-action templates** (per D044) — unblocks
   Scenarios 7–9. Larger scope; replaces the current `/compose` form.
 
@@ -117,13 +117,13 @@ Five Build Units to get the demo working. Ordered by dependency.
 - `requireRole` middleware (used by /admin later; not used by /feed
   because feed is member-accessible)
 - Audit log service (minimal version — just the write function; the
-  full service lands with BU-020)
+  full service lands with BU-admin)
 - A simple "logged in as" header element showing current user, with a
   "switch user" link back to `/dev/login`
 
 **Explicitly deferred past demo:**
-- Real auth (magic links, passwords, 2FA, sessions) — BU-002 post-demo
-- Full admin surface with role grants UI — BU-020 post-demo
+- Real auth (magic links, passwords, 2FA, sessions) — BU-auth post-demo
+- Full admin surface with role grants UI — BU-admin post-demo
 - Coordinator profile admin — later
 - Route protection on `/admin/*` (no admin routes exist yet)
 
@@ -249,7 +249,7 @@ Once the demo works, feedback shapes the next priorities. This is
 speculative ordering. Actual order depends on what's learned from
 demo feedback.
 
-### BU-002 — Real authentication
+### BU-auth — Real authentication
 
 Replace the dev stub with a real auth provider (likely NextAuth or
 Lucia, TBD). Magic links via email. Session management. This unlocks
@@ -258,69 +258,69 @@ deploying to staging.
 **Depends on:** staging environment existing. See
 `docs/architecture/environments.md`.
 
-### BU-003 — Vetting flow
+### BU-vetting — Vetting flow
 
 Public signup → Application work item → queue manager approves → user
 becomes a vetted member. Prerequisite for any real pilot.
 
-### BU-020 — Full admin surface
+### BU-admin — Full admin surface
 
 The original `bu-001.md` brief content. Generic entity admin, queue UI,
 role grants, coordinator profiles. Unlocks queue managers doing real
 work.
 
-### BU-021 — ERD Slice 2 full
+### BU-comments + BU-reactions + BU-attachments — ERD Slice 2 full
 
 Comments, Reactions, Attachments. Makes posts interactive, not just
 readable.
 
-### BU-022 — ERD Slice 3
+### BU-application + BU-flag + BU-outcome-review + BU-edit-request + BU-content-submission + BU-vouch — ERD Slice 3
 
 Application, Flag, OutcomeReview, EditRequest, ContentSubmission,
 Vouch. The moderation + contribution schema.
 
-### BU-023 — ERD Slice 4
+### BU-contact + BU-resource + BU-route + BU-dispatch-event + BU-partner-orgs — ERD Slice 4
 
 Contact, Resource, Route, DispatchEvent, PartnerOrg. The external
 network schema.
 
-### BU-005 — Composer (full, FAB intent cards)
+### BU-composer-fab — Composer (full, FAB intent cards)
 
 Per D044. Replaces BU-composer's simple form with the intent-driven
 composer.
 
-### BU-006 — Dispatch
+### BU-dispatch — Dispatch
 
 WhatsApp dispatch modal, social share, email dispatch. Per
 share-out-mechanics.md. Needs D045 visibility rules enforced.
 
-### BU-007 — Inbound sharing
+### BU-inbound-share — Inbound sharing
 
 The `/share?url=...` endpoint. Bookmarklet for MVP, native share sheet
 phase 2. Per D018.
 
-### BU-008 — Groups (member-facing UI)
+### BU-groups — Groups (member-facing UI)
 
 Join open groups, request to join closed ones, group pages. Schema
 already in Slice 1.5.
 
-### BU-009 — Flag + moderate
+### BU-flag — Flag + moderate
 
 Flagging posts, moderation workflow. Work item type `flag`.
 
-### BU-010 — Dedup + cosurfacing
+### BU-dedup — Dedup + cosurfacing
 
 "Multiple people shared this article" — surface to queue managers.
 
-### BU-011 — Outcome review
+### BU-outcome-review — Outcome review
 
 "Did this dispatch work?" feedback loop.
 
-### BU-012 — Partner orgs
+### BU-partner-orgs — Partner orgs
 
 Per parking-lot "v0.6 absorbing" items.
 
-### BU-013 — Coordinator verification + reach tracking
+### BU-coord-verify — Coordinator verification + reach tracking
 
 Verified coordinator workflows beyond self-claim.
 
@@ -345,7 +345,7 @@ BU-001-lite ──────┘         │
                             │
                          [DEMO]
                             │
-                            ├── BU-002 real auth ──────┐
+                            ├── BU-auth real auth ──────┐
                             │                          │
                             │                          ├── staging
                             │                          │   deployed
@@ -356,9 +356,9 @@ BU-001-lite ──────┘         │
 
 Soft dependencies (nice to have first):
 
-- Full admin (BU-020) before first real user — so someone can manage
+- Full admin (BU-admin) before first real user — so someone can manage
   their account, moderate content
-- Vetting (BU-003) before public signup — otherwise anyone can join
+- Vetting (BU-vetting) before public signup — otherwise anyone can join
 
 ---
 
