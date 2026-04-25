@@ -242,11 +242,25 @@ title = "GPS Action gitleaks config"
 useDefault = true
 ```
 
-**Server-side (GitHub):**
-- Settings → Code security → Secret scanning: **Enable**
-- Settings → Code security → Push protection: **Enable**
+**Server-side scanning — deferred**
 
-(On private repos this is paid — worth the cost. On public, free.)
+GitHub gates Code Security (which includes server-side push protection for
+partner patterns) behind a paid plan at $30/active-committer/month for
+organisation repos. Paul reviewed the cost vs. risk and chose to defer.
+
+**Current defence (sufficient for solo work):**
+- gitleaks pre-commit hook — catches at keyboard
+- gitleaks in CI — catches at PR time
+- Clean history confirmed (post-hoc sweep, 0 findings)
+
+**Revisit trigger:**
+- When the team gains additional committers (local hooks become
+  individually bypassable)
+- When the free tier of partner-pattern scanning becomes clearly
+  available for orgs without a paid bundle
+- On any near-miss event
+
+**Cost if enabled today:** $30/month per active committer in last 90 days.
 
 **Post-hoc sweep:**
 
