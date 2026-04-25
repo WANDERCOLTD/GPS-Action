@@ -994,3 +994,34 @@ real use.
   determines available reactions)
 
 **Surfaced by:** BU-reactions design discussion (April 2026).
+
+**Decision (April 2026):** Ship 8 fixed for BU-reactions. Park the
+expansion story below; do not block the build on it.
+
+---
+
+## Expand the reaction set — story
+
+**Status:** PARKED — pending real-usage data from BU-reactions.
+
+**Trigger:** After 1 month of reactions data in dev/pilot, OR a
+real member request that names a missing emoji.
+
+**What to do then:**
+
+1. Pull the `reaction_added` analytics event counts per emoji.
+2. Identify dead emoji (used <2% of total reactions) and missing
+   ones (members reaching for an emoji not in the set).
+3. Decide: trim, expand to 12, expand to 14+3 seasonal (per
+   `analytics-events.md:136`), or keep 8.
+4. If expanding: a small ADR records the change; the `ReactionEmoji`
+   enum gets new values; no UI rework if the tray flexes.
+5. If trimming: deprecation path needed (existing rows must remain
+   readable; just hide from the picker).
+
+**Why this is parked, not built:** premature taxonomy decisions are
+a known waste pattern. The 8 we ship are scenario-grounded; data
+will tell us whether they're right.
+
+**Owner:** Paul, on first-of-month review of the analytics events
+log.
