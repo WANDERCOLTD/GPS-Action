@@ -69,6 +69,7 @@ export function FeedList({ initialPosts, initialCursor, loadMore }: FeedListProp
           className="gps-btn gps-btn--secondary"
           onClick={handleLoadMore}
           disabled={loading}
+          data-testid="feed-loadmore-button"
           style={{ alignSelf: 'center', marginTop: 'var(--space-2)' }}
         >
           {loading ? 'Loading\u2026' : 'Load more'}

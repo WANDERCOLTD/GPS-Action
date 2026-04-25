@@ -54,6 +54,9 @@ The first segment must come from this approved list:
 | `post`    | Post detail page and post-related components      |
 | `nav`     | Bottom tabs, sidebars, top-level navigation       |
 | `admin`   | Admin surfaces (queues, role grants, content mod) |
+| `network` | Network tab — coordinator/group directory (D030)  |
+| `inbox`   | Inbox tab — DMs, notifications, requests (D030)   |
+| `me`      | Me tab — profile, settings, account (D030)        |
 
 To add a new area:
 
