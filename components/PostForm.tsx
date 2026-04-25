@@ -34,6 +34,7 @@ export function PostForm({ onSubmit }: PostFormProps) {
   return (
     <form
       action={handleSubmit}
+      data-testid="compose-newpost-form"
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}
     >
       {/* Form-level error */}
@@ -54,6 +55,7 @@ export function PostForm({ onSubmit }: PostFormProps) {
       <div>
         <label
           htmlFor="title"
+          data-testid="compose-title-label"
           style={{
             display: 'block',
             fontSize: 'var(--text-sm)',
@@ -68,6 +70,7 @@ export function PostForm({ onSubmit }: PostFormProps) {
           id="title"
           name="title"
           type="text"
+          data-testid="compose-title-input"
           required
           minLength={3}
           maxLength={200}
@@ -96,6 +99,7 @@ export function PostForm({ onSubmit }: PostFormProps) {
       <div>
         <label
           htmlFor="body"
+          data-testid="compose-body-label"
           style={{
             display: 'block',
             fontSize: 'var(--text-sm)',
@@ -109,6 +113,7 @@ export function PostForm({ onSubmit }: PostFormProps) {
         <textarea
           id="body"
           name="body"
+          data-testid="compose-body-input"
           required
           minLength={10}
           maxLength={10000}
@@ -152,6 +157,7 @@ export function PostForm({ onSubmit }: PostFormProps) {
         </legend>
         <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
           <label
+            data-testid="compose-visibility-public-label"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -161,10 +167,17 @@ export function PostForm({ onSubmit }: PostFormProps) {
               cursor: 'pointer',
             }}
           >
-            <input type="radio" name="visibility" value="public" defaultChecked />
+            <input
+              type="radio"
+              name="visibility"
+              value="public"
+              data-testid="compose-visibility-public-input"
+              defaultChecked
+            />
             Public
           </label>
           <label
+            data-testid="compose-visibility-authed-label"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -174,7 +187,12 @@ export function PostForm({ onSubmit }: PostFormProps) {
               cursor: 'pointer',
             }}
           >
-            <input type="radio" name="visibility" value="authenticated_only" />
+            <input
+              type="radio"
+              name="visibility"
+              value="authenticated_only"
+              data-testid="compose-visibility-authed-input"
+            />
             Logged-in only
           </label>
         </div>
@@ -195,10 +213,20 @@ export function PostForm({ onSubmit }: PostFormProps) {
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
-        <button type="submit" disabled={isPending} className="gps-btn gps-btn--primary">
+        <button
+          type="submit"
+          disabled={isPending}
+          data-testid="compose-newpost-submit"
+          className="gps-btn gps-btn--primary"
+        >
           {isPending ? 'Posting\u2026' : 'Post'}
         </button>
-        <a href="/feed" className="gps-btn gps-btn--secondary" style={{ textDecoration: 'none' }}>
+        <a
+          href="/feed"
+          data-testid="compose-newpost-cancel"
+          className="gps-btn gps-btn--secondary"
+          style={{ textDecoration: 'none' }}
+        >
           Cancel
         </a>
       </div>

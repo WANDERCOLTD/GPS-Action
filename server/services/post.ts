@@ -13,6 +13,7 @@ import type { PostVisibility, SystemRole } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import type { PostCreateInput } from '@/shared/validation/post';
 import { auditLog } from '@/server/services/audit';
+import { listReactionsForPosts, type ReactionAggregate } from '@/server/services/reaction';
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,8 @@ export interface PostListItem {
   groupTags: string[];
   createdAt: Date;
   author: PostAuthor;
+  /** Per BU-reactions / D050 — empty array when none. */
+  reactions: ReactionAggregate[];
 }
 
 export interface ListPostsResult {
@@ -107,6 +110,11 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
   const nextCursor: PostCursor | null =
     hasMore && lastPost ? { createdAt: lastPost.createdAt, id: lastPost.id } : null;
 
+  const reactionsByPost = await listReactionsForPosts({
+    postIds: resultPosts.map((p) => p.id),
+    callerId: input.callerId,
+  });
+
   const mapped: PostListItem[] = resultPosts.map((post) => ({
     id: post.id,
     title: post.title,
@@ -120,6 +128,7 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
       displayName: post.author.displayName,
       roles: post.author.roleGrants.map((g) => g.role),
     },
+    reactions: reactionsByPost.get(post.id) ?? [],
   }));
 
   return { posts: mapped, nextCursor };

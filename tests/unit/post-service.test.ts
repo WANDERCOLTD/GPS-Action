@@ -17,6 +17,10 @@ vi.mock('@/server/db/client', () => ({
     post: {
       findMany: vi.fn(),
     },
+    reaction: {
+      groupBy: vi.fn().mockResolvedValue([]),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   },
 }));
 
@@ -76,6 +80,7 @@ describe('listPosts', () => {
         displayName: 'Test User',
         roles: [],
       },
+      reactions: [],
     });
   });
 

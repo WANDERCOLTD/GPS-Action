@@ -44,9 +44,15 @@ export default async function DevLoginPage() {
       <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
         {users.map((user) => (
           <li key={user.id} style={{ marginBottom: 'var(--space-2)' }}>
-            <form action={loginAs.bind(null, user.id)}>
+            <form
+              action={loginAs.bind(null, user.id)}
+              data-testid="auth-devlogin-form"
+              data-user-id={user.id}
+            >
               <button
                 type="submit"
+                data-testid="auth-devlogin-submit"
+                data-user-id={user.id}
                 style={{
                   width: '100%',
                   display: 'flex',

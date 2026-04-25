@@ -1,7 +1,7 @@
 # `eslint-rules/` — local ESLint plugin
 
 Custom rules that mechanically enforce GPS Action's discipline conventions.
-The seven rules in this plugin catch mistakes that documentation alone can't:
+The eight rules in this plugin catch mistakes that documentation alone can't:
 the rules run in your editor, on commit, and in CI, with no human in the
 loop.
 
@@ -13,6 +13,7 @@ loop.
 - `process/api-contract-discipline.md` rules 2 & 7 → rules 2 & 4
 - `product/analytics-events.md` PII policy → rule 3
 - `process/design-tokens-convention.md` → rule 7
+- `process/testid-convention.md` → rule 8 (F14)
 
 **Plugin namespace:** `local-rules` — rules appear as
 `local-rules/<rule-name>` in `eslint.config.js`.
@@ -33,8 +34,9 @@ glob:
 | [`feature-must-have-flag`](#5-feature-must-have-flag)       | `app/**/*.{ts,tsx}`, `server/**/*.ts`, `components/**/*.{ts,tsx}` (opt-in via directive)             |
 | [`require-spec-tag`](#6-require-spec-tag)                   | `app/**/*.{ts,tsx}`, `server/routers/**/*.ts`, `server/services/**/*.ts`, `components/**/*.{ts,tsx}` |
 | [`require-design-tokens`](#7-require-design-tokens)         | `app/**/*.{ts,tsx}`, `components/**/*.{ts,tsx}`                                                      |
+| [`require-testid`](#8-require-testid)                       | `app/**/*.{ts,tsx}`, `components/**/*.{ts,tsx}`                                                      |
 
-All seven rules ship at `error` severity (block CI).
+All eight rules ship at `error` severity (block CI).
 
 Excluded paths (rules don't apply): `eslint-rules/**`, `prisma/**`, `tests/**`,
 `*.test.{ts,js}`, `node_modules/**`, `.next/**`, `dist/**`, `build/**`.
@@ -397,6 +399,74 @@ const accent = 'hsl(220, 70%, 45%)';
   variable actually exists — validating references is future work.
 - This is **lenient mode** (v1). Future rules may enforce pixel values
   (`padding: '12px'` → `var(--space-3)`) and Tailwind utility classes.
+
+---
+
+### 8. `require-testid`
+
+**Purpose:** Per `testid-convention.md`, every interactive DOM element in
+feature code carries a stable `data-testid` attribute matching the
+canonical format. Tests, scenario walk-throughs, and any future automated
+runner select on testids — drift breaks them silently. The rule is the
+third sibling to `require-build-unit-header` (F06 rule 1) and
+`require-spec-tag` (F13): traceability + DOM-stability ratchet.
+
+**Fires when:** A built-in HTML interactive element (`button`, `a`,
+`input`, `select`, `textarea`, `form`, `label`) OR any element with an
+interactive handler attribute (`onClick`, `onChange`, `onSubmit`,
+`onKeyDown`, `onKeyUp`, `onKeyPress`, `onFocus`, `onBlur`) lacks a
+well-formed `data-testid`.
+
+**Format:** `^[a-z]+(-[a-z0-9]+){2,}$` — lowercase, hyphenated, 3+
+segments, first segment from the canonical area list at
+`eslint-rules/canonical-areas.json`.
+
+**Compliant:**
+
+```tsx
+<button data-testid="feed-newpost-submit">Publish</button>
+<a data-testid="post-am-link" href={url}>Open in AM</a>
+<input data-testid="compose-title-input" />
+<form data-testid="auth-devlogin-form">…</form>
+
+// Custom React components are exempt — checked at their definition site
+<Button>Save</Button>
+
+// Non-interactive elements are exempt
+<div className="wrapper">content</div>
+
+// List items: stable testid + dynamic identity in a separate data-* attr
+<article data-testid="post-card" data-post-id={post.id}>…</article>
+```
+
+**Violating:**
+
+```tsx
+<button onClick={...}>Go</button>                              // missing
+<button data-testid={`feed-${id}`}>Go</button>                 // notStatic
+<button data-testid="feedNewpostSubmit">Go</button>            // badFormat
+<button data-testid="feed_newpost_submit">Go</button>          // badFormat
+<button data-testid="feed-button">Go</button>                  // badFormat (2 segments)
+<button data-testid="widgets-foo-bar">Go</button>              // unknownArea
+<button testid="feed-foo-bar">Go</button>                      // missing (typo)
+<button data-test-id="feed-foo-bar">Go</button>                // missing (wrong attr name)
+```
+
+**Edge cases:**
+
+- **Custom components are exempt at the use site.** `<PostForm />` is
+  not checked; the underlying `<form>` inside `PostForm.tsx` is.
+- **Decorative handlers** (`onMouseEnter`, `onMouseLeave`, `onScroll`)
+  are intentionally excluded — they don't make an element a test target.
+- **Namespaced JSX names** (`<svg:rect>`) are treated as custom and
+  skipped — defensive AST handling.
+- **Canonical area list is fail-loud.** If
+  `eslint-rules/canonical-areas.json` is missing or malformed, the rule
+  throws at load time. Silent fallback risks accepting unknown prefixes.
+- **Adding an area:** update `eslint-rules/canonical-areas.json` AND
+  `docs/process/testid-convention.md` in the same PR.
+- **No auto-fix.** Errors only — the test author has to choose the
+  testid intentionally.
 
 ---
 
