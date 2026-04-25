@@ -242,6 +242,46 @@ The post appears in the feed with a "💬 2 groups · by Claire" indicator. Soon
 
 ---
 
+### Scenario 18 — Eddie writes his first post (the demo flow)
+
+_Eddie, member, two weeks in. Tuesday lunchtime, sat at his kitchen table with a cup of tea. He has just spotted a useful Activist Mailer campaign about a council motion in Camden and wants to share it with the network._
+
+Eddie opens GPS Action on his laptop. He's already logged in (the dev login from `/dev/login` selected him last session). The feed loads with about 18 seed posts in chronological order — Sharon's writing, a couple of older outcome posts, a Shabbat Shalom from Friday. He scrolls briefly. Nothing he'd add to. He has his own thing to post.
+
+Top of the feed there's a "New post" link. He clicks it. The page changes to `/compose`. A form appears with three fields and a publish button. The fields are clearly labelled — title, body, "Activist Mailer URL (optional)." The composer is plain — no FAB cards, no intent picker, no template gallery. Per the brief, this is the stepping-stone composer; the full FAB experience comes later (BU-005).
+
+**Eddie types his title:** "Camden council BDS motion — campaign live." He tabs to the body and writes a paragraph: what the motion proposes, when it's being debated, why it matters. Three or four sentences. He tabs to the AM URL field and pastes the campaign link he had on his clipboard. The field accepts it. There's no preview pane — the composer trusts him to know what he's pasted.
+
+He clicks Publish. There's a brief loading state on the button, then the page redirects back to `/feed`. His post is at the top. The card shows his name, the time ("just now"), the title, the body, and an "Open in Activist Mailer" button that PostCard rendered because the `activistMailerUrl` is present.
+
+He clicks the AM button. A new tab opens to the campaign page. He verifies it's correct. He closes the tab and returns to GPS Action.
+
+His post is still there. No reactions yet — it's been less than a minute. He'll check back later.
+
+Total elapsed time: under three minutes from "I should share this" to "it's shared." That's the point.
+
+**What the scenario surfaces:**
+
+- The composer is intentionally simple. Three fields, one button. Anything more is BU-005 territory.
+- The "New post" link from the feed is the entry point. There's no FAB on the demo flow yet — the FAB lives in the future composer.
+- AM URL handling is already done in `components/PostCard.tsx` from BU-feed; BU-composer just needs to put a value in the field and trust PostCard to render the button.
+- The post lands at the top because the feed orders by `createdAt DESC`. No live update or websocket — just a server redirect after the mutation, and the next render shows it.
+- The dev login flow is in play. In production this would be real auth; for the demo, `/dev/login` is sufficient.
+
+**Friction found:**
+
+- No draft auto-save. If Eddie closes the tab mid-compose, his work is gone. Acceptable for the demo (it's a 3-field form and posts are short) but a real concern for the post-demo composer. Drafts go in BU-005's scope per the existing parking-lot notes.
+- No URL validation feedback in the composer beyond Zod's pass/fail on submit. Eddie won't know his AM URL is malformed until he tries to publish. Per `bu-composer.md` the AM URL field has inline validation feedback; verify in the click-through.
+- No preview. Eddie doesn't see what the card will look like before he publishes. For the demo, fine. For the FAB composer (BU-005), live preview is in scope per D044.
+- No success toast or confirmation copy after publishing — the redirect to feed-with-his-post-at-top is the implicit confirmation. Honest and minimal; possibly too quiet. Worth testing with real members.
+- The "New post" link is just a link, not a button. On mobile, a thumb-reachable FAB will be the eventual entry point. The demo uses a link because it's simpler and the FAB belongs to BU-005.
+
+**What this scenario does NOT cover:**
+
+- Visibility selection (the demo's posts are all `members_only` per the bu-composer brief defaults; per-post visibility override is D045 and lands later).
+- Region tagging, group tagging, intent selection — all deferred to BU-005 per D041, D043, D044, D048.
+- Cancel-and-discard flow. The demo's composer has no Cancel button visible in the brief — Eddie either publishes or navigates away. Worth adding `compose-newpost-cancel` testid for the eventual cancel button when it lands.
+
 ## Writer scenarios
 
 ### Scenario 7 — Sharon creates a Writers event
