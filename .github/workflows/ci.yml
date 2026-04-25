@@ -29,6 +29,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
       - name: Install gitleaks
         run: |
           curl -sSfL \

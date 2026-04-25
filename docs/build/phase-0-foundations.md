@@ -27,7 +27,7 @@ D039 (Build Units), `docs/build/engineering-roadmap.md` (Tier B/C/D backlog).
 | F02 | PR template with inline checklists | ✅ | (this PR) |
 | F03 | Pre-commit hooks (Husky + lint-staged) | ☐ | — |
 | F04 | Secret scanning (gitleaks + GitHub) | ✅ | (this PR) |
-| F05 | Dependabot + `npm audit` on CI | ☐ | — |
+| F05 | Dependabot + `npm audit` on CI | ✅ | (this PR) |
 | F06 | Custom ESLint rules (traceability + safety) | ☐ | — |
 | F07 | Coverage floor on new code | ☐ | — |
 | F08 | Database migration validation on CI | ☐ | — |
