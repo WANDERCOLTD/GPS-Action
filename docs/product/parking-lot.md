@@ -856,3 +856,141 @@ Later addition is cheap (additive Prisma migration).
 - `Post.groupTags` — group affiliation (Axis 5)
 - `Post.visibility` — audience reach (Axis 6)
 - `Post.activistMailerUrl` — one CTA mechanism (part of Axis 8)
+
+# Parking lot — entries to add
+
+_Append these entries to `docs/product/parking-lot.md`. If you have
+a section structure (categorised entries), slot them under the most
+appropriate headings. If parking-lot is a flat list, append to the
+end with the date._
+
+---
+
+## Multi-mailer URL allowlist — extensible action endpoints
+
+**Problem:** Today the AM URL allowlist accepts `activistmailer.com`
+only (configurable via `ACTIVIST_MAILER_ALLOWED_DOMAINS` env var).
+This is a simplification. In real use, GPS posts will link to many
+campaign endpoints, not just one mailer.
+
+**Examples of likely future allowed domains:**
+
+- Action Network (`actionnetwork.org`)
+- WriteToThem (`writetothem.com`)
+- TheyWorkForYou (`theyworkforyou.com`)
+- Parliament petitions (`petition.parliament.uk`)
+- Change.org (`change.org`)
+- 38 Degrees (`38degrees.org.uk`)
+- Custom GPS-hosted campaign tooling (TBD)
+
+**What to do later:**
+
+- Decide whether the field name `activistMailerUrl` should be
+  renamed to `actionUrl` or `campaignUrl` for genericity. Renames
+  on the schema are non-trivial (migration + every consumer
+  updated)
+- Decide whether the allowlist should be runtime-configurable
+  (admin UI to add/remove) or stay as env var
+- Decide whether different domain types should render differently
+  in PostCard ("Sign petition", "Email your MP", "Open campaign")
+- Decide how to validate URLs from new domains — are some "trusted"
+  in the sense that we can show their metadata? Out of scope until
+  it matters
+
+**Surfaced by:** Scenario 19 conversation (April 2026). Recording
+the demo with placeholder `activistmailer.com` URLs is fine for
+now.
+
+**Related:** Scenario 1 (Sky News action), Scenario 8 (councillor
+email action). Both would, in real use, hit different endpoint
+families.
+
+---
+
+## Auto-fetch Open Graph metadata for link-share posts
+
+**Problem:** Today's link-share post (BU-link-share) requires the
+member to manually paste link metadata: title, description, image
+URL, site name. This is friction and is below the 2026 expectation
+(every other social platform auto-populates).
+
+**What auto-fetch would do:**
+
+- Member pastes URL
+- Server-side fetches the URL with a strict timeout (~3s)
+- Parses HTML for `<meta property="og:title">`,
+  `<meta property="og:description">`, `<meta property="og:image">`,
+  `<meta property="og:site_name">`
+- Falls back to `<title>` and `<meta name="description">` if no OG
+  tags
+- Pre-populates the form fields; member can override
+- Caches the fetched data per URL (probably in a `LinkPreview`
+  table separate from `Post`, so multiple posts sharing the same
+  URL share metadata)
+
+**Why it's not in v1:**
+
+- Server-side fetching introduces SSRF (server-side request
+  forgery) risk if not carefully scoped — could be abused to probe
+  internal network resources from the GPS server
+- Timeout + retry handling adds complexity
+- Caching strategy needs design (TTL? invalidation? per-URL or
+  per-domain rate limit?)
+- Image hosting question — do we proxy/cache the image, or
+  hotlink? Hotlinking is fragile but cheap
+- All of these are real engineering decisions that deserve their
+  own brief, not a rushed addition
+
+**What to do later:**
+
+- Write BU-link-share-autofetch brief
+- Decide on `LinkPreview` separate model vs continuing with flat
+  fields on Post. Separate model lets multiple Posts share the
+  same metadata
+- Plan SSRF mitigations (domain allowlist? IP filtering?
+  url-canonicalisation library?)
+- Plan image handling — proxy through a CDN, hotlink, or cache
+  on object store
+- Consider the "preview before posting" UX — if auto-fetch lands,
+  the composer can show the card preview live as the URL is
+  pasted
+
+**Surfaced by:** Scenario 19 conversation (April 2026), captured
+in scenario's "Friction found" section.
+
+**Related:** Scenario 19, the FAB composer (BU-005, D044) which
+might be the right place to integrate auto-fetch since it's a
+richer composer surface anyway.
+
+---
+
+## (Optional addition if relevant — only include if
+
+` docs/product/parking-lot.md` doesn't already have these)
+
+## Reaction taxonomy — fixed set vs configurable
+
+**Problem:** BU-reactions ships with 8 fixed emoji (🕯️🙏❤️💪🎯💕👍😢)
+based on existing scenarios. This decision deserves revisiting after
+real use.
+
+**Open questions:**
+
+- Should admins be able to add or remove reactions?
+- Should some reactions be context-specific (e.g. 🕯️ only on
+  cultural posts, 🎯 only on action posts)?
+- How do reactions interact with localisation if the product
+  expands beyond UK?
+- Cultural reactions — are 🕯️ and 🙏 always appropriate, or are
+  there moments they'd feel performative?
+
+**What to do later:**
+
+- After 1 month of real reaction data: which are used, which
+  aren't?
+- Decide whether to allow custom additions or stick with the fixed
+  set
+- Possibly evolve to context-aware reactions (post type
+  determines available reactions)
+
+**Surfaced by:** BU-reactions design discussion (April 2026).

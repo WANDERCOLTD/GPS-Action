@@ -649,3 +649,248 @@ Rules for new scenarios:
 - Don't hand-wave
 
 The scenarios are your lived-in proof that the product works. Treat them as canonical.
+
+---
+
+# Scenario 19 — Sharon shares a Guardian article
+
+_Append to `docs/product/scenarios.md` between Scenario 18 and the
+"Writer scenarios" section, OR keep as a standalone file at
+`docs/product/scenarios/scn-19-sharon-shares-guardian.md` if the
+team is migrating to per-file scenarios._
+
+_Author: Paul · Status: Draft · Build unit: BU-link-share_
+
+---
+
+### Scenario 19 — Sharon shares a Guardian article with a preview card
+
+_Sharon, member, writers group lead. Sunday morning, in the kitchen
+with toast and tea. Her phone is on the counter._
+
+Sharon has just read a Guardian article on a new bill going through
+Parliament. It's a piece worth her network seeing — clear analysis,
+not a hot take. She wants to share it on GPS Action so the writers
+team and the wider feed can pick it up.
+
+She opens GPS Action on her phone. She's already logged in. The feed
+loads — about 20 posts including yesterday's Shabbat Shalom from
+Cary, Eddie's council vote action call, a couple of news shares
+from Bette. The feed feels alive — text posts, action calls, a
+remembrance reflection.
+
+She taps "New post". The composer opens. The familiar four fields
+are there — title, body, AM URL, visibility — and below them a new
+toggle: **"Share a link?"**
+
+She taps it. The composer expands to show:
+
+- **Link URL** — where she pastes the Guardian article URL
+- **Title** — defaulted to a placeholder, she can override
+- **Description** — short summary
+- **Image URL** — picture from the article (optional)
+- **Site name** — defaulted to "The Guardian" once she's pasted
+
+She pastes the article URL. The fields stay empty — there's no
+auto-fetch yet (per the brief, this lands later as a separate
+feature). She types the article's title herself: "Bill X passes
+second reading — what it means". She types a 30-word description:
+"The bill changes how Y works. Worth reading before tomorrow's
+committee debate." She pastes the article's hero image URL.
+The site name field auto-suggests "The Guardian" from the URL host.
+
+For her main post body, she writes two short paragraphs:
+
+> If you're tracking the bill, this piece is the clearest summary
+> I've seen. Worth reading.
+>
+> The committee meets tomorrow. Will write properly later.
+
+Title: "Worth reading — Guardian on Bill X."
+Visibility: public.
+No AM URL — this is a share, not an action.
+
+She taps Publish. The page redirects to /feed. Her post is at the
+top. The card now renders:
+
+- Author: Sharon Whitfield (writers lead label)
+- Time: just now
+- Title: Worth reading — Guardian on Bill X
+- Body: her two paragraphs
+- **A link card below the body**: a small image, the article title,
+  the description, and "The Guardian" as the source label
+
+The link card is clearly part of the post but visually distinct —
+a slightly different background tone, rounded corners, the image
+on the left or top. It looks like a Twitter/Bluesky link preview,
+calmer.
+
+She taps the link card. A new browser tab opens to the Guardian
+article. She closes it. Returns to GPS Action. Her post is still
+there. Cary has already reacted — a small heart icon next to the
+card.
+
+Sharon scrolls through the feed once more. She notices Bette's news
+share from yesterday now also has a link preview — the retrofit
+has made the feed visually richer than it was last week. The text-
+only posts still feel right; the link-share posts add depth.
+
+Total time from "I should share this" to shared: about 90 seconds.
+
+---
+
+**What the scenario surfaces:**
+
+- The link-share post is a NEW post type, not a transformation of
+  the AM URL field. AM URLs are for action campaigns; link URLs
+  are for shared content. They coexist on the schema; the composer
+  shows both
+- The composer doesn't auto-fetch — this is deliberately scoped out
+  of v1. Sharon types the metadata. The doc captures this honestly
+- Link cards are visually distinct from the post body but clearly
+  part of the same post — designed to read as "Sharon thought this
+  was worth sharing"
+- The 5 fields (URL, title, description, image, site name) are all
+  optional except URL — if Sharon pastes only a URL, the card shows
+  just the URL with a fallback domain label. Better with metadata,
+  fine without
+- Site name auto-suggests from the URL hostname — small UX touch
+  that makes the form feel less robotic
+- Reactions appear quickly (Cary's heart) — see Scenario 20 for
+  reactions specifically
+
+**Friction found:**
+
+- Auto-fetch is the obvious next move. Members will expect it.
+  Pasting a URL and watching the fields auto-fill is the 2026
+  default expectation. The honest answer for now: parking-lot,
+  next-iteration. But it's friction users will report
+- Image URLs are tricky — Sharon has to right-click-copy from the
+  Guardian's own page. Mobile users can't easily do this. Mobile
+  paste of an image URL will be the rough edge. Possibly skip the
+  image rather than fight with it
+- The "Site name" field is the most expendable; "The Guardian"
+  appears in the card whether the field is filled or not. Could be
+  derived from the URL host alone. Surface this as a possible
+  simplification
+- Sharon didn't see a preview of the link card before publishing —
+  she trusted the form. A small preview pane would be nice. But
+  for v1, the form is plain. (D044 has FAB composer with live
+  preview as the eventual replacement — that's BU-005)
+- If a member shares the same URL twice (or two members share
+  the same Guardian article), each post gets its own card metadata.
+  No deduplication or shared preview cache — that's the LinkPreview
+  separate-model approach we explicitly skipped. Future work
+- The "Share a link?" toggle below the AM URL field could confuse:
+  is the AM URL a link too? In the composer the field labels make
+  it clear (AM URL = "for action campaigns"; link URL = "for
+  articles, posts, videos"). Worth verifying with real users
+
+---
+
+**What we're NOT doing in BU-link-share:**
+
+- Auto-fetching Open Graph metadata from the URL — Sharon types
+  it manually. The auto-fetch lands as a separate BU because it
+  needs careful security thinking (SSRF, timeouts, caching)
+- A separate `LinkPreview` table for shared metadata across posts.
+  Each post has its own copy
+- Rich-media embeds (Twitter cards, YouTube players, podcast
+  embeds inline). Just metadata + image URL renders as a card
+- Link click tracking. Sharon tapping the card opens a new tab;
+  we don't track who clicked
+- Validation that the URL is reachable. The composer accepts any
+  https URL with a valid format. If it 404s on click, that's the
+  user's problem
+- Edit/re-fetch if the URL changes after publishing. Static
+  metadata
+- Sharing private/internal URLs. Out of scope
+- Per-post visibility specifically for link-share posts. Uses the
+  existing `visibility` field (public / authenticated_only)
+
+---
+
+**How we'll know it worked (acceptance criteria):**
+
+- I can log in as Sharon (or Eddie or any seeded member)
+- I can navigate from /feed to /compose
+- I see a "Share a link?" toggle in the composer
+- Tapping it expands 5 fields: link URL, title, description, image
+  URL, site name
+- I can publish a post with link metadata
+- After publishing, my post appears at the top of /feed
+- The post card renders a link preview card below the body, with
+  the title, description, image (if provided), and site name
+- Tapping the link card opens the URL in a new tab
+- A post WITHOUT link metadata renders as before (no card, just
+  text + AM button if present)
+- Mixed posts (text + AM URL + link card all present) render
+  correctly: body, link card, AM button in sensible order
+- Validation: link URL must be https; field rejects http and
+  malformed URLs
+- 4-5 hand-crafted seed posts have link previews with realistic
+  metadata so the demo feed shows visual variety from the start
+
+---
+
+**Open questions:**
+
+- Where does the link card sit visually — above the body, below
+  the body, or to the side? Recommend below body, above AM button.
+  CC will surface in BU-link-share execution
+- If the image URL fails to load (broken image), what's the
+  fallback? Show the card without the image? Show a placeholder
+  icon? Recommend show without image, maintain card structure
+- Should the link card have its own click target separate from
+  the post body? Recommend yes — the whole card area is tappable
+- Should the post body still be rendered if a link card is
+  present? Yes — the body is the member's commentary, the card is
+  the shared content. Both belong
+- Can the same post have BOTH an AM URL and a link URL? Recommend
+  yes — a post about "this Guardian article describes the issue,
+  here's the campaign to act on it" is a real pattern. Both render
+
+---
+
+**Related:**
+
+- ADR D045 — visibility defaults
+- ADR D048 — post types (this is a soft type, not the formal
+  PostType enum that's deferred)
+- Scenario 1 — Sharon boosts a Sky News post (action variant)
+- Scenario 6 — Claire publishes an outcome post (different post
+  shape entirely)
+- Scenario 20 — David reacts to Sharon's link share (forthcoming)
+- `docs/product/parking-lot.md` — auto-fetch OG metadata,
+  multi-mailer URL allowlist
+
+---
+
+**Implementing code (filled in by engineers post-build):**
+
+- `prisma/schema.prisma` — adds `linkUrl`, `linkTitle`,
+  `linkDescription`, `linkImage`, `linkSiteName` fields to Post
+- `shared/validation/post.ts` — extends schema for link fields
+- `server/services/post.ts` — `createPost` accepts link metadata
+- `server/routers/post.ts` — input shape extended
+- `components/PostForm.tsx` — adds the "Share a link?" section
+- `components/LinkPreviewCard.tsx` — new component for rendering
+  the card
+- `components/PostCard.tsx` — renders LinkPreviewCard if linkUrl
+  present
+- `scripts/seed.ts` — adds 4-5 link-share seed posts
+
+---
+
+**Screenshot / journey diagram:**
+
+```
+[ Screenshot placeholder — added after demo recording ]
+```
+
+---
+
+**Revision log:**
+
+- 2026-04-25 — initial draft (Paul, with Claude assistance)
+- (post-recording) — screenshot added
