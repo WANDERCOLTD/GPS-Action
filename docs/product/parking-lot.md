@@ -716,6 +716,24 @@ Post-login redirect doesn't honour the `returnTo` query param yet. When an unaut
 
 _Origin: BU-composer session, April 2026._
 
+### PARKED · Demo mode on staging (whitelisted user picker)
+
+When BU-auth lands and replaces the dev cookie stub with real magic-link auth, **quick demos on a staging URL become harder** — every viewer would need their own login. The dev stub at `/dev/login` is what makes "show this to a stakeholder in 2 minutes" possible today; it refuses in production by design (`NODE_ENV !== 'production'`), so it disappears the moment we deploy.
+
+**The story to build into BU-auth's brief:** a `ff_demo_mode` feature flag on staging that re-enables a user picker for a whitelisted set of demo accounts. Off by default; toggled per-environment. Mirrors the dev stub's UX (tap a user, become them, no password) but with hard guardrails:
+
+- Only flag-on environments (never production)
+- Whitelisted account IDs only — not "any user"
+- Audit log entry per impersonation
+- Visible "DEMO MODE" banner to remove all ambiguity
+- Auto-disable after a TTL if the flag's been on too long (catch forgotten flags)
+
+**Why park, not build now:** BU-auth doesn't exist yet. The cost of forgetting this design when BU-auth's brief gets written is exactly the demo-friendliness regression we want to avoid. ~30 min of extra scope inside BU-auth's session, but only if the story is named here so the brief author sees it.
+
+**Trigger:** when BU-auth's brief gets drafted, this story gets folded in as a scope item.
+
+_Origin: BU-comments planning, 2026-04-26 — Paul flagged that "B kind of makes quick demos hard" when comparing the demo-polish path vs the pilot path._
+
 ---
 
 ## Integrations deferred
