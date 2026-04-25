@@ -1709,3 +1709,128 @@ weeks).
 This ADR is intentionally **open** (not accepted). Documenting open
 questions as ADRs makes them harder to forget and easier to resume.
 When product context arrives, revisit this doc and resolve.
+
+---
+
+# D050 — Reaction schema, fixed 8-emoji set, polymorphic target
+
+**Date:** April 2026
+**Tier:** Feature
+**Status:** Accepted
+**Build Unit:** BU-reactions
+
+## Context
+
+BU-reactions adds quiet, multi-select reactions to posts (Scenario 3
+in `docs/product/scenarios.md`). The schema and emoji-set choices
+deserve a recorded decision because:
+
+1. Emoji sets drift unless pinned. The existing
+   `analytics-events.md:136` says "14 core + 3 seasonal", the
+   parking-lot ("Reaction taxonomy — fixed set vs configurable")
+   says 8 fixed. We need one source of truth.
+2. The Reaction primitive must be forward-compatible with comments
+   (BU-007), but comments aren't built. Schema shape now affects
+   migration cost later.
+3. The "react to one thing with many emoji" semantics aren't a
+   given — Slack does it (multi-select), iMessage doesn't
+   (single-select per recipient). Scenario 3 has David picking two
+   emoji on one post, so multi-select wins.
+
+## Decisions
+
+### 1. Fixed 8-emoji set (for now)
+
+Ship with the eight emoji listed in the parking-lot "Reaction
+taxonomy" entry: 🕯️ 🙏 ❤️ 💪 🎯 💕 👍 😢. Stored as enum values
+(`candle`, `pray`, `heart`, `strong`, `target`, `sparkle`,
+`thumbsup`, `sad`) — emoji-to-glyph mapping lives in the UI.
+
+The parking-lot keeps a separate "Expand the reaction set" story
+parked, triggered by real-usage data after BU-reactions ships.
+
+The `analytics-events.md` "14 core + 3 seasonal" line is treated
+as forward-looking — that's where the set might grow to. No code
+in this BU touches the analytics doc.
+
+### 2. Multi-select per user per post
+
+A user can react with any number of emoji to the same post. Each
+emoji is its own row. Toggling an existing reaction off deletes
+the row.
+
+Constraint: `(userId, targetType, targetId, emoji)` is unique. A
+user can't double-react with the same emoji on the same post.
+
+### 3. Polymorphic target via `targetType` + `targetId`
+
+The `Reaction` model uses a polymorphic shape:
+
+- `targetType: ReactionTargetType` enum — only `post` value at MVP
+- `targetId: String` — the target's id
+
+A separate `postId` FK column carries the concrete relation so
+Prisma can express it and cascade-delete works. When BU-007 ships
+(comments), it adds a `commentId` FK alongside; the
+`ReactionTargetType` enum gains a `comment` value.
+
+Why polymorphic now: changing the schema later (when comments
+ship) is more expensive than carrying the slight redundancy
+(`targetId` + `postId`) today. The UI never sees this — service
+layer normalises the shape.
+
+### 4. Self-reaction allowed
+
+Authors can react to their own posts. No special-case in the
+router or UI. Reactions are a community signal, not a vanity
+metric.
+
+### 5. Feature flag `ff_reactions`
+
+Per D036, every substantial feature ships behind a flag. A new row
+in `FeatureFlag` (seeded with `enabledGlobally: true` in dev) gates
+both `reaction.add` (server) and `<ReactionPill />` (client). No
+flag → fail closed (rule defaults to disabled).
+
+The flag helper itself (`server/lib/flags.ts`) is built minimally
+in BU-reactions: reads `enabledGlobally` only. Per-user / per-region
+/ rollout-percentage evaluation is deferred to its own follow-up.
+
+## Consequences
+
+- New schema: `ReactionEmoji` enum (8 values), `ReactionTargetType`
+  enum (1 value), `Reaction` model (with one unique constraint and
+  two indexes)
+- New tRPC router: `reaction.add`, `reaction.remove`,
+  `reaction.listForPost`
+- `listPosts` returns a `reactions` field per post
+- `server/lib/flags.ts` exists with `isFeatureEnabled(name)`
+  — reads `FeatureFlag.enabledGlobally` only at MVP
+- The `reaction_added` analytics event fires on add (per
+  `analytics-events.md:133`); `reaction.remove` fires nothing
+- Future BU-007 (Comments) extends `ReactionTargetType` and adds
+  a `commentId` column — small migration, contract-stable
+- Future flag-helper expansion adds per-user / region / percentage
+  eval; existing call sites don't change
+
+## Alternatives considered
+
+- **Single-select per user per post** (rejected) — Scenario 3 has
+  David picking two emoji
+- **Free-text emoji** (rejected) — stable analytics + UI need a
+  fixed set
+- **`targetId` only, no concrete FK** (rejected) — Prisma can't
+  cascade or express the relation
+- **Build the full flag-evaluation engine in BU-reactions**
+  (rejected) — scope creep; minimal helper unblocks Q4 of the brief
+  without committing to the full D036 design
+
+## Related
+
+- Brief: `docs/build/session-briefs/bu-reactions.md`
+- Decision: D036 (feature flags)
+- Decision: D045 (post visibility — reactions inherit)
+- Spec: `docs/product/analytics-events.md` (`reaction_added` event)
+- Parking-lot: "Reaction taxonomy — fixed set vs configurable"
+- Parking-lot: "Expand the reaction set" (parked story for after
+  real usage data)

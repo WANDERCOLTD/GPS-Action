@@ -134,6 +134,19 @@ export default [
     },
   },
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // F14 — enforce data-testid on interactive UI (per docs/process/testid-convention.md)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  // Rule 8 (require-testid) — UI code paths only
+  {
+    files: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
+    plugins: { 'local-rules': localRules },
+    rules: {
+      'local-rules/require-testid': 'error',
+    },
+  },
+
   {
     ignores: [
       'node_modules/**',

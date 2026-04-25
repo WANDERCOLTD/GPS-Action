@@ -43,6 +43,7 @@ export const LoggedInAs: FC<LoggedInAsProps> = ({ user }) => {
           </span>
           <a
             href="/dev/login"
+            data-testid="nav-switchuser-link"
             style={{
               color: 'var(--colour-text-link)',
               textDecoration: 'none',
@@ -54,6 +55,7 @@ export const LoggedInAs: FC<LoggedInAsProps> = ({ user }) => {
       ) : (
         <a
           href="/dev/login"
+          data-testid="nav-login-link"
           style={{
             color: 'var(--colour-text-link)',
             textDecoration: 'none',

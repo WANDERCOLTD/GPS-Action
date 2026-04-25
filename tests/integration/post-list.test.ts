@@ -24,6 +24,10 @@ vi.mock('@/server/db/client', () => ({
     roleGrant: {
       findMany: vi.fn(),
     },
+    reaction: {
+      groupBy: vi.fn().mockResolvedValue([]),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   },
 }));
 
