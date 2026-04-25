@@ -7,7 +7,7 @@ from joining one.
 **Status:** Architectural + product. Affects ERD Slice 1.5 (between
 foundation and content primitives). Will become §3.34 of feature spec.
 
-**Build Unit:** BU-007a (Groups foundation) — to be created.
+**Build Unit:** BU-groups (Groups foundation) — to be created.
 **Related ADR:** D043 (Groups as identity markers + queue filters, not
 permission).
 **Related:** `admin-surface.md` (role model — groups don't grant roles),

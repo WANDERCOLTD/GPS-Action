@@ -37,7 +37,7 @@ flexibility for unusual ones.
 **Status:** Architectural + product. Affects ERD Slice 2 (Post fields)
 and the composer Build Unit. Will become §3.36 of feature spec.
 
-**Build Unit:** BU-003a (Composer foundation) and BU-003b (Intent cards)
+**Build Unit:** BU-composer (Composer foundation) and BU-composer-fab (Intent cards)
 — to be created.
 **Related ADR:** D044 (Intent-first post creation — FAB cards model).
 **Related:** `design-philosophy.md` (one-click is king),
@@ -414,7 +414,7 @@ Honest copy throughout:
 
 - "Posting…" while the request is in flight
 - "Posted. Here it is in the feed." once the post lands
-- If dedup detection fires: the dedup interstitial (per BU-009) takes
+- If dedup detection fires: the dedup interstitial (per BU-dedup) takes
   over with its own honest framing
 - After successful post: "Want to share it onward?" with the platform
   picker right there — no 2-step
@@ -616,7 +616,7 @@ Composer-related procedures (some shared with sharing/dedup):
 
 1. Validates input (Zod schema, per api-contract-discipline.md)
 2. Fetches and processes hero image if URL provided
-3. Runs dedup check (per BU-009)
+3. Runs dedup check (per BU-dedup)
 4. If duplicate, returns the dedup interstitial state
 5. If unique, creates the post
 6. Generates short ID
@@ -838,7 +838,7 @@ Where do they drop off in the composer?
    identical (no card selection, just editing the existing fields).
    Specified per Build Unit when edit lands.
 2. **Comment composer.** Lighter-weight than post composer; specified in
-   the comments Build Unit (BU-007).
+   the comments Build Unit (BU-comments).
 3. **Voice / dictation input.** Could be useful (especially for older
    members). Phase 2.
 4. **Multimedia composer.** Multiple images, video, polls. Phase 2 / 3.

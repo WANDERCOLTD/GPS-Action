@@ -136,7 +136,7 @@ taxonomy.
 
 **Status:** screenshots pending.
 **Impact:** until screenshots arrive, PostType taxonomy stays
-deferred per D048. The composer UI (BU-composer for demo; BU-005
+deferred per D048. The composer UI (BU-composer for demo; BU-composer-fab
 full composer post-demo) renders a simple form that doesn't branch
 on type.
 
@@ -174,7 +174,7 @@ The `User` model may need:
 - `networkDescription: String?` — free-text description of their
   reach (what they lead, what list they write, etc.)
 
-None of this is urgent for the demo. Consider for BU-020 (admin)
+None of this is urgent for the demo. Consider for BU-admin (admin)
 or post-demo.
 
 ### Feed performance

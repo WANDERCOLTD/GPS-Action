@@ -8,7 +8,7 @@ in Phase 1.5+".
 **Status:** Architectural + product. Affects ERD Slice 2 (Post fields)
 and various entity tables. Will become §3.35 of feature spec.
 
-**Build Unit:** BU-015 (Image handling foundation) — to be created.
+**Build Unit:** BU-image (Image handling foundation) — to be created.
 **Related ADR:** D046 (Image handling phased strategy — day 1 simple).
 **Related:** `deep-linking-and-tracking.md` (og:image generation),
 `design-philosophy.md` (cultural-marker styling, no anxiety amplification),

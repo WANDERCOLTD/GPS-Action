@@ -6,7 +6,7 @@ comment — preserving both voices, avoiding feed duplication, and never making
 anyone feel blocked or corrected.
 
 **Status:** ABSORBING into feature spec v0.6. Will become §3.31.
-**Build Unit:** BU-009 (Post deduplication & co-surfacing) — to be created.
+**Build Unit:** BU-dedup (Post deduplication & co-surfacing) — to be created.
 **Related:** D013 (self-dispatch default), design-philosophy principle 1
 (one-click is king), analytics-events.md.
 
@@ -370,7 +370,7 @@ Calling these out explicitly (per the pattern I'm adopting) so gaps are visible:
 
 ## Implementation sketch for Claude Code
 
-When BU-009 is briefed, the session should expect to:
+When BU-dedup is briefed, the session should expect to:
 
 1. Add `normalised_url` column + migration to `posts` table (two-phase if
    backfilling existing posts).
@@ -393,7 +393,7 @@ When BU-009 is briefed, the session should expect to:
 **Estimated sessions:** 3–4 Claude Code sessions. Largest piece is URL
 normalisation + shortener resolution with proper test coverage.
 
-**Depends on:** BU-003 (post publishing), BU-007 (comments), BU-002 (notifications).
+**Depends on:** BU-composer (post publishing), BU-comments (comments), BU-auth (notifications).
 
 **Blocks:** Nothing critical — this is a quality-of-life feature, not a
 foundation. Can ship mid-build.

@@ -5,9 +5,9 @@ Action as a draft post. "Sharon saw something on X and wants to post it to GPS
 Action" — all the ways that can happen on the platforms we support.
 
 **Status:** ABSORBING into feature spec v0.6. Will become §3.32.
-**Build Unit:** BU-010 (Inbound sharing) — to be created.
+**Build Unit:** BU-inbound-share (Inbound sharing) — to be created.
 **Related:** D003 (PWA-first stack), design-philosophy principle 1 (one-click
-is king), dedup-and-cosurfacing.md (BU-009), engineering-roadmap.md (B11 for
+is king), dedup-and-cosurfacing.md (BU-dedup), engineering-roadmap.md (B11 for
 future native iOS).
 
 ---
@@ -210,7 +210,7 @@ All four paths converge here. When a URL arrives by any path, the composer:
 1. Pre-populates the URL field
 2. If Android Web Share Target passed a `title` or `text`, pre-populate those
    as the suggested body (user can edit)
-3. Runs the **dedup check** (BU-009) — if the URL matches a post within the
+3. Runs the **dedup check** (BU-dedup) — if the URL matches a post within the
    window, show the dedup interstitial
 4. Otherwise render the normal composer, user finishes and submits
 
@@ -243,7 +243,7 @@ Three new events; one is modification to an existing event.
 suggestion shown, bookmarklet clicked, native extension opened).
 **Properties:** `source` (enum matching `inbound_source` above), `platform`
 **Fired from:** The entry-point handler for each path
-**Build Unit:** BU-010
+**Build Unit:** BU-inbound-share
 **Answers:** "How are people trying to get content in? Which paths are used?"
 
 ### `share_intent_completed`
@@ -252,7 +252,7 @@ suggestion shown, bookmarklet clicked, native extension opened).
 **Properties:** `source`, `platform`, `had_url` (bool), `had_title` (bool),
 `had_text` (bool)
 **Fired from:** Composer mount when `inbound_source` is set
-**Build Unit:** BU-010
+**Build Unit:** BU-inbound-share
 **Answers:** "Do inbound paths complete successfully, or drop off mid-flow?"
 
 ### `share_intent_abandoned`
@@ -261,7 +261,7 @@ suggestion shown, bookmarklet clicked, native extension opened).
 or cancels before post).
 **Properties:** `source`, `platform`, `time_in_composer_seconds`
 **Fired from:** Composer unmount if no post was created in the session
-**Build Unit:** BU-010
+**Build Unit:** BU-inbound-share
 **Answers:** "Where does the funnel leak?"
 
 ### Modified: `post_published`
@@ -293,7 +293,7 @@ manufactured urgency.
 
 ## Onboarding implications
 
-The onboarding flow (BU-002) gains two small additions for this feature:
+The onboarding flow (BU-auth) gains two small additions for this feature:
 
 1. **PWA install prompt on Android.** Show the browser's native install prompt
    near the end of onboarding — "Install GPS Action on your home screen to
@@ -313,7 +313,7 @@ to land in onboarding PRs alongside the share work.
 ### User shares something that isn't a URL (plain text, an image)
 
 - **Android Web Share Target** can receive images — handle them as attachments
-  in the composer (BU-003 supports post types with images)
+  in the composer (BU-composer supports post types with images)
 - **Plain text without URL** — pre-populate the composer body; no URL field
   populated; user can still post as a text post
 - **Clipboard detection** only triggers on URLs. Other clipboard contents are
@@ -327,7 +327,7 @@ stored and displayed. The dedup check runs on the normalised URL.
 
 ### User shares the same URL twice within the window
 
-Dedup interstitial (BU-009) fires — same flow as composer-originated duplicates.
+Dedup interstitial (BU-dedup) fires — same flow as composer-originated duplicates.
 
 ### User taps the bookmarklet while signed out
 
@@ -354,7 +354,7 @@ annoying.
 
 1. **Image-only shares through Web Share Target API.** The manifest declares
    image file support, but the UI for "post as an image post with optional
-   caption" is a composer concern (BU-003). Calling it out here so it's not
+   caption" is a composer concern (BU-composer). Calling it out here so it's not
    forgotten at integration time.
 2. **Email-based sharing.** "Forward to post@gps.action to create a post" is
    a nice idea, Phase 3 at earliest. Needs inbound email parsing, auth via
@@ -373,7 +373,7 @@ annoying.
 
 ## Implementation sketch for Claude Code
 
-When BU-010 is briefed:
+When BU-inbound-share is briefed:
 
 1. **PWA manifest update** — add `share_target` block. Test on Android device.
 2. **`/share` endpoint** — Next.js route handler accepting GET (bookmarklet) and
@@ -398,11 +398,11 @@ When BU-010 is briefed:
 trickiest — browser compatibility matrix, permission handling, dismiss-state
 tracking.
 
-**Depends on:** BU-003 (composer), BU-002 (auth/onboarding — for sign-in
-redirect). Ideally BU-009 (dedup) is shipped first so dedup check is inherited
+**Depends on:** BU-composer (composer), BU-auth (auth/onboarding — for sign-in
+redirect). Ideally BU-dedup (dedup) is shipped first so dedup check is inherited
 for free.
 
-**Blocks:** Nothing critical. Like BU-009, this is a quality-of-life feature.
+**Blocks:** Nothing critical. Like BU-dedup, this is a quality-of-life feature.
 Can ship mid-build. Strong candidate for an early vertical slice because the
 scenarios ("Sharon sees something on X and posts it to GPS Action") are
 exactly the ones that make the product real.

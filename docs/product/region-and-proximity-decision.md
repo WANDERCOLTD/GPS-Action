@@ -299,8 +299,8 @@ calculations, no radius queries. This is a meaningful simplification.
 3. ✅ `User` has no location fields
 4. ✅ `Post` has an optional `regionTagId` FK
 5. ✅ `WorkItem` has an informational `regionSlug` (for display, not filtering)
-6. ✅ The default feed query pattern for BU-005 is `posts ORDER BY createdAt DESC` with no region filter
-7. ✅ The queue UI for BU-001 shows every work item to every queue manager
+6. ✅ The default feed query pattern for BU-feed is `posts ORDER BY createdAt DESC` with no region filter
+7. ✅ The queue UI for BU-admin shows every work item to every queue manager
 8. ✅ Coordinator profile and role_grants schemas specified in admin-surface.md
 
 ---

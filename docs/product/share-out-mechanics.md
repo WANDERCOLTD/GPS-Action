@@ -9,7 +9,7 @@ analysis that drove design choices.
 **Status:** Architectural + product. Affects ERD Slice 2 (DispatchEvent
 table) and the share Build Unit. Will become §3.37 of feature spec.
 
-**Build Unit:** BU-013 (Share-out flows) — to be created.
+**Build Unit:** BU-share-out (Share-out flows) — to be created.
 **Related:** `dedup-and-cosurfacing.md` (dispatch indicator on posts),
 `deep-linking-and-tracking.md` (URLs we share back; tracking),
 `post-creation-flow.md` (compose → share is one continuous flow),
