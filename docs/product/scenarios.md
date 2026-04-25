@@ -756,7 +756,7 @@ Total time from "I should share this" to shared: about 90 seconds.
   fine without
 - Site name auto-suggests from the URL hostname — small UX touch
   that makes the form feel less robotic
-- Reactions appear quickly (Cary's heart) — see Scenario 20 for
+- Reactions appear quickly (Cary's heart) — see Scenario 3 for
   reactions specifically
 
 **Friction found:**
@@ -860,7 +860,10 @@ Total time from "I should share this" to shared: about 90 seconds.
 - Scenario 1 — Sharon boosts a Sky News post (action variant)
 - Scenario 6 — Claire publishes an outcome post (different post
   shape entirely)
-- Scenario 20 — David reacts to Sharon's link share (forthcoming)
+- Scenario 3 — David reacts to a Shabbat Shalom post (reactions on
+  any post type)
+- Scenario 20 — Eddie writes his first comment on Maya's post (the
+  comment-write flow + post-detail page UX)
 - `docs/product/parking-lot.md` — auto-fetch OG metadata,
   multi-mailer URL allowlist
 
@@ -894,3 +897,117 @@ Total time from "I should share this" to shared: about 90 seconds.
 
 - 2026-04-25 — initial draft (Paul, with Claude assistance)
 - (post-recording) — screenshot added
+
+---
+
+### Scenario 20 — Eddie reads the Sky News post and writes his first comment
+
+_Eddie, member, three days in. Tuesday evening, on the bus home._
+
+Eddie scrolls his feed. Maya's Sky News bias post (the one Sharon
+engaged with in Scenario 1) is still in rotation — reactions
+trickling in, the AM action button still live. The card shows the
+top suggestion bubble: Sharon's reply, _"This is exactly the kind of
+pattern we should be naming. Worth a complaint to Ofcom — template
+attached 💕"_. There's a "💬 12 comments" pill below the body.
+
+He's curious what Sharon meant by "template attached." He taps the
+card.
+
+The detail page opens. The post anchors near the top of the screen
+— author, title, body, AM button — and the comments thread stacks
+underneath. Filter at the top reads "Discussion" by default. He
+scrolls.
+
+He sees:
+
+- Sharon's comment with the Ofcom template snippet — five neighbours
+  reacted 🎯 and 💪
+- David T's reply: "Sent mine on Sunday. Took 90 seconds."
+- A coordinator-pinned answer to "what counts as bias for Ofcom" —
+  three short paragraphs, plain English
+- Three more replies, mostly thanks-and-also-sent
+
+He's persuaded. He scrolls back to the top, taps "Open in Activist
+Mailer", signs the action. Returns to GPS Action — the post now
+shows "You've taken this action ✓" on the AM button.
+
+Now he wants to add his own voice. He scrolls to the comment
+composer at the bottom of the thread. Single line, expandable:
+"Add a comment…"
+
+He taps. Composer expands. He types: "First time using the app —
+the Ofcom template made it easy. Thanks Sharon."
+
+He taps Post. The composer collapses. His comment appears at the
+bottom of the Discussion thread, with his name, a "new member" chip,
+and a relative timestamp ("just now").
+
+He closes the app. Two small contributions in five minutes — read,
+acted, replied. No celebration. No notification spam. Permission to
+close.
+
+**What the scenario surfaces:**
+
+- Tap-card-to-detail is the canonical interaction (already
+  established in Scenario 1) — the detail page is its own URL,
+  shareable, deep-linkable per D045
+- Detail layout: post anchored near top, thread stacked underneath.
+  Not a card variant — a full thread view. On mobile the post
+  occupies the top ~40% of the viewport before scrolling
+- Default filter is "Discussion" (per Scenario 3 precedent). System
+  comments hidden until member toggles to "Activity" or "All"
+- Comment composer is a single line at the bottom of the thread,
+  tap-to-expand. No floating-action-button — composer is in-line so
+  it scrolls naturally with the thread
+- New-member chip on Eddie's first comment is warmth, not gatekeeping
+  — established members already have role chips; new members get
+  context too
+- Reading-then-acting-then-replying is one continuous flow on the
+  same screen — action button stays accessible while comments are
+  scrolled
+- Action and comment are independent affordances — clicking AM does
+  not automatically post a comment
+
+**Friction found:**
+
+- Eddie's comment count update — when he returns to the feed, does
+  the "💬 12 comments" pill reflect his new comment, or stay at 12
+  until next page load? Recommend optimistic update on the
+  source-card too; revisit if perf is bad
+- Top suggestion bubble on the source card — does it rotate to the
+  most recent thoughtful comment, stay anchored to the highest-rated,
+  or always show the first? Open: pick one, log a parking-lot story
+- Composer keyboard focus on mobile — needs careful viewport
+  handling so the keyboard doesn't push the post body off-screen.
+  Default browser behaviour is usually fine; verify on iOS Safari
+- Empty-after-typing case — if Eddie expands the composer, types
+  something, then deletes it, should the composer collapse silently?
+  Recommend yes, no confirmation
+- Comment edit / delete — out of scope for this scenario. BU-comments
+  brief should call this out as deferred to a follow-up
+
+---
+
+**Related:**
+
+- Scenario 1 — Sharon boosts a Sky News post (the source post Eddie
+  is replying to; tap-card-to-detail is established there)
+- Scenario 2 — Emma's leafleting post (replies appear on the card;
+  this scenario shows the thread on the detail page)
+- Scenario 3 — David reacts on a Shabbat post (Discussion filter
+  established)
+- Scenario 6 — Claire's outcome post (Activity filter for system
+  comments)
+- Scenario 17 — System auto-comments on closing campaign (auto-
+  comment behaviour visible on detail page)
+- Scenario 18 — Eddie writes his first post (this scenario follows
+  on three days later)
+- Parking-lot — top suggestion bubble algorithm (which comment
+  surfaces on the card)
+
+---
+
+**Revision log:**
+
+- 2026-04-25 — initial draft (Claude, with Paul direction)
