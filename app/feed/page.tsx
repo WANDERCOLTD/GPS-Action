@@ -65,9 +65,19 @@ export default async function FeedPage() {
 
   return (
     <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
-      <h1 className="gps-title" style={{ marginBottom: 'var(--space-6)' }}>
-        Feed
-      </h1>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 'var(--space-6)',
+        }}
+      >
+        <h1 className="gps-title">Feed</h1>
+        <a href="/compose" className="gps-btn gps-btn--primary gps-btn--sm">
+          New post
+        </a>
+      </div>
       <FeedList initialPosts={posts} initialCursor={cursor} loadMore={loadMorePosts} />
     </main>
   );

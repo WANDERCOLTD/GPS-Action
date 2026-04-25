@@ -108,6 +108,14 @@ Cookie-based, no passwords. The cookie `gps_dev_user_id` persists
 until cleared. `<LoggedInAs />` in the root layout shows who's
 logged in. All dev-only code is gated by `NODE_ENV !== 'production'`.
 
+## Post composer (BU-composer)
+
+Visit `/compose` to create a new post. Requires authentication —
+unauthenticated users are redirected to `/dev/login`. The form has
+4 fields: title, body, optional Activist Mailer URL, and visibility
+(public / logged-in only). On submit, the post appears at the top
+of `/feed`.
+
 ---
 
 ## CRITICAL: Recent context not yet absorbed into Feature Spec v0.5

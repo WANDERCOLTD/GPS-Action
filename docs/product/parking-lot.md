@@ -710,6 +710,12 @@ Immutable event log as primary data model. Interesting for audit and replay; ove
 
 _Origin: parallel-build architecture discussion._
 
+### DEFERRED (post-demo) · returnTo redirect on dev login
+
+Post-login redirect doesn't honour the `returnTo` query param yet. When an unauthenticated user hits `/compose`, they're redirected to `/dev/login?returnTo=/compose`, but after login they land at `/` → `/feed` instead of `/compose`. Minor friction — user clicks "New post" again. Fix by reading `returnTo` from the URL in the dev login action and redirecting there instead of `/`.
+
+_Origin: BU-composer session, April 2026._
+
 ---
 
 ## Integrations deferred
