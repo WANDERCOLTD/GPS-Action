@@ -139,7 +139,7 @@ per-change.
 
 **Real auth flow, with captures.**
 
-When BU-002 lands and real auth is in place:
+When BU-auth lands and real auth is in place:
 
 - **Email magic links** via SMTP — captured by Mailhog or Ethereal
   rather than delivered to real inboxes
@@ -210,7 +210,7 @@ From there, real users create real data.
 
 ### Auth
 
-Full production auth — per BU-002 when it lands. No bypass codes, no
+Full production auth — per BU-auth when it lands. No bypass codes, no
 test numbers, no capture.
 
 Real email delivery (AWS SES or similar). Real SMS via Twilio
@@ -442,7 +442,7 @@ Based on the BU sequence plan:
 
 **For the demo (Paul's laptop only):** dev environment, no staging needed.
 
-**Before first external pilot:** staging needs to exist (BU-002 + F09).
+**Before first external pilot:** staging needs to exist (BU-auth + F09).
 Probably a 3-5 day build to stand it up: RDS instance, Vercel
 configuration, Mailhog setup, real auth integration.
 

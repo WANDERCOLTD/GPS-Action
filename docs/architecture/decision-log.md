@@ -596,7 +596,7 @@ YAML block:
 id: SCN-04
 name: Sharon flags a post
 spec_sections: ['3.15', '3.15.2', '3.22']
-build_units: [BU-012]
+build_units: [BU-flag]
 related_scenarios: [SCN-05, SCN-12]
 ---
 ```
@@ -606,7 +606,7 @@ file begins with:
 
 ```yaml
 ---
-id: BU-012
+id: BU-flag
 name: Flagging pipeline
 status: proposed | ready | in_progress | done | blocked
 scenarios: [SCN-04, SCN-05, SCN-12]
@@ -617,7 +617,7 @@ trpc_procedures: [flagPost, listFlags, resolveFlag]
 ui_components: [FlagButton, FlagReasonModal, FlagQueueScreen]
 events: [post_flagged, flag_resolved]
 feature_flags: [ff_flagging_v2]
-depends_on: [BU-001, BU-003]
+depends_on: [BU-admin, BU-composer]
 blocks: []
 estimated_sessions: 3
 ---
@@ -627,7 +627,7 @@ estimated_sessions: 3
 
 ```typescript
 /**
- * @build-unit BU-012
+ * @build-unit BU-flag
  * @scenarios SCN-04, SCN-05
  * @spec §3.15
  */
@@ -641,7 +641,7 @@ one `@spec` annotation.
 **4. ADRs reference the features they constrain.** Already partial — formalise:
 
 ```markdown
-**Affects:** §3.15.2, BU-012
+**Affects:** §3.15.2, BU-flag
 **Triggered by:** SCN-04
 ```
 
@@ -769,10 +769,10 @@ as features add new claimable workflows.
   block in §"Schema for ERD")
 - The `context` JSONB carries type-specific payload; each type defines its
   shape via a TypeScript type + Zod schema
-- BU-001 (admin scaffolding) is the first Build Unit and includes the
+- BU-admin (admin scaffolding) is the first Build Unit and includes the
   generic queue UI on top of work_items
 - Per-type resolution forms are specified per-Build-Unit (vetting form in
-  BU-002, flag form in BU-012, etc.)
+  BU-vetting, flag form in BU-flag, etc.)
 - Five claim/lease design decisions confirmed and locked in claim-and-lease.md
   (single-worker exclusive claims, tab-split queue UI, three-tier release,
   scoped lock — locks the work-item, not the underlying entity)
@@ -971,7 +971,7 @@ identity + soft routing only.
 
 **Consequences:**
 
-- BU-007a (Groups foundation) builds the entity, membership, admin UI
+- BU-groups (Groups foundation) builds the entity, membership, admin UI
 - Group filter in queue UI lets queue managers focus
 - Group badges visible on profiles, post bylines (subtle)
 - Initial seed of ~10 starter groups (Writers, Newsletter Editors,
@@ -1036,7 +1036,7 @@ generic composer with a type-picker for unusual cases.
 
 **Consequences:**
 
-- BU-003a (Composer foundation) and BU-003b (Intent cards) become
+- BU-composer (Composer foundation) and BU-composer-fab (Intent cards) become
   separate Build Units
 - Post schema gains `intentCard` and `composerVersion` fields
 - Drafts model needed (per the spec) for resume-later support
@@ -1105,7 +1105,7 @@ posting (with audit log entry).
   Event, Action default index; others default noindex)
 - Schema additions: `Post.shortId`, `Post.visibility`, deep-link view
   tracking
-- BU-014 (Deep linking + public post views) becomes its own Build Unit
+- BU-deep-link (Deep linking + public post views) becomes its own Build Unit
 
 **Status:** Active. ERD Slice 2 includes the Post visibility model.
 Full spec in `docs/product/deep-linking-and-tracking.md`.
@@ -1168,7 +1168,7 @@ and which can phase in later?
 
 **Consequences:**
 
-- BU-015 (Image handling foundation) covers MVP day 1
+- BU-image (Image handling foundation) covers MVP day 1
 - Object storage + CDN serving from day 1
 - Schema additions phased: avatars in Slice 1, post hero in Slice 2,
   group logos in Slice 1.5, image bank in Phase 1.5
@@ -1535,7 +1535,7 @@ those land:
   screenshots.
 - **Simple BU-composer (demo path) is unaffected.** It has no type
   field per the original D048 decision. Demo proceeds.
-- **Full FAB composer (BU-005, post-demo) is blocked** on
+- **Full FAB composer (BU-composer-fab, post-demo) is blocked** on
   screenshots arriving.
 
 When screenshots arrive:
@@ -1544,7 +1544,7 @@ When screenshots arrive:
 2. Update `docs/product/scale-and-audience.md` with the validated
    list of post types
 3. Draft the PostType enum against real examples
-4. Unblock BU-005
+4. Unblock BU-composer-fab
 
 See also: `docs/product/scale-and-audience.md` for related scale
 context (350k reach, coordinator-as-default, projected 1,000+
@@ -1654,15 +1654,15 @@ Should GPS Action model "coordinator" as:
 
 **Cons:**
 
-- The admin surface (BU-020) will assume one of the models;
+- The admin surface (BU-admin) will assume one of the models;
   whichever it picks is hard to undo
 - Continues building against an incorrect mental model
 
 ## Recommendation (not yet decided)
 
-**Option D for now, with a commitment to decide before BU-020.**
+**Option D for now, with a commitment to decide before BU-admin.**
 
-The demo path doesn't need this resolved. But BU-020 (full admin
+The demo path doesn't need this resolved. But BU-admin (full admin
 surface) does — the role-grant UI will be quite different under
 Option A vs. B. Forcing a decision in the next 4-6 weeks is
 reasonable. Before deciding, it would help to:
@@ -1682,12 +1682,12 @@ Only then commit to A, B, or C.
 the design space is visible. When a decision is made, this file is
 updated to "Accepted" with the chosen option.
 
-Target decision date: before BU-020 brief is written (within ~6
+Target decision date: before BU-admin brief is written (within ~6
 weeks).
 
 ## Consequences if we keep the question open
 
-- BU-020 waits for this decision, OR builds against Option A
+- BU-admin waits for this decision, OR builds against Option A
   (current schema) with awareness that migration may follow
 - Admin UI design sketches support both models pending decision
 - Product discussions surface the question so decision isn't made
@@ -1730,7 +1730,7 @@ deserve a recorded decision because:
    parking-lot ("Reaction taxonomy — fixed set vs configurable")
    says 8 fixed. We need one source of truth.
 2. The Reaction primitive must be forward-compatible with comments
-   (BU-007), but comments aren't built. Schema shape now affects
+   (BU-comments), but comments aren't built. Schema shape now affects
    migration cost later.
 3. The "react to one thing with many emoji" semantics aren't a
    given — Slack does it (multi-select), iMessage doesn't
@@ -1770,7 +1770,7 @@ The `Reaction` model uses a polymorphic shape:
 - `targetId: String` — the target's id
 
 A separate `postId` FK column carries the concrete relation so
-Prisma can express it and cascade-delete works. When BU-007 ships
+Prisma can express it and cascade-delete works. When BU-comments ships
 (comments), it adds a `commentId` FK alongside; the
 `ReactionTargetType` enum gains a `comment` value.
 
@@ -1808,7 +1808,7 @@ in BU-reactions: reads `enabledGlobally` only. Per-user / per-region
   — reads `FeatureFlag.enabledGlobally` only at MVP
 - The `reaction_added` analytics event fires on add (per
   `analytics-events.md:133`); `reaction.remove` fires nothing
-- Future BU-007 (Comments) extends `ReactionTargetType` and adds
+- Future BU-comments extends `ReactionTargetType` and adds
   a `commentId` column — small migration, contract-stable
 - Future flag-helper expansion adds per-user / region / percentage
   eval; existing call sites don't change

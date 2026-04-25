@@ -11,7 +11,7 @@ below.
 **Related ADR:** D040 (work_items as unified queue primitive), D041 (region
 as tag only, no queue-side filtering), D042 (coordinator identity vs
 queue-manager permission split).
-**Build Unit:** BU-001 (admin scaffolding) builds the queue UI; the
+**Build Unit:** BU-admin (admin scaffolding) builds the queue UI; the
 work-items table is a foundational schema concern.
 **Related:** admin-surface.md, security-baseline.md, B07 (audit log spec).
 
@@ -511,15 +511,15 @@ changes are summarised, not detailed.
 
 1. **ERD lands** with `work_items` table per this spec → unblocks everything
    below
-2. **BU-001** (admin scaffolding) builds the generic queue UI on top of
+2. **BU-admin** (admin scaffolding) builds the generic queue UI on top of
    `work_items`, plus role-grants and coordinator-profile scaffolding
-3. **First Build Unit that creates work items** (probably BU-002 vetting or
-   BU-012 flagging) populates the queue with real data
+3. **First Build Unit that creates work items** (probably BU-vetting vetting or
+   BU-flag flagging) populates the queue with real data
 4. **Auto-release sweeper** runs as a Vercel cron job — half-day to set up,
-   sits in scope of BU-001
-5. **Heartbeat endpoint** ships in BU-001
-6. **Claim avatar component** ships in BU-001 as part of generic queue UI
-7. **Admin force-release flow** ships in BU-001
+   sits in scope of BU-admin
+5. **Heartbeat endpoint** ships in BU-admin
+6. **Claim avatar component** ships in BU-admin as part of generic queue UI
+7. **Admin force-release flow** ships in BU-admin
 
 The work-items model is foundational. Get the schema right first; everything
 else is mechanics on top.
