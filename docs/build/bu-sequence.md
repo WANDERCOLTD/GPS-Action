@@ -32,17 +32,53 @@ rest unlocks a pilot with real users.
 
 ## What's already done
 
+**Demo path complete (April 2026).** The full Phase 1 demo loop is
+shipped — login → feed → compose → post-with-AM-URL → click through.
+
 | Item | Status | Notes |
 |---|---|---|
 | **ERD Slice 1** (User, Region, WorkItem, RoleGrant, CoordinatorProfile, CoordinatorGroup, AuditLog, FeatureFlag, UserRegion) | ✅ Merged | Foundation entities in place |
 | **ERD Slice 1.5** (Group, GroupMembership, WorkItem.groupTags) | ✅ Merged | Community affiliation schema |
-| **F06** (5 custom ESLint rules) | ✅ Merged | Mechanical enforcement live |
+| **ERD Slice 2 (minimal)** (Post model + PostType, PostVisibility enums) | ✅ Merged | Demo-path post schema |
+| **BU-001-lite** (Dev auth stub) | ✅ Merged | `/dev/login`, cookie auth, `requireRole`, audit log writer, `<LoggedInAs />` |
+| **BU-feed** (Feed page + post router + seed) | ✅ Merged | `/feed`, `post.list`, ~18 seeded posts |
+| **BU-composer** (Post creation form) | ✅ Merged | `/compose`, `post.create`, AM URL allowlist |
+| **BU-am-link** (AM URL display) | ✅ Merged | Folded into BU-composer + BU-feed as planned |
 | **F03** (Husky pre-commit + commitlint) | ✅ Merged | Auto-formats every commit |
+| **F04** (Secret scanning — gitleaks) | ✅ Merged | Pre-commit + CI; server-side scanning deferred (paid plan) |
+| **F05** (Dependabot + npm audit CI) | ✅ Merged | Dependency monitoring active |
+| **F06** (5 custom ESLint rules) | ✅ Merged | Mechanical enforcement live |
+| **F13** (Require `@spec` tags) | ✅ Merged | Lint-enforced on all `@build-unit` files |
+| **F15** (Design token enforcement + retrofit) | ✅ Merged | Components use `var(--…)` tokens |
 | **Session hygiene discipline** | ✅ Committed | Context management process |
+
+**Outstanding from Phase 0 / foundations:**
+
+| Item | Status | Notes |
+|---|---|---|
+| **F14** (Require `data-testid` on interactive elements) | ⚠️ Partial | Brief written (`session-briefs/f14-require-testid.md`); lint rule not yet enforced |
+
+---
+
+## Next BU — undecided
+
+Demo path is done. Next BU should be picked before more work starts.
+Highest demo-leverage candidates:
+
+- **Reactions** — unblocks Scenarios 1, 3 in `docs/product/scenarios.md`.
+  Schema is part of ERD Slice 2 full (BU-021 below). Smaller scope.
+- **FAB composer + urgent-action templates** (per D044) — unblocks
+  Scenarios 7–9. Larger scope; replaces the current `/compose` form.
+
+Either is a legitimate next step. Decision belongs to Paul.
 
 ---
 
 ## Phase 1 — Demo path (priority 1)
+
+**Status: ✅ All Phase 1 BUs merged (April 2026).** The sections below
+are kept as the historical scope-of-work record — useful for reading
+back what each BU did and didn't include.
 
 Five Build Units to get the demo working. Ordered by dependency.
 
