@@ -1,15 +1,18 @@
 /**
- * @build-unit BU-feed
+ * @build-unit BU-feed BU-composer
  * @spec product/post-creation-flow.md
- * @spec architecture/decision-log.md (D045)
+ * @spec architecture/decision-log.md (D045, D048)
  *
- * Post service — business logic for listing posts.
- * Handles visibility filtering, soft-delete exclusion, and cursor
- * pagination. Layer boundary: services → db + shared only.
+ * Post service — business logic for listing and creating posts.
+ * Handles visibility filtering, soft-delete exclusion, cursor
+ * pagination, and post creation with audit logging.
+ * Layer boundary: services → db + shared only.
  */
 
 import type { PostVisibility, SystemRole } from '@prisma/client';
 import { prisma } from '@/server/db/client';
+import type { PostCreateInput } from '@/shared/validation/post';
+import { auditLog } from '@/server/services/audit';
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -120,4 +123,38 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
   }));
 
   return { posts: mapped, nextCursor };
+}
+
+// ── Create ──────────────────────────────────────────────────────────────
+
+export async function createPost(
+  input: PostCreateInput,
+  authorId: string,
+): Promise<{ id: string }> {
+  const post = await prisma.post.create({
+    data: {
+      title: input.title,
+      body: input.body,
+      activistMailerUrl: input.activistMailerUrl?.trim() || null,
+      visibility: input.visibility,
+      authorId,
+    },
+    select: { id: true },
+  });
+
+  await auditLog({
+    action: 'post_created',
+    entityType: 'post',
+    entityId: post.id,
+    userId: authorId,
+    changes: {
+      titleLength: input.title.length,
+      bodyLength: input.body.length,
+      visibility: input.visibility,
+      hasActivistMailerUrl: Boolean(input.activistMailerUrl),
+    },
+    context: { source: 'composer' },
+  });
+
+  return post;
 }

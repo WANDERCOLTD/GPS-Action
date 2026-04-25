@@ -1,15 +1,16 @@
 /**
- * @build-unit BU-feed
+ * @build-unit BU-feed BU-composer
  * @spec architecture/api-contract.md
+ * @spec architecture/decision-log.md (D045)
  *
- * Post tRPC router. Exposes post.list for the feed.
- * Uses publicProcedure — unauthenticated callers see public posts only;
- * visibility filtering is handled by the service layer.
+ * Post tRPC router. Exposes post.list for the feed and
+ * post.create for composing new posts.
  */
 
 import { z } from 'zod';
-import { router, publicProcedure } from '@/server/lib/trpc';
-import { listPosts } from '@/server/services/post';
+import { router, publicProcedure, authedProcedure } from '@/server/lib/trpc';
+import { listPosts, createPost } from '@/server/services/post';
+import { postCreateSchema } from '@/shared/validation/post';
 
 const cursorSchema = z.object({
   createdAt: z.date(),
@@ -33,4 +34,8 @@ export const postRouter = router({
         callerId: ctx.user?.id ?? null,
       });
     }),
+
+  create: authedProcedure.input(postCreateSchema).mutation(async ({ ctx, input }) => {
+    return createPost(input, ctx.user.id);
+  }),
 });
