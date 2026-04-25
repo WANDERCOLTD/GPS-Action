@@ -450,6 +450,22 @@ async function main(): Promise<void> {
   }
 
   console.warn(`  ✓ ${SEED_POSTS.length} posts seeded (${postsCreated} new)`);
+
+  // ── Feature flags (BU-reactions / D050) ─────────────────────────────
+  await prisma.featureFlag.upsert({
+    where: { name: 'ff_reactions' },
+    update: { enabledGlobally: true },
+    create: {
+      name: 'ff_reactions',
+      description: 'Quiet, multi-select reactions on posts (BU-reactions / D050).',
+      purpose: 'rollout',
+      enabledGlobally: true,
+      createdBy: { connect: { id: betteId } },
+      updatedBy: { connect: { id: betteId } },
+    },
+  });
+  console.warn('  ✓ ff_reactions flag enabled');
+
   console.warn('✓ Seed complete.');
 }
 

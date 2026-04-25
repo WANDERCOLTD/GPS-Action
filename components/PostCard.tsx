@@ -13,8 +13,25 @@
 import type { FC } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ExternalLink } from 'lucide-react';
+import { ReactionPill } from '@/components/ReactionPill';
 
 // ── Types (shared with FeedList and feed page) ──────────────────────────
+
+export type FeedReactionEmoji =
+  | 'candle'
+  | 'pray'
+  | 'heart'
+  | 'strong'
+  | 'target'
+  | 'sparkle'
+  | 'thumbsup'
+  | 'sad';
+
+export interface FeedReaction {
+  emoji: FeedReactionEmoji;
+  count: number;
+  mine: boolean;
+}
 
 export interface FeedPost {
   id: string;
@@ -26,6 +43,7 @@ export interface FeedPost {
     displayName: string;
     roles: string[];
   };
+  reactions: FeedReaction[];
 }
 
 export interface FeedCursor {
@@ -75,9 +93,22 @@ function formatRole(role: string): string {
 
 interface PostCardProps {
   post: FeedPost;
+  /** Server actions injected by the page (server component). */
+  onAddReaction: (postId: string, emoji: FeedReactionEmoji) => Promise<void>;
+  onRemoveReaction: (postId: string, emoji: FeedReactionEmoji) => Promise<void>;
+  /** True when ff_reactions is on AND the caller is authenticated. */
+  canReact: boolean;
+  /** True when ff_reactions is on (whether or not caller is authed). */
+  reactionsEnabled: boolean;
 }
 
-export const PostCard: FC<PostCardProps> = ({ post }) => {
+export const PostCard: FC<PostCardProps> = ({
+  post,
+  onAddReaction,
+  onRemoveReaction,
+  canReact,
+  reactionsEnabled,
+}) => {
   const paragraphs = post.body.split('\n\n');
   const relativeTime = formatDistanceToNow(new Date(post.createdAt), {
     addSuffix: true,
@@ -123,6 +154,17 @@ export const PostCard: FC<PostCardProps> = ({ post }) => {
         ))}
       </div>
 
+      {/* Reaction pill (BU-reactions / D050) */}
+      {reactionsEnabled && (
+        <ReactionPill
+          postId={post.id}
+          reactions={post.reactions}
+          onAdd={onAddReaction}
+          onRemove={onRemoveReaction}
+          canReact={canReact}
+        />
+      )}
+
       {/* Activist Mailer button */}
       {post.activistMailerUrl && (
         <div className="gps-card__footer">
@@ -131,6 +173,8 @@ export const PostCard: FC<PostCardProps> = ({ post }) => {
             target="_blank"
             rel="noopener noreferrer"
             className="gps-btn gps-btn--primary gps-btn--sm"
+            data-testid="post-am-link"
+            data-post-id={post.id}
           >
             Open in Activist Mailer
             <ExternalLink size={14} aria-hidden="true" />

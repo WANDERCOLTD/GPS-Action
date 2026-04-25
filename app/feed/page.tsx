@@ -10,9 +10,10 @@
 
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
+import { isFeatureEnabled } from '@/server/services/flags';
 import { FeedList } from '@/components/FeedList';
-import { loadMorePosts } from '@/app/feed/actions';
-import type { FeedPost, FeedCursor } from '@/components/PostCard';
+import { loadMorePosts, addReactionAction, removeReactionAction } from '@/app/feed/actions';
+import type { FeedPost, FeedCursor, FeedReactionEmoji } from '@/components/PostCard';
 
 export const metadata = {
   title: 'Feed — GPS Action',
@@ -29,7 +30,11 @@ export default async function FeedPage() {
         </h1>
         <p style={{ color: 'var(--colour-text-secondary)' }}>
           Please{' '}
-          <a href="/dev/login" style={{ color: 'var(--colour-text-link)' }}>
+          <a
+            href="/dev/login"
+            style={{ color: 'var(--colour-text-link)' }}
+            data-testid="feed-login-link"
+          >
             log in
           </a>{' '}
           to see the feed.
@@ -39,7 +44,10 @@ export default async function FeedPage() {
   }
 
   const caller = createCaller(ctx);
-  const result = await caller.post.list();
+  const [result, reactionsEnabled] = await Promise.all([
+    caller.post.list(),
+    isFeatureEnabled('ff_reactions'),
+  ]);
 
   // Serialise dates for the client component boundary
   const posts: FeedPost[] = result.posts.map(
@@ -53,6 +61,11 @@ export default async function FeedPage() {
         displayName: p.author.displayName,
         roles: p.author.roles as string[],
       },
+      reactions: p.reactions.map((r) => ({
+        emoji: r.emoji as FeedReactionEmoji,
+        count: r.count,
+        mine: r.mine,
+      })),
     }),
   );
 
@@ -74,11 +87,23 @@ export default async function FeedPage() {
         }}
       >
         <h1 className="gps-title">Feed</h1>
-        <a href="/compose" className="gps-btn gps-btn--primary gps-btn--sm">
+        <a
+          href="/compose"
+          className="gps-btn gps-btn--primary gps-btn--sm"
+          data-testid="feed-newpost-link"
+        >
           New post
         </a>
       </div>
-      <FeedList initialPosts={posts} initialCursor={cursor} loadMore={loadMorePosts} />
+      <FeedList
+        initialPosts={posts}
+        initialCursor={cursor}
+        loadMore={loadMorePosts}
+        onAddReaction={addReactionAction}
+        onRemoveReaction={removeReactionAction}
+        canReact={reactionsEnabled}
+        reactionsEnabled={reactionsEnabled}
+      />
     </main>
   );
 }

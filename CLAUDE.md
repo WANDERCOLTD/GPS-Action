@@ -98,8 +98,22 @@ business logic, design tradeoff), STOP and ask. Don't guess.
 
 ## Current focus
 
-Demo path — see `docs/build/bu-sequence.md`. ERD Slices 1, 1.5, 2
-(minimal) are merged. BU-001-lite (dev auth stub) is next.
+**Demo milestone reached.** Demo path is fully shipped: ERD Slices 1,
+1.5, 2 (minimal), BU-001-lite (dev auth), BU-feed, BU-composer, BU-am-link.
+Eddie can log in → see feed → write a post with AM URL → see it appear →
+click through to AM. See `docs/build/bu-sequence.md`.
+
+**Outstanding before next BU:**
+
+- F14 (require `data-testid` lint rule) — brief written, rule not yet
+  enforced. Only partial item from Phase 0 / foundations.
+
+**Next BU undecided.** Highest demo-leverage candidates:
+
+- Reactions (unblocks Scenarios 1, 3 in `docs/product/scenarios.md`)
+- FAB composer + urgent-action templates (D044, unblocks Scenarios 7–9)
+
+User decision needed before starting.
 
 ## Dev auth (BU-001-lite)
 

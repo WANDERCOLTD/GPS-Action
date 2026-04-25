@@ -1,17 +1,22 @@
 'use server';
 
 /**
- * @build-unit BU-feed
+ * @build-unit BU-feed BU-reactions
  * @spec architecture/api-contract.md
+ * @spec architecture/decision-log.md (D050)
  *
- * Server action for feed pagination. Called by the FeedList client
- * component's "Load more" button. Resolves the current user from
- * the cookie so visibility rules apply consistently.
+ * Server actions for the feed:
+ *   - loadMorePosts (BU-feed) — paginate
+ *   - addReaction / removeReaction (BU-reactions / D050) —
+ *     toggle a reaction; called by the ReactionPill client component.
+ *
+ * Resolves the current user from the cookie so visibility rules and
+ * the auth gate apply consistently to every action.
  */
 
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
-import type { FeedPost, FeedCursor } from '@/components/PostCard';
+import type { FeedPost, FeedCursor, FeedReactionEmoji } from '@/components/PostCard';
 import type { LoadMoreResult } from '@/components/FeedList';
 
 export async function loadMorePosts(cursor: FeedCursor): Promise<LoadMoreResult> {
@@ -37,6 +42,11 @@ export async function loadMorePosts(cursor: FeedCursor): Promise<LoadMoreResult>
           displayName: p.author.displayName,
           roles: p.author.roles as string[],
         },
+        reactions: p.reactions.map((r) => ({
+          emoji: r.emoji as FeedReactionEmoji,
+          count: r.count,
+          mine: r.mine,
+        })),
       }),
     ),
     nextCursor: result.nextCursor
@@ -46,4 +56,19 @@ export async function loadMorePosts(cursor: FeedCursor): Promise<LoadMoreResult>
         }
       : null,
   };
+}
+
+export async function addReactionAction(postId: string, emoji: FeedReactionEmoji): Promise<void> {
+  const ctx = await createTRPCContext();
+  const caller = createCaller(ctx);
+  await caller.reaction.add({ postId, emoji });
+}
+
+export async function removeReactionAction(
+  postId: string,
+  emoji: FeedReactionEmoji,
+): Promise<void> {
+  const ctx = await createTRPCContext();
+  const caller = createCaller(ctx);
+  await caller.reaction.remove({ postId, emoji });
 }
