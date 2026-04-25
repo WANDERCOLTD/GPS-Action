@@ -131,6 +131,8 @@ export const PostCard: FC<PostCardProps> = ({ post }) => {
             target="_blank"
             rel="noopener noreferrer"
             className="gps-btn gps-btn--primary gps-btn--sm"
+            data-testid="post-am-link"
+            data-post-id={post.id}
           >
             Open in Activist Mailer
             <ExternalLink size={14} aria-hidden="true" />

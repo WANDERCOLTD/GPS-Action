@@ -14,6 +14,7 @@
  *   - feature-must-have-flag   — D036 feature flag discipline
  *   - require-spec-tag         — D038 @spec traceability (F13)
  *   - require-design-tokens    — design token enforcement (F15)
+ *   - require-testid           — data-testid convention enforcement (F14)
  *
  * See `eslint-rules/README.md` for what each rule does and how to extend.
  */
@@ -25,6 +26,7 @@ import noInlineAuthCheck from './rules/no-inline-auth-check.js';
 import featureMustHaveFlag from './rules/feature-must-have-flag.js';
 import requireSpecTag from './rules/require-spec-tag.js';
 import requireDesignTokens from './rules/require-design-tokens.js';
+import requireTestid from './rules/require-testid.js';
 
 const plugin = {
   meta: {
@@ -39,6 +41,7 @@ const plugin = {
     'feature-must-have-flag': featureMustHaveFlag,
     'require-spec-tag': requireSpecTag,
     'require-design-tokens': requireDesignTokens,
+    'require-testid': requireTestid,
   },
 };
 

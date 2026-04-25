@@ -29,7 +29,11 @@ export default async function FeedPage() {
         </h1>
         <p style={{ color: 'var(--colour-text-secondary)' }}>
           Please{' '}
-          <a href="/dev/login" style={{ color: 'var(--colour-text-link)' }}>
+          <a
+            href="/dev/login"
+            style={{ color: 'var(--colour-text-link)' }}
+            data-testid="feed-login-link"
+          >
             log in
           </a>{' '}
           to see the feed.
@@ -74,7 +78,11 @@ export default async function FeedPage() {
         }}
       >
         <h1 className="gps-title">Feed</h1>
-        <a href="/compose" className="gps-btn gps-btn--primary gps-btn--sm">
+        <a
+          href="/compose"
+          className="gps-btn gps-btn--primary gps-btn--sm"
+          data-testid="feed-newpost-link"
+        >
           New post
         </a>
       </div>

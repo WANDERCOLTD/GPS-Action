@@ -17,6 +17,7 @@ export const ActivistMailerField: FC<ActivistMailerFieldProps> = ({ error }) => 
     <div>
       <label
         htmlFor="activistMailerUrl"
+        data-testid="compose-amurl-label"
         style={{
           display: 'block',
           fontSize: 'var(--text-sm)',
@@ -32,6 +33,7 @@ export const ActivistMailerField: FC<ActivistMailerFieldProps> = ({ error }) => 
         id="activistMailerUrl"
         name="activistMailerUrl"
         type="url"
+        data-testid="compose-amurl-input"
         placeholder="https://activistmailer.com/campaigns/..."
         className="gps-input"
         style={{
