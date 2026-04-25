@@ -1834,3 +1834,148 @@ in BU-reactions: reads `enabledGlobally` only. Per-user / per-region
 - Parking-lot: "Reaction taxonomy — fixed set vs configurable"
 - Parking-lot: "Expand the reaction set" (parked story for after
   real usage data)
+
+---
+
+# D051 — Build Unit naming: semantic names, not numbers
+
+**Date:** April 2026
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** N/A (process decision)
+
+## Context
+
+Pre-D051, Build Units (BUs) were referenced by number across the
+docs — BU-002, BU-003, etc. Three independent numbering schemes
+emerged:
+
+- `bu-sequence.md` had its own scheme (BU-007 = Inbound sharing)
+- `analytics-events.md` + `copy-library.md` had a different one
+  (BU-007 = Comments, BU-008 = Reactions)
+- Side-spec docs (`inbound-sharing.md`, `share-out-mechanics.md`,
+  `deep-linking-and-tracking.md`, `image-handling.md`) each
+  self-claimed numbers that didn't agree with either of the above
+
+Even within the "non-bu-sequence" cluster the schemes drifted:
+`inbound-sharing.md:8` claimed BU-010 = Inbound sharing while
+`analytics-events.md:146` had BU-010 = Sharing (out).
+
+Meanwhile, every BU that has actually shipped or has a brief uses
+**semantic names** organically: BU-001-lite, BU-feed, BU-composer,
+BU-am-link, BU-reactions. The numbering only existed in planning
+docs that hadn't shipped — and disagreed on what each number meant.
+
+## Decision
+
+**Drop BU numbers entirely. Use semantic names.**
+
+Format: `BU-<short-noun-or-noun-phrase>` — lowercase, hyphenated.
+
+Numbered BUs that have already shipped keep their historical
+identifier (BU-001-lite). All other references are renamed per the
+canonical mapping below.
+
+Umbrella BUs (was: BU-021 Slice 2 full / BU-022 Slice 3 / BU-023
+Slice 4) decompose into named sub-BUs. The umbrellas themselves
+become parking-lot or roadmap groupings, not BUs in their own right.
+
+## Canonical mapping
+
+These names are now authoritative. Any pre-existing numbered
+reference in any doc maps to the corresponding name.
+
+| Old number(s) — context                                                  | New name                 | Status                         |
+| ------------------------------------------------------------------------ | ------------------------ | ------------------------------ |
+| BU-001 (full admin in original brief)                                    | `BU-admin`               | not started                    |
+| BU-001-lite                                                              | `BU-001-lite`            | shipped — historical name kept |
+| BU-002 (real auth / onboarding)                                          | `BU-auth`                | not started                    |
+| BU-003 (post publishing in analytics)                                    | `BU-composer`            | shipped                        |
+| BU-003 (vetting in bu-sequence) / BU-004 (vetting in analytics)          | `BU-vetting`             | not started                    |
+| BU-005 (FAB composer in bu-sequence, D044)                               | `BU-composer-fab`        | not started                    |
+| BU-005 (feed in analytics)                                               | `BU-feed`                | shipped                        |
+| BU-006 (dispatch in bu-sequence) / BU-011 (dispatch in analytics)        | `BU-dispatch`            | not started                    |
+| BU-006 (actions in analytics)                                            | `BU-actions`             | not started                    |
+| BU-007 (inbound sharing in bu-sequence) / BU-010 (in inbound-sharing.md) | `BU-inbound-share`       | not started                    |
+| BU-007 (comments in analytics)                                           | `BU-comments`            | not started — next             |
+| BU-008 (groups in bu-sequence)                                           | `BU-groups`              | not started                    |
+| BU-008 (reactions in analytics)                                          | `BU-reactions`           | shipped                        |
+| BU-009 (flag+moderate in bu-sequence) / BU-012 (flagging in analytics)   | `BU-flag`                | not started                    |
+| BU-009 (dedup in copy-library) / BU-010 (dedup in bu-sequence)           | `BU-dedup`               | not started                    |
+| BU-010 (sharing in analytics) / BU-013 (share-out flows in side-specs)   | `BU-share-out`           | not started                    |
+| BU-011 (outcome review in bu-sequence)                                   | `BU-outcome-review`      | not started                    |
+| BU-012 (partner orgs in bu-sequence)                                     | `BU-partner-orgs`        | not started                    |
+| BU-013 (coord verification in bu-sequence)                               | `BU-coord-verify`        | not started                    |
+| BU-014 (deep linking in deep-linking-and-tracking.md)                    | `BU-deep-link`           | not started                    |
+| BU-015 (image handling)                                                  | `BU-image`               | not started                    |
+| BU-020 (full admin in bu-sequence — was renamed from BU-001)             | `BU-admin`               | not started                    |
+| BU-021 (Slice 2 full umbrella)                                           | (decomposes — see below) | partially shipped              |
+| BU-022 (Slice 3 umbrella)                                                | (decomposes — see below) | not started                    |
+| BU-023 (Slice 4 umbrella)                                                | (decomposes — see below) | not started                    |
+
+### Umbrella decomposition
+
+**BU-021 Slice 2 full** decomposes into:
+
+- `BU-comments` (Comment model + threaded UI)
+- `BU-reactions` (shipped — D050)
+- `BU-attachments` (image / link attachment on posts)
+
+**BU-022 Slice 3** decomposes into:
+
+- `BU-application` (Application entity for vetting workflow)
+- `BU-flag` (Flag entity, already named above)
+- `BU-outcome-review` (already named above)
+- `BU-edit-request` (post-edit approval entity)
+- `BU-content-submission` (third-party content submission entity)
+- `BU-vouch` (vouching ledger entity)
+
+**BU-023 Slice 4** decomposes into:
+
+- `BU-contact` (Contact entity — councillors, MPs, etc.)
+- `BU-resource` (Resource entity — templates, links, files)
+- `BU-route` (Route entity — WhatsApp dispatch routing)
+- `BU-dispatch-event` (DispatchEvent entity — the audit trail)
+- `BU-partner-orgs` (already named above)
+
+## Consequences
+
+- All planning docs migrate per the mapping above (sweep PR).
+- Future docs MUST use semantic names. No numbered BUs from this
+  point forward (except `BU-001-lite` historical).
+- ADR numbers (D001..D051) and F-rule numbers (F03, F06, F13–F15)
+  are unaffected — different namespaces.
+- Briefs that reference old numbers get updated when next touched
+  (lazy migration is fine for files outside the sweep PR's scope).
+- Code annotations (`@build-unit BU-XXX` JSDoc tags) currently use
+  semantic names already — no code changes needed.
+
+## Why semantic names
+
+- **Stable.** Names don't drift when scope is reordered. A number
+  for "the third BU" gets stale the moment a fourth BU is inserted
+  earlier.
+- **Self-describing.** `BU-comments` tells a reader what it is.
+  `BU-007` requires lookup in 1+ docs.
+- **Already organic.** Every shipped BU post-demo used a name. The
+  numbers were vestigial.
+- **Decomposable.** Umbrellas like Slice 2 don't fit a single
+  number; they fit a list of sub-BUs.
+
+## Alternatives considered
+
+- **Pick one numbered scheme and migrate everything to it.**
+  Rejected — every numbered scheme already disagreed with at least
+  one other; choosing a winner doesn't solve the underlying drift.
+- **Hybrid (numbers for umbrellas, names for sub-BUs).** Rejected
+  — adds ceremony without stability benefit; numbers still drift.
+- **Status quo (live with the disagreement).** Rejected — every
+  brief writer would have to pick a side.
+
+## Related
+
+- `docs/build/bu-sequence.md` — the canonical sequence doc, now
+  uses names
+- `docs/process/ratchet-discipline.md` — same philosophy: forward-
+  only, mechanically enforced where possible
+- `CLAUDE.md` — points at this decision as the naming authority

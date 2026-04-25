@@ -96,6 +96,19 @@ business logic, design tradeoff), STOP and ask. Don't guess.
 - Working notes index: `docs/index.md`
 - ADR template: `docs/adrs/0000-template.md`
 
+## BU naming convention (per D051)
+
+Use **semantic names** for Build Units, not numbers. Format:
+`BU-<short-noun>` — lowercase, hyphenated. Examples:
+`BU-comments`, `BU-dispatch`, `BU-vetting`, `BU-admin`.
+
+Only `BU-001-lite` keeps a number — it's the historical reference
+to the shipped dev-auth stub. Everything else is named.
+
+The full canonical mapping (old number → new name) lives in
+`docs/architecture/decision-log.md` (D051). When you see a numbered
+BU reference in any doc, consult D051 to translate it.
+
 ## Current focus
 
 **Demo milestone reached.** Demo path is fully shipped: ERD Slices 1,
