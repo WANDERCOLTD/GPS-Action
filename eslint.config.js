@@ -121,6 +121,19 @@ export default [
     },
   },
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // F15 — enforce design token usage (per docs/process/design-tokens-convention.md)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  // Rule 7 (require-design-tokens) — UI code paths only
+  {
+    files: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
+    plugins: { 'local-rules': localRules },
+    rules: {
+      'local-rules/require-design-tokens': 'error',
+    },
+  },
+
   {
     ignores: [
       'node_modules/**',

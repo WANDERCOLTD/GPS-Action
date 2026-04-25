@@ -1,7 +1,7 @@
 # `eslint-rules/` — local ESLint plugin
 
 Custom rules that mechanically enforce GPS Action's discipline conventions.
-The six rules in this plugin catch mistakes that documentation alone can't:
+The seven rules in this plugin catch mistakes that documentation alone can't:
 the rules run in your editor, on commit, and in CI, with no human in the
 loop.
 
@@ -9,9 +9,10 @@ loop.
 **Specs implemented:**
 
 - D036 (feature flags) → rule 5
-- D038 (traceability) → rule 1
+- D038 (traceability) → rules 1 & 6
 - `process/api-contract-discipline.md` rules 2 & 7 → rules 2 & 4
 - `product/analytics-events.md` PII policy → rule 3
+- `process/design-tokens-convention.md` → rule 7
 
 **Plugin namespace:** `local-rules` — rules appear as
 `local-rules/<rule-name>` in `eslint.config.js`.
@@ -31,8 +32,9 @@ glob:
 | [`no-inline-auth-check`](#4-no-inline-auth-check)           | `server/routers/**/*.ts`                                                                             |
 | [`feature-must-have-flag`](#5-feature-must-have-flag)       | `app/**/*.{ts,tsx}`, `server/**/*.ts`, `components/**/*.{ts,tsx}` (opt-in via directive)             |
 | [`require-spec-tag`](#6-require-spec-tag)                   | `app/**/*.{ts,tsx}`, `server/routers/**/*.ts`, `server/services/**/*.ts`, `components/**/*.{ts,tsx}` |
+| [`require-design-tokens`](#7-require-design-tokens)         | `app/**/*.{ts,tsx}`, `components/**/*.{ts,tsx}`                                                      |
 
-All six rules ship at `error` severity (block CI).
+All seven rules ship at `error` severity (block CI).
 
 Excluded paths (rules don't apply): `eslint-rules/**`, `prisma/**`, `tests/**`,
 `*.test.{ts,js}`, `node_modules/**`, `.next/**`, `dist/**`, `build/**`.
@@ -344,6 +346,57 @@ export function publishPost() { ... }
 - `@spec` must have a non-empty value (bare `@spec` with no path does not satisfy).
 - The rule does not validate that the referenced spec file exists — that's
   future audit work, not a lint rule.
+
+---
+
+### 7. `require-design-tokens`
+
+**Purpose:** Per `design-tokens-convention.md`, every UI file must use
+design tokens from `styles/tokens.css` rather than hardcoded colour values.
+Without enforcement, hardcoded hex values drift into components and the
+visual identity fragments — same shape of problem F13 solved for `@spec`
+traceability.
+
+**Fires when:** File contains a hardcoded colour value:
+
+- Hex: `#1851cc`, `#fff`, `#11223344` (3/4/6/8-digit forms)
+- RGB: `rgb(...)`, `rgba(...)`
+- HSL: `hsl(...)`, `hsla(...)`
+
+Comments are exempt — hex inside `/* ... */` or `// ...` is ignored.
+
+**Compliant:**
+
+```tsx
+<div style={{ color: 'var(--colour-primary)' }} />;
+
+const COLOURS = ['var(--colour-primary-bright)', 'var(--colour-success)', 'var(--colour-cultural)'];
+```
+
+**Violating:**
+
+```tsx
+<div style={{ color: '#1851cc' }} />;
+
+const COLOURS = ['#4577e8', '#0f6e56'];
+
+const overlay = 'rgba(0, 0, 0, 0.5)';
+
+const accent = 'hsl(220, 70%, 45%)';
+```
+
+**Edge cases:**
+
+- `styles/tokens.css` is exempt — it's the canonical source of hex values.
+- The rule's own test file is exempt by filename.
+- Hex values inside comments are not flagged (comments are stripped before
+  scanning).
+- Error messages include a "closest match" suggestion from
+  `canonical-tokens.json` when a mapping exists.
+- `var(--colour-...)` references are allowed regardless of whether the
+  variable actually exists — validating references is future work.
+- This is **lenient mode** (v1). Future rules may enforce pixel values
+  (`padding: '12px'` → `var(--space-3)`) and Tailwind utility classes.
 
 ---
 

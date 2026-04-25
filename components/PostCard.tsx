@@ -36,13 +36,13 @@ export interface FeedCursor {
 // ── Utilities ────────────────────────────────────────────────────────────
 
 const AVATAR_COLOURS = [
-  '#4577e8', // blue
-  '#0f6e56', // green
-  '#ba7517', // amber
-  '#a32d2d', // red
-  '#6b3045', // bordeaux
-  '#3c3489', // indigo
-  '#d85a30', // orange
+  'var(--colour-primary-bright)', // blue
+  'var(--colour-success)', // green
+  'var(--colour-warning)', // amber
+  'var(--colour-danger)', // red
+  'var(--colour-cultural)', // bordeaux
+  'var(--colour-info)', // indigo
+  'var(--colour-urgent)', // orange
 ];
 
 function getAvatarColour(name: string): string {
@@ -50,7 +50,11 @@ function getAvatarColour(name: string): string {
   for (const char of name) {
     hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
   }
-  return AVATAR_COLOURS[Math.abs(hash) % AVATAR_COLOURS.length] ?? AVATAR_COLOURS[0] ?? '#4577e8';
+  return (
+    AVATAR_COLOURS[Math.abs(hash) % AVATAR_COLOURS.length] ??
+    AVATAR_COLOURS[0] ??
+    'var(--colour-primary-bright)'
+  );
 }
 
 function getInitials(name: string): string {

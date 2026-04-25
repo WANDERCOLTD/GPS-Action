@@ -13,6 +13,7 @@
  *   - no-inline-auth-check     — api-contract-discipline.md rule 7
  *   - feature-must-have-flag   — D036 feature flag discipline
  *   - require-spec-tag         — D038 @spec traceability (F13)
+ *   - require-design-tokens    — design token enforcement (F15)
  *
  * See `eslint-rules/README.md` for what each rule does and how to extend.
  */
@@ -23,6 +24,7 @@ import noPiiInLogs from './rules/no-pii-in-logs.js';
 import noInlineAuthCheck from './rules/no-inline-auth-check.js';
 import featureMustHaveFlag from './rules/feature-must-have-flag.js';
 import requireSpecTag from './rules/require-spec-tag.js';
+import requireDesignTokens from './rules/require-design-tokens.js';
 
 const plugin = {
   meta: {
@@ -36,6 +38,7 @@ const plugin = {
     'no-inline-auth-check': noInlineAuthCheck,
     'feature-must-have-flag': featureMustHaveFlag,
     'require-spec-tag': requireSpecTag,
+    'require-design-tokens': requireDesignTokens,
   },
 };
 
