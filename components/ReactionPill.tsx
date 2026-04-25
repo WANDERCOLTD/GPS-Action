@@ -69,7 +69,11 @@ export const ReactionPill: FC<ReactionPillProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [, startTransition] = useTransition();
-  const [optimistic, setOptimistic] = useOptimistic(reactions, applyOptimistic);
+  // Local state — committed truth for this client. Initialised from
+  // server-rendered props; updated on successful mutation. Prop drift
+  // (e.g. after refresh) re-mounts the component and resets state.
+  const [committed, setCommitted] = useState<FeedReaction[]>(reactions);
+  const [optimistic, setOptimistic] = useOptimistic(committed, applyOptimistic);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Click outside closes the tray
@@ -92,16 +96,21 @@ export const ReactionPill: FC<ReactionPillProps> = ({
 
   function toggle(emoji: FeedReactionEmoji): void {
     const isOn = myEmoji.has(emoji);
+    const action: OptimisticAction = { emoji, kind: isOn ? 'remove' : 'add' };
     startTransition(async () => {
-      setOptimistic({ emoji, kind: isOn ? 'remove' : 'add' });
+      setOptimistic(action);
       try {
         if (isOn) {
           await onRemove(postId, emoji);
         } else {
           await onAdd(postId, emoji);
         }
+        // Commit the change locally so the optimistic state survives
+        // the transition completing.
+        setCommitted((prev) => applyOptimistic(prev, action));
       } catch {
-        // Optimistic state rolls back on next render via prop sync.
+        // Failure: optimistic rolls back to `committed`, which we
+        // didn't update — so UI reflects the un-mutated state.
       }
     });
   }
