@@ -24,7 +24,7 @@ D039 (Build Units), `docs/build/engineering-roadmap.md` (Tier B/C/D backlog).
 | # | Item | Status | PR |
 |---|---|---|---|
 | F01 | Branch protection on `main` | ☐ | — |
-| F02 | PR template with inline checklists | ☐ | — |
+| F02 | PR template with inline checklists | ✅ | (this PR) |
 | F03 | Pre-commit hooks (Husky + lint-staged) | ☐ | — |
 | F04 | Secret scanning (gitleaks + GitHub) | ☐ | — |
 | F05 | Dependabot + `npm audit` on CI | ☐ | — |
