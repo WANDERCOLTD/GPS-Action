@@ -36,6 +36,7 @@ D039 (Build Units), `docs/build/engineering-roadmap.md` (Tier B/C/D backlog).
 | F11 | Error boundaries in UI shell | ☐ | — |
 | F12 | Health check endpoints (`/healthz`, `/readyz`) | ☐ | — |
 | F13 | Enforce `@spec` traceability tag (ESLint) | ☐ | — |
+| F15 | Enforce design token usage (ESLint) | ☐ | — |
 
 Mark complete in PR descriptions. This checklist lives here forever — future
 contributors see what foundation was laid and when.

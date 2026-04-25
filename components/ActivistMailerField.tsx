@@ -36,13 +36,13 @@ export const ActivistMailerField: FC<ActivistMailerFieldProps> = ({ error }) => 
         className="gps-input"
         style={{
           width: '100%',
-          borderColor: error ? 'var(--colour-error)' : undefined,
+          borderColor: error ? 'var(--colour-danger)' : undefined,
         }}
       />
       {error && (
         <p
           style={{
-            color: 'var(--colour-error)',
+            color: 'var(--colour-danger)',
             fontSize: 'var(--text-xs)',
             marginTop: 'var(--space-1)',
             fontFamily: 'var(--font-ui)',

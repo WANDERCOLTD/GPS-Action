@@ -40,7 +40,7 @@ export function PostForm({ onSubmit }: PostFormProps) {
       {errors._form && (
         <p
           style={{
-            color: 'var(--colour-error)',
+            color: 'var(--colour-danger)',
             fontSize: 'var(--text-sm)',
             fontFamily: 'var(--font-ui)',
           }}
@@ -74,13 +74,13 @@ export function PostForm({ onSubmit }: PostFormProps) {
           className="gps-input"
           style={{
             width: '100%',
-            borderColor: errors.title ? 'var(--colour-error)' : undefined,
+            borderColor: errors.title ? 'var(--colour-danger)' : undefined,
           }}
         />
         {errors.title && (
           <p
             style={{
-              color: 'var(--colour-error)',
+              color: 'var(--colour-danger)',
               fontSize: 'var(--text-xs)',
               marginTop: 'var(--space-1)',
               fontFamily: 'var(--font-ui)',
@@ -117,13 +117,13 @@ export function PostForm({ onSubmit }: PostFormProps) {
           style={{
             width: '100%',
             resize: 'vertical',
-            borderColor: errors.body ? 'var(--colour-error)' : undefined,
+            borderColor: errors.body ? 'var(--colour-danger)' : undefined,
           }}
         />
         {errors.body && (
           <p
             style={{
-              color: 'var(--colour-error)',
+              color: 'var(--colour-danger)',
               fontSize: 'var(--text-xs)',
               marginTop: 'var(--space-1)',
               fontFamily: 'var(--font-ui)',
@@ -181,7 +181,7 @@ export function PostForm({ onSubmit }: PostFormProps) {
         {errors.visibility && (
           <p
             style={{
-              color: 'var(--colour-error)',
+              color: 'var(--colour-danger)',
               fontSize: 'var(--text-xs)',
               marginTop: 'var(--space-1)',
               fontFamily: 'var(--font-ui)',
