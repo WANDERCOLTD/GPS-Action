@@ -11,7 +11,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | --- | ----- | -----:| --- | ---- | ------ |
 | SCN-1 | Sharon sees a Sky News bias post and boosts it | 0 | — | — | parked |
 | SCN-2 | Emma has a concern about leafleting at her child's school | 0 | — | — | parked |
-| SCN-3 | David reacts to a Shabbat Shalom post | 5 | BU-reactions | D050 | ✓ shipped |
+| SCN-3 | David reacts to a Shabbat Shalom post | 5 | BU-reactions | D050, D052 | ✓ shipped |
 | SCN-4 | Rachel attends a local gathering — RSVP and follow-up | 0 | — | — | parked |
 | SCN-5 | Michael loses his phone, needs to log in on a new device | 0 | — | — | parked |
 | SCN-6 | Claire publishes an outcome post about a successful letter placement | 0 | — | — | parked |
@@ -28,7 +28,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-17 | System auto-comments on a closing campaign | 0 | — | — | parked |
 | SCN-18 | Eddie writes his first post (the demo flow) | 2 | BU-composer, BU-feed | — | ✓ shipped |
 | SCN-19 | Sharon shares a Guardian article with a preview card | 0 | — | — | parked |
-| SCN-20 | Eddie reads the Sky News post and writes his first comment | 7 | BU-comments | D045, D052 | ✓ shipped |
+| SCN-20 | Eddie reads the Sky News post and writes his first comment | 11 | BU-comments, BU-reactions | D045, D050, D052 | ✓ shipped |
 
 ## Build Units
 
@@ -41,7 +41,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-comments | 9 | SCN-20 | D045, D052 |
 | BU-composer | 7 | SCN-18 | D045, D048 |
 | BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052 |
-| BU-reactions | 7 | SCN-3 | D036, D050 |
+| BU-reactions | 9 | SCN-3, SCN-20 | D036, D050, D052 |
 
 ## ADRs (referenced by code)
 
@@ -53,5 +53,5 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D045 | Public-by-default post visibility with author override | 4 |
 | D048 | Post axes taxonomy + deferred PostType | 2 |
 | D050 | Reaction schema, fixed 8-emoji set, polymorphic target | 7 |
-| D052 | Comment schema + polymorphic reuse of ReactionTargetType | 9 |
+| D052 | Comment schema + polymorphic reuse of ReactionTargetType | 13 |
 

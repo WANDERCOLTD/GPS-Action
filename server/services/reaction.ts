@@ -1,21 +1,23 @@
 /**
  * @build-unit BU-reactions
- * @spec architecture/decision-log.md (D050)
+ * @spec architecture/decision-log.md (D050, D052)
  * @spec product/scenarios.md (SCN-3)
  * @spec product/analytics-events.md
  *
  * Reaction service — toggle and aggregate reactions on a target.
- * Targets are polymorphic (targetType + targetId); MVP supports
- * `post` only. Comments (BU-007) reuse this primitive.
+ * Targets are polymorphic (targetType + targetId): `post` and
+ * `comment`. Post variants are the originals; comment variants
+ * mirror them with `targetType: 'comment'` and `commentId` FK.
  *
  * Toggle semantics:
- *   - addReaction is idempotent (re-react with same emoji is no-op)
- *   - removeReaction is idempotent (remove a reaction that doesn't
- *     exist is also no-op)
+ *   - addReaction* is idempotent (re-react with same emoji is no-op)
+ *   - removeReaction* is idempotent (remove non-existent is also no-op)
  *
  * Audit: every add/remove writes an AuditLog entry. The
- * `reaction_added` analytics event lives in this service per
- * analytics-events.md:133 (only on add — remove is silent).
+ * `reaction_added` analytics event lives in this service
+ * (only on add — remove is silent). Comment-target reactions
+ * fire `reaction_added` with `is_comment: true` per
+ * analytics-events.md:133.
  */
 
 import type { ReactionEmoji } from '@prisma/client';
@@ -212,4 +214,164 @@ export async function listReactionsForPosts(input: {
   }
 
   return byPost;
+}
+
+// ── Comment-target variants (BU-comments / D052) ────────────────────────
+
+interface CommentAddRemoveInput {
+  commentId: string;
+  emoji: ReactionEmoji;
+  userId: string;
+}
+
+interface ListForCommentInput {
+  commentId: string;
+  callerId: string | null;
+}
+
+export async function addReactionToComment(
+  input: CommentAddRemoveInput,
+): Promise<{ success: true }> {
+  try {
+    await prisma.reaction.create({
+      data: {
+        userId: input.userId,
+        targetType: 'comment',
+        targetId: input.commentId,
+        commentId: input.commentId,
+        emoji: input.emoji,
+      },
+    });
+
+    await auditLog({
+      action: 'reaction.add',
+      entityType: 'reaction',
+      entityId: input.commentId,
+      userId: input.userId,
+      changes: { emoji: input.emoji, commentId: input.commentId, isComment: true },
+    });
+  } catch (err: unknown) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      return { success: true };
+    }
+    throw err;
+  }
+  return { success: true };
+}
+
+export async function removeReactionFromComment(
+  input: CommentAddRemoveInput,
+): Promise<{ success: true }> {
+  const result = await prisma.reaction.deleteMany({
+    where: {
+      userId: input.userId,
+      targetType: 'comment',
+      targetId: input.commentId,
+      emoji: input.emoji,
+    },
+  });
+
+  if (result.count > 0) {
+    await auditLog({
+      action: 'reaction.remove',
+      entityType: 'reaction',
+      entityId: input.commentId,
+      userId: input.userId,
+      changes: { emoji: input.emoji, commentId: input.commentId, isComment: true },
+    });
+  }
+
+  return { success: true };
+}
+
+export async function listReactionsForComment(
+  input: ListForCommentInput,
+): Promise<ReactionAggregate[]> {
+  const grouped = await prisma.reaction.groupBy({
+    by: ['emoji'],
+    where: {
+      targetType: 'comment',
+      targetId: input.commentId,
+    },
+    _count: { _all: true },
+  });
+
+  const mineSet = new Set<ReactionEmoji>();
+  if (input.callerId) {
+    const mine = await prisma.reaction.findMany({
+      where: {
+        userId: input.callerId,
+        targetType: 'comment',
+        targetId: input.commentId,
+      },
+      select: { emoji: true },
+    });
+    for (const row of mine) mineSet.add(row.emoji);
+  }
+
+  return grouped
+    .map((row) => ({
+      emoji: row.emoji,
+      count: row._count._all,
+      mine: mineSet.has(row.emoji),
+    }))
+    .sort((a, b) => {
+      if (a.count !== b.count) return b.count - a.count;
+      return emojiRank(a.emoji) - emojiRank(b.emoji);
+    });
+}
+
+/** Bulk variant for the comment-list render path — avoids N+1. */
+export async function listReactionsForComments(input: {
+  commentIds: string[];
+  callerId: string | null;
+}): Promise<Map<string, ReactionAggregate[]>> {
+  if (input.commentIds.length === 0) {
+    return new Map();
+  }
+
+  const grouped = await prisma.reaction.groupBy({
+    by: ['targetId', 'emoji'],
+    where: {
+      targetType: 'comment',
+      targetId: { in: input.commentIds },
+    },
+    _count: { _all: true },
+  });
+
+  const minePairs = new Set<string>();
+  if (input.callerId) {
+    const mine = await prisma.reaction.findMany({
+      where: {
+        userId: input.callerId,
+        targetType: 'comment',
+        targetId: { in: input.commentIds },
+      },
+      select: { targetId: true, emoji: true },
+    });
+    for (const row of mine) minePairs.add(`${row.targetId}:${row.emoji}`);
+  }
+
+  const byComment = new Map<string, ReactionAggregate[]>();
+  for (const commentId of input.commentIds) byComment.set(commentId, []);
+
+  for (const row of grouped) {
+    const arr = byComment.get(row.targetId) ?? [];
+    arr.push({
+      emoji: row.emoji,
+      count: row._count._all,
+      mine: minePairs.has(`${row.targetId}:${row.emoji}`),
+    });
+    byComment.set(row.targetId, arr);
+  }
+
+  for (const [commentId, arr] of byComment) {
+    arr.sort((a, b) => {
+      if (a.count !== b.count) return b.count - a.count;
+      return emojiRank(a.emoji) - emojiRank(b.emoji);
+    });
+    byComment.set(commentId, arr);
+  }
+
+  return byComment;
 }

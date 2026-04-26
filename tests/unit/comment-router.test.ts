@@ -17,6 +17,10 @@ vi.mock('@/server/db/client', () => ({
       create: vi.fn(),
       findMany: vi.fn(),
     },
+    reaction: {
+      groupBy: vi.fn().mockResolvedValue([]),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     auditLog: {
       create: vi.fn(),
     },

@@ -16,6 +16,7 @@
 import type { SystemRole } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
+import { listReactionsForComments, type ReactionAggregate } from '@/server/services/reaction';
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,8 @@ export interface CommentListItem {
   body: string;
   createdAt: Date;
   author: CommentAuthor;
+  /** Per BU-reactions / D052 — empty array when none. */
+  reactions: ReactionAggregate[];
 }
 
 interface CreateCommentInput {
@@ -143,6 +146,11 @@ export async function listCommentsForPost(
 
   const now = Date.now();
 
+  const reactionsByComment = await listReactionsForComments({
+    commentIds: rows.map((r) => r.id),
+    callerId: input.callerId,
+  });
+
   return rows.map((row) => ({
     id: row.id,
     body: row.body,
@@ -153,6 +161,7 @@ export async function listCommentsForPost(
       roles: row.author.roleGrants.map((g) => g.role),
       isNewMember: now - row.author.createdAt.getTime() < NEW_MEMBER_WINDOW_MS,
     },
+    reactions: reactionsByComment.get(row.id) ?? [],
   }));
 }
 
