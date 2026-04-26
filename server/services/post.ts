@@ -1,7 +1,7 @@
 /**
- * @build-unit BU-feed BU-composer
+ * @build-unit BU-feed BU-composer BU-link-share
  * @spec product/post-creation-flow.md
- * @spec architecture/decision-log.md (D045, D048)
+ * @spec architecture/decision-log.md (D045, D048, D060)
  *
  * Post service — business logic for listing and creating posts.
  * Handles visibility filtering, soft-delete exclusion, cursor
@@ -35,6 +35,12 @@ export interface PostListItem {
   body: string;
   visibility: PostVisibility;
   activistMailerUrl: string | null;
+  /** Link-share preview card data (BU-link-share / D060). */
+  linkUrl: string | null;
+  linkTitle: string | null;
+  linkDescription: string | null;
+  linkImageUrl: string | null;
+  linkSiteName: string | null;
   groupTags: string[];
   createdAt: Date;
   author: PostAuthor;
@@ -125,6 +131,11 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
     body: post.body,
     visibility: post.visibility,
     activistMailerUrl: post.activistMailerUrl,
+    linkUrl: post.linkUrl,
+    linkTitle: post.linkTitle,
+    linkDescription: post.linkDescription,
+    linkImageUrl: post.linkImageUrl,
+    linkSiteName: post.linkSiteName,
     groupTags: post.groupTags,
     createdAt: post.createdAt,
     author: {
@@ -150,6 +161,11 @@ export async function createPost(
       title: input.title,
       body: input.body,
       activistMailerUrl: input.activistMailerUrl?.trim() || null,
+      linkUrl: input.linkUrl?.trim() || null,
+      linkTitle: input.linkTitle?.trim() || null,
+      linkDescription: input.linkDescription?.trim() || null,
+      linkImageUrl: input.linkImageUrl?.trim() || null,
+      linkSiteName: input.linkSiteName?.trim() || null,
       visibility: input.visibility,
       authorId,
     },
@@ -166,6 +182,7 @@ export async function createPost(
       bodyLength: input.body.length,
       visibility: input.visibility,
       hasActivistMailerUrl: Boolean(input.activistMailerUrl),
+      hasLinkUrl: Boolean(input.linkUrl),
     },
     context: { source: 'composer' },
   });

@@ -45,6 +45,12 @@ export interface FeedPost {
   title: string;
   body: string;
   activistMailerUrl: string | null;
+  /** Link-share preview card data (BU-link-share / D060). */
+  linkUrl: string | null;
+  linkTitle: string | null;
+  linkDescription: string | null;
+  linkImageUrl: string | null;
+  linkSiteName: string | null;
   createdAt: string; // ISO 8601
   author: {
     displayName: string;
