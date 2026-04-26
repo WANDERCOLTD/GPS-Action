@@ -1045,3 +1045,262 @@ close.
 **Revision log:**
 
 - 2026-04-25 — initial draft (Claude, with Paul direction)
+
+---
+
+### Scenario 21 — Eddie tracks his vetting application from submission to outcome
+
+<!-- @no-code-yet -->
+
+_Eddie, prospective member. Tuesday afternoon — first week of trying to join._
+
+Eddie has applied to GPS Action. He filled in the form last night — name, region (London E1), why he wants to join, named Sharon as his voucher, social media link. He hit submit and got a confirmation: "Your application is in. We'll be in touch."
+
+This morning he opens the app to check. Bottom nav has a tab labelled **Requests**, with a small "1" badge. He taps.
+
+The Requests tab opens with two sections:
+
+- **My requests (1)**
+  - Vetting application · _new_ · submitted yesterday 19:42
+
+- **Notifications**
+  - (empty)
+
+He taps his application. It opens the case detail. The post-detail-style anchor at the top shows his application data — name, region, voucher, the link he provided. Below is a timeline with one entry:
+
+> 19:42 — You submitted this request.
+
+Status pill: **new**. He closes the app.
+
+**Tuesday evening 20:15.** A push-style in-app banner doesn't appear (he's not on the app), but when he opens the app at 22:00, the Requests tab shows a "1 new" badge.
+
+- **My requests (1)**
+  - Vetting application · _in discussion_ · Sharon picked up 20:18
+
+- **Notifications (1)**
+  - Sharon picked up your application · 1h ago [unread]
+
+He taps his application again. The detail now shows:
+
+> 19:42 — You submitted this request.
+> 20:18 — Sharon picked up this request. _(small grey system line)_
+> 20:31 — **Sharon**: Hey Eddie — quick check, can you confirm your postcode? The form had E1 but you also mentioned you live in Whitechapel; just want to make sure I match the right region.
+
+A reply box at the bottom says "Reply to the team…" — he taps, types "Yes, E1 4DJ. I work near Whitechapel station, that's why I mentioned it." He hits Post.
+
+The system shows: "Your reply was sent." His own message appears in the timeline. Sharon will see it (in fact she also gets a `submitter_message` notification).
+
+**Wednesday morning 09:14.** He opens the app. Banner at the top of feed: "Welcome to GPS Action 🤝". The Requests tab badge is gone. He taps anyway.
+
+- **My requests (1)**
+  - Vetting application · _done · approved_ · resolved 09:08
+
+- **Notifications (1)**
+  - Your application has been approved — welcome · 8m ago [unread]
+
+He taps the notification. It opens the application. Timeline:
+
+> ...
+> 09:08 — Sharon resolved this request: **approved**.
+> 09:08 — **Sharon**: Welcome, Eddie. Verified, social media checked, Sharon-vouched. You're a member now. Have a look around the feed; ping us in your local Bristol team's group channel any time.
+
+He's in.
+
+**What the scenario surfaces:**
+
+- The Requests tab is the **single place** the member checks for status of things they've submitted
+- Three statuses (new / in discussion / done) are enough — submitter doesn't need finer granularity
+- The submitter sees only `audience: all` comments — Sharon's internal vetter notes (if any) stayed internal
+- System messages (the "Sharon picked up..." line, "Sharon resolved..." line) are auto-posted on status transitions and visible to submitter
+- Notifications are the trigger; the case detail is the destination
+- The submitter is a first-class participant — they can reply when asked
+- The outcome message + welcome happens in the same case thread, not a separate email or DM
+
+**Friction found:**
+
+- What if Eddie's reply to the postcode question takes 4 days? The case sits in `in_discussion` indefinitely. Should there be a "submitter hasn't replied — nudge?" reviewer affordance? Not in MVP, but worth flagging.
+- What if Eddie wants to _withdraw_ his application after submitting? Needs a "withdraw" affordance on the submitter side (case → done, outcome `withdrawn`). Plumb in BU-requests.
+- The notification copy ("Sharon picked up your application") is friendly but should not name the reviewer if reviewer-anonymity becomes a privacy concern. For MVP we name them; revisit.
+
+**Related:**
+
+- D054 (Request entity — what Eddie's application is)
+- D056 (Comment audience — why Eddie sees only the `all` slice)
+- D057 (Notifications — what fires when Sharon picks up + resolves)
+- SCN-22 (the reviewer side of this same case)
+
+---
+
+### Scenario 22 — Sharon picks up and resolves Eddie's vetting application
+
+<!-- @no-code-yet -->
+
+_Sharon, vetter. Tuesday evening 20:15 — nightly review pass on her laptop._
+
+Sharon opens GPS Action on desktop. Left sidebar (mobile = bottom-tab Requests) shows her Cases section:
+
+- **In my queue — vetting (3)**
+  - [new] Eddie — London E1 — 18h
+  - [new] Daniel — Manchester M4 — 6h
+  - [in discussion] Imogen — claimed by me, 2 days
+
+She picks Eddie. The case opens. Top section shows the application context: name, region, voucher (Sharon — herself), link to social media. Below: an empty timeline (just Eddie's submission marker).
+
+She taps **Claim**. Status flips `new → in discussion`. The system auto-posts: "Sharon picked up this request · 20:18". Sharon's view now includes the reviewer affordances: comment composer (default audience: reviewers), Resolve button, Mark urgent toggle.
+
+She reads the application carefully. The form data looks fine. She clicks Eddie's social-media link in a new tab — public profile, looks consistent (writer, lives in London, posts about Israel/diaspora topics in a way that aligns with GPS values). Back to the case.
+
+She types an internal note (default audience: **reviewers**):
+
+> "Profile looks legitimate. Wants to make sure the postcode + region match — he wrote E1 but mentioned Whitechapel."
+
+Hits Post. The internal note appears in the timeline with a small "internal · only reviewers see this" marker.
+
+Then she toggles **Reply to submitter** and types:
+
+> "Hey Eddie — quick check, can you confirm your postcode? The form had E1 but you also mentioned you live in Whitechapel; just want to make sure I match the right region."
+
+Hits Post. This message is `audience: all`. Eddie will see it.
+
+Sharon closes the case and moves to the next item in her queue. She's done what she can right now; the ball is in Eddie's court.
+
+**Tuesday evening 22:00.** She gets a `submitter_message` notification: "Eddie replied on his application." She doesn't open right away — quiet hours. She'll see in the morning.
+
+**Wednesday morning 09:00.** Sharon opens GPS Action. Notification badge: 1. She taps.
+
+- **Notifications (1)**
+  - Eddie replied on his application · 11h ago [unread]
+
+She taps. Eddie's case opens to the timeline:
+
+> 20:31 — **Sharon**: Can you confirm your postcode...
+> 22:18 — **Eddie**: Yes, E1 4DJ. I work near Whitechapel station, that's why I mentioned it.
+
+Good. Postcode and region match. She types one more internal note: "Postcode confirmed. E1 → London, fine." Then clicks **Resolve**. A modal opens:
+
+- Outcome: `approved` / `declined` / `withdrawn` (radio)
+- Required summary message to submitter (audience: all)
+
+She picks **approved** and types the welcome message:
+
+> "Welcome, Eddie. Verified, social media checked, Sharon-vouched. You're a member now..."
+
+Hits Resolve. Status flips `in_discussion → done`. The system auto-posts the resolution line. Eddie's notification fires. The case disappears from her active queue and lands in her "Done by me" view (filterable but out of the way).
+
+**What the scenario surfaces:**
+
+- The reviewer's flow is **claim → discuss → resolve**. Three statuses, three actions, no friction.
+- Internal vs external comments are distinct UX moments — not a thread tab toggle, an audience toggle on the composer
+- The `audience: all` "Reply to submitter" affordance is opt-in, not default — encourages reviewers to type internal notes first
+- Required outcome message on resolution forces the reviewer to communicate the decision
+- Sharon never DMs Eddie outside the case — the case thread IS the channel
+- The async pattern (pick up → ask → wait → resolve) is supported without dedicated assignee handoffs
+
+**Friction found:**
+
+- Sharon's internal note "Profile looks legitimate" — if Sharon were to make a snap negative call, internal notes could feel uncomfortable to other reviewers reading later. Reviewer norms (be diplomatic) need to be socialised, not just enforced via UI.
+- What if Sharon is on the fence and wants to escalate to admin? Per D055 + the user's call: she @mentions an admin, the admin gets a notification, joins the discussion. No formal escalation flag.
+- What if Sharon needs to take longer than expected to decide? No SLA enforcement in MVP; queue managers self-coordinate.
+
+**Related:**
+
+- D054 (Request entity — what Eddie's application is)
+- D055 (per-type scopes — Sharon has `queue_manager:vetting`)
+- D056 (Comment audience — internal vs all)
+- D057 (Notifications — what fires throughout)
+- SCN-21 (Eddie's side of this same case)
+
+---
+
+### Scenario 23 — Maya raises an urgent alert at the school gate
+
+<!-- @no-code-yet -->
+
+_Maya, Tower Hamlets coordinator. Friday 15:35 — at her child's school for pickup._
+
+Maya is at the school gates. Two people are handing out leaflets that look antisemitic. She took photos discreetly. She wants to alert the team — both for situational awareness and because someone with media contacts might need to act fast.
+
+She opens GPS Action on her phone. Bottom-right FAB. She taps. Tile picker opens with the post-type tiles. One tile is a **red warning triangle with exclamation mark** labelled "Alert." She taps that.
+
+The alert composer opens:
+
+- Category: "Happening now" (preselected — only category active right now)
+- Reason / context (required, free text):
+
+She types: "Antisemitic leaflet drop at gate of [school name redacted], Bow E3. Two people, ~30s, white men. Photos available. Anyone available to advise / pick up by phone? I'm with my kid; can't engage but can stay 10 min."
+
+She hits Submit. The screen shows "Sent · the team has been alerted." She closes the app and watches the gate.
+
+---
+
+**Cary (queue manager, generalist — `queue_manager:*`).** Friday 15:36. Cary is on her laptop. The Requests tab she has open in her browser polls every 10 seconds; within 10 seconds, a new section appears at the top:
+
+- **🔴 Urgent (1)**
+  - Maya · Antisemitic leaflet drop at gate of [school]... · _new_ · 8s ago
+
+Cary taps. Reads the context. She herself is across town — can't physically respond. But she notices Maya didn't @mention anyone specific. Cary types in the case discussion (audience: reviewers):
+
+> "@Sharon @David — this is in your patch. Either of you free to call Maya?"
+
+Sharon and David both get `mention` notifications in their Requests tabs.
+
+---
+
+**Sharon (vetter — but generalist enough to help here).** Friday 15:38. Sharon's tab is on her browser; the Urgent section appears with Maya's alert. She also has a `mention` notification from Cary.
+
+She taps the case. Reads. She knows Maya from prior cases. She taps **Claim** — status `new → in_discussion`. The system auto-posts "Sharon picked up this request · 15:38".
+
+She types a reply to Maya (`audience: all`):
+
+> "Maya — calling you now. Stay safe. Can you describe what they're saying / handing out beyond the photos?"
+
+She also pulls Maya's number from the contacts directory and calls. They talk. Maya describes. Sharon asks if there's a teacher near; Maya says yes. Sharon says: "Ask the teacher to handle if they can — don't engage yourself. We'll log this and follow up after pickup."
+
+Sharon types another reply:
+
+> "Spoke to Maya. Teacher being asked to address it. Maya stays with her kid, doesn't engage. Photos preserved. Once she's home and safe I'll do the formal flag/incident write-up."
+
+---
+
+**Friday 16:00.** Maya messages back:
+
+> "All ok. Teacher came out, asked them to leave. They left. I have photos. School is on it. Thanks Sharon."
+
+Sharon resolves the case. Outcome: **acted_published_post** (the team will write a public-facing incident note from the photos in the next hour) plus optional follow-up.
+
+In the resolution message:
+
+> "Glad you're safe. Photos with us. Will follow up with school + post a network-wide incident note within the hour. Thanks for raising this fast."
+
+Status flips `in_discussion → done`. Auto-downgrade is moot — the case is resolved well within the 4-hour TTL.
+
+**Maya** opens the app on her way home. Notification: "Sharon resolved your request — outcome: acted." She reads. Closes app. Nothing more she needs to do.
+
+**What the scenario surfaces:**
+
+- The FAB **alert tile** (red warning triangle, per D058 + D044) is the canonical entry for member-raised urgents
+- The case **broadcasts** to all reviewers regardless of scope (Cary, Sharon, David, others) — situational awareness without bypassing role-based action
+- Acting is still scope-aware — Cary can claim/comment but pulls in Sharon who has appropriate authority
+- @mentions in the discussion route to the right person fast (per D055 + D057)
+- The 10s polling cadence is fast enough — within 10 seconds of Maya hitting submit, every reviewer's tab shows the urgent
+- The TTL of 4 hours is irrelevant in this case — resolved in 25 minutes
+- Urgency does not bypass quiet hours for in-app delivery; in this case it doesn't matter (afternoon)
+- The incident is real but the urgency is bounded — it gets resolved, not left dangling
+
+**Friction found:**
+
+- The school name and child identification need redaction discipline — the case context could be exposed if the database is leaked. Recommend: alerts touching child safety auto-route to incident type with extra review on what's logged. Surface in BU-requests's brief.
+- The "10s polling" delay is fine for this case (Sharon picked up at +2 min) but a more time-critical alert (someone in physical danger right now) might warrant faster delivery. SSE / push notifications for `urgent_request_raised` is the real Phase-2 upgrade per D058.
+- Cary used @mention to pull in Sharon — but if neither Sharon nor David had been online, who would have picked it up? Need a "no one available" escalation path — possibly auto-page-admin if no claim within N minutes for urgent cases. Park.
+- Outcome typology (`acted_published_post`, `acted_dispatched`, `dismissed_no_action`) is a soft taxonomy; reviewers may not always pick the right one. Surface a free-text "what we did" field alongside the typed outcome.
+
+**Related:**
+
+- D044 (FAB intent-cards composer — alert tile lands here when BU-composer-fab ships)
+- D054 (Request entity — type=alert is one of 11 types)
+- D055 (per-type scopes — visibility broadens for urgent, action stays scoped)
+- D056 (Comment audience — internal vs all in the discussion)
+- D057 (Notifications — `urgent_request_raised` fires to all reviewers)
+- D058 (Urgent flag, AlertCategory, polling, FAB alert tile, TTL — primary specification)
+- SCN-2 (Emma's leafleting concern — slower form of similar incident, pre-D058)
+- SCN-21, SCN-22 (the canonical submitter + reviewer flows for non-urgent cases)
