@@ -1,14 +1,16 @@
 'use server';
 
 /**
- * @build-unit BU-composer BU-link-share BU-am-link-collapse
+ * @build-unit BU-composer BU-link-share BU-am-link-collapse BU-post-hero-demo
  * @spec architecture/api-contract.md
- * @spec architecture/decision-log.md (D060)
+ * @spec architecture/decision-log.md (D060, D064)
  * @spec build/session-briefs/bu-am-link-collapse.md
+ * @spec build/session-briefs/bu-post-hero-demo.md
  *
  * Server action wrapping post.create for client-side form submit.
  * Mirrors app/feed/actions.ts pattern: createTRPCContext → createCaller.
- * Link-share fields are optional (D060).
+ * Link-share fields are optional (D060). Hero image (D064) is optional;
+ * its allow-list is enforced by the validator.
  *
  * BU-am-link-collapse: the composer no longer submits
  * `activistMailerUrl`. Activist-Mailer URLs paste into the regular
@@ -41,6 +43,7 @@ export async function createPostAction(formData: FormData): Promise<CreatePostRe
     linkSiteName: formData.get('linkSiteName')?.toString() || undefined,
     kindId: formData.get('kindId')?.toString() || undefined,
     urgency: formData.get('urgency')?.toString() === 'true' ? true : undefined,
+    heroImageUrl: formData.get('heroImageUrl')?.toString() || undefined,
   };
 
   const parsed = postCreateSchema.safeParse(raw);
