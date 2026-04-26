@@ -3307,6 +3307,26 @@ When a post has both an AM URL and a `linkUrl`, both render — AM URL
 first (as it's the primary action), `linkUrl` second (as supporting
 context). MVP shows both stacked.
 
+**AM brand mark.** When `<LinkPreviewCard>` renders an AM URL, it
+displays an AM brand mark (small badge / logo / icon — exact form a
+design call inside BU-link-share) so members visually recognise the
+card as an Activist Mailer action distinct from a generic news-link
+share. Without this affordance, the AM card and the link card look
+identical and members lose the "this is the action" signal.
+
+### 3a. Future direction — primary CTA + multiple secondary CTAs
+
+MVP locks in two URL slots (`activistMailerUrl` + `linkUrl`). The
+future model — confirmed in this session — is: every post has one
+primary CTA (currently the AM URL) plus optional secondary CTAs
+visible inside the post detail. Schema evolution would replace the
+two-slot pattern with a typed `Action[]` array (each action carries
+its own URL, label, role, and ordering).
+
+Out of scope for D060 — captured as a parking-lot row so it surfaces
+when the second-CTA need is real (e.g., share + petition + donate as
+three CTAs on one post). Until then, the two-slot pattern is enough.
+
 ### 4. Migration is single-step additive
 
 Five new nullable columns. No backfill. No data movement. No

@@ -277,6 +277,19 @@ interface LinkPreviewCardProps {
 - `size: 'large'`: image on top (full width, 16:9), content below,
   up to 4 lines of description, no height cap
 
+**AM brand mark** (per D060 §3):
+
+When the card is rendering an AM URL (i.e., the post's
+`activistMailerUrl`, not a generic `linkUrl`), display a small AM
+brand mark — top-right corner of the card. Distinguishes "this is an
+Activist Mailer action you can take" from "this is a news article being
+shared." For MVP a small badge with text "AM" is fine; design call is
+to land an actual AM logo/wordmark before the demo.
+
+A boolean prop `isAmAction?: boolean` (defaults false) flips the
+brand-mark on. `PostCard` passes `true` when rendering the AM URL,
+`false` for the generic `linkUrl`.
+
 **Click target**: the entire card is one `<a>` with `target="_blank"
 rel="noopener noreferrer"` per D061. Inside the `<a>`, no other
 interactive elements (the card is monolithic from a tap perspective).
@@ -414,6 +427,34 @@ split into 3 commits — author's call.
   context pressure mid-phase, write a handoff in
   `docs/build/session-handoffs/` and stop. Don't rush phases C across
   a tired session.
+
+---
+
+## WCAG / accessibility — pre-launch hardening
+
+The brief's accessibility rules above (role, aria-expanded, real
+anchors, keyboard handlers, testids) are MVP table-stakes but not a
+full WCAG 2.2 AA audit. Before launch, the card three-state model
+and `<LinkPreviewCard>` need:
+
+- **Focus management** — when a card expands, focus moves into the
+  newly-revealed region; collapsing returns focus to the chevron
+- **Screen-reader announcements** — expand/collapse state announced
+  via live region; "Open thread →" tells SR users where the next
+  navigation goes
+- **Colour contrast** — card border + hover + AM brand mark all hit
+  4.5:1 for text and 3:1 for UI components
+- **Reduced motion** — `@media (prefers-reduced-motion)` disables
+  the height transition; expand/collapse becomes instant
+- **Touch targets** — chevron is at least 44×44px tappable area
+  (currently F14-spec'd but worth re-verifying in the BU PR)
+- **axe-core sweep** — once B02 (axe on CI) is wired, the card
+  primitive gets a Storybook story and the sweep runs against it
+  automatically
+
+Tracked here (not as a separate roadmap row) because it's specifically
+the surface area BU-link-share lands. Pre-launch sweep verifies it as
+part of the broader WCAG pass that B02 enables.
 
 ---
 

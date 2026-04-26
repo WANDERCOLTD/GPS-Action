@@ -1043,3 +1043,57 @@ will tell us whether they're right.
 
 **Owner:** Paul, on first-of-month review of the analytics events
 log.
+
+---
+
+## Multi-CTA model — primary action + multiple secondary actions per post
+
+**Status:** PARKED — confirmed as the future direction; deferred
+until the second-CTA need is real.
+
+**The shape:** every post has one primary CTA (today: the AM URL)
+plus optional secondary CTAs available inside the post detail.
+Secondary CTAs are things like a petition link, a donate button,
+a calendar invite, a share-to-WhatsApp prompt, an email-your-MP
+form — different actions on the same post, surfaced in the detail
+view so the feed card stays clean.
+
+**Today's MVP** (per D060): two URL slots — `activistMailerUrl`
+(primary) + `linkUrl` (secondary, currently treated as a preview
+card rather than a CTA). The `<LinkPreviewCard>` primitive renders
+both. This is the "two-slot pattern."
+
+**The future schema evolution:** replace the two slots with a typed
+`Action[]` array on Post. Each action carries:
+
+- `url` — the target
+- `label` — button copy ("Sign petition", "Donate £10", "Email your MP")
+- `kind` — typed enum (`am`, `petition`, `donation`, `calendar`,
+  `share`, `external_link`, ...) — drives icon/styling
+- `order` — position in the action stack
+- `isPrimary` — exactly one per post; renders prominently in feed
+
+The detail view shows all actions as a stack (primary on top, others
+below). The feed card shows only the primary.
+
+**When this gets built:**
+
+- Trigger: a real post has 3+ actions to surface (likely first
+  petition+share dual-CTA scenarios, or the urgent-action templates
+  from D044 if they grow)
+- Effort: schema migration with an ADR, refactor `PostCard` and
+  detail-view rendering, update composer to manage an action list,
+  retrofit existing AM URL posts (synthesise an `Action` row from
+  the legacy `activistMailerUrl` field; deprecate the field)
+- ADR required (Post schema is contract-locked)
+- Likely 1 BU spanning 2-3 sessions
+
+**Why parked, not built now:** MVP scenarios all fit the two-slot
+pattern. SCN-19 (link share) is a `linkUrl` with no AM CTA. SCN-1
+(Sky News bias post) is an AM URL action with no separate share
+target. No current scenario needs three CTAs. Building the array
+model speculatively would be premature abstraction. Promote when a
+real third-action need surfaces.
+
+**Owner:** Paul, surfaced during BU-link-share design session
+(2026-04-26).
