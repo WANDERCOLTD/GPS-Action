@@ -21,6 +21,10 @@ vi.mock('@/server/db/client', () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
+    // BU-admin-audit-integration: mutations write to AuditLog.
+    auditLog: {
+      create: vi.fn().mockResolvedValue({ id: 'audit-1' }),
+    },
   },
 }));
 
@@ -70,6 +74,12 @@ function fakeUserRow(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // BU-admin-audit-integration: every mutation pre-loads / re-fetches
+  // the row for the audit `before`/`after` snapshot. Default to a
+  // sane shape so tests that don't care about the snapshot work.
+  mFindUnique.mockResolvedValue(
+    fakeUserRow() as Awaited<ReturnType<typeof prisma.user.findUnique>>,
+  );
 });
 
 describe('admin.list / user', () => {
