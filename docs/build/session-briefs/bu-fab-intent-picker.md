@@ -18,23 +18,54 @@ After this BU lands: a senior-user demo shows the breadth of post types in a sin
 
 ## Scope
 
-### 1. Schema — D062 ADR + Post.kind
+### 1. Schema — D062 (revised) + D063
 
-A new ADR (D062) authorises a nullable string field on Post:
+> **Revised in place:** the original brief proposed `Post.kind String?` with `alert` as a peer label. After review, `alert` was identified as orthogonal to kind (per D058's already-orthogonal model on Request) and the kind axis was promoted to a managed table so admins can edit per-row policy. See D062 revision history in the decision log.
+
+Two ADRs land in this BU:
+
+- **D062 (revised in place):** PostKind as a managed table; orthogonal `Post.urgency` flag; `AlertCategory` collapses into `PostKind`.
+- **D063 (new):** Send-for-Review pattern — composer ships two buttons (`Post`, `Send for Review`); reviewer queue gains publish + archive actions.
 
 ```prisma
-// On Post — labels the intent the user picked at the FAB.
-// String not enum per D048's "PostType deferred" stance — the picker
-// label is a description, not a committed taxonomy.
-kind String?
+model PostKind {
+  id              String   @id @default(uuid())
+  slug            String   @unique
+  displayName     String
+  icon            String?
+  sortOrder       Int      @default(0)
+  isAlertEligible Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  deletedAt       DateTime?
+}
+
+model Post {
+  kindId   String?
+  kind     PostKind? @relation(fields: [kindId], references: [id], onDelete: SetNull)
+  urgency  Boolean   @default(false)
+}
 ```
 
-Possible values used by the picker (storage; not enforced by DB):
-`alert | link_share | call_to_action | cultural | outcome | thought | event | meeting`
+Code defines the **set of slugs**; admin manages **per-row policy** (`isAlertEligible`, `displayName`, `sortOrder`, soft-delete). Slugs are the join key between code labels and DB rows — between an enum (locked) and a free-form string (no shared schema).
 
-Time-bound logic for `event` / `meeting` (start/end times, RSVP) is **deferred** — those tiles route through the same composer, the kind label is just a chip on the post card. A follow-up BU adds the time fields.
+Seeded with eight rows; two flagged alert-eligible:
 
-Single additive nullable migration. Existing posts have `kind: null` — they render fine without a chip.
+| slug | displayName | isAlertEligible |
+|---|---|---|
+| happening_now | Happening now | ✅ |
+| meeting | Meeting | ✅ |
+| cultural | Cultural moment | — |
+| call_to_action | Call to action | — |
+| outcome | Outcome | — |
+| thought | Just a thought | — |
+| link_share | Share a link | — |
+| event | Event | — |
+
+`Post.urgency` is the orthogonal alert flag — composer enforces that `urgency=true` is only allowed when the selected `PostKind.isAlertEligible` is true. Service double-checks at write time.
+
+Time-bound logic for `event` / `meeting` is deferred to a follow-up BU.
+
+Migration drops `AlertCategory` (rows merge into `PostKind`); adds `Post.kindId` + `Post.urgency`; renames `Request.alertCategoryId` → `Request.kindId`. Hand-written so existing seeded data survives the rename.
 
 ### 2. The picker tiles
 

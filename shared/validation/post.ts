@@ -1,11 +1,12 @@
 /**
- * @build-unit BU-composer BU-link-share
+ * @build-unit BU-composer BU-link-share BU-fab-intent-picker
  * @spec product/post-creation-flow.md
- * @spec architecture/decision-log.md (D045, D048, D060)
+ * @spec architecture/decision-log.md (D045, D048, D060, D062)
  *
  * Zod validation schemas for post creation. AM URL domain allowlist
  * is env-configurable via ACTIVIST_MAILER_ALLOWED_DOMAINS. Link-share
  * fields (D060) are optional; URL fields enforce http(s) protocols.
+ * kind (D062) is a free-form string label written by the intent picker.
  */
 
 import { z } from 'zod';
@@ -62,6 +63,13 @@ export const postCreateSchema = z.object({
   linkDescription: z.string().trim().max(500).optional(),
   linkImageUrl: httpUrlSchema,
   linkSiteName: z.string().trim().max(100).optional(),
+  // Intent kind FK (D062 revised). UUID of a PostKind row. Composer
+  // resolves the slug → id before submit; the API takes the id directly.
+  kindId: z.string().trim().min(1).optional(),
+  // Alert flag (D062 revised). Composer enforces that this can only be
+  // true when the selected PostKind has isAlertEligible=true; the
+  // service double-checks at write time.
+  urgency: z.boolean().optional(),
 });
 
 export type PostCreateInput = z.infer<typeof postCreateSchema>;

@@ -30,8 +30,8 @@ export interface RequestListItem {
   /** D058 — urgent flag, only true for the alert flow */
   urgency: boolean;
   urgencyExpiresAt: Date | null;
-  alertCategorySlug: string | null;
-  alertCategoryDisplayName: string | null;
+  kindSlug: string | null;
+  kindDisplayName: string | null;
   claimedBy: { id: string; displayName: string } | null;
   createdBy: { id: string; displayName: string } | null;
 }
@@ -39,7 +39,7 @@ export interface RequestListItem {
 type RequestWithJoins = Request & {
   claimedBy: { id: string; displayName: string } | null;
   createdBy: { id: string; displayName: string } | null;
-  alertCategory: { slug: string; displayName: string } | null;
+  kind: { slug: string; displayName: string } | null;
 };
 
 function mapRequest(row: RequestWithJoins): RequestListItem {
@@ -57,8 +57,8 @@ function mapRequest(row: RequestWithJoins): RequestListItem {
     resolutionNotes: row.resolutionNotes,
     urgency: row.urgency,
     urgencyExpiresAt: row.urgencyExpiresAt,
-    alertCategorySlug: row.alertCategory?.slug ?? null,
-    alertCategoryDisplayName: row.alertCategory?.displayName ?? null,
+    kindSlug: row.kind?.slug ?? null,
+    kindDisplayName: row.kind?.displayName ?? null,
     claimedBy: row.claimedBy,
     createdBy: row.createdBy,
   };
@@ -67,7 +67,7 @@ function mapRequest(row: RequestWithJoins): RequestListItem {
 const REQUEST_INCLUDE = {
   claimedBy: { select: { id: true, displayName: true } },
   createdBy: { select: { id: true, displayName: true } },
-  alertCategory: { select: { slug: true, displayName: true } },
+  kind: { select: { slug: true, displayName: true } },
 } as const;
 
 /** "My requests" view — Requests this user submitted. */
@@ -161,7 +161,7 @@ export function scopeToRequestType(scope: string): RequestType | null {
 
 export interface CreateUrgentInput {
   callerId: string;
-  alertCategoryId: string;
+  kindId: string;
   title: string;
   body: string;
   regionSlug?: string | null;
@@ -179,7 +179,7 @@ export async function createUrgentRequest(input: CreateUrgentInput): Promise<{ i
       priority: 'urgent',
       urgency: true,
       urgencyExpiresAt: expiresAt,
-      alertCategoryId: input.alertCategoryId,
+      kindId: input.kindId,
       regionSlug: input.regionSlug ?? null,
       context: {
         summary: input.title,
@@ -200,7 +200,7 @@ export async function createUrgentRequest(input: CreateUrgentInput): Promise<{ i
       titleLength: input.title.length,
       bodyLength: input.body.length,
       ttlHours,
-      alertCategoryId: input.alertCategoryId,
+      kindId: input.kindId,
     },
     context: { source: 'alert_composer' },
   });

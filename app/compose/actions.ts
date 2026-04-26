@@ -32,6 +32,7 @@ export async function createPostAction(formData: FormData): Promise<CreatePostRe
     linkDescription: formData.get('linkDescription')?.toString() || undefined,
     linkImageUrl: formData.get('linkImageUrl')?.toString() || undefined,
     linkSiteName: formData.get('linkSiteName')?.toString() || undefined,
+    kind: formData.get('kind')?.toString() || undefined,
   };
 
   const parsed = postCreateSchema.safeParse(raw);
