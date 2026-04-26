@@ -351,6 +351,51 @@ it isn't forgotten.
 
 ---
 
+### B12 · Outbound scrape proxy + composer disclosure
+
+**What:** A server-side proxy and composer-copy disclosure for the outbound
+URL scraper that powers link-preview auto-fill (BU-link-share Phase C).
+
+The MVP scraper hits target URLs directly from our app server. That leaks
+our server's IP to the target site every time a member pastes a URL. For
+the demo and short-term, this is fine — but pre-launch we should either
+(a) route scrapes through a proxy / VPN / serverless function with a
+disposable IP, or (b) add a one-line composer disclosure ("We'll fetch
+the page to grab a preview") so members understand what happens and can
+opt out by leaving the URL field blank.
+
+**Trigger:** Either (a) any time the link-share feature touches a
+non-fictional production URL outside dev/staging, or (b) at general
+launch — whichever first. Demo / private testing is fine without it.
+
+**Effort:** ~half a day.
+
+- Composer disclosure copy: 30 minutes (one tooltip / inline note next to
+  the URL field)
+- Scrape proxy: 3–4 hours. Options: Vercel Edge function with rotating
+  egress IP; Cloudflare Worker; AWS Lambda in a separate VPC. Cheapest
+  is the Vercel Edge fn pattern since we're already on Vercel.
+
+**Files:**
+
+- `server/services/link-scraper.ts` — adds proxy URL config + fallback
+- `app/compose/page.tsx` — adds the inline disclosure
+- `docs/product/copy-library.md` — new key `composer.scrape.disclosure`
+
+**Why not now:** Pre-launch / pre-public-beta privacy posture isn't
+urgent for the demo path. Demo runs against fixture seed data and
+pre-known URLs; no privacy lift in scope. The risk surfaces when real
+members start pasting arbitrary URLs at scale.
+
+**Origin:** Surfaced during the BU-link-share design Q&A (this session)
+when the user asked about the scraper's privacy implications. Recorded
+here so it can't fall through the cracks before launch.
+
+**Dependencies:** BU-link-share (Phase C) — the scraper that creates the
+need.
+
+---
+
 ## Tier C — Nice to have, adopt when value is clear
 
 These aren't wrong — they're just not earning their cost at MVP scale. Each
