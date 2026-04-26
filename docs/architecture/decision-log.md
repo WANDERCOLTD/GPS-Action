@@ -2543,3 +2543,140 @@ Captured in BU-admin's brief when it ships.
 - D042 (coordinator vs queue-manager identity split — preserved)
 - D054 (Request entity — companion)
 - F06 rule 4 (`no-inline-auth-check`) — middleware-only enforcement
+
+---
+
+# D056 — Comment audience model (reviewer-internal vs all-participant)
+
+**Date:** 2026-04-26
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** BU-requests (forthcoming)
+
+## Context
+
+Per D054, the comment thread on a Request is the feedback loop
+between submitter and reviewer team. But reviewers genuinely need
+to discuss internally — vetting deliberation ("this voucher seems
+weak"), flag triage ("dismiss vs remove?"), child-safety calls
+("escalate to director"). If every comment is visible to the
+submitter, reviewers self-censor and the discussion dies. If nothing
+is visible, the submitter never gets feedback.
+
+The scenarios already encode this implicit two-channel model:
+
+- SCN-12 — Sharon's internal thinking ("Anna looks like a real
+  person") is internal; her DM to Grant the voucher is external
+- SCN-10 — Maya's internal call ("documenting adversary content,
+  not amplifying") becomes a context note added to the dismissal
+- SCN-14 — Jeremy reviews a vetter's "discussion thread" — implies
+  there's a thread distinct from anything the applicant sees
+
+D056 makes this explicit and uniform.
+
+## Decision
+
+A single Comment thread per Request, with a per-comment audience
+flag.
+
+### Schema
+
+```prisma
+model Comment {
+  // existing fields preserved (D050, D052)
+  audience CommentAudience @default(reviewers)  // NEW
+}
+
+enum CommentAudience {
+  all         // visible to submitter + reviewers
+  reviewers   // visible to reviewers only (internal note)
+}
+```
+
+The default is `reviewers` for comments authored by users with a
+reviewer role on this Request type. For submitters, the default
+(and only allowed value) is `all` — they cannot post to the
+internal channel.
+
+For comments on a regular `Post` (not a Request), `audience` is
+always `all`. The flag matters only on Request-target comments.
+
+### Behaviour
+
+| Author                               | Default audience | Allowed audiences    |
+| ------------------------------------ | ---------------- | -------------------- |
+| Submitter (own Request)              | `all`            | `all` only           |
+| Reviewer (any role with scope)       | `reviewers`      | `all` or `reviewers` |
+| Admin                                | `reviewers`      | `all` or `reviewers` |
+| System (auto-posted status messages) | `all`            | `all` only           |
+
+The composer UI surfaces an explicit toggle / "Reply to submitter"
+button. Default is internal; sending to submitter requires explicit
+opt-in.
+
+### Visibility filter
+
+`Comment.findMany` for a Request applies:
+
+```sql
+WHERE requestId = ? AND (
+  audience = 'all'
+  OR caller_can_see_reviewers_audience  -- has any reviewer role on this Request type
+)
+```
+
+Submitters see only their slice. Reviewers see the full chronology
+(both audiences interleaved by createdAt) with internal notes
+visually marked ("internal · only reviewers see this").
+
+### System messages
+
+Status transitions (`new → in_discussion`, `in_discussion → done`,
+urgency change) auto-post a system Comment with `audience: all`,
+`authorId = system user`, formatted as a small grey line:
+
+- "Sharon picked up this request · 14:32"
+- "Decision: approved · 16:08"
+- "Marked urgent by Maya · 09:15"
+
+These provide submitter-visible audit trail without requiring
+manual reviewer effort.
+
+## Consequences
+
+- Comment migration: add `audience CommentAudience DEFAULT 'reviewers'`
+  for new column. Existing comments backfill to `all` (they're on
+  Posts, not Requests, so all are public).
+- Comment query layer wraps with the audience filter — service
+  function takes a `callerCanSeeInternal: bool` flag derived from
+  caller's roles
+- Composer UI on Request thread defaults to internal; explicit
+  "Reply to submitter" toggle for `all`
+- System-message authorship via a designated synthetic user
+  (`system@gps-action`) seeded as a special account
+- F06 rule 3 (`no-pii-in-logs`) continues to apply — no PII
+  leakage via system messages either
+
+## Alternatives considered
+
+- **Two separate threads (internal + external)**. Rejected —
+  reviewers lose chronological context jumping between threads.
+  One thread with audience marking is the cleaner UX.
+- **Hard channel separation via separate tables**. Rejected —
+  same access-control logic ends up enforced anyway; one table
+  keeps the model simple.
+- **Submitter-can-mark-private**. Rejected — submitters posting
+  to a channel only some reviewers can see invites confusion.
+- **No internal channel; reviewers use DMs for internal**.
+  Rejected — DMs are not threaded with the case context, so
+  context loss compounds.
+
+## Related
+
+- D050 (Reaction polymorphic schema — Comment polymorphism predates
+  this)
+- D052 (Comment schema with `commentId` FK on Reaction — same
+  forward-compat pattern this extends)
+- D054 (Request entity — primary consumer)
+- D057 (Notifications — sends to submitter on `audience: all`
+  comments only)
