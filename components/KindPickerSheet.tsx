@@ -32,7 +32,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 
-interface Tile {
+export interface Tile {
   key: string;
   label: string;
   hint: string;
@@ -42,7 +42,7 @@ interface Tile {
   disabled?: boolean;
 }
 
-const TILES: Tile[] = [
+export const TILES: Tile[] = [
   {
     key: 'happening_now',
     label: 'Urgent — happening now',
@@ -127,8 +127,8 @@ const TILES: Tile[] = [
   },
   {
     key: 'undecided',
-    label: "I don't know",
-    hint: 'Open the composer with a kind selector at the top',
+    label: "I'll choose",
+    hint: 'Pick the kind once you start writing',
     href: '/compose?intent=undecided',
     icon: <HelpCircle size={24} />,
     accent: 'var(--colour-text-secondary)',
