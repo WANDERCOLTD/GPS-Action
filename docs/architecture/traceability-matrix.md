@@ -41,6 +41,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-000-scaffold | 2 | — | D003 |
 | BU-001-lite | 11 | — | D003, D007, D042 |
 | BU-001-prep | 1 | — | — |
+| BU-admin-crud | 21 | — | — |
 | BU-comments | 9 | SCN-20 | D045, D052 |
 | BU-composer | 7 | SCN-18, SCN-19 | D044, D045, D048, D060, D062 |
 | BU-error-boundary | 2 | — | D003, D037 |
@@ -49,7 +50,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-healthcheck | 3 | — | D037 |
 | BU-link-share | 5 | SCN-19 | D045, D048, D060, D061, D062 |
 | BU-reactions | 9 | SCN-3, SCN-20 | D036, D050, D052 |
-| BU-requests-foundation | 6 | SCN-21, SCN-22, SCN-23 | D054, D055, D058, D061 |
+| BU-requests-foundation | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D058, D061 |
 | BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D058, D061 |
 | BU-seed | 1 | — | D038 |
 
