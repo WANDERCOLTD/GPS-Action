@@ -39,39 +39,11 @@ The implementation is too big for a single BU. This doc proposes a three-way sli
 
 **Dependencies:** None (foundation BU).
 
-**Caveat:** Demo value is partial — Eddie sees his pending request, but nothing animates because no reviewer can pick it up yet. Think of this as "the data flows; the experience is incomplete."
+**Caveat:** Demo value is partial — Eddie sees his pending request, but nothing animates because no reviewer can pick it up yet. Think of this as "the data flows; the experience is incomplete." This BU is purely the prerequisite for either of the next two; it's not a standalone demo.
 
 ---
 
-### BU-requests-vetting — reviewer view + the full vetting flow
-
-**Scope:**
-
-- Reviewer view at `/requests`: queue filtered by the caller's `RoleGrant.scope` (e.g. only Sharon's `queue_manager:vetting` grant shows vetting cases)
-- Claim action — atomically picks up a `new` Request to `in_discussion`, attributes to the claimer
-- Resolve action — moves `in_discussion` → `done` with an outcome (approved / rejected / etc.)
-- Comment thread on a Request, with **audience toggle** (per D056):
-  - Reviewer can post `audience: 'reviewers'` (internal note) or `audience: 'all'` (visible to submitter)
-  - Submitter sees only `audience: 'all'` comments
-- @mention syntax in comments → triggers a `Notification` row (D057)
-- Notification entity + minimal in-app delivery (notifications surface inside the Requests tab — Option B from the design)
-- Status timeline on Request detail (system messages on every state transition — per SCN-22)
-- Seed: pre-seed Eddie's vetting in `new` state ready for Sharon to claim
-
-**What this demos (full SCN-21 + SCN-22):**
-
-- Eddie sees his vetting as `new` → Sharon logs in, claims it, asks "can you confirm your postcode?" (audience=all) → Eddie sees the question + replies → Sharon adds an internal note (audience=reviewers) "voucher checks out" → resolves as approved → Eddie sees "approved · welcome 🤝"
-- The discussion flow that justifies the whole Requests workspace
-
-**Effort:** ~2–2.5 sessions (~2000 LOC — comment audience filter, claim/resolve actions, notification entity + display, system-transition messages, tests).
-
-**Dependencies:** **BU-requests-foundation** must land first (extends the Request entity + comment audience field that foundation introduced).
-
-**Demo value:** Highest. This is the BU that makes the design real — you can show the full submitter↔reviewer dance end-to-end on one demo path.
-
----
-
-### BU-requests-urgent — alerts + polling + FAB tile
+### BU-requests-urgent — alerts + polling + FAB tile + minimal claim/resolve
 
 **Scope:**
 
@@ -80,30 +52,72 @@ The implementation is too big for a single BU. This doc proposes a three-way sli
 - 10s polling endpoint that returns the urgent-flagged Requests visible to the caller
 - **Visibility broadening:** urgent Requests are visible to ALL reviewers regardless of scope (acting on them stays scope-restricted)
 - FAB alert tile UI — red warning triangle + exclamation, one-tap to start an alert composer (per D044 FAB intent-cards model)
+- Alert composer (a streamlined Request creator: alert category picker, title, body, optional photo URL)
 - Urgent banner / pinned strip on the feed for `audience: 'all'` urgent posts visible to the member
-- Seed: one pre-seeded `urgent` Request from Maya at a school gate so Sharon's view shows the polling-update behaviour
+- **Minimal claim/resolve actions** on Request (just enough for the urgent loop — pick up, mark resolved with a one-line outcome). Full vetting-grade audience-toggled comments come in the vetting BU.
+- Comment thread on Request (`audience: 'all'` only — the internal/external split is a vetting concern; urgent alerts don't need it for MVP)
+- Seed: one pre-seeded `urgent` Request from Maya at a school gate so Sharon's view shows the polling-update behaviour live
 
-**What this demos (SCN-23):**
+**What this demos (full SCN-23 + the brand promise):**
 
-- Maya at the school gate taps the FAB, picks "Happening now" alert tile, types one line + photo URL, submits → all reviewers see the alert within 10s → Sharon @mentions herself / claims → resolves before TTL expires → audit trail shows the timing
+- Maya at the school gate taps the FAB, picks "Happening now" alert tile, types one line + photo URL, submits
+- Within 10s Sharon (and every other reviewer) sees the alert appear at the top of /requests
+- Sharon taps the alert → reads the photo + body → claims it → comments "I'm at the press desk now, on it" → marks resolved before TTL expires
+- Maya sees the timeline: "Sharon picked this up · 14:21" → "Resolved by Sharon · 14:38"
 
-**Effort:** ~1.5–2 sessions (~1200 LOC — schema additions, polling endpoint, FAB tile UI, alert composer, visibility-broadening filter, tests).
+This is the **community-facing pulse** of the system — the demo that distinguishes GPS Action from a WhatsApp group. Self-contained: doesn't require vetting to demonstrate the value.
 
-**Dependencies:** BU-requests-foundation (Request entity), soft-depends on BU-requests-vetting (uses the same claim/resolve flow). Could ship without vetting if you want urgent-first demo, but the claim/resolve UX would have to be invented twice.
+**Effort:** ~2–2.5 sessions (~1700 LOC — schema additions, polling endpoint, FAB tile, alert composer, visibility-broadening filter, minimal claim/resolve actions, comment thread, tests).
 
-**Demo value:** Most dramatic moment. But standalone urgent without the vetting flow context feels a bit detached.
+**Dependencies:** **BU-requests-foundation** must land first.
+
+**Demo value:** **Highest.** This is the heartbeat — the scenario that makes "purpose-built for coordinated activism" real.
+
+---
+
+### BU-requests-vetting — admin reviewer flow + audience-toggled comments
+
+**Scope:**
+
+- Reviewer-view filter for `queue_manager:vetting` scope at `/requests`
+- Vetting-specific resolution outcomes (approved / rejected / needs-more-info)
+- **Audience toggle on comments** (per D056) — `audience: 'reviewers'` (internal note) or `audience: 'all'` (visible to submitter). Reviewer chooses on each comment; submitter sees only `audience: 'all'`
+- @mention syntax in comments → triggers a `Notification` row (D057)
+- Notification entity + minimal in-app delivery (notifications surface inside the Requests tab — Option B from the design)
+- Richer status timeline (system messages on every state transition — per SCN-22)
+- Seed: pre-seed Eddie's vetting application + a couple of others so Sharon's queue has variety
+
+**What this demos (SCN-21 + SCN-22):**
+
+- Sharon claims Eddie's vetting → asks "can you confirm your postcode?" (audience=all) → Eddie sees the question + replies → Sharon adds an internal note (audience=reviewers) "voucher checks out" → @mentions Jeremy for sign-off → resolves as approved → Eddie sees "approved · welcome 🤝"
+
+**Effort:** ~2–2.5 sessions (~1800 LOC — comment audience filter, scope-filtered queue, notification entity + display, system-transition messages, @mention parsing, tests).
+
+**Dependencies:** **BU-requests-foundation** must land first. Soft-benefits from BU-requests-urgent shipping first (the urgent BU establishes the basic claim/resolve UX that vetting extends with audience-toggled comments).
+
+**Demo value:** Important for the admin story — but it's the back-office demo. Less central to the brand promise than urgent.
 
 ---
 
 ## Effort + value comparison
 
-| BU | Effort | Demo value alone | Demo value combined | Unlocks scenarios |
-|---|---|---|---|---|
-| **foundation** | 1.5–2 sessions | Low (data only, no flow) | Required prerequisite | SCN-21 partial |
-| **vetting** | 2–2.5 sessions | **Highest** (full vetting demo) | Heart of the workspace | SCN-21 ✓ + SCN-22 ✓ |
-| **urgent** | 1.5–2 sessions | Medium (dramatic but needs context) | Highest combined value | SCN-23 ✓ |
+| BU | Effort | Demo value alone | Unlocks scenarios |
+|---|---|---|---|
+| **foundation** | 1.5–2 sessions | Low (data only, no flow) | SCN-21 partial |
+| **urgent** | 2–2.5 sessions | **Highest** — community-facing pulse, the brand promise | SCN-23 ✓ |
+| **vetting** | 2–2.5 sessions | Medium — admin back-office, important but not central | SCN-21 ✓ + SCN-22 ✓ |
 
-**Total if all three:** ~5–6 sessions of focused work.
+**Total if all three:** ~5.5–7 sessions of focused work.
+
+---
+
+## Why urgent is more central than vetting (corrected after review)
+
+GPS Action's brand promise is "**purpose-built platform for coordinated activism — replacing the network's WhatsApp-based coordination.**" That promise is fulfilled in the urgent flow: Maya raises an alert at the school gate, every reviewer with permission sees it within 10 seconds, someone claims and acts. WhatsApp's failure mode (urgent things drown in noise; coordination is chaotic) is exactly what urgent solves.
+
+Vetting is the gate every member crosses once. Urgent is the heartbeat every member sees daily. The urgent demo shows the product *working*; the vetting demo shows the admin tooling *working*.
+
+For the demo, urgent is the centerpiece.
 
 ---
 
@@ -112,36 +126,38 @@ The implementation is too big for a single BU. This doc proposes a three-way sli
 ### Path A — full Requests workspace (most demo, longest path)
 
 1. **BU-requests-foundation** — necessary plumbing
-2. **BU-requests-vetting** — the heart of the demo (SCN-21 + SCN-22)
-3. **BU-requests-urgent** — the dramatic moment (SCN-23)
+2. **BU-requests-urgent** — the brand-promise demo (SCN-23)
+3. **BU-requests-vetting** — admin completeness (SCN-21 + SCN-22)
 
-Total: 5–6 sessions. Lands all three Requests scenarios. Probably the right answer if you have time before the demo.
+Total: 5.5–7 sessions. Lands all three Requests scenarios.
 
-### Path B — vetting-only (best demo per session)
+### Path B — urgent-only (best demo per session) ← **recommended**
 
-1. **BU-requests-foundation** + **BU-requests-vetting** as one bundled BU (~3.5 sessions, big PR)
-2. Defer urgent until after the demo
+1. **BU-requests-foundation** + **BU-requests-urgent** as a sequence of two BUs (~3.5–4.5 sessions, two clean PRs)
+2. Defer vetting until after the demo
 
-Pros: best return on time invested — full SCN-21 + SCN-22 demo without the urgent surface area
-Cons: no urgent UI; one bundled BU is less reviewable than three sequenced ones
+Pros: lands the brand-promise scenario (Maya's school-gate alert) — the demo that distinguishes GPS Action from a WhatsApp group. Self-contained: minimal claim/resolve UX inside the urgent BU means it doesn't depend on vetting to be a complete loop.
+Cons: vetting workflow not demoable yet; admin-side completeness deferred.
 
-### Path C — urgent-only (most dramatic, weakest demo otherwise)
+### Path C — vetting-first (admin completeness, weakest demo otherwise)
 
-1. **BU-requests-foundation** (necessary)
-2. **BU-requests-urgent** without vetting
+1. **BU-requests-foundation**
+2. **BU-requests-vetting** without urgent
 
-Pros: shows the urgent FAB tile + polling, the most visceral feature
-Cons: no vetting workflow demo; the standalone urgent feels detached without the workspace context around it
+Pros: shows the full submitter↔reviewer flow with audience-toggled comments
+Cons: misses the brand-promise scenario; SCN-23 (the most distinguishing demo) stays parked.
 
 ---
 
 ## My recommendation
 
-**Path A in sequence — foundation → vetting → urgent.** Three focused BUs, each demoable on its own merit, totalling ~5–6 sessions. The vetting BU is the centerpiece (SCN-22 is the most lived-in scenario in the design). Urgent is dessert — high-impact but only really lands once vetting establishes the workspace mental model.
+**Path B — foundation → urgent.** Two BUs, ~3.5–4.5 sessions, delivers the scenario that demonstrates GPS Action's reason for being. Vetting is the natural follow-up (Path A continuation) but doesn't need to land for the demo to land.
 
-If session budget is tight, **Path B** (foundation + vetting as one BU, defer urgent) gives 80% of the demo value at 60% of the cost.
+Order matters: **foundation must precede urgent** (urgent extends the Request entity foundation introduces). Don't try to bundle them — foundation has its own surface area (schema rename, role middleware) that benefits from being review-able on its own.
 
-I'd avoid Path C — urgent without vetting demos a feature, not a system.
+If session budget is generous, **Path A** in the order above (urgent before vetting) gets you everything.
+
+I'd avoid Path C — vetting-only demos the admin tooling without showing the product working.
 
 ---
 
