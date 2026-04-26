@@ -11,9 +11,11 @@ import {
   parseScenarios,
   parseADRs,
   parseFileTags,
+  parseImports,
   buildGraph,
   runChecks,
   renderMatrix,
+  computeImpact,
 } from '../../scripts/trace';
 
 describe('parseScenarios', () => {
@@ -157,6 +159,44 @@ describe('parseFileTags', () => {
 
     const result = parseFileTags(code);
     expect(result.legacyScenarios).toEqual(['SCN-04', 'SCN-05']);
+  });
+
+  it('extracts @depends-on BU references', () => {
+    const code = [
+      '/**',
+      ' * @build-unit BU-comments',
+      ' * @spec product/scenarios.md (SCN-20)',
+      ' * @depends-on BU-reactions, BU-auth',
+      ' */',
+    ].join('\n');
+
+    const result = parseFileTags(code);
+    expect(result.dependsOn).toEqual(['BU-reactions', 'BU-auth']);
+  });
+
+  it('returns empty dependsOn when no @depends-on tag', () => {
+    const code = ['/**', ' * @build-unit BU-comments', ' */'].join('\n');
+    const result = parseFileTags(code);
+    expect(result.dependsOn).toEqual([]);
+  });
+});
+
+describe('parseImports', () => {
+  it('extracts import specifiers', () => {
+    const code = [
+      "import { foo } from '@/server/services/foo';",
+      "import bar from './bar';",
+      "import * as baz from '../baz';",
+      "import 'side-effect-only';",
+      'const dynamic = "not an import";',
+    ].join('\n');
+
+    const result = parseImports(code);
+    expect(result).toContain('@/server/services/foo');
+    expect(result).toContain('./bar');
+    expect(result).toContain('../baz');
+    expect(result).toContain('side-effect-only');
+    expect(result).not.toContain('not an import');
   });
 });
 
@@ -314,6 +354,114 @@ describe('runChecks', () => {
     expect(result.warnings[0]).toContain('legacy @scenarios');
     // Coverage was satisfied via the legacy tag, so no error for SCN-4
     expect(result.errors).toEqual([]);
+  });
+});
+
+describe('computeImpact', () => {
+  const scenariosMd = '### Scenario 3 — Reacts\n\n_David._';
+  const decisionLogMd = '### D050 · Reactions';
+
+  it('returns null for unknown file', () => {
+    const graph = buildGraph({ scenariosMd, decisionLogMd, files: [] });
+    expect(computeImpact(graph, 'nonexistent.ts')).toBeNull();
+  });
+
+  it('reports buildUnits, scenarios, ADRs for a file', () => {
+    const file = [
+      '/**',
+      ' * @build-unit BU-reactions',
+      ' * @spec architecture/decision-log.md (D050)',
+      ' * @spec product/scenarios.md (SCN-3)',
+      ' */',
+    ].join('\n');
+
+    const graph = buildGraph({
+      scenariosMd,
+      decisionLogMd,
+      files: [{ path: 'server/services/reaction.ts', content: file }],
+    });
+
+    const impact = computeImpact(graph, 'server/services/reaction.ts');
+    expect(impact).not.toBeNull();
+    expect(impact?.buildUnits).toEqual(['BU-reactions']);
+    expect(impact?.scenarios).toEqual(['SCN-3']);
+    expect(impact?.adrs).toEqual(['D050']);
+  });
+
+  it('resolves @/ alias imports to importedBy reverse map', () => {
+    const fileA = [
+      '/**',
+      ' * @build-unit BU-x',
+      ' * @spec product/scenarios.md (SCN-3)',
+      ' */',
+      "import { foo } from '@/server/services/reaction';",
+    ].join('\n');
+    const fileB = [
+      '/**',
+      ' * @build-unit BU-reactions',
+      ' * @spec product/scenarios.md (SCN-3)',
+      ' */',
+      'export const foo = 1;',
+    ].join('\n');
+
+    const graph = buildGraph({
+      scenariosMd,
+      decisionLogMd,
+      files: [
+        { path: 'server/routers/x.ts', content: fileA },
+        { path: 'server/services/reaction.ts', content: fileB },
+      ],
+    });
+
+    const impact = computeImpact(graph, 'server/services/reaction.ts');
+    expect(impact?.importedBy).toEqual(['server/routers/x.ts']);
+  });
+
+  it('aggregates @depends-on BU declarations into BU-level dependencies', () => {
+    const file = [
+      '/**',
+      ' * @build-unit BU-comments',
+      ' * @spec product/scenarios.md (SCN-3)',
+      ' * @depends-on BU-reactions',
+      ' */',
+    ].join('\n');
+
+    const graph = buildGraph({
+      scenariosMd,
+      decisionLogMd,
+      files: [{ path: 'a.ts', content: file }],
+    });
+
+    const impact = computeImpact(graph, 'a.ts');
+    expect(impact?.dependencies).toEqual(['BU-reactions']);
+  });
+
+  it('reports reverse dependents — BUs that declare this BU as @depends-on', () => {
+    const reactionFile = [
+      '/**',
+      ' * @build-unit BU-reactions',
+      ' * @spec product/scenarios.md (SCN-3)',
+      ' */',
+    ].join('\n');
+    const commentFile = [
+      '/**',
+      ' * @build-unit BU-comments',
+      ' * @spec product/scenarios.md (SCN-3)',
+      ' * @depends-on BU-reactions',
+      ' */',
+    ].join('\n');
+
+    const graph = buildGraph({
+      scenariosMd,
+      decisionLogMd,
+      files: [
+        { path: 'server/services/reaction.ts', content: reactionFile },
+        { path: 'server/services/comment.ts', content: commentFile },
+      ],
+    });
+
+    const impact = computeImpact(graph, 'server/services/reaction.ts');
+    expect(impact?.dependents).toEqual(['BU-comments']);
   });
 });
 
