@@ -29,3 +29,17 @@ export async function getActiveRoles(userId: string): Promise<SystemRole[]> {
   });
   return grants.map((g) => g.role);
 }
+
+/**
+ * Return the set of active scope strings for a user (D055).
+ * Active = RoleGrant where revokedAt IS NULL AND scope IS NOT NULL.
+ * Scope strings look like "queue_manager:vetting", "queue_manager:flag", etc.
+ * Granular permissions on top of `role`.
+ */
+export async function getActiveScopes(userId: string): Promise<string[]> {
+  const grants = await prisma.roleGrant.findMany({
+    where: { userId, revokedAt: null, NOT: { scope: null } },
+    select: { scope: true },
+  });
+  return grants.map((g) => g.scope).filter((s): s is string => s !== null);
+}

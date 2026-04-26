@@ -54,7 +54,7 @@ enum RegionType {
   council
 }
 
-enum WorkItemType {
+enum RequestType {
   vetting
   flag
   outcome_review
@@ -65,7 +65,7 @@ enum WorkItemType {
   link_submission
 }
 
-enum WorkItemStatus {
+enum RequestStatus {
   unclaimed
   claimed
   in_review
@@ -73,14 +73,14 @@ enum WorkItemStatus {
   abandoned
 }
 
-enum WorkItemPriority {
+enum RequestPriority {
   low
   normal
   high
   urgent
 }
 
-enum WorkItemResolution {
+enum RequestResolution {
   approved
   rejected
   edited
@@ -123,10 +123,10 @@ model User {
   // Region affinity (informational; per D041 not used for filtering)
   regionsOfInterest UserRegion[]
 
-  // Work items
-  workItemsCreated  WorkItem[] @relation("workItemsCreated")
-  workItemsClaimed  WorkItem[] @relation("workItemsClaimed")
-  workItemsResolved WorkItem[] @relation("workItemsResolved")
+  // Requests (BU-requests-foundation — D054; renamed from WorkItem)
+  requestsCreated  Request[] @relation("requestsCreated")
+  requestsClaimed  Request[] @relation("requestsClaimed")
+  requestsResolved Request[] @relation("requestsResolved")
 
   // Role grants
   roleGrants        RoleGrant[] @relation("roleGrants")
@@ -216,12 +216,16 @@ model UserRegion {
   @@index([regionId])
 }
 
-// ─── WorkItem ────────────────────────────────────────────────────────────────
+// ─── Request ─────────────────────────────────────────────────────────────────
 //
-// The unified queue primitive (D040). All claimable, single-worker workflows
-// flow through this table; type-driven UI renders the right form per type.
-// Schema is locked to claim-and-lease.md "Schema for ERD" section — do not
-// drift without an ADR.
+// The unified "things needing decision/discussion" surface (D054, formerly
+// WorkItem per D040). All claimable, single-worker workflows flow through
+// this table; type-driven UI renders the right form per type.
+//
+// Renamed from WorkItem in BU-requests-foundation (D054). The status enum
+// will collapse from five values to three (new / in_discussion / done) in
+// a follow-up migration once the new statuses are wired through; for now
+// the legacy five values remain to keep existing data compatible.
 //
 // App-level invariants:
 //   - status='claimed' implies claimedByUserId, claimedAt, claimExpiresAt populated
@@ -229,11 +233,11 @@ model UserRegion {
 //   - regionSlug is informational only (per D041 not used for access control)
 //   - Atomic claim: UPDATE ... WHERE status='unclaimed' (per claim-and-lease §"The race condition")
 //   - Sweeper releases expired claims every 5 min (TTL + 4-hour cap)
-model WorkItem {
-  id       String           @id @default(uuid())
-  type     WorkItemType
-  status   WorkItemStatus   @default(unclaimed)
-  priority WorkItemPriority @default(normal)
+model Request {
+  id       String          @id @default(uuid())
+  type     RequestType
+  status   RequestStatus   @default(unclaimed)
+  priority RequestPriority @default(normal)
 
   // Type-specific payload — references to underlying entities + display summary.
   // Per-type Zod schemas defined per Build Unit when each feature ships.
@@ -248,11 +252,11 @@ model WorkItem {
   // Lifecycle
   createdAt       DateTime @default(now())
   createdByUserId String?
-  createdBy       User?    @relation("workItemsCreated", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdBy       User?    @relation("requestsCreated", fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   // Claim fields (all nullable until a claim happens)
   claimedByUserId String?
-  claimedBy       User?     @relation("workItemsClaimed", fields: [claimedByUserId], references: [id], onDelete: SetNull)
+  claimedBy       User?     @relation("requestsClaimed", fields: [claimedByUserId], references: [id], onDelete: SetNull)
   claimedAt       DateTime?
   claimExpiresAt  DateTime?
   lastHeartbeatAt DateTime?
@@ -260,8 +264,8 @@ model WorkItem {
   // Resolution fields (populated on resolve)
   resolvedAt       DateTime?
   resolvedByUserId String?
-  resolvedBy       User?               @relation("workItemsResolved", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
-  resolution       WorkItemResolution?
+  resolvedBy       User?              @relation("requestsResolved", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  resolution       RequestResolution?
   resolutionNotes  String?
 
   deletedAt DateTime?
@@ -302,6 +306,12 @@ model RoleGrant {
   user   User       @relation("roleGrants", fields: [userId], references: [id], onDelete: Cascade)
   role   SystemRole
 
+  // Per-type scope (D055). Null = unscoped (the role applies broadly).
+  // String form: e.g. "queue_manager:vetting", "queue_manager:flag",
+  // "queue_manager:link_submission". Granular permissions on top of `role`.
+  // Stored as TEXT (not enum) so admins can add scopes without migrations.
+  scope String?
+
   grantedAt       DateTime @default(now())
   grantedByUserId String
   grantedBy       User     @relation("roleGrantsMade", fields: [grantedByUserId], references: [id], onDelete: Restrict)
@@ -315,6 +325,7 @@ model RoleGrant {
   createdAt DateTime @default(now())
 
   @@index([userId, role, revokedAt])
+  @@index([scope])
   @@index([grantedAt])
 }
 
@@ -725,6 +736,11 @@ model Comment {
 
   body String
 
+  // Comment audience (BU-requests-foundation / D056). 'all' = visible to
+  // submitter + reviewers; 'reviewers' = internal-only (vetting flow).
+  // Default 'all' so existing post comments behave unchanged.
+  audience CommentAudience @default(all)
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -735,4 +751,9 @@ model Comment {
   @@index([postId, createdAt])
   @@index([authorId, createdAt])
   @@index([deletedAt])
+}
+
+enum CommentAudience {
+  all
+  reviewers
 }
