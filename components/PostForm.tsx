@@ -699,8 +699,10 @@ function IntentBanner({ meta, testIdSuffix }: IntentBannerProps) {
     padding: 'var(--space-4)',
     borderRadius: 'var(--radius-md)',
     background: 'var(--colour-surface-raised)',
+    borderTop: '1px solid var(--colour-border-subtle)',
+    borderRight: '1px solid var(--colour-border-subtle)',
+    borderBottom: '1px solid var(--colour-border-subtle)',
     borderLeft: `4px solid ${meta.accent}`,
-    border: '1px solid var(--colour-border-subtle)',
   };
   return (
     <div style={bannerStyle} data-testid="compose-intent-banner" data-intent-key={testIdSuffix}>
