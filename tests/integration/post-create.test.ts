@@ -55,11 +55,12 @@ function authedContext(): TRPCContext {
       deletedAt: null,
     },
     activeRoles: [],
+    activeScopes: [],
   };
 }
 
 function anonContext(): TRPCContext {
-  return { user: null, activeRoles: [] };
+  return { user: null, activeRoles: [], activeScopes: [] };
 }
 
 const validInput = {

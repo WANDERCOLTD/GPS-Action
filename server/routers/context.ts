@@ -13,28 +13,31 @@
 
 import type { TRPCContext } from '@/server/lib/trpc';
 import { getUserIdFromCookie } from '@/server/lib/auth';
-import { resolveUser, getActiveRoles } from '@/server/services/auth';
+import { resolveUser, getActiveRoles, getActiveScopes } from '@/server/services/auth';
 
 /**
  * Build the tRPC context for the current request. Reads the dev auth
- * cookie, resolves the user, and fetches their active roles.
+ * cookie, resolves the user, and fetches their active roles + scopes.
  */
 export async function createTRPCContext(): Promise<TRPCContext> {
   if (process.env.NODE_ENV === 'production') {
     // In production, real auth (BU-002) replaces this.
-    return { user: null, activeRoles: [] };
+    return { user: null, activeRoles: [], activeScopes: [] };
   }
 
   const userId = await getUserIdFromCookie();
   if (!userId) {
-    return { user: null, activeRoles: [] };
+    return { user: null, activeRoles: [], activeScopes: [] };
   }
 
   const user = await resolveUser(userId);
   if (!user) {
-    return { user: null, activeRoles: [] };
+    return { user: null, activeRoles: [], activeScopes: [] };
   }
 
-  const activeRoles = await getActiveRoles(user.id);
-  return { user, activeRoles };
+  const [activeRoles, activeScopes] = await Promise.all([
+    getActiveRoles(user.id),
+    getActiveScopes(user.id),
+  ]);
+  return { user, activeRoles, activeScopes };
 }
