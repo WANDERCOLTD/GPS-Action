@@ -623,6 +623,13 @@ model Post {
 
   activistMailerUrl String?
 
+  // Link preview card data (BU-link-share — D060)
+  linkUrl         String?
+  linkTitle       String?
+  linkDescription String?
+  linkImageUrl    String?
+  linkSiteName    String?
+
   // Group tags — array of Group slugs (mirrors WorkItem pattern; informational only in MVP)
   groupTags String[] @default([])
 
