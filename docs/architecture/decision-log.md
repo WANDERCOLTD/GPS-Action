@@ -2831,3 +2831,255 @@ only list/read their own. tRPC procedure: `notification.listMine`,
 - D058 (Urgent flag — triggers `urgent_request_raised`)
 - D036 (feature flags — notifications behind `ff_notifications`)
 - design-philosophy.md principle 3 (no anxiety amplification)
+
+---
+
+# D058 — Urgent flag, AlertCategory, admin-configurable TTL, polling
+
+**Date:** 2026-04-26
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** BU-requests (forthcoming)
+
+## Context
+
+Some Requests are time-sensitive — "child safety incident at school
+gate", "gathering happening now, who can help?", "post needs urgent
+review before 5pm". Without a priority signal these mix in with
+routine vetting work and lose their urgency. Without delivery, even
+flagged urgent items wait until reviewers happen to refresh.
+
+D058 introduces:
+
+1. A `urgency` field on Request (binary — normal / urgent)
+2. Admin-configurable TTL (default 4 hours) via a new `SystemSetting`
+   table
+3. An `AlertCategory` admin-managed table for member-facing alert
+   sub-types (seeded with "Happening now")
+4. A new RequestType `alert` — auto-urgent, surfaced in the FAB
+   composer's "alert tile" (red triangle exclamation icon)
+5. 10-second polling for MVP delivery; SSE deferred to Phase 2
+6. Visibility broadening: urgent Requests appear in every reviewer's
+   tab regardless of scope (acting still scope-restricted)
+
+## Decisions
+
+### 1. Two-tier urgency, not three
+
+`Request.urgency` is `normal | urgent`. Resist the temptation of
+`low | medium | high` — three tiers is a deference-to-feeling
+problem, not a real distinction. Urgent means "interrupt now";
+normal means "work the queue."
+
+### 2. Schema additions
+
+```prisma
+model Request {
+  // existing fields per D054
+  urgency             RequestUrgency  @default(normal)
+  urgentReason        String?
+  urgentExpiresAt     DateTime?
+  urgentSetByUserId   String?
+  urgentSetAt         DateTime?
+
+  alertCategoryId     String?
+}
+
+enum RequestUrgency {
+  normal
+  urgent
+}
+
+model AlertCategory {
+  id              String   @id @default(uuid())
+  slug            String   @unique  // "happening_now"
+  label           String              // "Happening now"
+  description     String?
+  iconKey         String              // matches a known icon set
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  createdByUserId String
+
+  @@index([active])
+}
+
+model SystemSetting {
+  id              String      @id @default(uuid())
+  key             String      @unique
+  value           String                 // string-encoded; service parses by type
+  type            SettingType
+  description     String
+  updatedAt       DateTime    @updatedAt
+  updatedByUserId String
+}
+
+enum SettingType {
+  int
+  string
+  json
+}
+```
+
+### 3. Who can set urgency
+
+| Setter        | When                                                                                     | Reason required             |
+| ------------- | ---------------------------------------------------------------------------------------- | --------------------------- |
+| **Submitter** | At creation, self-declared. Tight friction (typed reason required).                      | Yes                         |
+| **System**    | Auto-flag for `incident` and `flag:child_safety` types and for any `alert`-type Request. | No (system reason recorded) |
+| **Reviewer**  | Can upgrade `normal → urgent` after creation, or downgrade.                              | Yes — typed reason audited  |
+
+### 4. TTL — admin-configurable default
+
+`SystemSetting` row seeded:
+
+```
+key:         request_urgent_default_ttl_hours
+value:       4
+type:        int
+description: Default urgency time-to-live for Requests (hours). Auto-downgrade after expiry unless re-flagged.
+```
+
+Admin UI (BU-admin) lets admins edit this value. On urgency
+escalation, `urgentExpiresAt = now() + ttl`. A scheduled job (or
+on-render check) auto-downgrades expired urgents — sets `urgency =
+normal`, leaves `urgentReason` for audit history, audit-logs the
+auto-downgrade.
+
+### 5. AlertCategory — admin-managed; seeded with one
+
+Admins create alert categories via BU-admin's generic entity scaffold
+(per admin-surface.md `/admin/[entity]` pattern). Seeded with one
+row at install:
+
+```
+slug:        happening_now
+label:       Happening now
+description: Something is happening right now and we need eyes / help
+iconKey:     warning_triangle
+active:      true
+```
+
+Future admins can add (e.g. "Witness call", "Venue logistics",
+"Press inquiry") without code changes. `iconKey` references a known
+icon set; if a slug doesn't have an icon, falls back to a generic
+warning icon.
+
+### 6. The FAB alert tile (D044 integration spec)
+
+Per D044 (FAB intent-cards composer), tapping the FAB shows a tile
+picker. One tile is the **alert tile**:
+
+- **Visual**: red warning triangle with exclamation mark
+  (`iconKey: warning_triangle`)
+- **Label**: "Alert"
+- **Tap behaviour**: opens the alert composer
+  - If only one active AlertCategory, it's preselected
+  - If multiple, member picks via segmented control
+  - Member types reason / context (free text, max 1000 chars)
+  - Submit creates Request with `type=alert`, `urgency=urgent`,
+    `urgentReason=<typed text>`, `alertCategoryId=<picked>`,
+    `urgentExpiresAt=now() + ttl`
+
+This integration lives in BU-composer-fab when it ships. D058
+documents the contract; the alert composer is built then.
+
+### 7. Visibility broadening
+
+While `urgency=urgent AND status != done`, the Request appears in
+every reviewer's Requests tab in a pinned "Urgent" section above
+the New / In Discussion / Done filters. **Visibility broadens;
+acting stays scope-restricted.**
+
+Service-layer behaviour (`requests.list` with reviewer caller):
+
+```
+WHERE
+  -- normal scope-filtered list
+  (scope_matches(request.type, caller_scopes))
+  -- OR urgent broadcast (any reviewer sees urgent regardless of scope)
+  OR (request.urgency = 'urgent' AND request.status != 'done')
+```
+
+Mutation procedures (claim, comment-as-reviewer, resolve) still
+require the right scope via `requireRole({ scope: request.type })`
+per D055.
+
+### 8. Real-time delivery — 10s polling for MVP
+
+Client-side `useEffect` in the Requests tab polls
+`requests.urgent.list` every 10 seconds while the tab is mounted.
+Lag ≤10s for "Maya raised urgent at the school gate."
+
+Trade-offs:
+
+- Battery: 6 requests/min while tab open. Acceptable for MVP.
+- Server: tRPC endpoint that returns urgent IDs only (cheap).
+- Cache: HTTP `Cache-Control: no-store` on the urgent endpoint.
+
+**SSE (Server-Sent Events) is parking-lot for Phase 2** when
+concrete UX wins justify the infra. WebSockets are explicitly
+not pursued (one-way push doesn't need bidirectional).
+
+### 9. Anxiety-amplification guardrails (per design-philosophy.md §3)
+
+- TTL forces re-evaluation; no permanent urgency
+- Required reason on every escalation
+- Auto-urgent only on a small set of types (incident, child-safety
+  flag, alert)
+- Bottom-tab badge counts unread _notifications_, NOT urgency count
+  (avoids "3 urgent!" anxiety on the icon)
+- Quiet hours respected for any future push delivery
+- Reviewer downgrade button audited
+
+### 10. Notification interaction
+
+D057 fires `urgent_request_raised` to all reviewers when a Request
+becomes urgent. Not throttled. Re-flagging the same Request after
+downgrade fires again. The notification deep-links to the Request.
+
+## Consequences
+
+- Schema migration: add urgency fields to Request, create
+  `AlertCategory` and `SystemSetting` tables, add the `alert`
+  RequestType.
+- Seed migration: insert "Happening now" AlertCategory + 4-hour
+  TTL SystemSetting row.
+- New tRPC procedures: `requests.urgent.list`,
+  `requests.markUrgent`, `requests.downgradeUrgent`,
+  `alertCategory.list/create/update`,
+  `systemSetting.get/update` (admin-scoped).
+- New scheduled job: auto-downgrade expired urgents (Vercel cron
+  or similar).
+- `requests.list` query gains the urgent-broadcast OR clause.
+- BU-composer-fab brief incorporates the alert tile spec.
+- `bu-sequence.md` updated to add `BU-notifications` and
+  acknowledge `BU-requests` consumes D058.
+
+## Alternatives considered
+
+- **Three-tier urgency** (low / medium / high). Rejected —
+  practical distinction is binary.
+- **Urgency as a Request type** (`urgent` type). Rejected —
+  urgency is orthogonal to type; vetting can be urgent, flag can
+  be urgent, alerts are urgent-by-default.
+- **Hardcoded TTL**. Rejected — admins need to tune this without
+  code releases.
+- **AlertCategory as code constants**. Rejected — admins should
+  add categories without engineering work.
+- **WebSocket / SSE in MVP**. Rejected — polling delivers
+  acceptable lag with zero new infra.
+- **Push notifications in MVP**. Rejected — needs PWA service
+  worker + auth setup; defer to BU-pwa or similar.
+- **Bottom-tab badge for urgent count**. Rejected — anxiety
+  amplification per design-philosophy.
+
+## Related
+
+- D044 (FAB intent-cards composer — alert tile lands here)
+- D054 (Request entity — primary surface)
+- D055 (per-type scopes — gates ACTING on urgent, not seeing)
+- D056 (Comment audience — internal-vs-all comments on urgent
+  Requests work the same as on normal)
+- D057 (Notifications — `urgent_request_raised` type)
+- design-philosophy.md §3 (no anxiety amplification —
+  governing principle for the guardrails)
