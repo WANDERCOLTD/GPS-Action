@@ -27,7 +27,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-16 | Coordinator dispatches a Boost/Remove post to WhatsApp | 0 | — | — | parked |
 | SCN-17 | System auto-comments on a closing campaign | 0 | — | — | parked |
 | SCN-18 | Eddie writes his first post (the demo flow) | 2 | BU-composer, BU-feed | — | ✓ shipped |
-| SCN-19 | Sharon shares a Guardian article with a preview card | 0 | — | — | parked |
+| SCN-19 | Sharon shares a Guardian article with a preview card | 2 | BU-composer, BU-link-share | D060, D061 | ✓ shipped |
 | SCN-20 | Eddie reads the Sky News post and writes his first comment | 11 | BU-comments, BU-reactions | D045, D050, D052 | ✓ shipped |
 | SCN-21 | Eddie tracks his vetting application from submission to outcome | 0 | — | — | parked |
 | SCN-22 | Sharon picks up and resolves Eddie's vetting application | 0 | — | — | parked |
@@ -42,10 +42,11 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-001-lite | 11 | — | D003, D007, D042 |
 | BU-001-prep | 1 | — | — |
 | BU-comments | 9 | SCN-20 | D045, D052 |
-| BU-composer | 7 | SCN-18 | D045, D048 |
+| BU-composer | 7 | SCN-18, SCN-19 | D045, D048, D060 |
 | BU-error-boundary | 2 | — | D003, D037 |
-| BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052 |
+| BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060 |
 | BU-healthcheck | 3 | — | D037 |
+| BU-link-share | 5 | SCN-19 | D045, D048, D060, D061 |
 | BU-reactions | 9 | SCN-3, SCN-20 | D036, D050, D052 |
 | BU-seed | 1 | — | D038 |
 
@@ -62,4 +63,6 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D048 | Post axes taxonomy + deferred PostType | 2 |
 | D050 | Reaction schema, fixed 8-emoji set, polymorphic target | 7 |
 | D052 | Comment schema + polymorphic reuse of ReactionTargetType | 13 |
+| D060 | Post schema additions for link-share preview cards | 5 |
+| D061 | Global tap interaction pattern | 1 |
 

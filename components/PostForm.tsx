@@ -1,12 +1,17 @@
 'use client';
 
 /**
- * @build-unit BU-composer
+ * @build-unit BU-composer BU-link-share
  * @spec product/design-philosophy.md
  * @spec architecture/api-contract.md
+ * @spec architecture/decision-log.md (D060)
+ * @spec product/scenarios.md (SCN-19)
  *
  * Post creation form. Client component — manages form state, calls
  * the createPostAction server action on submit.
+ *
+ * BU-link-share / D060: a "Share a link?" toggle reveals five extra
+ * fields (linkUrl + 4 metadata) per SCN-19 manual-fill flow.
  */
 
 import { useState, useTransition } from 'react';
@@ -20,6 +25,7 @@ interface PostFormProps {
 export function PostForm({ onSubmit }: PostFormProps) {
   const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [shareLinkOpen, setShareLinkOpen] = useState(false);
 
   function handleSubmit(formData: FormData): void {
     startTransition(async () => {
@@ -142,6 +148,207 @@ export function PostForm({ onSubmit }: PostFormProps) {
 
       {/* Activist Mailer URL */}
       <ActivistMailerField error={errors.activistMailerUrl?.[0]} />
+
+      {/* Share a link? (BU-link-share / D060 / SCN-19) */}
+      <div>
+        <button
+          type="button"
+          data-testid="compose-sharelink-toggle"
+          onClick={() => setShareLinkOpen((v) => !v)}
+          aria-expanded={shareLinkOpen}
+          aria-controls="compose-sharelink-fields"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            color: 'var(--colour-text-link)',
+            fontFamily: 'var(--font-ui)',
+            fontSize: 'var(--text-sm)',
+            cursor: 'pointer',
+          }}
+        >
+          <span>{shareLinkOpen ? '▾' : '▸'}</span>
+          Share a link?
+        </button>
+
+        {shareLinkOpen && (
+          <div
+            id="compose-sharelink-fields"
+            style={{
+              marginTop: 'var(--space-3)',
+              padding: 'var(--space-4)',
+              background: 'var(--colour-surface-sunken)',
+              borderRadius: 'var(--radius-md)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-3)',
+            }}
+          >
+            <div>
+              <label
+                htmlFor="linkUrl"
+                data-testid="compose-link-url-label"
+                style={{
+                  display: 'block',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 500,
+                  marginBottom: 'var(--space-1)',
+                  fontFamily: 'var(--font-ui)',
+                }}
+              >
+                Link URL
+              </label>
+              <input
+                id="linkUrl"
+                name="linkUrl"
+                type="url"
+                inputMode="url"
+                placeholder="https://..."
+                data-testid="compose-link-url-input"
+                className="gps-input"
+                style={{
+                  width: '100%',
+                  borderColor: errors.linkUrl ? 'var(--colour-danger)' : undefined,
+                }}
+              />
+              {errors.linkUrl && (
+                <p
+                  style={{
+                    color: 'var(--colour-danger)',
+                    fontSize: 'var(--text-xs)',
+                    marginTop: 'var(--space-1)',
+                    fontFamily: 'var(--font-ui)',
+                  }}
+                  role="alert"
+                >
+                  {errors.linkUrl[0]}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="linkTitle"
+                data-testid="compose-link-title-label"
+                style={{
+                  display: 'block',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 500,
+                  marginBottom: 'var(--space-1)',
+                  fontFamily: 'var(--font-ui)',
+                }}
+              >
+                Title
+              </label>
+              <input
+                id="linkTitle"
+                name="linkTitle"
+                type="text"
+                maxLength={200}
+                data-testid="compose-link-title-input"
+                className="gps-input"
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="linkDescription"
+                data-testid="compose-link-description-label"
+                style={{
+                  display: 'block',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 500,
+                  marginBottom: 'var(--space-1)',
+                  fontFamily: 'var(--font-ui)',
+                }}
+              >
+                Description
+              </label>
+              <textarea
+                id="linkDescription"
+                name="linkDescription"
+                rows={2}
+                maxLength={500}
+                data-testid="compose-link-description-input"
+                className="gps-input"
+                style={{ width: '100%', resize: 'vertical' }}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="linkImageUrl"
+                data-testid="compose-link-imageurl-label"
+                style={{
+                  display: 'block',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 500,
+                  marginBottom: 'var(--space-1)',
+                  fontFamily: 'var(--font-ui)',
+                }}
+              >
+                Image URL
+              </label>
+              <input
+                id="linkImageUrl"
+                name="linkImageUrl"
+                type="url"
+                inputMode="url"
+                placeholder="https://..."
+                data-testid="compose-link-imageurl-input"
+                className="gps-input"
+                style={{
+                  width: '100%',
+                  borderColor: errors.linkImageUrl ? 'var(--colour-danger)' : undefined,
+                }}
+              />
+              {errors.linkImageUrl && (
+                <p
+                  style={{
+                    color: 'var(--colour-danger)',
+                    fontSize: 'var(--text-xs)',
+                    marginTop: 'var(--space-1)',
+                    fontFamily: 'var(--font-ui)',
+                  }}
+                  role="alert"
+                >
+                  {errors.linkImageUrl[0]}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="linkSiteName"
+                data-testid="compose-link-sitename-label"
+                style={{
+                  display: 'block',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 500,
+                  marginBottom: 'var(--space-1)',
+                  fontFamily: 'var(--font-ui)',
+                }}
+              >
+                Site name
+              </label>
+              <input
+                id="linkSiteName"
+                name="linkSiteName"
+                type="text"
+                maxLength={100}
+                placeholder="e.g. The Guardian"
+                data-testid="compose-link-sitename-input"
+                className="gps-input"
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Visibility */}
       <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>

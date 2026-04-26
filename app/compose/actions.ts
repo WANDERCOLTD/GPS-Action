@@ -1,11 +1,13 @@
 'use server';
 
 /**
- * @build-unit BU-composer
+ * @build-unit BU-composer BU-link-share
  * @spec architecture/api-contract.md
+ * @spec architecture/decision-log.md (D060)
  *
  * Server action wrapping post.create for client-side form submit.
  * Mirrors app/feed/actions.ts pattern: createTRPCContext → createCaller.
+ * Link-share fields are optional (D060).
  */
 
 import { redirect } from 'next/navigation';
@@ -25,6 +27,11 @@ export async function createPostAction(formData: FormData): Promise<CreatePostRe
     body: formData.get('body')?.toString() ?? '',
     activistMailerUrl: formData.get('activistMailerUrl')?.toString() || undefined,
     visibility: formData.get('visibility')?.toString() ?? 'public',
+    linkUrl: formData.get('linkUrl')?.toString() || undefined,
+    linkTitle: formData.get('linkTitle')?.toString() || undefined,
+    linkDescription: formData.get('linkDescription')?.toString() || undefined,
+    linkImageUrl: formData.get('linkImageUrl')?.toString() || undefined,
+    linkSiteName: formData.get('linkSiteName')?.toString() || undefined,
   };
 
   const parsed = postCreateSchema.safeParse(raw);
