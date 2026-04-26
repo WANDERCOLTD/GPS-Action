@@ -69,3 +69,33 @@ export const adminDeleteInput = z.object({
   mode: z.enum(['soft', 'restore', 'hard']).default('soft'),
 });
 export type AdminDeleteInput = z.infer<typeof adminDeleteInput>;
+
+// ── Bulk inputs (BU-admin-bulk-ops) ──────────────────────────────────────
+
+const bulkIds = z.array(z.string().uuid()).min(1).max(100);
+
+const bulkBaseInput = z.object({
+  entity: entityEnum,
+  ids: bulkIds,
+});
+
+export const adminBulkSoftDeleteInput = bulkBaseInput;
+export type AdminBulkSoftDeleteInput = z.infer<typeof adminBulkSoftDeleteInput>;
+
+export const adminBulkRestoreInput = bulkBaseInput;
+export type AdminBulkRestoreInput = z.infer<typeof adminBulkRestoreInput>;
+
+export const adminBulkHardDeleteInput = bulkBaseInput;
+export type AdminBulkHardDeleteInput = z.infer<typeof adminBulkHardDeleteInput>;
+
+/**
+ * forceRelease is only valid for the `request` entity. Request lives
+ * under workflow:queue and isn't in ADMIN_ENTITY_KEYS today (slice 1).
+ * The procedure registers here for future use; the service stub
+ * throws NOT_IMPLEMENTED until BU-admin-roles wires it through.
+ */
+export const adminBulkForceReleaseInput = z.object({
+  entity: z.literal('request'),
+  ids: bulkIds,
+});
+export type AdminBulkForceReleaseInput = z.infer<typeof adminBulkForceReleaseInput>;

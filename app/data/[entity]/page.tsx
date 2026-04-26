@@ -20,6 +20,7 @@ import type { EntityKey } from '@/server/admin/entity-metadata';
 import { EntityListPage } from '@/components/admin/EntityListPage';
 import { ADMIN_ENTITY_KEYS } from '@/shared/validation/admin';
 import { canAccessEntity } from '@/server/services/admin/auth';
+import { adminBulkAction } from '@/app/data/[entity]/bulk-actions';
 
 interface PageProps {
   params: Promise<{ entity: string }>;
@@ -78,7 +79,12 @@ export default async function DataEntityPage({ params, searchParams }: PageProps
         >
           ← Back to data
         </Link>
-        <EntityListPage entity={entity as EntityKey} ctx={ctx} search={search} />
+        <EntityListPage
+          entity={entity as EntityKey}
+          ctx={ctx}
+          search={search}
+          bulkAction={adminBulkAction.bind(null, entity)}
+        />
       </main>
     </>
   );
