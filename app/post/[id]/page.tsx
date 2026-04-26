@@ -23,9 +23,14 @@ import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { CommentList } from '@/components/CommentList';
 import { ReactionPill } from '@/components/ReactionPill';
-import { addCommentAction } from '@/app/post/[id]/actions';
+import {
+  addCommentAction,
+  addReactionToCommentAction,
+  removeReactionFromCommentAction,
+} from '@/app/post/[id]/actions';
 import { addReactionAction, removeReactionAction } from '@/app/feed/actions';
 import type { CommentForView } from '@/components/CommentList';
+import type { FeedReactionEmoji } from '@/components/PostCard';
 
 interface PostDetailPageProps {
   params: Promise<{ id: string }>;
@@ -93,6 +98,11 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
     body: c.body,
     createdAt: c.createdAt.toISOString(),
     author: c.author,
+    reactions: c.reactions.map((r) => ({
+      emoji: r.emoji as FeedReactionEmoji,
+      count: r.count,
+      mine: r.mine,
+    })),
   }));
 
   const canReact = reactionsEnabled && Boolean(ctx.user);
@@ -144,10 +154,9 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
 
         {reactionsEnabled && (
           <ReactionPill
-            postId={post.id}
             reactions={post.reactions}
-            onAdd={addReactionAction}
-            onRemove={removeReactionAction}
+            onAdd={(emoji) => addReactionAction(post.id, emoji)}
+            onRemove={(emoji) => removeReactionAction(post.id, emoji)}
             canReact={canReact}
           />
         )}
@@ -180,6 +189,10 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
           initialComments={serialisedComments}
           canComment={canComment}
           onAddComment={addCommentAction}
+          reactionsEnabled={reactionsEnabled}
+          canReact={canReact}
+          onAddReactionToComment={addReactionToCommentAction}
+          onRemoveReactionFromComment={removeReactionFromCommentAction}
         />
       </section>
     </main>

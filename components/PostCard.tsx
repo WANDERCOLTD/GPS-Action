@@ -191,10 +191,9 @@ export const PostCard: FC<PostCardProps> = ({
       {/* Reaction pill (BU-reactions / D050) */}
       {reactionsEnabled && (
         <ReactionPill
-          postId={post.id}
           reactions={post.reactions}
-          onAdd={onAddReaction}
-          onRemove={onRemoveReaction}
+          onAdd={(emoji) => onAddReaction(post.id, emoji)}
+          onRemove={(emoji) => onRemoveReaction(post.id, emoji)}
           canReact={canReact}
         />
       )}
