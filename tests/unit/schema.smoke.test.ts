@@ -21,7 +21,7 @@ describe('schema smoke — Slice 1 entities', () => {
       | 'user'
       | 'region'
       | 'userRegion'
-      | 'workItem'
+      | 'request'
       | 'roleGrant'
       | 'coordinatorProfile'
       | 'coordinatorGroup'
@@ -33,7 +33,7 @@ describe('schema smoke — Slice 1 entities', () => {
       'user',
       'region',
       'userRegion',
-      'workItem',
+      'request',
       'roleGrant',
       'coordinatorProfile',
       'coordinatorGroup',
@@ -49,7 +49,7 @@ describe('schema smoke — Slice 1 entities', () => {
       'user',
       'region',
       'userRegion',
-      'workItem',
+      'request',
       'roleGrant',
       'coordinatorProfile',
       'coordinatorGroup',
@@ -115,10 +115,10 @@ describe('schema smoke — Slice 2 (minimal) entities (Post)', () => {
       'groupMembership',
       'post',
       'region',
+      'request',
       'roleGrant',
       'user',
       'userRegion',
-      'workItem',
     ];
 
     expect(Object.keys(entityMetadata).sort()).toEqual(expectedKeys);

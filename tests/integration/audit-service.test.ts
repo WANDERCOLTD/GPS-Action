@@ -72,7 +72,7 @@ describe('auditLog', () => {
     mockCreate.mockResolvedValueOnce({
       id: 'audit-2',
       action: 'claim_ttl_expired',
-      entityType: 'WorkItem',
+      entityType: 'Request',
       entityId: 'wi-1',
       userId: null,
       targetUserId: null,
@@ -85,7 +85,7 @@ describe('auditLog', () => {
 
     await auditLog({
       action: 'claim_ttl_expired',
-      entityType: 'WorkItem',
+      entityType: 'Request',
       entityId: 'wi-1',
       userId: null,
     });
