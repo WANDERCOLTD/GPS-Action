@@ -1,22 +1,28 @@
 /**
- * @build-unit BU-comments
- * @spec architecture/decision-log.md (D052)
- * @spec product/scenarios.md (SCN-20)
+ * @build-unit BU-comments BU-requests-vetting
+ * @spec architecture/decision-log.md (D052, D056, D057)
+ * @spec product/scenarios.md (SCN-20, SCN-21, SCN-22)
  * @spec product/analytics-events.md
  *
  * Comment service — create + list. Comments are flat (no threading
- * in MVP), oldest-first, soft-delete-respecting. Visibility is
- * inherited from the parent post via the same filter listPosts uses.
+ * in MVP), oldest-first, soft-delete-respecting.
  *
- * Audit log entry on every successful create. The `comment_added`
- * analytics event lives here per analytics-events.md (silent for now;
- * lights up when an analytics writer lands).
+ * Polymorphic — a Comment belongs to either a Post OR a Request
+ * (BU-requests-vetting). For Post comments visibility is inherited from
+ * the parent post via the same filter listPosts uses; for Request
+ * comments the audience filter (D056 — 'all' vs 'reviewers') gates
+ * what each caller sees.
+ *
+ * Audit log entry on every successful create. @mention parsing on
+ * Request comments emits Notification rows for each matched reviewer.
  */
 
-import type { SystemRole } from '@prisma/client';
+import type { CommentAudience, SystemRole } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
 import { listReactionsForComments, type ReactionAggregate } from '@/server/services/reaction';
+import { createNotification } from '@/server/services/notification';
+import { mentionedUserIds, type MentionCandidate } from '@/shared/lib/mentions';
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -34,6 +40,8 @@ export interface CommentListItem {
   author: CommentAuthor;
   /** Per BU-reactions / D052 — empty array when none. */
   reactions: ReactionAggregate[];
+  /** Audience marker — only meaningful for Request comments (D056). */
+  audience?: CommentAudience;
 }
 
 interface CreateCommentInput {
@@ -185,6 +193,165 @@ export async function listCommentCountsForPosts(input: {
 
   const byPost = new Map<string, number>();
   for (const postId of input.postIds) byPost.set(postId, 0);
-  for (const row of grouped) byPost.set(row.postId, row._count._all);
+  for (const row of grouped) {
+    if (row.postId) byPost.set(row.postId, row._count._all);
+  }
   return byPost;
+}
+
+// ── Request comments (BU-requests-vetting) ────────────────────────────────
+//
+// Polymorphic Comment.requestId — comments attached to a Request rather
+// than a Post. Audience filter (D056) gates visibility:
+//   - submitter (createdByUserId on the Request) sees only audience='all'
+//   - reviewers (queue_manager / admin / scoped grant) see both audiences
+//
+// @mention parsing emits Notification rows for each matched reviewer.
+
+interface CreateCommentForRequestInput {
+  requestId: string;
+  body: string;
+  authorId: string;
+  audience: CommentAudience;
+}
+
+export async function createCommentForRequest(
+  input: CreateCommentForRequestInput,
+): Promise<{ id: string }> {
+  // Verify the Request exists and is not soft-deleted.
+  const request = await prisma.request.findFirst({
+    where: { id: input.requestId, deletedAt: null },
+    select: { id: true, createdByUserId: true },
+  });
+  if (!request) {
+    throw new Error('Request not found or deleted');
+  }
+
+  const created = await prisma.comment.create({
+    data: {
+      requestId: input.requestId,
+      authorId: input.authorId,
+      body: input.body.trim(),
+      audience: input.audience,
+    },
+    select: { id: true },
+  });
+
+  await auditLog({
+    action: 'request_comment.add',
+    entityType: 'comment',
+    entityId: created.id,
+    userId: input.authorId,
+    changes: {
+      bodyLength: input.body.length,
+      requestId: input.requestId,
+      audience: input.audience,
+    },
+    context: { source: 'request_workspace' },
+  });
+
+  // @mention parsing → Notification fanout per D057.
+  // Candidates = active reviewer-role users (admin or queue_manager).
+  // Audience filter applies to mentions too: a mention inside a
+  // 'reviewers' comment must not notify the submitter (who can't see
+  // the comment anyway), but a mention inside an 'all' comment may
+  // notify the submitter if their displayName matches.
+  const reviewerCandidates = await prisma.user.findMany({
+    where: {
+      deletedAt: null,
+      roleGrants: {
+        some: {
+          revokedAt: null,
+          role: { in: ['admin', 'queue_manager'] },
+        },
+      },
+    },
+    select: { id: true, displayName: true },
+  });
+
+  // For audience='all', also include the submitter as a mention target.
+  const candidates: MentionCandidate[] = [...reviewerCandidates];
+  if (input.audience === 'all' && request.createdByUserId) {
+    const submitter = await prisma.user.findUnique({
+      where: { id: request.createdByUserId },
+      select: { id: true, displayName: true },
+    });
+    if (submitter && !candidates.some((c) => c.id === submitter.id)) {
+      candidates.push(submitter);
+    }
+  }
+
+  const mentions = mentionedUserIds(input.body, candidates);
+  for (const mentionedId of mentions) {
+    if (mentionedId === input.authorId) continue; // don't self-notify
+    await createNotification({
+      recipientUserId: mentionedId,
+      type: 'request_mention',
+      requestId: input.requestId,
+      fromUserId: input.authorId,
+      message: input.body.slice(0, 200),
+    });
+  }
+
+  return created;
+}
+
+interface ListCommentsForRequestInput {
+  requestId: string;
+  /** Caller user id — used to determine submitter vs reviewer view. */
+  callerId: string;
+  /** Pre-computed: does the caller have a reviewer-side role/scope? */
+  isReviewer: boolean;
+}
+
+export async function listCommentsForRequest(
+  input: ListCommentsForRequestInput,
+): Promise<CommentListItem[]> {
+  // Submitter: audience='all' only. Reviewer: both audiences.
+  const audienceFilter: CommentAudience[] = input.isReviewer ? ['all', 'reviewers'] : ['all'];
+
+  const comments = await prisma.comment.findMany({
+    where: {
+      requestId: input.requestId,
+      deletedAt: null,
+      audience: { in: audienceFilter },
+    },
+    orderBy: [{ createdAt: 'asc' }],
+    include: {
+      author: {
+        select: {
+          id: true,
+          displayName: true,
+          createdAt: true,
+          roleGrants: {
+            where: { revokedAt: null, role: { in: ['admin', 'queue_manager'] } },
+            select: { role: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (comments.length === 0) return [];
+
+  const commentIds = comments.map((c) => c.id);
+  const reactionsByComment = await listReactionsForComments({
+    commentIds,
+    callerId: input.callerId,
+  });
+
+  const now = Date.now();
+  return comments.map((c) => ({
+    id: c.id,
+    body: c.body,
+    createdAt: c.createdAt,
+    author: {
+      id: c.author.id,
+      displayName: c.author.displayName,
+      roles: c.author.roleGrants.map((g) => g.role),
+      isNewMember: now - c.author.createdAt.getTime() < NEW_MEMBER_WINDOW_MS,
+    },
+    reactions: reactionsByComment.get(c.id) ?? [],
+    audience: c.audience,
+  }));
 }
