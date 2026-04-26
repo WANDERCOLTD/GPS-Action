@@ -2,6 +2,23 @@
 
 <!-- One sentence. If it needs more, split the PR. -->
 
+## Trivial-lane exemption (skip the brief?)
+
+<!--
+Tick if ALL apply. If any don't, the PR needs a brief.
+-->
+
+- [ ] Single file, ≤10 lines changed
+- [ ] Bug fix, copy tweak, doc-only edit, or dependency bump
+- [ ] No schema, API contract, or breaking change
+- [ ] No new feature; restoring or correcting existing behaviour
+- [ ] Reviewer can verify in <2 minutes
+
+If trivial-lane: skip the Build Unit / Scenarios / Spec sections below.
+If not: link the brief and fill in the rest.
+
+Brief: <!-- docs/build/session-briefs/... or N/A if trivial -->
+
 ## Build Unit
 
 <!-- BU-NNN, or explain why no Build Unit applies (bugfix, tooling, etc.) -->

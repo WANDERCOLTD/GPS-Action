@@ -25,11 +25,16 @@ Pre-build. Skeleton in place. Next: ERD, then features.
 
 Before doing ANY work, read these:
 
-1. `docs/process/session-brief-template.md` — every change starts with a brief
-2. `docs/process/security-baseline.md` — data protection rules
-3. `docs/process/ratchet-discipline.md` — forward-only progress
-4. `docs/process/reviewer-checklist.md` — what "done" means
-5. `docs/process/session-hygiene.md` — context management and handoff discipline for long sessions
+1. `docs/process/working-rhythm.md` — the north-star summary of
+   forward-only progress + session hygiene + what "done" means.
+   Subsumes the mandatory bits of ratchet-discipline.md,
+   session-hygiene.md, and reviewer-checklist.md.
+2. `docs/process/session-brief-template.md` — every change starts with a brief
+3. `docs/process/security-baseline.md` — data protection rules
+
+The deep-detail docs (`ratchet-discipline.md`, `session-hygiene.md`,
+`reviewer-checklist.md`) sit underneath `working-rhythm.md` and are
+consulted on demand, not pre-loaded every session.
 
 ## Session hygiene
 

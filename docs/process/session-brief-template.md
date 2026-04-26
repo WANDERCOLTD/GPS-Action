@@ -14,6 +14,25 @@ Use this for every non-trivial session. For tiny changes (a copy tweak, a bug fi
 
 ---
 
+## Trivial-lane exemption
+
+Skip the brief entirely if **all** of the following apply:
+
+- Single file, ≤10 lines changed
+- Bug fix, copy tweak, doc-only edit, or dependency bump
+- No schema, API contract, or breaking change
+- No new feature; restoring or correcting existing behaviour
+- Reviewer can verify the change in <2 minutes
+
+The PR description still names the change and links any relevant
+ADR, but no brief is needed. PR template carries a "trivial-lane"
+checkbox the author ticks (and the reviewer verifies) for these.
+
+For everything bigger — even ~30-line additions — write a brief.
+Three minutes of brief saves an hour of mid-build confusion.
+
+---
+
 ## The template
 
 ```markdown
