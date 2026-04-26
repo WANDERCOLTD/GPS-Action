@@ -673,6 +673,10 @@ model Post {
   linkImageUrl    String?
   linkSiteName    String?
 
+  // Intent kind label (BU-fab-intent-picker — D062). Free-form string,
+  // not enum, per D048's deferred-taxonomy stance.
+  kind String?
+
   // Group tags — array of Group slugs (mirrors WorkItem pattern; informational only in MVP)
   groupTags String[] @default([])
 

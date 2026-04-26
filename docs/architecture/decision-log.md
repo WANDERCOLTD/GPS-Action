@@ -3555,3 +3555,61 @@ first-time members the discovery path.
 - design-philosophy.md principle 1 (one-click is king)
 - design-philosophy.md principle 5 (honesty — action targets do what they say)
 - F14 (require-testid — every new tap target also gets a testid)
+
+# D062 — Post.kind label + deferred-taxonomy stance
+
+**Date:** 2026-04-26
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** BU-fab-intent-picker
+
+## Context
+
+BU-fab-intent-picker introduces a single FAB → tile picker that dispatches to type-specific composer flows. Each intent (cultural moment, call to action, event, meeting, outcome, etc.) needs to leave a mark on the resulting Post so the feed can render type-specific affordances (chips, styling, future filtering).
+
+D048 explicitly deferred a `PostType` enum — premature taxonomy commitment was identified as a risk. We need a label-shaped field that doesn't violate that stance.
+
+## Decision
+
+Add a nullable string field on Post:
+
+```prisma
+kind String?
+```
+
+Stored values are unconstrained at the DB layer. The composer writes one of: `alert | link_share | call_to_action | cultural | outcome | thought | event | meeting`. Existing posts have `kind: null` and render unchanged. Migration is single additive.
+
+Why string, not enum:
+
+- D048's stance: don't lock taxonomy until usage patterns settle. An enum would lock; a string defers.
+- Adding new kinds (e.g. "fundraiser", "rally") doesn't require a migration — a future composer addition writes the new label.
+- Enforcement happens at the composer (UI knows which labels it offers); the DB remains accepting.
+
+When the taxonomy stabilises, a future ADR may promote `kind` to an enum with a one-shot data migration. Until then, the string field is enough.
+
+## Consequences
+
+### Wins
+
+- Composer can write a label per tile without enum churn
+- Feed can render kind-specific chips / styling without a code change per kind
+- Honours D048 — no premature taxonomy lock
+- Migration is the cheapest possible additive
+
+### Costs
+
+- DB doesn't reject typo'd kinds — relies on composer correctness
+- Adding a chip for a new kind requires the chip-rendering code to handle it (graceful default: no chip)
+- Aggregate queries by kind cannot use Postgres enum optimisations; standard string index is fine for MVP scale
+
+## Alternatives considered
+
+- **Add `enum PostKind` now.** Rejected per D048 — premature.
+- **JSONB `metadata` field on Post.** Rejected — over-flexible, hard to query, hard to index, hard to type at the boundary.
+- **Don't store kind anywhere** (composer pre-fills, post is plain). Rejected — loses the ability to render chips and to filter the feed by kind in future BUs. Half the value of the picker is reflected back in the feed.
+
+## Related
+
+- D044 — FAB intent-cards composer (the BU consuming this field)
+- D048 — Post axes taxonomy + deferred PostType (the stance D062 honours)
+- BU-fab-intent-picker brief — the implementation that ships D062's storage

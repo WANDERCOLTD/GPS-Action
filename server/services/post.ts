@@ -41,6 +41,8 @@ export interface PostListItem {
   linkDescription: string | null;
   linkImageUrl: string | null;
   linkSiteName: string | null;
+  /** Intent kind label (D062). */
+  kind: string | null;
   groupTags: string[];
   createdAt: Date;
   author: PostAuthor;
@@ -136,6 +138,7 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
     linkDescription: post.linkDescription,
     linkImageUrl: post.linkImageUrl,
     linkSiteName: post.linkSiteName,
+    kind: post.kind,
     groupTags: post.groupTags,
     createdAt: post.createdAt,
     author: {
@@ -166,6 +169,7 @@ export async function createPost(
       linkDescription: input.linkDescription?.trim() || null,
       linkImageUrl: input.linkImageUrl?.trim() || null,
       linkSiteName: input.linkSiteName?.trim() || null,
+      kind: input.kind?.trim() || null,
       visibility: input.visibility,
       authorId,
     },
