@@ -14,6 +14,7 @@ import '@/styles/tokens.css';
 import '@/styles/components.css';
 import { LoggedInAs } from '@/components/auth/LoggedInAs';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { IntentFab } from '@/components/IntentFab';
 import { createTRPCContext } from '@/server/routers/context';
 
 export const metadata = {
@@ -71,6 +72,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <ErrorBoundary name="root" fallback={<RootErrorFallback />}>
           {children}
         </ErrorBoundary>
+        {ctx.user && <IntentFab />}
       </body>
     </html>
   );

@@ -13,7 +13,6 @@ import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { FeedList } from '@/components/FeedList';
 import { AppNav } from '@/components/AppNav';
-import { AlertFAB } from '@/components/AlertFAB';
 import { loadMorePosts, addReactionAction, removeReactionAction } from '@/app/feed/actions';
 import type { FeedPost, FeedCursor, FeedReactionEmoji } from '@/components/PostCard';
 
@@ -63,6 +62,7 @@ export default async function FeedPage() {
       linkDescription: p.linkDescription,
       linkImageUrl: p.linkImageUrl,
       linkSiteName: p.linkSiteName,
+      kind: p.kind,
       createdAt: p.createdAt.toISOString(),
       author: {
         displayName: p.author.displayName,
@@ -93,23 +93,9 @@ export default async function FeedPage() {
     <>
       <AppNav active="feed" hasReviewerAccess={hasReviewerAccess} />
       <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 'var(--space-6)',
-          }}
-        >
-          <h1 className="gps-title">Feed</h1>
-          <a
-            href="/compose"
-            className="gps-btn gps-btn--primary gps-btn--sm"
-            data-testid="feed-newpost-link"
-          >
-            New post
-          </a>
-        </div>
+        <h1 className="gps-title" style={{ marginBottom: 'var(--space-6)' }}>
+          Feed
+        </h1>
         <FeedList
           initialPosts={posts}
           initialCursor={cursor}
@@ -120,7 +106,6 @@ export default async function FeedPage() {
           reactionsEnabled={reactionsEnabled}
         />
       </main>
-      {ctx.user && <AlertFAB />}
     </>
   );
 }

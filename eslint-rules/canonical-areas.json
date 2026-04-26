@@ -18,6 +18,7 @@
     "requests",
     "alert",
     "data",
-    "settings"
+    "settings",
+    "intent"
   ]
 }

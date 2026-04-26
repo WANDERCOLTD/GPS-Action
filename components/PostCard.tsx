@@ -52,6 +52,8 @@ export interface FeedPost {
   linkDescription: string | null;
   linkImageUrl: string | null;
   linkSiteName: string | null;
+  /** Intent kind label (BU-fab-intent-picker / D062). */
+  kind: string | null;
   createdAt: string; // ISO 8601
   author: {
     displayName: string;
@@ -103,6 +105,62 @@ function formatRole(role: string): string {
     .split('_')
     .map((word, i) => (i === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word))
     .join(' ');
+}
+
+// ── KindChip (BU-fab-intent-picker / D062) ───────────────────────────────
+
+const KIND_CHIPS: Record<string, { label: string; bg: string; fg: string }> = {
+  cultural: {
+    label: 'Cultural',
+    bg: 'var(--colour-cultural-subtle)',
+    fg: 'var(--colour-cultural)',
+  },
+  call_to_action: {
+    label: 'Call to action',
+    bg: 'var(--colour-primary-subtle)',
+    fg: 'var(--colour-primary)',
+  },
+  outcome: {
+    label: 'Outcome',
+    bg: 'var(--colour-success-subtle)',
+    fg: 'var(--colour-success)',
+  },
+  event: {
+    label: 'Event',
+    bg: 'var(--colour-info-subtle)',
+    fg: 'var(--colour-info)',
+  },
+  meeting: {
+    label: 'Meeting',
+    bg: 'var(--colour-info-subtle)',
+    fg: 'var(--colour-info)',
+  },
+};
+
+function KindChip({ kind }: { kind: string | null }) {
+  if (!kind) return null;
+  const chip = KIND_CHIPS[kind];
+  if (!chip) return null;
+  return (
+    <span
+      data-testid="post-kind-chip"
+      data-kind={kind}
+      style={{
+        display: 'inline-block',
+        marginBottom: 'var(--space-2)',
+        padding: '2px var(--space-2)',
+        borderRadius: 'var(--radius-pill)',
+        background: chip.bg,
+        color: chip.fg,
+        fontSize: 'var(--text-2xs)',
+        fontWeight: 700,
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase' as const,
+      }}
+    >
+      {chip.label}
+    </span>
+  );
 }
 
 // ── Component ────────────────────────────────────────────────────────────
@@ -180,6 +238,9 @@ export const PostCard: FC<PostCardProps> = ({
           </time>
         </div>
       </div>
+
+      {/* Kind chip (BU-fab-intent-picker / D062) — only for kinds that warrant a visual badge */}
+      <KindChip kind={post.kind} />
 
       {/* Title */}
       <h2 className="gps-subtitle" style={{ marginBottom: 'var(--space-2)' }}>

@@ -59,13 +59,6 @@ export function AppNav({ active = null, hasReviewerAccess = false }: AppNavProps
         Feed
       </Link>
       <Link
-        href="/compose"
-        data-testid="nav-compose-link"
-        style={active === 'compose' ? activeStyle : linkStyle}
-      >
-        Compose
-      </Link>
-      <Link
         href="/requests"
         data-testid="nav-requests-link"
         style={active === 'requests' ? activeStyle : linkStyle}
