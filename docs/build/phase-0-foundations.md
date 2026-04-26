@@ -25,18 +25,19 @@ D039 (Build Units), `docs/build/engineering-roadmap.md` (Tier B/C/D backlog).
 |---|---|---|---|
 | F01 | Branch protection on `main` | ☐ | — |
 | F02 | PR template with inline checklists | ✅ | (this PR) |
-| F03 | Pre-commit hooks (Husky + lint-staged) | ☐ | — |
+| F03 | Pre-commit hooks (Husky + lint-staged) | ✅ | #5 |
 | F04 | Secret scanning (gitleaks + GitHub) | ✅ | (this PR) |
 | F05 | Dependabot + `npm audit` on CI | ✅ | (this PR) |
-| F06 | Custom ESLint rules (traceability + safety) | ☐ | — |
+| F06 | Custom ESLint rules (traceability + safety) | ✅ | #2 |
 | F07 | Coverage floor on new code | ✅ | (phase-0/bu-ci-hardening) |
 | F08 | Database migration validation on CI | ✅ | (phase-0/bu-ci-hardening) |
 | F09 | Preview deploys + staging environment | ☐ | — |
 | F10 | Seed data script (realistic fixtures) | ✅ | (this PR) |
 | F11 | Error boundaries in UI shell | ✅ | phase-0/bu-shell-foundations |
 | F12 | Health check endpoints (`/healthz`, `/readyz`) | ✅ | phase-0/bu-shell-foundations |
-| F13 | Enforce `@spec` traceability tag (ESLint) | ☐ | — |
-| F15 | Enforce design token usage (ESLint) | ☐ | — |
+| F13 | Enforce `@spec` traceability tag (ESLint) | ✅ | #18 |
+| F14 | Enforce `data-testid` on interactive UI (ESLint) | ✅ | #43 |
+| F15 | Enforce design token usage (ESLint) | ✅ | #26 |
 
 Mark complete in PR descriptions. This checklist lives here forever — future
 contributors see what foundation was laid and when.
