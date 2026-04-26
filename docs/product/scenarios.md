@@ -1050,6 +1050,8 @@ close.
 
 ### Scenario 21 — Eddie tracks his vetting application from submission to outcome
 
+<!-- @no-code-yet -->
+
 _Eddie, prospective member. Tuesday afternoon — first week of trying to join._
 
 Eddie has applied to GPS Action. He filled in the form last night — name, region (London E1), why he wants to join, named Sharon as his voucher, social media link. He hit submit and got a confirmation: "Your application is in. We'll be in touch."
@@ -1131,6 +1133,8 @@ He's in.
 
 ### Scenario 22 — Sharon picks up and resolves Eddie's vetting application
 
+<!-- @no-code-yet -->
+
 _Sharon, vetter. Tuesday evening 20:15 — nightly review pass on her laptop._
 
 Sharon opens GPS Action on desktop. Left sidebar (mobile = bottom-tab Requests) shows her Cases section:
@@ -1209,6 +1213,8 @@ Hits Resolve. Status flips `in_discussion → done`. The system auto-posts the r
 ---
 
 ### Scenario 23 — Maya raises an urgent alert at the school gate
+
+<!-- @no-code-yet -->
 
 _Maya, Tower Hamlets coordinator. Friday 15:35 — at her child's school for pickup._
 
