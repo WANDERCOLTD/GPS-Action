@@ -64,6 +64,7 @@ The first segment must come from this approved list:
 | `alert`    | Urgent alert composer + FAB tile (BU-requests-urgent — D058)                                                    |
 | `data`     | Data inspector — entity index + per-entity pages (BU-requests-foundation, BU-admin-crud)                        |
 | `settings` | Settings landing + admin sections (BU-requests-foundation, future BUs)                                          |
+| `intent`   | FAB intent picker — single FAB + tile grid (BU-fab-intent-picker — D044, D062)                                  |
 
 To add a new area:
 

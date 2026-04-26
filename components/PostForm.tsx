@@ -20,14 +20,69 @@ import { ActivistMailerField } from './ActivistMailerField';
 
 interface PostFormProps {
   onSubmit: (formData: FormData) => Promise<CreatePostResult | void>;
+  /** Intent label from the FAB picker (?intent=...). null = no preselection. */
+  intent?: string | null;
 }
 
-export function PostForm({ onSubmit }: PostFormProps) {
+const KIND_OPTIONS = [
+  { value: 'thought', label: 'Just a thought' },
+  { value: 'cultural', label: 'Cultural moment' },
+  { value: 'outcome', label: 'Outcome — what happened' },
+  { value: 'call_to_action', label: 'Call to action' },
+  { value: 'link_share', label: 'Share a link' },
+  { value: 'event', label: 'Event' },
+  { value: 'meeting', label: 'Meeting' },
+];
+
+const INTENT_PLACEHOLDERS: Record<string, { title: string; body: string }> = {
+  cultural: {
+    title: 'e.g. Shabbat Shalom',
+    body: 'A quiet, dignified note for the community.',
+  },
+  outcome: {
+    title: 'e.g. We sent 200 emails — the MP responded',
+    body: 'Tell the team what happened. Numbers and outcomes, honestly stated.',
+  },
+  call_to_action: {
+    title: 'e.g. Council motion — write to your councillor by Thursday',
+    body: 'What needs doing, why now, what the link below sends.',
+  },
+  link_share: {
+    title: 'Worth reading — short summary',
+    body: 'Why you think the network should see this.',
+  },
+  event: {
+    title: 'e.g. Saturday morning vigil — Cheddar Road',
+    body: "When, where, who's hosting. Time / RSVP fields coming in a follow-up.",
+  },
+  meeting: {
+    title: 'e.g. Writers group — Sunday 19:00',
+    body: 'Who, when, what we will cover. Time fields coming in a follow-up.',
+  },
+  thought: {
+    title: '',
+    body: '',
+  },
+  undecided: {
+    title: '',
+    body: '',
+  },
+};
+
+export function PostForm({ onSubmit, intent = null }: PostFormProps) {
   const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
-  const [shareLinkOpen, setShareLinkOpen] = useState(false);
+  // For "undecided", the user picks from the selector. Otherwise the intent IS the kind.
+  const [selectedKind, setSelectedKind] = useState(
+    intent === 'undecided' ? 'thought' : (intent ?? ''),
+  );
+  const isUndecided = intent === 'undecided';
+  const showLinkOpenByDefault = intent === 'link_share';
+  const [shareLinkOpen, setShareLinkOpen] = useState(showLinkOpenByDefault);
+  const placeholders = INTENT_PLACEHOLDERS[intent ?? 'undecided'] ?? { title: '', body: '' };
 
   function handleSubmit(formData: FormData): void {
+    if (selectedKind) formData.set('kind', selectedKind);
     startTransition(async () => {
       const result = await onSubmit(formData);
       if (result?.errors) {
@@ -57,6 +112,40 @@ export function PostForm({ onSubmit }: PostFormProps) {
         </p>
       )}
 
+      {/* Kind selector — visible when intent=undecided (BU-fab-intent-picker / D062) */}
+      {isUndecided && (
+        <div>
+          <label
+            htmlFor="post-kind"
+            data-testid="intent-selector-label"
+            style={{
+              display: 'block',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 500,
+              marginBottom: 'var(--space-1)',
+              fontFamily: 'var(--font-ui)',
+            }}
+          >
+            What kind of post is this?
+          </label>
+          <select
+            id="post-kind"
+            name="kind"
+            value={selectedKind}
+            onChange={(e) => setSelectedKind(e.target.value)}
+            data-testid="intent-selector-select"
+            className="gps-input"
+            style={{ width: '100%' }}
+          >
+            {KIND_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Title */}
       <div>
         <label
@@ -80,6 +169,7 @@ export function PostForm({ onSubmit }: PostFormProps) {
           required
           minLength={3}
           maxLength={200}
+          placeholder={placeholders.title || undefined}
           className="gps-input"
           style={{
             width: '100%',
@@ -124,6 +214,7 @@ export function PostForm({ onSubmit }: PostFormProps) {
           minLength={10}
           maxLength={10000}
           rows={10}
+          placeholder={placeholders.body || undefined}
           className="gps-input"
           style={{
             width: '100%',
