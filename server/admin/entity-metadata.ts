@@ -96,7 +96,7 @@ export const entityMetadata: Record<string, EntityMetadataEntry> = {
     notes: 'Purpose needs confirmation — see open question 0 in docs/architecture/erd.md.',
   },
 
-  workItem: {
+  request: {
     displayField: 'id',
     displayTemplate: '{type} — {context.summary}',
     listColumns: ['type', 'status', 'priority', 'claimedBy.displayName', 'regionSlug', 'createdAt'],
@@ -106,7 +106,8 @@ export const entityMetadata: Record<string, EntityMetadataEntry> = {
     requiresRole: { view: 'queue_manager', edit: 'queue_manager' },
     workflow: 'queue',
     softDelete: true,
-    notes: 'Rendered under /queue, not /admin. Per D040 the unified queue primitive.',
+    notes:
+      'Rendered under /requests (D054, renamed from WorkItem per D040). The unified "things needing decision/discussion" primitive.',
   },
 
   roleGrant: {

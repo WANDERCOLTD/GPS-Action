@@ -49,10 +49,10 @@ import {
   type ReactionTargetType,
   type RegionType,
   type SystemRole,
-  type WorkItemPriority,
-  type WorkItemResolution,
-  type WorkItemStatus,
-  type WorkItemType,
+  type RequestPriority,
+  type RequestResolution,
+  type RequestStatus,
+  type RequestType,
 } from '@prisma/client';
 import { faker, en_GB, en, Faker } from '@faker-js/faker';
 
@@ -124,7 +124,7 @@ const COUNTS = {
   regions: 10, // fixed — see REGION_DEFS below
   groups: 5, // fixed — see GROUP_DEFS below
   posts: 200,
-  workItems: 30,
+  requests: 30,
   auditLogEntries: 50,
   coordinatorProfiles: 5,
   // Fraction of users who get soft-deleted post-seed (must own at
@@ -265,7 +265,7 @@ const ALL_REACTION_EMOJIS: ReactionEmoji[] = [
   'sad',
 ];
 
-const WORK_ITEM_TYPES: { type: WorkItemType; count: number }[] = [
+const REQUEST_TYPES: { type: RequestType; count: number }[] = [
   { type: 'vetting', count: 8 },
   { type: 'flag', count: 6 },
   { type: 'outcome_review', count: 4 },
@@ -889,20 +889,20 @@ async function main(): Promise<void> {
     }
     console.warn(`  reactions on comments: ${commentReactionsCreated} new`);
 
-    // ── WorkItems ────────────────────────────────────────────────────────
-    let workItemsCreated = 0;
+    // ── Requests ────────────────────────────────────────────────────────
+    let requestsCreated = 0;
     let wiIndex = 0;
-    for (const { type, count } of WORK_ITEM_TYPES) {
+    for (const { type, count } of REQUEST_TYPES) {
       for (let n = 0; n < count; n += 1) {
         const id = seedUuid('workitem', `${type}:${n}`);
-        const status: WorkItemStatus =
+        const status: RequestStatus =
           n === 0 && type === 'flag'
             ? 'claimed'
             : n === 0 && type === 'outcome_review'
               ? 'resolved'
               : 'unclaimed';
 
-        const priority: WorkItemPriority = pick<WorkItemPriority>([
+        const priority: RequestPriority = pick<RequestPriority>([
           'low',
           'normal',
           'normal',
@@ -916,14 +916,14 @@ async function main(): Promise<void> {
           status === 'resolved'
             ? pick(seededUsers.filter((u) => u.isQueueManager || u.isAdmin))
             : null;
-        const resolution: WorkItemResolution | null = status === 'resolved' ? 'approved' : null;
+        const resolution: RequestResolution | null = status === 'resolved' ? 'approved' : null;
 
         const createdAt = recentDate(60);
         const claimedAt = claimer ? dateBetween(createdAt, SEED_NOW) : null;
         const resolvedAt = resolver ? dateBetween(createdAt, SEED_NOW) : null;
 
-        const before = await prisma.workItem.findUnique({ where: { id } });
-        await prisma.workItem.upsert({
+        const before = await prisma.request.findUnique({ where: { id } });
+        await prisma.request.upsert({
           where: { id },
           update: {
             status,
@@ -942,7 +942,7 @@ async function main(): Promise<void> {
             status,
             priority,
             context: {
-              note: `F10 fixture WorkItem (${type})`,
+              note: `F10 fixture Request (${type})`,
               syntheticRef: `synthetic-${type}-${n}`,
               summary: fixtureFaker.lorem.sentence(),
             },
@@ -962,11 +962,11 @@ async function main(): Promise<void> {
             resolutionNotes: resolver ? 'Synthetic resolution note for fixture data.' : null,
           },
         });
-        if (!before) workItemsCreated += 1;
+        if (!before) requestsCreated += 1;
         wiIndex += 1;
       }
     }
-    console.warn(`  work items: ${wiIndex} (${workItemsCreated} new)`);
+    console.warn(`  work items: ${wiIndex} (${requestsCreated} new)`);
 
     // ── AuditLog ─────────────────────────────────────────────────────────
     let auditCreated = 0;

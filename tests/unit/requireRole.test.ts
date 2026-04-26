@@ -30,6 +30,7 @@ function makeCtx(overrides: Partial<TRPCContext> = {}): TRPCContext {
   return {
     user: null,
     activeRoles: [],
+    activeScopes: [],
     ...overrides,
   };
 }
@@ -47,6 +48,12 @@ const testRouter = router({
     .output(z.object({ ok: z.boolean() }))
     .query(() => ({ ok: true })),
 
+  // D055 — scope-gated procedure
+  vettingOnly: publicProcedure
+    .use(requireRole('queue_manager:vetting'))
+    .output(z.object({ ok: z.boolean() }))
+    .query(() => ({ ok: true })),
+
   authedOnly: authedProcedure.output(z.object({ ok: z.boolean() })).query(() => ({ ok: true })),
 });
 
@@ -61,7 +68,7 @@ describe('requireRole middleware', () => {
   });
 
   it('rejects users without the required role with FORBIDDEN', async () => {
-    const caller = createCaller(makeCtx({ user: fakeUser, activeRoles: [] }));
+    const caller = createCaller(makeCtx({ user: fakeUser, activeRoles: [], activeScopes: [] }));
     await expect(caller.adminOnly()).rejects.toThrow('FORBIDDEN');
   });
 
@@ -93,6 +100,32 @@ describe('requireRole middleware', () => {
   });
 });
 
+describe('requireRole — scope strings (D055)', () => {
+  it('rejects users with no role and no scope', async () => {
+    const caller = createCaller(makeCtx({ user: fakeUser }));
+    await expect(caller.vettingOnly()).rejects.toThrow('FORBIDDEN');
+  });
+
+  it('rejects users with the wrong scope (e.g. flag scope when vetting required)', async () => {
+    const caller = createCaller(makeCtx({ user: fakeUser, activeScopes: ['queue_manager:flag'] }));
+    await expect(caller.vettingOnly()).rejects.toThrow('FORBIDDEN');
+  });
+
+  it('allows users with the exact matching scope', async () => {
+    const caller = createCaller(
+      makeCtx({ user: fakeUser, activeScopes: ['queue_manager:vetting'] }),
+    );
+    const result = await caller.vettingOnly();
+    expect(result).toEqual({ ok: true });
+  });
+
+  it('allows users with the unscoped role (broad grant satisfies any scope)', async () => {
+    const caller = createCaller(makeCtx({ user: fakeUser, activeRoles: ['queue_manager'] }));
+    const result = await caller.vettingOnly();
+    expect(result).toEqual({ ok: true });
+  });
+});
+
 describe('authedProcedure', () => {
   it('rejects anonymous users with UNAUTHORIZED', async () => {
     const caller = createCaller(makeCtx({ user: null }));
@@ -100,7 +133,7 @@ describe('authedProcedure', () => {
   });
 
   it('allows any authenticated user regardless of roles', async () => {
-    const caller = createCaller(makeCtx({ user: fakeUser, activeRoles: [] }));
+    const caller = createCaller(makeCtx({ user: fakeUser, activeRoles: [], activeScopes: [] }));
     const result = await caller.authedOnly();
     expect(result).toEqual({ ok: true });
   });
