@@ -396,6 +396,106 @@ need.
 
 ---
 
+### B13 · Scope-aware filtering on `/data/[entity]` for queue_manager grants
+
+**What:** Layer D055's per-type role scopes (`queue_manager:vetting`,
+`queue_manager:flag`, etc.) into the generic admin CRUD engine
+(`server/routers/admin.ts`) so that a scoped queue_manager visiting
+`/data/<entity>` sees only the rows their scope unlocks — instead of
+every row the role tier would unlock when unscoped.
+
+BU-admin-crud ships **flat** by deliberate choice (Q3 in
+`docs/build/session-briefs/bu-admin-crud.md`): `requireRole(role)` only.
+The privacy concern (a `queue_manager:vetting` seeing `flag` rows) is
+mitigated for MVP by routing `/data/request` → `/requests` (Q4), which
+means no scoped entity renders generically today. This entry is the
+follow-up that makes the engine itself scope-aware so future scoped
+entities don't have to be special-cased.
+
+**Trigger:** Either (a) a second entity gains type-scoped grants in the
+metadata, or (b) `/data/request` stops redirecting to `/requests` and
+admins want it as a debug surface, or (c) the first non-admin
+queue_manager with a non-`*` scope is granted in production —
+whichever first.
+
+**Effort:** ~half a day.
+
+- `server/services/admin/crud.ts` — extend `listEntity` with an
+  optional `scopeFilter` arg derived from `ctx.activeScopes` and a
+  per-entity scope→column mapping
+- `server/admin/entity-metadata.ts` — add an optional
+  `scopeColumn?: string` field to `EntityMetadataEntry` (e.g. for
+  `request`, `'type'`)
+- `server/routers/admin.ts` — middleware passes `ctx.activeScopes`
+  through to the service; service applies the filter when
+  `scopeColumn` is declared
+- `tests/integration/admin-auth.test.ts` — add scoped-grant cases
+
+**Why not now:** Only one entity (`Request`) has type scopes today,
+and it doesn't render under `/data` (per Q4). Building the scope
+plumbing speculatively for one entity that's also redirected away is
+the kind of premature abstraction the project's working-rhythm.md
+explicitly warns against. The hook lands when a real second entity
+needs it.
+
+**Origin:** Surfaced as Open Question 3 during BU-admin-crud brief
+review (2026-04-26). Recorded here per CLAUDE.md's "engineering ideas
+go to roadmap within 48 hours or they die" rule.
+
+**Dependencies:** BU-admin-crud (the engine this layers onto), D055
+(the scope model).
+
+---
+
+### B14 · CI guard — schema models ↔ entity-metadata coverage
+
+**What:** A test (or lint rule) that diffs Prisma model names against
+the keys of `entityMetadata` in `server/admin/entity-metadata.ts`.
+Fails the build when a model lives in the schema without a metadata
+entry, or when a metadata key has no corresponding model.
+
+`server/admin/entity-metadata.README.md` already names this guard
+("CI will eventually enforce this") but doesn't ship it. Without it,
+schema additions silently miss the admin surface — the entity
+becomes invisible to admins until someone notices and edits the
+metadata file by hand.
+
+The companion guards inside the CRUD engine — registry coverage and
+enum-literal drift — ship with BU-admin-crud as
+`tests/unit/admin-registry.test.ts`. B14 is the layer above those:
+it polices the metadata file itself against the schema, before any
+registry exists.
+
+**Trigger:** Either (a) the next slice of entities lands (any
+schema add that introduces ≥1 new model), or (b) the first time a
+metadata entry goes stale in code review (a "you forgot to add it
+to metadata" comment) — whichever first.
+
+**Effort:** ~1 hour.
+
+- `tests/unit/schema-metadata-coverage.test.ts` (new) — reads the
+  Prisma DMMF model list at test time, diffs against
+  `Object.keys(entityMetadata)`. Hard-fails on either-direction
+  drift. An explicit allow-list at the top of the file lets us opt
+  out specific models if a real reason emerges (none expected).
+- Optionally, an ESLint rule for the same check (post-test if
+  the test feels slow). Test alone is fine for MVP.
+
+**Why not now:** Slice 1, 1.5, and 2 (minimal) all have hand-curated
+metadata entries that match the schema today. The guard's value is
+preventive — it catches the moment the next slice lands. Adding it
+right now is fine but isn't blocking the BU-admin-crud build.
+
+**Origin:** Surfaced during BU-admin-crud build (2026-04-26) when
+discussing how the admin surface stays current as schemas evolve.
+Logged per CLAUDE.md's roadmap discipline.
+
+**Dependencies:** None (this guard is upstream of the engine —
+doesn't require BU-admin-crud to land first, but lands more
+naturally after).
+
+---
+
 ## Tier C — Nice to have, adopt when value is clear
 
 These aren't wrong — they're just not earning their cost at MVP scale. Each
