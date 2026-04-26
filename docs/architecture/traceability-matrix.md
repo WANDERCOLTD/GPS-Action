@@ -29,6 +29,9 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-18 | Eddie writes his first post (the demo flow) | 2 | BU-composer, BU-feed | — | ✓ shipped |
 | SCN-19 | Sharon shares a Guardian article with a preview card | 0 | — | — | parked |
 | SCN-20 | Eddie reads the Sky News post and writes his first comment | 11 | BU-comments, BU-reactions | D045, D050, D052 | ✓ shipped |
+| SCN-21 | Eddie tracks his vetting application from submission to outcome | 0 | — | — | parked |
+| SCN-22 | Sharon picks up and resolves Eddie's vetting application | 0 | — | — | parked |
+| SCN-23 | Maya raises an urgent alert at the school gate | 0 | — | — | parked |
 
 ## Build Units
 
