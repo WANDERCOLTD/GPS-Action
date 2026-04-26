@@ -2238,3 +2238,848 @@ product/scenarios.md (SCN-N)` per D038
 - F06 rule 1 + F13 + F14 (the three lint rules whose tags this
   script reads)
 - Brief: `docs/build/session-briefs/bu-trace.md`
+
+---
+
+# D054 — Request entity (the unified "things needing decision/discussion" surface)
+
+**Date:** 2026-04-26
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** BU-requests (forthcoming)
+
+## Context
+
+The system needs a single home for everything the moderation /
+admin / vetter team picks up and resolves: vetting applications,
+flagged content, edit requests, post drafts submitted for review,
+auto-generated tips, urgent calls for help, and so on.
+
+Pre-D054, this surface had three overlapping concepts:
+
+1. The `WorkItem` entity (per claim-and-lease.md / D040) — a polymorphic
+   queue with 8 types and `unclaimed/claimed/in_review/resolved`
+   statuses.
+2. The bottom-tab "Inbox" (per D030) — a member-facing nav slot,
+   never specced beyond the label.
+3. Admin "inbox"-style notifications (per SCN-5) — a third hand-wavy
+   surface for things like account-recovery requests routed to a
+   coordinator.
+
+These three were never reconciled. The user-facing UX implication
+("how does Eddie see his vetting application status? where does Maya
+pick up a flag? where does Jeremy see an escalation?") fell through
+the gaps.
+
+D054 collapses all three into one entity, one surface, one status
+enum.
+
+## Decisions
+
+### 1. Naming
+
+| Layer           | Name                                                                 |
+| --------------- | -------------------------------------------------------------------- |
+| Entity          | `Request`                                                            |
+| Tab / surface   | "Requests" — replaces "Inbox" in D030                                |
+| Schema rename   | `WorkItem` → `Request`, `WorkItemType` → `RequestType`               |
+| F14 area prefix | rename `inbox` → `requests` (one-shot sweep when BU-requests builds) |
+
+"Request" was chosen over alternatives (`Submission`, `Case`,
+`Ask`, `Item`) because:
+
+- It accommodates the breadth: vetting requests, post-review
+  requests, system-generated tips, urgent help requests
+- Plain English; not formal (Submission) or heavy (Case)
+- Already used naturally in product writing ("requests are new /
+  in discussion / done")
+- Reads well in copy: "3 requests waiting", "your request is in
+  discussion", "Sharon raised an urgent request"
+
+### 2. Three statuses (collapsed from claim-and-lease.md's five)
+
+| Status          | Meaning                                                                                                               |
+| --------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `new`           | Created. Awaiting reviewer pickup.                                                                                    |
+| `in_discussion` | A reviewer has claimed it. Threaded discussion may be open with the submitter, with internal reviewer notes, or both. |
+| `done`          | Resolved with an outcome (approved / dismissed / rejected / edited / published / archived / etc., type-specific).     |
+
+This collapses claim-and-lease.md's `unclaimed → claimed →
+in_review → resolved` into three. `claimed` and `in_review` were
+operationally indistinguishable; merging them as `in_discussion`
+matches how reviewers actually work the queue.
+
+### 3. Eleven types (extends claim-and-lease.md's eight)
+
+The eight existing: `vetting`, `flag`, `outcome_review`,
+`dedup_merge`, `edit_request`, `incident`, `content_submission`,
+`link_submission`.
+
+Three new:
+
+| Type                | What it is                                                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `draft_post`        | A member sends a post for team review before publishing. Outcomes: publish / archive / delete.                                              |
+| `system_suggestion` | Auto-generated tip — "the system noticed X, should we make a post?" Outcomes: act on it / dismiss.                                          |
+| `alert`             | Urgent help / awareness call. Auto-`urgency=urgent` (per D058). Created via the FAB alert tile by members. Outcomes vary by alert category. |
+
+### 4. Submitter is a first-class participant
+
+Every Request has a `submitterId` (User or system marker). The
+submitter:
+
+- Reads the Request's status as it changes (notifications fire)
+- Reads the `audience: 'all'` slice of the discussion thread (per
+  D056)
+- Can post replies to the thread (always `audience: 'all'`)
+- Cannot resolve, claim, or change status
+
+System-generated requests (`system_suggestion`) have a synthetic
+`submitterId` (a designated system user, e.g. `system@gps-action`).
+
+### 5. Discussion thread reuses Comment primitive
+
+A Request's discussion is a thread of `Comment` rows with
+`targetType: 'request'` (extends D050's `ReactionTargetType`-style
+polymorphism). The Comment model gains a nullable `requestId` FK
+mirroring how `commentId` was added in D052.
+
+Per-comment audience flag is captured in D056.
+
+### 6. The eleven outcomes are type-specific
+
+`done` requests carry an `outcome` field whose valid values depend
+on `type`. Service-layer validation enforces the type×outcome
+matrix; details land in BU-requests's brief.
+
+Examples:
+
+- `vetting` outcomes: `approved` / `declined` / `withdrawn`
+- `flag` outcomes: `dismissed` / `removed` / `escalated_to_admin`
+- `draft_post` outcomes: `published` / `archived` / `deleted`
+- `alert` outcomes: `acted_published_post` / `acted_dispatched` / `dismissed_no_action`
+
+## Consequences
+
+- Schema migration: rename `WorkItem` → `Request` table, columns,
+  enum, FKs. Status enum collapse with data backfill.
+  `unclaimed → new`, `claimed/in_review → in_discussion`,
+  `resolved → done`.
+- New `Request.outcome` column (text, type-specific values
+  enforced in service layer)
+- New `Request.alertCategoryId` nullable FK (per D058)
+- Comment model gains `requestId` nullable FK
+- `ReactionTargetType` enum gains `request` value (forward-compat;
+  reactions on requests are not part of MVP but schema-ready)
+- F14 `inbox` area prefix renames to `requests` (sweep)
+- `bu-sequence.md` updated: BU-requests becomes a named BU
+- `claim-and-lease.md` updated to reflect the simplified status
+  set (or the file is renamed since "claim and lease" is now a
+  sub-section of D054's larger architecture)
+
+## Alternatives considered
+
+- **Keep WorkItem name; add types.** Rejected — the old name was
+  warehouse-y and didn't capture the editorial / urgent flavours.
+- **Split into Request + Submission + Alert separate entities.**
+  Rejected — three entities with near-identical lifecycles (claim,
+  discuss, resolve) collapse to one with type as a discriminator.
+- **Five statuses.** Rejected — claim-and-lease's `claimed` vs
+  `in_review` was a distinction reviewers didn't experience.
+- **Submitter sees everything in the thread.** Rejected (per
+  D056) — internal reviewer deliberation needs a private channel.
+
+## Related
+
+- D040 (work_items as the queue primitive — superseded by D054 in
+  naming and status taxonomy; the underlying single-table polymorphic
+  design is preserved)
+- D041 (region as tag, not filter — preserved)
+- D042 (coordinator vs queue-manager split — preserved; extended in
+  D055)
+- D055 — per-type role scopes (companion ADR)
+- D056 — Comment audience model (companion ADR)
+- D057 — Notifications entity (companion ADR)
+- D058 — urgency + alerts + admin-configurable TTL (companion ADR)
+- D044 (FAB intent-cards composer — the alert tile lands when
+  BU-composer-fab ships per D058)
+- SCN-21, SCN-22, SCN-23 — canonical Requests UX scenarios
+
+---
+
+# D055 — Per-type role scopes (granular reviewer permissions)
+
+**Date:** 2026-04-26
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** BU-requests (forthcoming)
+
+## Context
+
+Today the `queue_manager` role is one flat capability — anyone with
+the role sees every work item across all 8 types. Per the
+real-world pattern surfaced in scenarios:
+
+- SCN-12 has Sharon as "a writer with the vetter permission flag" —
+  per-type specialisation, not generalist
+- SCN-10 has Maya doing flag triage — different scope
+- SCN-14 has Jeremy at director level
+
+The flat model conflates two different deployments:
+
+1. A small pilot team where everyone does everything (flat is fine)
+2. A scaled team where vetters specialise on vetting and flag-mods
+   specialise on flags (flat over-permissions everyone)
+
+Today's pilot-stage GPS Action is closer to (1), but the schema
+choice now affects (2). Granular scopes don't cost much at MVP and
+prevent retrofitting later.
+
+## Decision
+
+`RoleGrant` gains a `scope` column. Granted permissions become a
+`(role, scope)` pair.
+
+### Schema
+
+```prisma
+model RoleGrant {
+  // existing fields preserved
+  role  SystemRole
+  scope String      @default("*")  // NEW
+}
+```
+
+### Scope values
+
+A free-text column with conventional values; service-layer
+validation enforces the convention.
+
+| Scope                | Meaning                                                            |
+| -------------------- | ------------------------------------------------------------------ |
+| `*`                  | All scopes (matches every type). The default for backwards-compat. |
+| `vetting`            | Only `vetting` Request type                                        |
+| `flag`               | Only `flag`                                                        |
+| `flag:child_safety`  | Only flags with the child-safety category                          |
+| `outcome_review`     | Only outcome reviews                                               |
+| `edit_request`       | Only member edit requests                                          |
+| `incident`           | Only incidents                                                     |
+| `content_submission` | Only content submissions                                           |
+| `link_submission`    | Only link submissions                                              |
+| `dedup_merge`        | Only dedup merges                                                  |
+| `draft_post`         | Only post drafts                                                   |
+| `system_suggestion`  | Only system tips                                                   |
+| `alert`              | Only alerts                                                        |
+
+A user can hold multiple grants — Sharon might have
+`(queue_manager, vetting)` and `(queue_manager, draft_post)`.
+
+### `requireRole` middleware update
+
+`server/lib/trpc.ts` `requireRole` middleware accepts an optional
+scope:
+
+```ts
+requireRole('queue_manager', { scope: 'vetting' });
+// passes if user has any grant where:
+//   role = queue_manager AND (scope = 'vetting' OR scope = '*')
+```
+
+For `admin` role, scope is ignored (admin = always `*`).
+
+For procedures that don't care about scope (e.g.
+`requests.listMine` for submitters), `requireRole` isn't called —
+plain `authedProcedure` is used.
+
+### Visibility vs action separation
+
+Two different scope checks at two different layers:
+
+| Check                     | Used for                                                                                                                                        |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **List/visibility scope** | "Which requests can this user _see_ in their Requests tab?" Filters at query level. Out-of-scope items don't appear (except urgent — see D058). |
+| **Action scope**          | "Can this user _claim, comment-as-reviewer, or resolve_ this request?" Enforced in mutation procedures via `requireRole({ scope: <type> })`.    |
+
+The two are linked: if you can't see it, you can't act on it (the
+API rejects). But you might see something (urgent broadcast) you
+can't act on.
+
+### Director — not a separate role
+
+Per the user's call: directors stay as `admin` role. Director-only
+tools (lineage check, network pin) check on `admin` plus a specific
+user attribute or named permission grant — not a new role tier.
+Captured in BU-admin's brief when it ships.
+
+## Consequences
+
+- `RoleGrant` migration: add `scope String DEFAULT '*'`. Existing
+  rows backfill to `'*'` (preserving today's flat behaviour).
+- `server/lib/trpc.ts` `requireRole` accepts an options object with
+  `scope`. Backwards-compat for non-Request procedures.
+- Admin UI for granting roles (BU-admin) gains a scope picker
+  alongside the existing role picker.
+- Audit log entries on grant/revoke include the scope value.
+- F06 rule 4 (`no-inline-auth-check`) continues to reject inline
+  `ctx.user.role` checks — middleware does the work.
+
+## Alternatives considered
+
+- **Stay flat (one queue_manager role)**. Rejected — locks the
+  product into "everyone sees everything" and creates a future
+  migration when scopes inevitably arrive.
+- **Per-type roles instead of (role, scope)**. Rejected — creating
+  `vetter`, `flag_mod`, etc. as separate roles fragments the
+  permission model. (Role, scope) keeps the role tier (member /
+  queue_manager / admin) clean and adds scope as an orthogonal
+  axis.
+- **Hierarchical scopes** (e.g. `queue_manager:flag:*` matches
+  `queue_manager:flag:child_safety`). Rejected — over-engineered
+  for MVP. Sub-scopes are explicit strings; matching is exact
+  except for `*` wildcard.
+
+## Related
+
+- D042 (coordinator vs queue-manager identity split — preserved)
+- D054 (Request entity — companion)
+- F06 rule 4 (`no-inline-auth-check`) — middleware-only enforcement
+
+---
+
+# D056 — Comment audience model (reviewer-internal vs all-participant)
+
+**Date:** 2026-04-26
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** BU-requests (forthcoming)
+
+## Context
+
+Per D054, the comment thread on a Request is the feedback loop
+between submitter and reviewer team. But reviewers genuinely need
+to discuss internally — vetting deliberation ("this voucher seems
+weak"), flag triage ("dismiss vs remove?"), child-safety calls
+("escalate to director"). If every comment is visible to the
+submitter, reviewers self-censor and the discussion dies. If nothing
+is visible, the submitter never gets feedback.
+
+The scenarios already encode this implicit two-channel model:
+
+- SCN-12 — Sharon's internal thinking ("Anna looks like a real
+  person") is internal; her DM to Grant the voucher is external
+- SCN-10 — Maya's internal call ("documenting adversary content,
+  not amplifying") becomes a context note added to the dismissal
+- SCN-14 — Jeremy reviews a vetter's "discussion thread" — implies
+  there's a thread distinct from anything the applicant sees
+
+D056 makes this explicit and uniform.
+
+## Decision
+
+A single Comment thread per Request, with a per-comment audience
+flag.
+
+### Schema
+
+```prisma
+model Comment {
+  // existing fields preserved (D050, D052)
+  audience CommentAudience @default(reviewers)  // NEW
+}
+
+enum CommentAudience {
+  all         // visible to submitter + reviewers
+  reviewers   // visible to reviewers only (internal note)
+}
+```
+
+The default is `reviewers` for comments authored by users with a
+reviewer role on this Request type. For submitters, the default
+(and only allowed value) is `all` — they cannot post to the
+internal channel.
+
+For comments on a regular `Post` (not a Request), `audience` is
+always `all`. The flag matters only on Request-target comments.
+
+### Behaviour
+
+| Author                               | Default audience | Allowed audiences    |
+| ------------------------------------ | ---------------- | -------------------- |
+| Submitter (own Request)              | `all`            | `all` only           |
+| Reviewer (any role with scope)       | `reviewers`      | `all` or `reviewers` |
+| Admin                                | `reviewers`      | `all` or `reviewers` |
+| System (auto-posted status messages) | `all`            | `all` only           |
+
+The composer UI surfaces an explicit toggle / "Reply to submitter"
+button. Default is internal; sending to submitter requires explicit
+opt-in.
+
+### Visibility filter
+
+`Comment.findMany` for a Request applies:
+
+```sql
+WHERE requestId = ? AND (
+  audience = 'all'
+  OR caller_can_see_reviewers_audience  -- has any reviewer role on this Request type
+)
+```
+
+Submitters see only their slice. Reviewers see the full chronology
+(both audiences interleaved by createdAt) with internal notes
+visually marked ("internal · only reviewers see this").
+
+### System messages
+
+Status transitions (`new → in_discussion`, `in_discussion → done`,
+urgency change) auto-post a system Comment with `audience: all`,
+`authorId = system user`, formatted as a small grey line:
+
+- "Sharon picked up this request · 14:32"
+- "Decision: approved · 16:08"
+- "Marked urgent by Maya · 09:15"
+
+These provide submitter-visible audit trail without requiring
+manual reviewer effort.
+
+## Consequences
+
+- Comment migration: add `audience CommentAudience DEFAULT 'reviewers'`
+  for new column. Existing comments backfill to `all` (they're on
+  Posts, not Requests, so all are public).
+- Comment query layer wraps with the audience filter — service
+  function takes a `callerCanSeeInternal: bool` flag derived from
+  caller's roles
+- Composer UI on Request thread defaults to internal; explicit
+  "Reply to submitter" toggle for `all`
+- System-message authorship via a designated synthetic user
+  (`system@gps-action`) seeded as a special account
+- F06 rule 3 (`no-pii-in-logs`) continues to apply — no PII
+  leakage via system messages either
+
+## Alternatives considered
+
+- **Two separate threads (internal + external)**. Rejected —
+  reviewers lose chronological context jumping between threads.
+  One thread with audience marking is the cleaner UX.
+- **Hard channel separation via separate tables**. Rejected —
+  same access-control logic ends up enforced anyway; one table
+  keeps the model simple.
+- **Submitter-can-mark-private**. Rejected — submitters posting
+  to a channel only some reviewers can see invites confusion.
+- **No internal channel; reviewers use DMs for internal**.
+  Rejected — DMs are not threaded with the case context, so
+  context loss compounds.
+
+## Related
+
+- D050 (Reaction polymorphic schema — Comment polymorphism predates
+  this)
+- D052 (Comment schema with `commentId` FK on Reaction — same
+  forward-compat pattern this extends)
+- D054 (Request entity — primary consumer)
+- D057 (Notifications — sends to submitter on `audience: all`
+  comments only)
+
+---
+
+# D057 — Notifications entity + in-app delivery
+
+**Date:** 2026-04-26
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** BU-notifications (forthcoming, may fold into BU-requests)
+
+## Context
+
+The Requests workspace (D054) needs a notification mechanism so
+submitters know when their request has been picked up, reviewers
+know when they've been @mentioned, and the team learns about
+urgent requests in near real-time. Today the codebase has no
+notification primitive — events fire silently via audit log.
+
+Per the user's call (option B in the design discussion):
+notifications are a **separate entity** surfaced **in the same tab**
+as Requests, not collapsed into Request sub-types.
+
+## Decision
+
+A new `Notification` entity, delivered in-app, surfaced in the
+Requests tab in a dedicated section.
+
+### Schema
+
+```prisma
+model Notification {
+  id           String           @id @default(uuid())
+  recipientId  String
+  recipient    User             @relation("notificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  type         NotificationType
+  payload      Json             // type-specific; references the source entity
+
+  // For tap-to-navigate
+  targetType   NotificationTargetType  // 'request', 'post', 'comment'
+  targetId     String
+
+  readAt       DateTime?
+  createdAt    DateTime         @default(now())
+
+  @@index([recipientId, readAt])
+  @@index([recipientId, createdAt(sort: Desc)])
+}
+
+enum NotificationType {
+  new_request_in_scope        // throttled; one per scope per hour
+  request_claimed             // submitter — your request was picked up
+  submitter_message           // submitter — reviewer added an `audience: all` comment to your request
+  mention                     // anyone — you were @mentioned in a comment
+  request_done                // submitter — your request was resolved
+  urgent_request_raised       // all reviewers; NOT throttled
+  flag_outcome                // flagger — your flag was resolved
+}
+
+enum NotificationTargetType {
+  request
+  post
+  comment
+}
+```
+
+### Throttling
+
+Some notification types fire frequently and must bundle:
+
+| Type                    | Throttle                                                                                                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `new_request_in_scope`  | At most one per (recipient, scope) per hour. Subsequent triggers update the existing one's payload (count, latest_request_id) instead of creating new rows. |
+| `submitter_message`     | Up to 3 unread for one Request before bundling: "Sharon and 2 others have replied"                                                                          |
+| `mention`               | Never throttled — explicit @ should always notify                                                                                                           |
+| `urgent_request_raised` | Never throttled — explicit point of the type                                                                                                                |
+| Others                  | Never throttled                                                                                                                                             |
+
+Throttling logic lives in `server/services/notification.ts` —
+`createNotification` checks for an existing unread notification
+matching the throttle key before creating a new row.
+
+### Delivery — in-app only at MVP
+
+- Notifications appear in the Requests tab's "Notifications"
+  section (above or interleaved with Requests, with type chip)
+- The bottom-tab navbar shows an unread count badge
+- `readAt` set when user taps the notification (navigates to its
+  target) — single-touch acknowledgement, no separate "mark as
+  read" step
+- "Mark all as read" affordance per design-philosophy principle 3
+  (give people permission to close the app)
+
+Future delivery channels (parking-lot):
+
+- Email digest (daily / weekly)
+- Web push (PWA)
+- Native push (Phase 2 native apps)
+
+These all consume the same `Notification` rows; delivery is a
+fan-out from the canonical store.
+
+### Quiet hours
+
+Per design-philosophy principle 3, notifications respect quiet
+hours (default 22:00–07:00 local). In-app delivery isn't affected
+(no audible/visible alert outside the app), but future push
+channels will honour the user's quiet-hours preference.
+
+### Permission
+
+`Notification.recipientId` is the only access vector — users can
+only list/read their own. tRPC procedure: `notification.listMine`,
+`notification.markRead({ id })`, `notification.markAllRead()`.
+
+## Consequences
+
+- New `Notification` table + enums — migration adds them
+- `User` model gains relation back-ref `notifications`
+- `server/services/notification.ts` — `createNotification`
+  helper (throttle-aware), `listMine`, `markRead`, `markAllRead`
+- `server/routers/notification.ts` — tRPC surface
+- Hooks into Request status transitions (D054), Comment
+  posting with `audience: all` (D056), Comment @mentions
+- Hook into Urgent flag (D058) — fires `urgent_request_raised`
+- F06 rule 3 (`no-pii-in-logs`) — Notification payloads stored
+  in `payload` JSONB are NOT logged; only IDs are
+- Audit log unchanged — Notifications are user-visible delivery,
+  not an audit primitive
+
+## Alternatives considered
+
+- **Collapse into Request sub-type** (Option A in design
+  discussion). Rejected — stretches Request semantically; mention
+  notifications aren't really "things needing decision."
+- **Single global event stream that clients filter**. Rejected —
+  privacy risk + bandwidth waste. Per-user rows are simpler.
+- **Push-only (no in-app surface)**. Rejected — in-app is the
+  canonical store; push is a delivery channel layered on top.
+- **Send to email immediately**. Rejected for MVP — needs
+  email infrastructure (BU-email or similar future BU). In-app
+  first; email digest later.
+
+## Related
+
+- D054 (Request entity — primary trigger source)
+- D056 (Comment audience — `audience: all` triggers
+  `submitter_message`)
+- D058 (Urgent flag — triggers `urgent_request_raised`)
+- D036 (feature flags — notifications behind `ff_notifications`)
+- design-philosophy.md principle 3 (no anxiety amplification)
+
+---
+
+# D058 — Urgent flag, AlertCategory, admin-configurable TTL, polling
+
+**Date:** 2026-04-26
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** BU-requests (forthcoming)
+
+## Context
+
+Some Requests are time-sensitive — "child safety incident at school
+gate", "gathering happening now, who can help?", "post needs urgent
+review before 5pm". Without a priority signal these mix in with
+routine vetting work and lose their urgency. Without delivery, even
+flagged urgent items wait until reviewers happen to refresh.
+
+D058 introduces:
+
+1. A `urgency` field on Request (binary — normal / urgent)
+2. Admin-configurable TTL (default 4 hours) via a new `SystemSetting`
+   table
+3. An `AlertCategory` admin-managed table for member-facing alert
+   sub-types (seeded with "Happening now")
+4. A new RequestType `alert` — auto-urgent, surfaced in the FAB
+   composer's "alert tile" (red triangle exclamation icon)
+5. 10-second polling for MVP delivery; SSE deferred to Phase 2
+6. Visibility broadening: urgent Requests appear in every reviewer's
+   tab regardless of scope (acting still scope-restricted)
+
+## Decisions
+
+### 1. Two-tier urgency, not three
+
+`Request.urgency` is `normal | urgent`. Resist the temptation of
+`low | medium | high` — three tiers is a deference-to-feeling
+problem, not a real distinction. Urgent means "interrupt now";
+normal means "work the queue."
+
+### 2. Schema additions
+
+```prisma
+model Request {
+  // existing fields per D054
+  urgency             RequestUrgency  @default(normal)
+  urgentReason        String?
+  urgentExpiresAt     DateTime?
+  urgentSetByUserId   String?
+  urgentSetAt         DateTime?
+
+  alertCategoryId     String?
+}
+
+enum RequestUrgency {
+  normal
+  urgent
+}
+
+model AlertCategory {
+  id              String   @id @default(uuid())
+  slug            String   @unique  // "happening_now"
+  label           String              // "Happening now"
+  description     String?
+  iconKey         String              // matches a known icon set
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  createdByUserId String
+
+  @@index([active])
+}
+
+model SystemSetting {
+  id              String      @id @default(uuid())
+  key             String      @unique
+  value           String                 // string-encoded; service parses by type
+  type            SettingType
+  description     String
+  updatedAt       DateTime    @updatedAt
+  updatedByUserId String
+}
+
+enum SettingType {
+  int
+  string
+  json
+}
+```
+
+### 3. Who can set urgency
+
+| Setter        | When                                                                                     | Reason required             |
+| ------------- | ---------------------------------------------------------------------------------------- | --------------------------- |
+| **Submitter** | At creation, self-declared. Tight friction (typed reason required).                      | Yes                         |
+| **System**    | Auto-flag for `incident` and `flag:child_safety` types and for any `alert`-type Request. | No (system reason recorded) |
+| **Reviewer**  | Can upgrade `normal → urgent` after creation, or downgrade.                              | Yes — typed reason audited  |
+
+### 4. TTL — admin-configurable default
+
+`SystemSetting` row seeded:
+
+```
+key:         request_urgent_default_ttl_hours
+value:       4
+type:        int
+description: Default urgency time-to-live for Requests (hours). Auto-downgrade after expiry unless re-flagged.
+```
+
+Admin UI (BU-admin) lets admins edit this value. On urgency
+escalation, `urgentExpiresAt = now() + ttl`. A scheduled job (or
+on-render check) auto-downgrades expired urgents — sets `urgency =
+normal`, leaves `urgentReason` for audit history, audit-logs the
+auto-downgrade.
+
+### 5. AlertCategory — admin-managed; seeded with one
+
+Admins create alert categories via BU-admin's generic entity scaffold
+(per admin-surface.md `/admin/[entity]` pattern). Seeded with one
+row at install:
+
+```
+slug:        happening_now
+label:       Happening now
+description: Something is happening right now and we need eyes / help
+iconKey:     warning_triangle
+active:      true
+```
+
+Future admins can add (e.g. "Witness call", "Venue logistics",
+"Press inquiry") without code changes. `iconKey` references a known
+icon set; if a slug doesn't have an icon, falls back to a generic
+warning icon.
+
+### 6. The FAB alert tile (D044 integration spec)
+
+Per D044 (FAB intent-cards composer), tapping the FAB shows a tile
+picker. One tile is the **alert tile**:
+
+- **Visual**: red warning triangle with exclamation mark
+  (`iconKey: warning_triangle`)
+- **Label**: "Alert"
+- **Tap behaviour**: opens the alert composer
+  - If only one active AlertCategory, it's preselected
+  - If multiple, member picks via segmented control
+  - Member types reason / context (free text, max 1000 chars)
+  - Submit creates Request with `type=alert`, `urgency=urgent`,
+    `urgentReason=<typed text>`, `alertCategoryId=<picked>`,
+    `urgentExpiresAt=now() + ttl`
+
+This integration lives in BU-composer-fab when it ships. D058
+documents the contract; the alert composer is built then.
+
+### 7. Visibility broadening
+
+While `urgency=urgent AND status != done`, the Request appears in
+every reviewer's Requests tab in a pinned "Urgent" section above
+the New / In Discussion / Done filters. **Visibility broadens;
+acting stays scope-restricted.**
+
+Service-layer behaviour (`requests.list` with reviewer caller):
+
+```
+WHERE
+  -- normal scope-filtered list
+  (scope_matches(request.type, caller_scopes))
+  -- OR urgent broadcast (any reviewer sees urgent regardless of scope)
+  OR (request.urgency = 'urgent' AND request.status != 'done')
+```
+
+Mutation procedures (claim, comment-as-reviewer, resolve) still
+require the right scope via `requireRole({ scope: request.type })`
+per D055.
+
+### 8. Real-time delivery — 10s polling for MVP
+
+Client-side `useEffect` in the Requests tab polls
+`requests.urgent.list` every 10 seconds while the tab is mounted.
+Lag ≤10s for "Maya raised urgent at the school gate."
+
+Trade-offs:
+
+- Battery: 6 requests/min while tab open. Acceptable for MVP.
+- Server: tRPC endpoint that returns urgent IDs only (cheap).
+- Cache: HTTP `Cache-Control: no-store` on the urgent endpoint.
+
+**SSE (Server-Sent Events) is parking-lot for Phase 2** when
+concrete UX wins justify the infra. WebSockets are explicitly
+not pursued (one-way push doesn't need bidirectional).
+
+### 9. Anxiety-amplification guardrails (per design-philosophy.md §3)
+
+- TTL forces re-evaluation; no permanent urgency
+- Required reason on every escalation
+- Auto-urgent only on a small set of types (incident, child-safety
+  flag, alert)
+- Bottom-tab badge counts unread _notifications_, NOT urgency count
+  (avoids "3 urgent!" anxiety on the icon)
+- Quiet hours respected for any future push delivery
+- Reviewer downgrade button audited
+
+### 10. Notification interaction
+
+D057 fires `urgent_request_raised` to all reviewers when a Request
+becomes urgent. Not throttled. Re-flagging the same Request after
+downgrade fires again. The notification deep-links to the Request.
+
+## Consequences
+
+- Schema migration: add urgency fields to Request, create
+  `AlertCategory` and `SystemSetting` tables, add the `alert`
+  RequestType.
+- Seed migration: insert "Happening now" AlertCategory + 4-hour
+  TTL SystemSetting row.
+- New tRPC procedures: `requests.urgent.list`,
+  `requests.markUrgent`, `requests.downgradeUrgent`,
+  `alertCategory.list/create/update`,
+  `systemSetting.get/update` (admin-scoped).
+- New scheduled job: auto-downgrade expired urgents (Vercel cron
+  or similar).
+- `requests.list` query gains the urgent-broadcast OR clause.
+- BU-composer-fab brief incorporates the alert tile spec.
+- `bu-sequence.md` updated to add `BU-notifications` and
+  acknowledge `BU-requests` consumes D058.
+
+## Alternatives considered
+
+- **Three-tier urgency** (low / medium / high). Rejected —
+  practical distinction is binary.
+- **Urgency as a Request type** (`urgent` type). Rejected —
+  urgency is orthogonal to type; vetting can be urgent, flag can
+  be urgent, alerts are urgent-by-default.
+- **Hardcoded TTL**. Rejected — admins need to tune this without
+  code releases.
+- **AlertCategory as code constants**. Rejected — admins should
+  add categories without engineering work.
+- **WebSocket / SSE in MVP**. Rejected — polling delivers
+  acceptable lag with zero new infra.
+- **Push notifications in MVP**. Rejected — needs PWA service
+  worker + auth setup; defer to BU-pwa or similar.
+- **Bottom-tab badge for urgent count**. Rejected — anxiety
+  amplification per design-philosophy.
+
+## Related
+
+- D044 (FAB intent-cards composer — alert tile lands here)
+- D054 (Request entity — primary surface)
+- D055 (per-type scopes — gates ACTING on urgent, not seeing)
+- D056 (Comment audience — internal-vs-all comments on urgent
+  Requests work the same as on normal)
+- D057 (Notifications — `urgent_request_raised` type)
+- design-philosophy.md §3 (no anxiety amplification —
+  governing principle for the guardrails)
