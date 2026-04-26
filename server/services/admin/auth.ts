@@ -20,6 +20,16 @@ import { entityMetadata } from '@/server/admin/entity-metadata';
 
 export type AdminAction = 'view' | 'edit';
 
+/**
+ * Admin is a superset of queue_manager per the architectural model
+ * in `docs/architecture/admin-surface.md` ("admin: Everything a
+ * queue manager can do, PLUS..."). The flat `requireRole` middleware
+ * in `server/lib/trpc.ts` doesn't encode this hierarchy because
+ * production data convention grants both roles together. The
+ * generic admin surface enforces the hierarchy explicitly here so
+ * an admin without an explicit queue_manager grant still passes
+ * the gate on queue_manager-view entities.
+ */
 export function requireRoleForEntity(
   ctx: TRPCContext,
   entity: EntityKey,
@@ -36,7 +46,9 @@ export function requireRoleForEntity(
     });
   }
   const required = meta.requiresRole[action];
-  if (!ctx.activeRoles.includes(required)) {
+  const hasRole = ctx.activeRoles.includes(required);
+  const adminCovers = required === 'queue_manager' && ctx.activeRoles.includes('admin');
+  if (!hasRole && !adminCovers) {
     throw new TRPCError({ code: 'FORBIDDEN' });
   }
 }
