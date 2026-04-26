@@ -9,6 +9,7 @@
 import { router, createCallerFactory } from '@/server/lib/trpc';
 import { devRouter } from '@/server/routers/dev';
 import { postRouter } from '@/server/routers/post';
+import { postKindRouter } from '@/server/routers/postKind';
 import { reactionRouter } from '@/server/routers/reaction';
 import { commentRouter } from '@/server/routers/comment';
 import { requestRouter } from '@/server/routers/request';
@@ -19,6 +20,7 @@ export const appRouter = router({
   ...(process.env.NODE_ENV !== 'production' ? { dev: devRouter } : {}),
   // Feature routers
   post: postRouter,
+  postKind: postKindRouter,
   reaction: reactionRouter,
   comment: commentRouter,
   request: requestRouter,

@@ -1,27 +1,48 @@
 'use client';
 
 /**
- * @build-unit BU-composer BU-link-share
+ * @build-unit BU-composer BU-link-share BU-fab-intent-picker
  * @spec product/design-philosophy.md
  * @spec architecture/api-contract.md
- * @spec architecture/decision-log.md (D060)
+ * @spec architecture/decision-log.md (D060, D062)
  * @spec product/scenarios.md (SCN-19)
  *
  * Post creation form. Client component — manages form state, calls
  * the createPostAction server action on submit.
  *
- * BU-link-share / D060: a "Share a link?" toggle reveals five extra
- * fields (linkUrl + 4 metadata) per SCN-19 manual-fill flow.
+ * Per-intent shape comes from `INTENT_META` (see below): the form is
+ * shared but the banner, accent colour, field order, and submit label
+ * change per `?intent=<slug>`. Bespoke composers per intent are tracked
+ * separately under BU-composer-bespoke-per-intent.
  */
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type CSSProperties, type ReactNode } from 'react';
+import {
+  AlertTriangle,
+  Link as LinkIcon,
+  Megaphone,
+  Feather,
+  Pin,
+  MessageCircle,
+  CalendarDays,
+  Users,
+  HelpCircle,
+} from 'lucide-react';
 import type { CreatePostResult } from '@/app/compose/actions';
 import { ActivistMailerField } from './ActivistMailerField';
+
+export interface KindMapEntry {
+  id: string;
+  isAlertEligible: boolean;
+  displayName: string;
+}
 
 interface PostFormProps {
   onSubmit: (formData: FormData) => Promise<CreatePostResult | void>;
   /** Intent label from the FAB picker (?intent=...). null = no preselection. */
   intent?: string | null;
+  /** Active PostKind set keyed by slug (server-resolved at page render time). */
+  kindMap: Record<string, KindMapEntry>;
 }
 
 const KIND_OPTIONS = [
@@ -34,42 +55,131 @@ const KIND_OPTIONS = [
   { value: 'meeting', label: 'Meeting' },
 ];
 
-const INTENT_PLACEHOLDERS: Record<string, { title: string; body: string }> = {
-  cultural: {
-    title: 'e.g. Shabbat Shalom',
-    body: 'A quiet, dignified note for the community.',
-  },
-  outcome: {
-    title: 'e.g. We sent 200 emails — the MP responded',
-    body: 'Tell the team what happened. Numbers and outcomes, honestly stated.',
-  },
-  call_to_action: {
-    title: 'e.g. Council motion — write to your councillor by Thursday',
-    body: 'What needs doing, why now, what the link below sends.',
+interface IntentMeta {
+  icon: ReactNode;
+  accent: string;
+  bannerHeading: string;
+  bannerBody: string;
+  submitLabel: string;
+  /** Hide the Activist Mailer URL field (cultural). */
+  hideAM?: boolean;
+  /** Hide the Share-a-link toggle entirely (cultural). */
+  hideLinkToggle?: boolean;
+  /** Show AM field above the body, not below it (call_to_action). */
+  amFirst?: boolean;
+  /** Force urgency=true on submit (happening_now). */
+  urgent?: boolean;
+  /** Show a "fields coming soon" hint inside the form (event/meeting). */
+  hint?: string;
+  /** Title placeholder. */
+  titlePlaceholder?: string;
+  /** Body placeholder. */
+  bodyPlaceholder?: string;
+  /** Body label override. */
+  bodyLabel?: string;
+}
+
+const INTENT_META: Record<string, IntentMeta> = {
+  happening_now: {
+    icon: <AlertTriangle size={20} />,
+    accent: 'var(--colour-urgent)',
+    bannerHeading: 'Posts as urgent',
+    bannerBody: 'Reviewers see this instantly with a red flag. Use only for time-critical alerts.',
+    submitLabel: 'Post urgent alert',
+    urgent: true,
+    titlePlaceholder: 'e.g. School-gate harassment — Cheddar Road, now',
+    bodyPlaceholder: 'What is happening, where, what members can do right now.',
   },
   link_share: {
-    title: 'Worth reading — short summary',
-    body: 'Why you think the network should see this.',
+    icon: <LinkIcon size={20} />,
+    accent: 'var(--colour-primary-bright)',
+    bannerHeading: 'Share a link',
+    bannerBody: 'News, op-ed, article — paste the URL and tell members why it matters.',
+    submitLabel: 'Share link',
+    titlePlaceholder: 'Worth reading — short summary',
+    bodyPlaceholder: 'Why you think the network should see this.',
+    bodyLabel: 'Why this matters',
   },
-  event: {
-    title: 'e.g. Saturday morning vigil — Cheddar Road',
-    body: "When, where, who's hosting. Time / RSVP fields coming in a follow-up.",
+  call_to_action: {
+    icon: <Megaphone size={20} />,
+    accent: 'var(--colour-primary)',
+    bannerHeading: 'Call to action',
+    bannerBody:
+      'What needs doing, why now. The Activist Mailer URL is where members will send their email.',
+    submitLabel: 'Post call to action',
+    amFirst: true,
+    titlePlaceholder: 'e.g. Council motion — write to your councillor by Thursday',
+    bodyPlaceholder: 'Background, context, the ask. Keep it tight.',
   },
-  meeting: {
-    title: 'e.g. Writers group — Sunday 19:00',
-    body: 'Who, when, what we will cover. Time fields coming in a follow-up.',
+  cultural: {
+    icon: <Feather size={20} />,
+    accent: 'var(--colour-cultural)',
+    bannerHeading: 'Cultural moment',
+    bannerBody: 'A quiet, dignified note. Shabbat, remembrance, celebration.',
+    submitLabel: 'Post moment',
+    hideAM: true,
+    hideLinkToggle: true,
+    titlePlaceholder: 'e.g. Shabbat Shalom',
+    bodyPlaceholder: 'A few warm words for the community.',
+  },
+  outcome: {
+    icon: <Pin size={20} />,
+    accent: 'var(--colour-success)',
+    bannerHeading: 'Outcome — closing the loop',
+    bannerBody: 'What happened. Numbers and outcomes, honestly stated.',
+    submitLabel: 'Post outcome',
+    titlePlaceholder: 'e.g. We sent 200 emails — the MP responded',
+    bodyPlaceholder: 'Tell the team what happened. Honest, specific.',
   },
   thought: {
-    title: '',
-    body: '',
+    icon: <MessageCircle size={20} />,
+    accent: 'var(--colour-info)',
+    bannerHeading: 'Just a thought',
+    bannerBody: 'Discussion, observation, framing. No call to action needed.',
+    submitLabel: 'Post',
+  },
+  event: {
+    icon: <CalendarDays size={20} />,
+    accent: 'var(--colour-info)',
+    bannerHeading: 'Event',
+    bannerBody: 'When, where, who is hosting.',
+    submitLabel: 'Post event',
+    hint: 'Date and time fields are coming. For now, write date / time / location in the body.',
+    titlePlaceholder: 'e.g. Saturday morning vigil — Cheddar Road',
+    bodyPlaceholder: 'When, where, who is hosting.',
+  },
+  meeting: {
+    icon: <Users size={20} />,
+    accent: 'var(--colour-info)',
+    bannerHeading: 'Meeting',
+    bannerBody: 'Group meeting — who, when, what we will cover.',
+    submitLabel: 'Post meeting',
+    hint: 'Date and join-link fields are coming. For now, write date / time / link in the body.',
+    titlePlaceholder: 'e.g. Writers group — Sunday 19:00',
+    bodyPlaceholder: 'Who, when, what we will cover.',
   },
   undecided: {
-    title: '',
-    body: '',
+    icon: <HelpCircle size={20} />,
+    accent: 'var(--colour-text-secondary)',
+    bannerHeading: 'New post',
+    bannerBody: 'Pick a kind below. The form adjusts to match.',
+    submitLabel: 'Post',
   },
 };
 
-export function PostForm({ onSubmit, intent = null }: PostFormProps) {
+const FALLBACK_META: IntentMeta = {
+  icon: <HelpCircle size={20} />,
+  accent: 'var(--colour-text-secondary)',
+  bannerHeading: 'New post',
+  bannerBody: 'Pick a kind below.',
+  submitLabel: 'Post',
+};
+
+function getMeta(intent: string | null | undefined): IntentMeta {
+  return INTENT_META[intent ?? 'undecided'] ?? FALLBACK_META;
+}
+
+export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
   const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   // For "undecided", the user picks from the selector. Otherwise the intent IS the kind.
@@ -77,12 +187,17 @@ export function PostForm({ onSubmit, intent = null }: PostFormProps) {
     intent === 'undecided' ? 'thought' : (intent ?? ''),
   );
   const isUndecided = intent === 'undecided';
+  const meta = getMeta(isUndecided ? selectedKind : intent);
   const showLinkOpenByDefault = intent === 'link_share';
   const [shareLinkOpen, setShareLinkOpen] = useState(showLinkOpenByDefault);
-  const placeholders = INTENT_PLACEHOLDERS[intent ?? 'undecided'] ?? { title: '', body: '' };
+
+  const resolvedKindId = selectedKind ? kindMap[selectedKind]?.id : undefined;
 
   function handleSubmit(formData: FormData): void {
-    if (selectedKind) formData.set('kind', selectedKind);
+    if (resolvedKindId) formData.set('kindId', resolvedKindId);
+    if (meta.urgent && resolvedKindId && kindMap[selectedKind]?.isAlertEligible) {
+      formData.set('urgency', 'true');
+    }
     startTransition(async () => {
       const result = await onSubmit(formData);
       if (result?.errors) {
@@ -96,8 +211,12 @@ export function PostForm({ onSubmit, intent = null }: PostFormProps) {
     <form
       action={handleSubmit}
       data-testid="compose-newpost-form"
+      data-intent={intent ?? 'none'}
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}
     >
+      {/* Intent banner — visual differentiation per FAB tile */}
+      {intent && <IntentBanner meta={meta} testIdSuffix={isUndecided ? selectedKind : intent} />}
+
       {/* Form-level error */}
       {errors._form && (
         <p
@@ -146,6 +265,24 @@ export function PostForm({ onSubmit, intent = null }: PostFormProps) {
         </div>
       )}
 
+      {/* Inline hint banner for event / meeting (date/time fields coming) */}
+      {meta.hint && (
+        <p
+          data-testid="compose-intent-hint"
+          style={{
+            margin: 0,
+            padding: 'var(--space-3) var(--space-4)',
+            background: 'var(--colour-surface-sunken)',
+            borderRadius: 'var(--radius-md)',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--colour-text-secondary)',
+            fontFamily: 'var(--font-ui)',
+          }}
+        >
+          {meta.hint}
+        </p>
+      )}
+
       {/* Title */}
       <div>
         <label
@@ -169,7 +306,7 @@ export function PostForm({ onSubmit, intent = null }: PostFormProps) {
           required
           minLength={3}
           maxLength={200}
-          placeholder={placeholders.title || undefined}
+          placeholder={meta.titlePlaceholder || undefined}
           className="gps-input"
           style={{
             width: '100%',
@@ -191,6 +328,11 @@ export function PostForm({ onSubmit, intent = null }: PostFormProps) {
         )}
       </div>
 
+      {/* Activist Mailer URL — promoted above body for call_to_action */}
+      {!meta.hideAM && meta.amFirst && (
+        <ActivistMailerField error={errors.activistMailerUrl?.[0]} />
+      )}
+
       {/* Body */}
       <div>
         <label
@@ -204,7 +346,7 @@ export function PostForm({ onSubmit, intent = null }: PostFormProps) {
             fontFamily: 'var(--font-ui)',
           }}
         >
-          Body
+          {meta.bodyLabel ?? 'Body'}
         </label>
         <textarea
           id="body"
@@ -214,7 +356,7 @@ export function PostForm({ onSubmit, intent = null }: PostFormProps) {
           minLength={10}
           maxLength={10000}
           rows={10}
-          placeholder={placeholders.body || undefined}
+          placeholder={meta.bodyPlaceholder || undefined}
           className="gps-input"
           style={{
             width: '100%',
@@ -237,209 +379,213 @@ export function PostForm({ onSubmit, intent = null }: PostFormProps) {
         )}
       </div>
 
-      {/* Activist Mailer URL */}
-      <ActivistMailerField error={errors.activistMailerUrl?.[0]} />
+      {/* Activist Mailer URL — default position (below body) */}
+      {!meta.hideAM && !meta.amFirst && (
+        <ActivistMailerField error={errors.activistMailerUrl?.[0]} />
+      )}
 
       {/* Share a link? (BU-link-share / D060 / SCN-19) */}
-      <div>
-        <button
-          type="button"
-          data-testid="compose-sharelink-toggle"
-          onClick={() => setShareLinkOpen((v) => !v)}
-          aria-expanded={shareLinkOpen}
-          aria-controls="compose-sharelink-fields"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            color: 'var(--colour-text-link)',
-            fontFamily: 'var(--font-ui)',
-            fontSize: 'var(--text-sm)',
-            cursor: 'pointer',
-          }}
-        >
-          <span>{shareLinkOpen ? '▾' : '▸'}</span>
-          Share a link?
-        </button>
-
-        {shareLinkOpen && (
-          <div
-            id="compose-sharelink-fields"
+      {!meta.hideLinkToggle && (
+        <div>
+          <button
+            type="button"
+            data-testid="compose-sharelink-toggle"
+            onClick={() => setShareLinkOpen((v) => !v)}
+            aria-expanded={shareLinkOpen}
+            aria-controls="compose-sharelink-fields"
             style={{
-              marginTop: 'var(--space-3)',
-              padding: 'var(--space-4)',
-              background: 'var(--colour-surface-sunken)',
-              borderRadius: 'var(--radius-md)',
               display: 'flex',
-              flexDirection: 'column',
-              gap: 'var(--space-3)',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              color: 'var(--colour-text-link)',
+              fontFamily: 'var(--font-ui)',
+              fontSize: 'var(--text-sm)',
+              cursor: 'pointer',
             }}
           >
-            <div>
-              <label
-                htmlFor="linkUrl"
-                data-testid="compose-link-url-label"
-                style={{
-                  display: 'block',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 500,
-                  marginBottom: 'var(--space-1)',
-                  fontFamily: 'var(--font-ui)',
-                }}
-              >
-                Link URL
-              </label>
-              <input
-                id="linkUrl"
-                name="linkUrl"
-                type="url"
-                inputMode="url"
-                placeholder="https://..."
-                data-testid="compose-link-url-input"
-                className="gps-input"
-                style={{
-                  width: '100%',
-                  borderColor: errors.linkUrl ? 'var(--colour-danger)' : undefined,
-                }}
-              />
-              {errors.linkUrl && (
-                <p
+            <span>{shareLinkOpen ? '▾' : '▸'}</span>
+            Share a link?
+          </button>
+
+          {shareLinkOpen && (
+            <div
+              id="compose-sharelink-fields"
+              style={{
+                marginTop: 'var(--space-3)',
+                padding: 'var(--space-4)',
+                background: 'var(--colour-surface-sunken)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-3)',
+              }}
+            >
+              <div>
+                <label
+                  htmlFor="linkUrl"
+                  data-testid="compose-link-url-label"
                   style={{
-                    color: 'var(--colour-danger)',
-                    fontSize: 'var(--text-xs)',
-                    marginTop: 'var(--space-1)',
+                    display: 'block',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 500,
+                    marginBottom: 'var(--space-1)',
                     fontFamily: 'var(--font-ui)',
                   }}
-                  role="alert"
                 >
-                  {errors.linkUrl[0]}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label
-                htmlFor="linkTitle"
-                data-testid="compose-link-title-label"
-                style={{
-                  display: 'block',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 500,
-                  marginBottom: 'var(--space-1)',
-                  fontFamily: 'var(--font-ui)',
-                }}
-              >
-                Title
-              </label>
-              <input
-                id="linkTitle"
-                name="linkTitle"
-                type="text"
-                maxLength={200}
-                data-testid="compose-link-title-input"
-                className="gps-input"
-                style={{ width: '100%' }}
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="linkDescription"
-                data-testid="compose-link-description-label"
-                style={{
-                  display: 'block',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 500,
-                  marginBottom: 'var(--space-1)',
-                  fontFamily: 'var(--font-ui)',
-                }}
-              >
-                Description
-              </label>
-              <textarea
-                id="linkDescription"
-                name="linkDescription"
-                rows={2}
-                maxLength={500}
-                data-testid="compose-link-description-input"
-                className="gps-input"
-                style={{ width: '100%', resize: 'vertical' }}
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="linkImageUrl"
-                data-testid="compose-link-imageurl-label"
-                style={{
-                  display: 'block',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 500,
-                  marginBottom: 'var(--space-1)',
-                  fontFamily: 'var(--font-ui)',
-                }}
-              >
-                Image URL
-              </label>
-              <input
-                id="linkImageUrl"
-                name="linkImageUrl"
-                type="url"
-                inputMode="url"
-                placeholder="https://..."
-                data-testid="compose-link-imageurl-input"
-                className="gps-input"
-                style={{
-                  width: '100%',
-                  borderColor: errors.linkImageUrl ? 'var(--colour-danger)' : undefined,
-                }}
-              />
-              {errors.linkImageUrl && (
-                <p
+                  Link URL
+                </label>
+                <input
+                  id="linkUrl"
+                  name="linkUrl"
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://..."
+                  data-testid="compose-link-url-input"
+                  className="gps-input"
                   style={{
-                    color: 'var(--colour-danger)',
-                    fontSize: 'var(--text-xs)',
-                    marginTop: 'var(--space-1)',
+                    width: '100%',
+                    borderColor: errors.linkUrl ? 'var(--colour-danger)' : undefined,
+                  }}
+                />
+                {errors.linkUrl && (
+                  <p
+                    style={{
+                      color: 'var(--colour-danger)',
+                      fontSize: 'var(--text-xs)',
+                      marginTop: 'var(--space-1)',
+                      fontFamily: 'var(--font-ui)',
+                    }}
+                    role="alert"
+                  >
+                    {errors.linkUrl[0]}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="linkTitle"
+                  data-testid="compose-link-title-label"
+                  style={{
+                    display: 'block',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 500,
+                    marginBottom: 'var(--space-1)',
                     fontFamily: 'var(--font-ui)',
                   }}
-                  role="alert"
                 >
-                  {errors.linkImageUrl[0]}
-                </p>
-              )}
-            </div>
+                  Title
+                </label>
+                <input
+                  id="linkTitle"
+                  name="linkTitle"
+                  type="text"
+                  maxLength={200}
+                  data-testid="compose-link-title-input"
+                  className="gps-input"
+                  style={{ width: '100%' }}
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="linkSiteName"
-                data-testid="compose-link-sitename-label"
-                style={{
-                  display: 'block',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 500,
-                  marginBottom: 'var(--space-1)',
-                  fontFamily: 'var(--font-ui)',
-                }}
-              >
-                Site name
-              </label>
-              <input
-                id="linkSiteName"
-                name="linkSiteName"
-                type="text"
-                maxLength={100}
-                placeholder="e.g. The Guardian"
-                data-testid="compose-link-sitename-input"
-                className="gps-input"
-                style={{ width: '100%' }}
-              />
+              <div>
+                <label
+                  htmlFor="linkDescription"
+                  data-testid="compose-link-description-label"
+                  style={{
+                    display: 'block',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 500,
+                    marginBottom: 'var(--space-1)',
+                    fontFamily: 'var(--font-ui)',
+                  }}
+                >
+                  Description
+                </label>
+                <textarea
+                  id="linkDescription"
+                  name="linkDescription"
+                  rows={2}
+                  maxLength={500}
+                  data-testid="compose-link-description-input"
+                  className="gps-input"
+                  style={{ width: '100%', resize: 'vertical' }}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="linkImageUrl"
+                  data-testid="compose-link-imageurl-label"
+                  style={{
+                    display: 'block',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 500,
+                    marginBottom: 'var(--space-1)',
+                    fontFamily: 'var(--font-ui)',
+                  }}
+                >
+                  Image URL
+                </label>
+                <input
+                  id="linkImageUrl"
+                  name="linkImageUrl"
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://..."
+                  data-testid="compose-link-imageurl-input"
+                  className="gps-input"
+                  style={{
+                    width: '100%',
+                    borderColor: errors.linkImageUrl ? 'var(--colour-danger)' : undefined,
+                  }}
+                />
+                {errors.linkImageUrl && (
+                  <p
+                    style={{
+                      color: 'var(--colour-danger)',
+                      fontSize: 'var(--text-xs)',
+                      marginTop: 'var(--space-1)',
+                      fontFamily: 'var(--font-ui)',
+                    }}
+                    role="alert"
+                  >
+                    {errors.linkImageUrl[0]}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="linkSiteName"
+                  data-testid="compose-link-sitename-label"
+                  style={{
+                    display: 'block',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 500,
+                    marginBottom: 'var(--space-1)',
+                    fontFamily: 'var(--font-ui)',
+                  }}
+                >
+                  Site name
+                </label>
+                <input
+                  id="linkSiteName"
+                  name="linkSiteName"
+                  type="text"
+                  maxLength={100}
+                  placeholder="e.g. The Guardian"
+                  data-testid="compose-link-sitename-input"
+                  className="gps-input"
+                  style={{ width: '100%' }}
+                />
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Visibility */}
       <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
@@ -516,8 +662,17 @@ export function PostForm({ onSubmit, intent = null }: PostFormProps) {
           disabled={isPending}
           data-testid="compose-newpost-submit"
           className="gps-btn gps-btn--primary"
+          style={
+            meta.urgent
+              ? {
+                  background: 'var(--colour-urgent)',
+                  borderColor: 'var(--colour-urgent)',
+                  color: 'var(--colour-urgent-contrast)',
+                }
+              : undefined
+          }
         >
-          {isPending ? 'Posting\u2026' : 'Post'}
+          {isPending ? 'Posting…' : meta.submitLabel}
         </button>
         <a
           href="/feed"
@@ -529,5 +684,59 @@ export function PostForm({ onSubmit, intent = null }: PostFormProps) {
         </a>
       </div>
     </form>
+  );
+}
+
+interface IntentBannerProps {
+  meta: IntentMeta;
+  testIdSuffix: string;
+}
+
+function IntentBanner({ meta, testIdSuffix }: IntentBannerProps) {
+  const bannerStyle: CSSProperties = {
+    display: 'flex',
+    gap: 'var(--space-3)',
+    padding: 'var(--space-4)',
+    borderRadius: 'var(--radius-md)',
+    background: 'var(--colour-surface-raised)',
+    borderLeft: `4px solid ${meta.accent}`,
+    border: '1px solid var(--colour-border-subtle)',
+  };
+  return (
+    <div style={bannerStyle} data-testid="compose-intent-banner" data-intent-key={testIdSuffix}>
+      <div
+        style={{
+          color: meta.accent,
+          display: 'flex',
+          alignItems: 'flex-start',
+          paddingTop: '2px',
+        }}
+        aria-hidden="true"
+      >
+        {meta.icon}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+        <strong
+          style={{
+            fontFamily: 'var(--font-ui)',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--colour-text-primary)',
+          }}
+        >
+          {meta.bannerHeading}
+        </strong>
+        <p
+          style={{
+            margin: 0,
+            fontFamily: 'var(--font-ui)',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--colour-text-secondary)',
+            lineHeight: 1.5,
+          }}
+        >
+          {meta.bannerBody}
+        </p>
+      </div>
+    </div>
   );
 }
