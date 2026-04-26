@@ -295,7 +295,33 @@ new rows appear at the top with `admin.*` action prefixes.
 
 ---
 
+## Decisions confirmed before build (Paul, 2026-04-26)
+
+These lock the five Open Questions below. The build session
+executes against them.
+
+1. **PII strip list:** `email`, `phoneNumber`, `ipAddress`,
+   `userAgent`. (`displayName` is NOT PII — it's the public
+   identifier and stays in `changes`.)
+2. **IP / user-agent capture: deferred.** Server actions don't
+   carry the request through today. Lands in a future BU when
+   real auth + observability infrastructure ships.
+3. **`changes.after` for `create`: re-fetch via `getEntityRaw`.**
+   One extra DB read per create, but no per-entity registry
+   change required. Registry signatures stay as-is.
+4. **Verb format: dotted** — `admin.user.update` etc. Sorts
+   naturally in `action LIKE 'admin.%'` queries; reads as
+   `<surface>.<entity>.<verb>`.
+5. **No-op `update` audits.** Empty `changes.diff` is logged.
+   Forensically useful — surfaces "admin opened the form and
+   pressed Save without changing anything."
+
+---
+
 ## Open questions to surface to Paul
+
+(Originally pinned for review. All resolved above; preserved
+here as the trail of recommendations + rationale.)
 
 1. **PII strip list.** Default list: `email`, `phoneNumber`,
    `ipAddress`, `userAgent`. Confirm. Anything else? (Note:

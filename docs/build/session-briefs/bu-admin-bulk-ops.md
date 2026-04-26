@@ -336,7 +336,30 @@ entity. No new permission concepts introduced.
 
 ---
 
+## Decisions confirmed before build (Paul, 2026-04-26)
+
+These lock the five Open Questions below.
+
+1. **Bulk size cap: 100 ids per call.** Sequential loop within
+   that bound is acceptable; bigger risks Postgres timeouts.
+2. **Sequential processing.** One row at a time. Per-row audit
+   chain stays clean; concurrency risks race conditions.
+3. **"Select all" = visible rows only.** Slice 1 doesn't have
+   pagination; this is moot today. "Match the search" lands
+   when cursor pagination + filtered selection ships.
+4. **Undo affordance: out for MVP.** Per-row Restore is the
+   honest path. A bulk-undo toast adds state and complicates
+   the audit story.
+5. **Banner persists until dismissed.** Stays until admin
+   dismisses it, navigates away, or runs another bulk action.
+   Don't auto-dismiss — admin needs to see what failed.
+
+---
+
 ## Open questions to surface to Paul
+
+(Originally pinned for review. All resolved above; preserved
+here as the trail of recommendations + rationale.)
 
 1. **Bulk size cap.** 100 chosen. Tradeoff: too high = slow loop
    + risk of timeout; too low = repetitive UX. Confirm 100 or
