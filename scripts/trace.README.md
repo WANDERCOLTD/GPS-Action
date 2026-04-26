@@ -44,6 +44,18 @@ npm run trace:matrix      # regenerate docs/architecture/traceability-matrix.md
 - Legacy `@scenarios SCN-N` tags — migrate to
   `@spec product/scenarios.md (SCN-N)` per D038
 
+## Worktree-safe exclusion
+
+`EXCLUDED_PATH_FRAGMENTS` (`node_modules`, `.next`, `dist`, `build`,
+`.claude/worktrees`) are matched against paths **relative to
+REPO_ROOT**, not against absolute paths. This matters when the script
+runs from inside `.claude/worktrees/<name>/`: the worktree itself is
+REPO_ROOT, so its files' relative paths don't contain
+`.claude/worktrees` and are correctly included. From the primary
+repo, a nested `.claude/worktrees/<sub>/...` relative path still
+matches the fragment and is excluded — keeping in-flight agent work
+out of the matrix. (See `fix/trace-worktree-exclusion-scope`.)
+
 ## Conventions referenced
 
 - `docs/process/traceability.md` — the discipline doc

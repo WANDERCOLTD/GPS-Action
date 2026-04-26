@@ -254,8 +254,27 @@ export function parseImports(content: string): string[] {
 
 // ── File walking ─────────────────────────────────────────────────────────
 
-function walkSource(rootDir: string): string[] {
+/**
+ * Walk a source directory and return absolute paths to every TS/TSX/JS
+ * file that isn't under an excluded fragment.
+ *
+ * `repoRoot` defines the scope of exclusion matching. Fragments in
+ * EXCLUDED_PATH_FRAGMENTS are matched against paths *relative to*
+ * `repoRoot`, not against absolute paths. This matters when the script
+ * runs from inside `.claude/worktrees/<name>/` — an absolute-path match
+ * would treat `.claude/worktrees` as a substring of every file in the
+ * worktree and exclude the entire repo. Relative-to-root matching
+ * preserves the original intent: exclude `.claude/worktrees/<sub>/...`
+ * when running from the primary repo, but include everything when
+ * REPO_ROOT *is* the worktree.
+ */
+export function walkSource(rootDir: string, repoRoot: string = rootDir): string[] {
   const out: string[] = [];
+
+  function isExcluded(absPath: string, entry: string): boolean {
+    const rel = relative(repoRoot, absPath);
+    return EXCLUDED_PATH_FRAGMENTS.some((frag) => entry === frag || rel.includes(frag));
+  }
 
   function walk(dir: string): void {
     let entries: string[];
@@ -265,8 +284,8 @@ function walkSource(rootDir: string): string[] {
       return;
     }
     for (const entry of entries) {
-      if (EXCLUDED_PATH_FRAGMENTS.some((frag) => entry === frag || dir.includes(frag))) continue;
       const full = join(dir, entry);
+      if (isExcluded(full, entry)) continue;
       let st;
       try {
         st = statSync(full);
@@ -826,7 +845,7 @@ function loadGraphFromDisk(): TraceGraph {
     const fullDir = join(REPO_ROOT, dir);
     let absPaths: string[];
     try {
-      absPaths = walkSource(fullDir);
+      absPaths = walkSource(fullDir, REPO_ROOT);
     } catch {
       continue;
     }

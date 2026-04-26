@@ -6,7 +6,10 @@
  * @spec architecture/decision-log.md (D053)
  */
 
-import { describe, it, expect } from 'vitest';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { afterEach, beforeEach, describe, it, expect } from 'vitest';
 import {
   parseScenarios,
   parseADRs,
@@ -16,6 +19,7 @@ import {
   runChecks,
   renderMatrix,
   computeImpact,
+  walkSource,
 } from '../../scripts/trace';
 
 describe('parseScenarios', () => {
@@ -495,5 +499,93 @@ describe('renderMatrix', () => {
     expect(md1).toContain('SCN-3');
     expect(md1).toContain('parked');
     expect(md1).toContain('✓ shipped');
+  });
+});
+
+describe('walkSource — exclusion is scoped to repo-relative paths', () => {
+  // Regression cover for the bug where EXCLUDED_PATH_FRAGMENTS was
+  // matched against absolute paths. Running the script from inside a
+  // `.claude/worktrees/<name>/` worktree caused every file path to
+  // contain `.claude/worktrees`, so the walker excluded the entire
+  // repo and trace:matrix wiped every shipped scenario.
+  //
+  // The fix matches fragments against paths *relative to* repoRoot.
+  // From a worktree, repoRoot IS the worktree, so the relative path
+  // does NOT contain `.claude/worktrees`. From the primary repo, a
+  // nested `.claude/worktrees/<sub>/...` relative path still matches.
+  let tmpDirs: string[] = [];
+
+  beforeEach(() => {
+    tmpDirs = [];
+  });
+
+  afterEach(() => {
+    for (const d of tmpDirs) {
+      try {
+        rmSync(d, { recursive: true, force: true });
+      } catch {
+        // ignore cleanup failure
+      }
+    }
+  });
+
+  function makeTmp(prefix: string): string {
+    const d = mkdtempSync(join(tmpdir(), prefix));
+    tmpDirs.push(d);
+    return d;
+  }
+
+  it('includes files when repoRoot lives under a .claude/worktrees ancestor', () => {
+    // Simulate the worktree shape: <tmp>/.claude/worktrees/<name>/app/feed/page.tsx
+    // The worktree IS the repo root for the script invocation, so the
+    // file's repo-relative path is `app/feed/page.tsx` — no
+    // `.claude/worktrees` substring — and it must be included.
+    const tmp = makeTmp('trace-worktree-');
+    const worktreeRoot = join(tmp, '.claude', 'worktrees', 'agent-xyz');
+    const featureDir = join(worktreeRoot, 'app', 'feed');
+    mkdirSync(featureDir, { recursive: true });
+    writeFileSync(join(featureDir, 'page.tsx'), 'export const x = 1;\n');
+
+    const found = walkSource(join(worktreeRoot, 'app'), worktreeRoot);
+
+    expect(found).toHaveLength(1);
+    expect(found[0]).toBe(join(worktreeRoot, 'app', 'feed', 'page.tsx'));
+  });
+
+  it('excludes files inside .claude/worktrees/<sub>/ when scanned from the primary repo', () => {
+    // Simulate the primary-repo shape: <repo>/app/feed/page.tsx is
+    // included; <repo>/.claude/worktrees/sub/app/foo.tsx is NOT.
+    const repoRoot = makeTmp('trace-primary-');
+
+    const primaryDir = join(repoRoot, 'app', 'feed');
+    mkdirSync(primaryDir, { recursive: true });
+    writeFileSync(join(primaryDir, 'page.tsx'), 'export const x = 1;\n');
+
+    const worktreeChild = join(repoRoot, '.claude', 'worktrees', 'sub', 'app');
+    mkdirSync(worktreeChild, { recursive: true });
+    writeFileSync(join(worktreeChild, 'foo.tsx'), 'export const y = 2;\n');
+
+    const fromApp = walkSource(join(repoRoot, 'app'), repoRoot);
+    expect(fromApp.map((p) => p.replace(repoRoot, ''))).toEqual(['/app/feed/page.tsx']);
+
+    // Direct walk of the .claude/worktrees subtree from the primary
+    // repo's perspective: every entry's relative path contains
+    // `.claude/worktrees` and must be excluded.
+    const fromClaude = walkSource(join(repoRoot, '.claude'), repoRoot);
+    expect(fromClaude).toEqual([]);
+  });
+
+  it('still excludes node_modules whether scanned from worktree or primary repo', () => {
+    const repoRoot = makeTmp('trace-nm-');
+    const nm = join(repoRoot, 'node_modules', 'pkg');
+    mkdirSync(nm, { recursive: true });
+    writeFileSync(join(nm, 'index.ts'), 'export {};\n');
+    const src = join(repoRoot, 'app');
+    mkdirSync(src, { recursive: true });
+    writeFileSync(join(src, 'page.tsx'), 'export const x = 1;\n');
+
+    const found = walkSource(repoRoot, repoRoot);
+    expect(found.some((p) => p.includes('node_modules'))).toBe(false);
+    expect(found.some((p) => p.endsWith('app/page.tsx'))).toBe(true);
   });
 });
