@@ -19,6 +19,9 @@ vi.mock('@/server/db/client', () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
+    auditLog: {
+      create: vi.fn().mockResolvedValue({ id: 'audit-1' }),
+    },
   },
 }));
 
@@ -68,6 +71,10 @@ function fakePostRow(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // BU-admin-audit-integration: mutations pre-load / re-fetch the row.
+  mFindUnique.mockResolvedValue(
+    fakePostRow() as unknown as Awaited<ReturnType<typeof prisma.post.findUnique>>,
+  );
 });
 
 describe('admin.list / post', () => {

@@ -1,11 +1,17 @@
 /**
- * @build-unit BU-admin-crud
+ * @build-unit BU-admin-crud BU-admin-audit-integration
  * @spec architecture/admin-surface.md
  * @spec build/session-briefs/bu-admin-crud.md
+ * @spec build/session-briefs/bu-admin-audit-integration.md
  *
  * Thin facade over the registry. The router calls these; the service
  * dispatches to the registered entry. Keeps router code free of
  * per-entity branching.
+ *
+ * BU-admin-audit-integration: every mutation now writes one
+ * `AuditLog` row via `writeAdminAudit()`. Audit happens AFTER the
+ * mutation succeeds; the helper itself never throws (per
+ * `server/services/audit.ts`).
  */
 
 import { TRPCError } from '@trpc/server';
@@ -13,6 +19,7 @@ import { prisma } from '@/server/db/client';
 import type { EntityKey } from '@/server/admin/entity-metadata';
 import { entityMetadata } from '@/server/admin/entity-metadata';
 import { ensureSupports, getRegistryEntry } from '@/server/services/admin/registry';
+import { writeAdminAudit } from '@/server/services/admin/audit';
 import type {
   AdminListArgs,
   AdminListResult,
@@ -45,7 +52,8 @@ export async function getEntity(entity: EntityKey, id: string): Promise<AdminRow
  * Returns the full Prisma row for an entity (every column, plus
  * single-level relation includes from `listColumns`). Used by the
  * detail / edit pages so all fields are available — not just the
- * curated `listColumns`.
+ * curated `listColumns`. Also used internally by audit-integration
+ * to capture `before` / `after` snapshots.
  */
 export async function getEntityRaw(
   entity: EntityKey,
@@ -110,7 +118,20 @@ export async function createEntity(
 ): Promise<{ id: string }> {
   assertNotQueueWorkflow(entity);
   const entry = ensureSupports(entity, 'create');
-  return entry.create(args);
+  const result = await entry.create(args);
+  // Re-fetch the new row for `changes.after` (Q3 locked: re-fetch,
+  // don't extend the registry signature).
+  const after = await getEntityRaw(entity, result.id);
+  if (after) {
+    await writeAdminAudit({
+      verb: 'create',
+      entity,
+      entityId: result.id,
+      actorId: args.actorId,
+      after,
+    });
+  }
+  return result;
 }
 
 export async function updateEntity(
@@ -119,7 +140,23 @@ export async function updateEntity(
 ): Promise<{ id: string }> {
   assertNotQueueWorkflow(entity);
   const entry = ensureSupports(entity, 'update');
-  return entry.update(args);
+  const before = await getEntityRaw(entity, args.id);
+  if (!before) {
+    throw new TRPCError({ code: 'NOT_FOUND' });
+  }
+  const result = await entry.update(args);
+  const after = await getEntityRaw(entity, args.id);
+  if (after) {
+    await writeAdminAudit({
+      verb: 'update',
+      entity,
+      entityId: args.id,
+      actorId: args.actorId,
+      before,
+      after,
+    });
+  }
+  return result;
 }
 
 export async function softDeleteEntity(
@@ -136,7 +173,20 @@ export async function softDeleteEntity(
     });
   }
   const entry = ensureSupports(entity, 'softDelete');
-  return entry.softDelete({ id, actorId });
+  // Pre-load the row before the mutation — its state changes after.
+  const before = await getEntityRaw(entity, id);
+  if (!before) {
+    throw new TRPCError({ code: 'NOT_FOUND' });
+  }
+  const result = await entry.softDelete({ id, actorId });
+  await writeAdminAudit({
+    verb: 'soft-delete',
+    entity,
+    entityId: id,
+    actorId,
+    before,
+  });
+  return result;
 }
 
 export async function restoreEntity(
@@ -153,7 +203,19 @@ export async function restoreEntity(
     });
   }
   const entry = ensureSupports(entity, 'restore');
-  return entry.restore({ id, actorId });
+  const before = await getEntityRaw(entity, id);
+  if (!before) {
+    throw new TRPCError({ code: 'NOT_FOUND' });
+  }
+  const result = await entry.restore({ id, actorId });
+  await writeAdminAudit({
+    verb: 'restore',
+    entity,
+    entityId: id,
+    actorId,
+    before,
+  });
+  return result;
 }
 
 export async function hardDeleteEntity(
@@ -170,5 +232,18 @@ export async function hardDeleteEntity(
     });
   }
   const entry = ensureSupports(entity, 'hardDelete');
-  return entry.hardDelete({ id, actorId });
+  // Pre-load the row — after hard-delete it's gone forever.
+  const before = await getEntityRaw(entity, id);
+  if (!before) {
+    throw new TRPCError({ code: 'NOT_FOUND' });
+  }
+  const result = await entry.hardDelete({ id, actorId });
+  await writeAdminAudit({
+    verb: 'hard-delete',
+    entity,
+    entityId: id,
+    actorId,
+    before,
+  });
+  return result;
 }
