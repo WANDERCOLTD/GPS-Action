@@ -21,6 +21,21 @@ import { entityMetadata } from '@/server/admin/entity-metadata';
 export type AdminAction = 'view' | 'edit';
 
 /**
+ * Boolean variant — useful in pages that need to decide between
+ * `notFound()` and rendering, without throwing.
+ */
+export function canAccessEntity(ctx: TRPCContext, entity: EntityKey, action: AdminAction): boolean {
+  if (!ctx.user) return false;
+  const meta = entityMetadata[entity];
+  if (!meta) return false;
+  const required = meta.requiresRole[action];
+  return (
+    ctx.activeRoles.includes(required) ||
+    (required === 'queue_manager' && ctx.activeRoles.includes('admin'))
+  );
+}
+
+/**
  * Admin is a superset of queue_manager per the architectural model
  * in `docs/architecture/admin-surface.md` ("admin: Everything a
  * queue manager can do, PLUS..."). The flat `requireRole` middleware

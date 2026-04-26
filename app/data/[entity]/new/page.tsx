@@ -15,6 +15,7 @@ import type { EntityKey } from '@/server/admin/entity-metadata';
 import { EntityForm } from '@/components/admin/EntityForm';
 import { getRegistryEntry } from '@/server/services/admin/registry';
 import { ADMIN_ENTITY_KEYS } from '@/shared/validation/admin';
+import { canAccessEntity } from '@/server/services/admin/auth';
 import { adminCreateAction } from '@/app/data/[entity]/actions';
 
 interface PageProps {
@@ -37,7 +38,7 @@ export default async function DataEntityNewPage({ params }: PageProps) {
   if (!meta) notFound();
   if (meta.workflow === 'queue') redirect('/requests');
   if (!(ADMIN_ENTITY_KEYS as readonly string[]).includes(entity)) notFound();
-  if (!ctx.activeRoles.includes(meta.requiresRole.edit)) notFound();
+  if (!canAccessEntity(ctx, entity as EntityKey, 'edit')) notFound();
 
   const entry = getRegistryEntry(entity as EntityKey);
   const descriptors = entry.formFields.create;

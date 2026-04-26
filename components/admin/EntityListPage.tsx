@@ -17,6 +17,7 @@ import type { TRPCContext } from '@/server/lib/trpc';
 import { entityMetadata } from '@/server/admin/entity-metadata';
 import type { EntityKey } from '@/server/admin/entity-metadata';
 import { listEntity } from '@/server/services/admin/crud';
+import { canAccessEntity } from '@/server/services/admin/auth';
 
 interface EntityListPageProps {
   readonly entity: EntityKey;
@@ -38,7 +39,7 @@ export async function EntityListPage({ entity, ctx, search }: EntityListPageProp
   if (!meta) {
     return null;
   }
-  const canEdit = ctx.activeRoles.includes(meta.requiresRole.edit);
+  const canEdit = canAccessEntity(ctx, entity, 'edit');
   const { rows, total } = await listEntity(entity, { search });
 
   return (

@@ -16,6 +16,7 @@ import type { EntityKey } from '@/server/admin/entity-metadata';
 import { getEntityRaw } from '@/server/services/admin/crud';
 import { getRegistryEntry } from '@/server/services/admin/registry';
 import { RowMutationButton } from '@/components/admin/RowMutationButton';
+import { canAccessEntity } from '@/server/services/admin/auth';
 
 interface EntityDetailPageProps {
   readonly entity: EntityKey;
@@ -41,7 +42,7 @@ export async function EntityDetailPage({ entity, id, ctx }: EntityDetailPageProp
   const row = await getEntityRaw(entity, id);
   if (!row) notFound();
 
-  const canEdit = ctx.activeRoles.includes(meta.requiresRole.edit);
+  const canEdit = canAccessEntity(ctx, entity, 'edit');
   const isDeleted = row.deletedAt instanceof Date;
   const fieldNames = Object.keys(row).sort();
 

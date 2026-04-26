@@ -19,6 +19,7 @@ import { entityMetadata } from '@/server/admin/entity-metadata';
 import type { EntityKey } from '@/server/admin/entity-metadata';
 import { EntityListPage } from '@/components/admin/EntityListPage';
 import { ADMIN_ENTITY_KEYS } from '@/shared/validation/admin';
+import { canAccessEntity } from '@/server/services/admin/auth';
 
 interface PageProps {
   params: Promise<{ entity: string }>;
@@ -52,7 +53,7 @@ export default async function DataEntityPage({ params, searchParams }: PageProps
   }
 
   // Server-side role gate (also enforced in the procedure middleware).
-  if (!ctx.activeRoles.includes(meta.requiresRole.view)) notFound();
+  if (!canAccessEntity(ctx, entity as EntityKey, 'view')) notFound();
 
   return (
     <>

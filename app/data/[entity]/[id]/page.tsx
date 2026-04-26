@@ -14,6 +14,7 @@ import { entityMetadata } from '@/server/admin/entity-metadata';
 import type { EntityKey } from '@/server/admin/entity-metadata';
 import { EntityDetailPage } from '@/components/admin/EntityDetailPage';
 import { ADMIN_ENTITY_KEYS } from '@/shared/validation/admin';
+import { canAccessEntity } from '@/server/services/admin/auth';
 
 interface PageProps {
   params: Promise<{ entity: string; id: string }>;
@@ -35,7 +36,7 @@ export default async function DataEntityDetailPage({ params }: PageProps) {
   if (!meta) notFound();
   if (meta.workflow === 'queue') redirect('/requests');
   if (!(ADMIN_ENTITY_KEYS as readonly string[]).includes(entity)) notFound();
-  if (!ctx.activeRoles.includes(meta.requiresRole.view)) notFound();
+  if (!canAccessEntity(ctx, entity as EntityKey, 'view')) notFound();
 
   return (
     <>
