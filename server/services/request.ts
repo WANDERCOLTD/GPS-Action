@@ -1,12 +1,13 @@
 /**
- * @build-unit BU-requests-foundation BU-requests-urgent
- * @spec architecture/decision-log.md (D054, D055, D058)
+ * @build-unit BU-requests-foundation BU-requests-urgent BU-requests-vetting
+ * @spec architecture/decision-log.md (D054, D055, D056, D057, D058)
  * @spec product/scenarios.md (SCN-21, SCN-22, SCN-23)
  * @spec architecture/claim-and-lease.md
  *
- * Request service — read queries (BU-requests-foundation) plus
- * createUrgent / claim / resolve write actions (BU-requests-urgent).
- * Audience-toggled comments still arrive in BU-requests-vetting.
+ * Request service — read queries + write actions (claim/resolve/
+ * createUrgent). State-transition writes auto-emit a system-comment
+ * on the timeline + a Notification to the submitter (D057).
+ *
  * Layer boundary: services → db + lib + shared only.
  */
 
@@ -14,6 +15,38 @@ import type { Prisma, Request, RequestStatus, RequestType } from '@prisma/client
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
 import { getSystemSettingInt } from '@/server/services/system-setting';
+import { createNotification } from '@/server/services/notification';
+
+// Sentinel system-user identity for auto-written timeline comments
+// (BU-requests-vetting). Seed creates this user; service upserts on
+// first call so it works in any environment.
+const SYSTEM_USER_EMAIL = 'system@gps-action.test';
+let cachedSystemUserId: string | null = null;
+
+async function getSystemUserId(): Promise<string> {
+  if (cachedSystemUserId) return cachedSystemUserId;
+  const user = await prisma.user.upsert({
+    where: { email: SYSTEM_USER_EMAIL },
+    create: { email: SYSTEM_USER_EMAIL, displayName: 'system' },
+    update: {},
+    select: { id: true },
+  });
+  cachedSystemUserId = user.id;
+  return user.id;
+}
+
+/** Write a system-comment to a Request's comment thread (audience: 'all'). */
+async function writeSystemComment(input: { requestId: string; body: string }): Promise<void> {
+  const systemUserId = await getSystemUserId();
+  await prisma.comment.create({
+    data: {
+      requestId: input.requestId,
+      authorId: systemUserId,
+      body: input.body,
+      audience: 'all',
+    },
+  });
+}
 
 export interface RequestListItem {
   id: string;
@@ -242,6 +275,29 @@ export async function claimRequest(input: {
     context: { source: 'requests_workspace' },
   });
 
+  // BU-requests-vetting: timeline + submitter notification
+  const claimer = await prisma.user.findUnique({
+    where: { id: input.userId },
+    select: { displayName: true },
+  });
+  const fullRequest = await prisma.request.findUnique({
+    where: { id: input.requestId },
+    select: { createdByUserId: true },
+  });
+  await writeSystemComment({
+    requestId: input.requestId,
+    body: `${claimer?.displayName ?? 'Someone'} picked up this request.`,
+  });
+  if (fullRequest?.createdByUserId && fullRequest.createdByUserId !== input.userId) {
+    await createNotification({
+      recipientUserId: fullRequest.createdByUserId,
+      type: 'request_status_changed',
+      requestId: input.requestId,
+      fromUserId: input.userId,
+      message: `${claimer?.displayName ?? 'Someone'} picked up your request`,
+    });
+  }
+
   return { ok: true };
 }
 
@@ -289,6 +345,26 @@ export async function resolveRequest(input: {
     },
     context: { source: 'requests_workspace' },
   });
+
+  // BU-requests-vetting: timeline + submitter notification
+  const resolver = await prisma.user.findUnique({
+    where: { id: input.userId },
+    select: { displayName: true },
+  });
+  const noteFragment = input.notes ? ` — "${input.notes.slice(0, 120)}"` : '';
+  await writeSystemComment({
+    requestId: input.requestId,
+    body: `${resolver?.displayName ?? 'Someone'} resolved this request${noteFragment}.`,
+  });
+  if (existing.createdByUserId && existing.createdByUserId !== input.userId) {
+    await createNotification({
+      recipientUserId: existing.createdByUserId,
+      type: 'request_resolved',
+      requestId: input.requestId,
+      fromUserId: input.userId,
+      message: `${resolver?.displayName ?? 'Someone'} resolved your request`,
+    });
+  }
 
   return { ok: true };
 }

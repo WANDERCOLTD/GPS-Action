@@ -374,6 +374,22 @@ async function main(): Promise<void> {
     console.warn('  ✓ Cary already has queue_manager role');
   }
 
+  // ── System user (BU-requests-vetting / D057) ─────────────────────────
+  // Sentinel author for auto-written timeline comments on state transitions.
+  // Service upserts at write time too; seeding here makes it deterministic.
+
+  const systemUserId = '00000000-0000-4000-8000-00000000c001';
+  await prisma.user.upsert({
+    where: { email: 'system@gps-action.test' },
+    create: {
+      id: systemUserId,
+      email: 'system@gps-action.test',
+      displayName: 'system',
+    },
+    update: {},
+  });
+  console.warn('  ✓ system user (BU-requests-vetting) ensured');
+
   // ── Demo Requests (BU-requests-foundation / D054 / SCN-21) ───────────
 
   const eddieId = userIds['eddie']!;
@@ -399,7 +415,16 @@ async function main(): Promise<void> {
         createdByUserId: eddieId,
       },
     });
-    console.warn('  ✓ Demo vetting Request created for Eddie');
+    // System welcome comment so the timeline isn't empty on demo open
+    await prisma.comment.create({
+      data: {
+        requestId: eddieVettingId,
+        authorId: systemUserId,
+        body: 'Eddie submitted this request.',
+        audience: 'all',
+      },
+    });
+    console.warn('  ✓ Demo vetting Request created for Eddie (with system welcome)');
   } else {
     console.warn('  ✓ Demo vetting Request for Eddie already present');
   }

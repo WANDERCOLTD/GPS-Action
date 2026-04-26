@@ -162,6 +162,10 @@ model User {
   // System settings (BU-requests-urgent — D058)
   systemSettingsUpdated SystemSetting[] @relation("systemSettingsUpdated")
 
+  // Notifications (BU-requests-vetting — D057)
+  notificationsReceived Notification[] @relation("notificationsReceived")
+  notificationsSent     Notification[] @relation("notificationsSent")
+
   @@index([deletedAt])
   @@index([verifiedAt])
 }
@@ -280,6 +284,10 @@ model Request {
 
   deletedAt DateTime?
   updatedAt DateTime  @updatedAt
+
+  // Comments + notifications (BU-requests-vetting — D056, D057)
+  comments      Comment[]      @relation("requestComments")
+  notifications Notification[]
 
   @@index([status, priority, createdAt])
   @@index([claimedByUserId, status])
@@ -798,8 +806,14 @@ model Reaction {
 model Comment {
   id String @id @default(uuid())
 
-  postId String
-  post   Post   @relation("postComments", fields: [postId], references: [id], onDelete: Cascade)
+  // BU-requests-vetting: Comment is now polymorphic — exactly one of
+  // postId / requestId is non-null (app-level invariant; both nullable
+  // at the DB level).
+  postId String?
+  post   Post?   @relation("postComments", fields: [postId], references: [id], onDelete: Cascade)
+
+  requestId String?
+  request   Request? @relation("requestComments", fields: [requestId], references: [id], onDelete: Cascade)
 
   authorId String
   author   User   @relation("commentAuthor", fields: [authorId], references: [id], onDelete: Restrict)
@@ -819,6 +833,7 @@ model Comment {
   reactions Reaction[] @relation("commentReactions")
 
   @@index([postId, createdAt])
+  @@index([requestId, createdAt])
   @@index([authorId, createdAt])
   @@index([deletedAt])
 }
@@ -826,4 +841,47 @@ model Comment {
 enum CommentAudience {
   all
   reviewers
+}
+
+// ─── Notification ────────────────────────────────────────────────────────────
+//
+// BU-requests-vetting / D057. In-app notifications surfaced inside the
+// Requests tab (Option B). Triggered by:
+//   - @mention in a Request comment (NotificationType.request_mention)
+//   - Request status transition (created/claimed/resolved)
+//   - Send-for-Review approve/archive actions (D063)
+//
+// MVP: in-app polling only (no push, no email). Per-user notification
+// preferences are deferred to BU-account.
+model Notification {
+  id              String           @id @default(uuid())
+  recipientUserId String
+  recipient       User             @relation("notificationsReceived", fields: [recipientUserId], references: [id], onDelete: Cascade)
+
+  type            NotificationType
+
+  // Optional polymorphic context — present when the notification refers
+  // to a specific Request. (Future types may reference posts; currently
+  // only Request-related notifications.)
+  requestId       String?
+  request         Request?         @relation(fields: [requestId], references: [id], onDelete: SetNull)
+
+  fromUserId      String?
+  fromUser        User?            @relation("notificationsSent", fields: [fromUserId], references: [id], onDelete: SetNull)
+
+  message         String?
+
+  createdAt       DateTime         @default(now())
+  readAt          DateTime?
+
+  @@index([recipientUserId, readAt, createdAt])
+  @@index([requestId])
+}
+
+enum NotificationType {
+  request_status_changed
+  request_mention
+  request_resolved
+  request_published
+  request_archived
 }

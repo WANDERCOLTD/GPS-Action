@@ -28,10 +28,10 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-17 | System auto-comments on a closing campaign | 0 | — | — | parked |
 | SCN-18 | Eddie writes his first post (the demo flow) | 2 | BU-composer, BU-fab-intent-picker, BU-feed | D044, D062 | ✓ shipped |
 | SCN-19 | Sharon shares a Guardian article with a preview card | 2 | BU-composer, BU-link-share | D060, D061 | ✓ shipped |
-| SCN-20 | Eddie reads the Sky News post and writes his first comment | 11 | BU-comments, BU-reactions | D045, D050, D052 | ✓ shipped |
-| SCN-21 | Eddie tracks his vetting application from submission to outcome | 2 | BU-requests-foundation, BU-requests-urgent | D054, D055, D058 | ✓ shipped |
-| SCN-22 | Sharon picks up and resolves Eddie's vetting application | 2 | BU-requests-foundation, BU-requests-urgent | D054, D055, D058 | ✓ shipped |
-| SCN-23 | Maya raises an urgent alert at the school gate | 3 | BU-requests-foundation, BU-requests-urgent | D054, D055, D058 | ✓ shipped |
+| SCN-20 | Eddie reads the Sky News post and writes his first comment | 11 | BU-comments, BU-reactions, BU-requests-vetting | D045, D050, D052, D056, D057 | ✓ shipped |
+| SCN-21 | Eddie tracks his vetting application from submission to outcome | 6 | BU-comments, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D052, D054, D055, D056, D057, D058, D061 | ✓ shipped |
+| SCN-22 | Sharon picks up and resolves Eddie's vetting application | 6 | BU-comments, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D052, D054, D055, D056, D057, D058, D061 | ✓ shipped |
+| SCN-23 | Maya raises an urgent alert at the school gate | 3 | BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D054, D055, D056, D057, D058 | ✓ shipped |
 
 ## Build Units
 
@@ -42,7 +42,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-001-lite | 11 | — | D003, D007, D042 |
 | BU-001-prep | 1 | — | — |
 | BU-admin-crud | 21 | — | — |
-| BU-comments | 9 | SCN-20 | D045, D052 |
+| BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057 |
 | BU-composer | 7 | SCN-18, SCN-19 | D044, D045, D048, D060, D062 |
 | BU-error-boundary | 2 | — | D003, D037 |
 | BU-fab-intent-picker | 4 | SCN-18 | D044, D045, D048, D060, D061, D062 |
@@ -50,8 +50,9 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-healthcheck | 3 | — | D037 |
 | BU-link-share | 5 | SCN-19 | D045, D048, D060, D061, D062 |
 | BU-reactions | 9 | SCN-3, SCN-20 | D036, D050, D052 |
-| BU-requests-foundation | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D058, D061 |
-| BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D058, D061 |
+| BU-requests-foundation | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061 |
+| BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061 |
+| BU-requests-vetting | 7 | SCN-20, SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061 |
 | BU-seed | 1 | — | D038 |
 
 ## ADRs (referenced by code)
@@ -68,10 +69,12 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D048 | Post axes taxonomy + deferred PostType | 2 |
 | D050 | Reaction schema, fixed 8-emoji set, polymorphic target | 7 |
 | D052 | Comment schema + polymorphic reuse of ReactionTargetType | 13 |
-| D054 | Request entity (the unified "things needing decision/discussion" surface) | 5 |
-| D055 | Per-type role scopes (granular reviewer permissions) | 2 |
+| D054 | Request entity (the unified "things needing decision/discussion" surface) | 6 |
+| D055 | Per-type role scopes (granular reviewer permissions) | 3 |
+| D056 | Comment audience model (reviewer-internal vs all-participant) | 5 |
+| D057 | Notifications entity + in-app delivery | 7 |
 | D058 | Urgent flag, AlertCategory, admin-configurable TTL, polling | 5 |
 | D060 | Post schema additions for link-share preview cards | 5 |
-| D061 | Global tap interaction pattern | 4 |
+| D061 | Global tap interaction pattern | 5 |
 | D062 | PostKind table + alert orthogonality | 4 |
 

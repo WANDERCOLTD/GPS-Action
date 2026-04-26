@@ -21,6 +21,8 @@ interface AppNavProps {
   active?: 'feed' | 'compose' | 'requests' | 'data' | 'settings' | null;
   /** True when the caller has any reviewer scope (queue_manager role/scope). */
   hasReviewerAccess?: boolean;
+  /** Unread Notification count (BU-requests-vetting / D057). Renders a red dot when > 0. */
+  unreadNotificationCount?: number;
 }
 
 const linkStyle: CSSProperties = {
@@ -38,7 +40,11 @@ const activeStyle: CSSProperties = {
   fontWeight: 600,
 };
 
-export function AppNav({ active = null, hasReviewerAccess = false }: AppNavProps) {
+export function AppNav({
+  active = null,
+  hasReviewerAccess = false,
+  unreadNotificationCount = 0,
+}: AppNavProps) {
   return (
     <nav
       data-testid="nav-app-strip"
@@ -61,9 +67,36 @@ export function AppNav({ active = null, hasReviewerAccess = false }: AppNavProps
       <Link
         href="/requests"
         data-testid="nav-requests-link"
-        style={active === 'requests' ? activeStyle : linkStyle}
+        style={{
+          ...(active === 'requests' ? activeStyle : linkStyle),
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 'var(--space-1)',
+        }}
       >
         Requests{hasReviewerAccess ? ' (reviewer)' : ''}
+        {unreadNotificationCount > 0 && (
+          <span
+            data-testid="nav-requests-unread-dot"
+            data-count={unreadNotificationCount}
+            aria-label={`${unreadNotificationCount} unread notifications`}
+            style={{
+              display: 'inline-block',
+              minWidth: 16,
+              height: 16,
+              lineHeight: '16px',
+              padding: '0 5px',
+              borderRadius: 'var(--radius-pill)',
+              background: 'var(--colour-urgent)',
+              color: 'var(--colour-urgent-contrast)',
+              fontSize: 'var(--text-2xs)',
+              fontWeight: 700,
+              textAlign: 'center' as const,
+            }}
+          >
+            {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+          </span>
+        )}
       </Link>
       <Link
         href="/data"
