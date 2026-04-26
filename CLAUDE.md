@@ -210,3 +210,62 @@ build the requested work, STOP and surface the question to the user.
 - **Before Build Unit #1 starts** → Phase 0 (`docs/build/phase-0-foundations.md`) must be complete
 - **Fortnightly engineering review** → walk `docs/build/engineering-roadmap.md`, update triggers, log adopted items
 - **New engineering idea surfaces in chat?** → log to engineering-roadmap.md within 48 hours or it dies
+
+## Random Thought Log (RT)
+
+A lightweight capture-and-investigate stream for product/UX/engineering thoughts as they occur. File: `docs/random-thoughts.md`. Format spec lives in that file.
+
+### Trigger: user message starts with `RT:`
+
+When the user's message begins with `RT:` (case-sensitive, followed by space), do this without further confirmation:
+
+1. **Allocate ID.** Read `docs/random-thoughts.md`, find the highest existing `RT-NNN`, increment by 1. First entry is `RT-001`.
+2. **Append entry.** Add a new entry under `## Entries` using the template at the top of `random-thoughts.md`. Strip the `RT: ` prefix from the user's message; the rest is the verbatim thought. Update the `## Index` block.
+3. **Commit direct to `main`.** This file is the documented exception to branch-and-PR discipline — it's a personal thought stream, not engineering code. Commit message: `docs(rt): RT-NNN — <first 50 chars of thought>`. Push.
+4. **Spawn background investigation agent.** Use the `Agent` tool with `run_in_background: true` and the prompt template below.
+5. **Tell the user one line.** "RT-NNN logged. Investigation agent running in the background." Continue with whatever the user was doing before.
+
+### Investigation agent prompt template
+
+```
+Investigate Random Thought RT-NNN in the GPS Action codebase. The thought is:
+
+> <verbatim thought>
+
+Read these to ground your investigation:
+- docs/product/scenarios.md (existing UX scenarios)
+- docs/architecture/decision-log.md (ADRs)
+- docs/product/parking-lot.md (parked ideas)
+- docs/build/engineering-roadmap.md (engineering candidates)
+- The relevant code surface for the thought (use grep/Glob)
+
+Append your findings to the RT-NNN entry in `docs/random-thoughts.md` under the `### Agent investigation` heading, using exactly the format the file's "Entry format" section specifies:
+
+1. Clarifying questions (2–4 sharp questions only — what would change the implementation if answered differently)
+2. Overlap with existing work (cite SCN-N, D-NNN, parking-lot section, or roadmap row if relevant; "none" is a valid answer)
+3. Implementation sketch (3–6 bullets at the level of "what would change in which file")
+4. Promotion suggestion (parking-lot | scenario | brief | reject) + a one-line reason
+
+Then update the entry's **Status** line to `investigated · <today's date YYYY-MM-DD>`.
+
+Commit your changes direct to main: `docs(rt): RT-NNN agent investigation`. Push.
+
+Keep the entire investigation under 60 lines. This is a thought log, not a brief — be terse.
+```
+
+### Trigger: user message starts with `RT-promote: RT-NNN`
+
+When the user types `RT-promote: RT-NNN <optional destination hint>`:
+
+1. Read RT-NNN's entry. Look at its `Promotion suggestion`.
+2. Execute the promotion:
+   - **parking-lot** → append a section to `docs/product/parking-lot.md` (use existing format conventions there)
+   - **scenario** → draft a new scenario in `docs/product/scenarios.md` (next SCN-NN), with the `<!-- @no-code-yet -->` marker
+   - **brief** → create a session brief stub in `docs/build/session-briefs/`
+   - **reject** → just flip the status (no destination)
+3. Update RT-NNN's `**Status:**` to `promoted to <destination ID> · YYYY-MM-DD`.
+4. Commit direct to main: `docs(rt): promote RT-NNN → <destination>`. Push.
+
+### Trigger: user message starts with `RT-reject: RT-NNN`
+
+Flip RT-NNN's status to `rejected · YYYY-MM-DD — <reason>`. Commit + push direct to main. One-line acknowledgement to user.
