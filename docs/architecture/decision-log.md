@@ -2404,3 +2404,142 @@ Examples:
 - D044 (FAB intent-cards composer — the alert tile lands when
   BU-composer-fab ships per D058)
 - SCN-21, SCN-22, SCN-23 — canonical Requests UX scenarios
+
+---
+
+# D055 — Per-type role scopes (granular reviewer permissions)
+
+**Date:** 2026-04-26
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** BU-requests (forthcoming)
+
+## Context
+
+Today the `queue_manager` role is one flat capability — anyone with
+the role sees every work item across all 8 types. Per the
+real-world pattern surfaced in scenarios:
+
+- SCN-12 has Sharon as "a writer with the vetter permission flag" —
+  per-type specialisation, not generalist
+- SCN-10 has Maya doing flag triage — different scope
+- SCN-14 has Jeremy at director level
+
+The flat model conflates two different deployments:
+
+1. A small pilot team where everyone does everything (flat is fine)
+2. A scaled team where vetters specialise on vetting and flag-mods
+   specialise on flags (flat over-permissions everyone)
+
+Today's pilot-stage GPS Action is closer to (1), but the schema
+choice now affects (2). Granular scopes don't cost much at MVP and
+prevent retrofitting later.
+
+## Decision
+
+`RoleGrant` gains a `scope` column. Granted permissions become a
+`(role, scope)` pair.
+
+### Schema
+
+```prisma
+model RoleGrant {
+  // existing fields preserved
+  role  SystemRole
+  scope String      @default("*")  // NEW
+}
+```
+
+### Scope values
+
+A free-text column with conventional values; service-layer
+validation enforces the convention.
+
+| Scope                | Meaning                                                            |
+| -------------------- | ------------------------------------------------------------------ |
+| `*`                  | All scopes (matches every type). The default for backwards-compat. |
+| `vetting`            | Only `vetting` Request type                                        |
+| `flag`               | Only `flag`                                                        |
+| `flag:child_safety`  | Only flags with the child-safety category                          |
+| `outcome_review`     | Only outcome reviews                                               |
+| `edit_request`       | Only member edit requests                                          |
+| `incident`           | Only incidents                                                     |
+| `content_submission` | Only content submissions                                           |
+| `link_submission`    | Only link submissions                                              |
+| `dedup_merge`        | Only dedup merges                                                  |
+| `draft_post`         | Only post drafts                                                   |
+| `system_suggestion`  | Only system tips                                                   |
+| `alert`              | Only alerts                                                        |
+
+A user can hold multiple grants — Sharon might have
+`(queue_manager, vetting)` and `(queue_manager, draft_post)`.
+
+### `requireRole` middleware update
+
+`server/lib/trpc.ts` `requireRole` middleware accepts an optional
+scope:
+
+```ts
+requireRole('queue_manager', { scope: 'vetting' });
+// passes if user has any grant where:
+//   role = queue_manager AND (scope = 'vetting' OR scope = '*')
+```
+
+For `admin` role, scope is ignored (admin = always `*`).
+
+For procedures that don't care about scope (e.g.
+`requests.listMine` for submitters), `requireRole` isn't called —
+plain `authedProcedure` is used.
+
+### Visibility vs action separation
+
+Two different scope checks at two different layers:
+
+| Check                     | Used for                                                                                                                                        |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **List/visibility scope** | "Which requests can this user _see_ in their Requests tab?" Filters at query level. Out-of-scope items don't appear (except urgent — see D058). |
+| **Action scope**          | "Can this user _claim, comment-as-reviewer, or resolve_ this request?" Enforced in mutation procedures via `requireRole({ scope: <type> })`.    |
+
+The two are linked: if you can't see it, you can't act on it (the
+API rejects). But you might see something (urgent broadcast) you
+can't act on.
+
+### Director — not a separate role
+
+Per the user's call: directors stay as `admin` role. Director-only
+tools (lineage check, network pin) check on `admin` plus a specific
+user attribute or named permission grant — not a new role tier.
+Captured in BU-admin's brief when it ships.
+
+## Consequences
+
+- `RoleGrant` migration: add `scope String DEFAULT '*'`. Existing
+  rows backfill to `'*'` (preserving today's flat behaviour).
+- `server/lib/trpc.ts` `requireRole` accepts an options object with
+  `scope`. Backwards-compat for non-Request procedures.
+- Admin UI for granting roles (BU-admin) gains a scope picker
+  alongside the existing role picker.
+- Audit log entries on grant/revoke include the scope value.
+- F06 rule 4 (`no-inline-auth-check`) continues to reject inline
+  `ctx.user.role` checks — middleware does the work.
+
+## Alternatives considered
+
+- **Stay flat (one queue_manager role)**. Rejected — locks the
+  product into "everyone sees everything" and creates a future
+  migration when scopes inevitably arrive.
+- **Per-type roles instead of (role, scope)**. Rejected — creating
+  `vetter`, `flag_mod`, etc. as separate roles fragments the
+  permission model. (Role, scope) keeps the role tier (member /
+  queue_manager / admin) clean and adds scope as an orthogonal
+  axis.
+- **Hierarchical scopes** (e.g. `queue_manager:flag:*` matches
+  `queue_manager:flag:child_safety`). Rejected — over-engineered
+  for MVP. Sub-scopes are explicit strings; matching is exact
+  except for `*` wildcard.
+
+## Related
+
+- D042 (coordinator vs queue-manager identity split — preserved)
+- D054 (Request entity — companion)
+- F06 rule 4 (`no-inline-auth-check`) — middleware-only enforcement
