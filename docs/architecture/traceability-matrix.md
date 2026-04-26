@@ -46,9 +46,9 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-admin-crud | 21 | — | — |
 | BU-am-link-collapse | 4 | SCN-19 | D060, D061, D062 |
 | BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057 |
-| BU-composer | 7 | SCN-18, SCN-19 | D044, D045, D048, D060, D062 |
+| BU-composer | 8 | SCN-18, SCN-19 | D044, D045, D048, D060, D061, D062 |
 | BU-error-boundary | 2 | — | D003, D037 |
-| BU-fab-intent-picker | 6 | SCN-18, SCN-19 | D044, D045, D048, D060, D061, D062 |
+| BU-fab-intent-picker | 7 | SCN-18, SCN-19 | D044, D045, D048, D060, D061, D062 |
 | BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060 |
 | BU-healthcheck | 3 | — | D037 |
 | BU-link-share | 5 | SCN-19 | D045, D048, D060, D061, D062 |
@@ -67,7 +67,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D037 | Observability stack — Sentry + PostHog + Better Stack | 3 |
 | D038 | Traceability infrastructure — YAML frontmatter + file annotations + `trace` script | 1 |
 | D042 | Coordinator identity vs queue_manager permission — split into two concepts | 1 |
-| D044 | Intent-first post creation (FAB cards model) | 2 |
+| D044 | Intent-first post creation (FAB cards model) | 3 |
 | D045 | Public-by-default post visibility with author override | 4 |
 | D048 | Post axes taxonomy + deferred PostType | 2 |
 | D050 | Reaction schema, fixed 8-emoji set, polymorphic target | 7 |
@@ -78,6 +78,6 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D057 | Notifications entity + in-app delivery | 7 |
 | D058 | Urgent flag, AlertCategory, admin-configurable TTL, polling | 5 |
 | D060 | Post schema additions for link-share preview cards | 6 |
-| D061 | Global tap interaction pattern | 5 |
-| D062 | PostKind table + alert orthogonality | 6 |
+| D061 | Global tap interaction pattern | 6 |
+| D062 | PostKind table + alert orthogonality | 7 |
 
