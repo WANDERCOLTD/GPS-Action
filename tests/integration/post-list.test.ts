@@ -56,11 +56,12 @@ function authedContext(): TRPCContext {
       deletedAt: null,
     },
     activeRoles: [],
+    activeScopes: [],
   };
 }
 
 function anonContext(): TRPCContext {
-  return { user: null, activeRoles: [] };
+  return { user: null, activeRoles: [], activeScopes: [] };
 }
 
 function makeDbPost(overrides: Record<string, unknown> = {}) {
@@ -72,6 +73,11 @@ function makeDbPost(overrides: Record<string, unknown> = {}) {
     body: 'Test body content',
     visibility: 'public' as const,
     activistMailerUrl: null,
+    linkUrl: null,
+    linkTitle: null,
+    linkDescription: null,
+    linkImageUrl: null,
+    linkSiteName: null,
     groupTags: [],
     createdAt: now,
     updatedAt: now,

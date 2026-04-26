@@ -54,11 +54,12 @@ function authedContext(): TRPCContext {
       deletedAt: null,
     },
     activeRoles: [],
+    activeScopes: [],
   };
 }
 
 function publicContext(): TRPCContext {
-  return { user: null, activeRoles: [] };
+  return { user: null, activeRoles: [], activeScopes: [] };
 }
 
 beforeEach(() => {
