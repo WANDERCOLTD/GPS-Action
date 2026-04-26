@@ -3228,7 +3228,330 @@ afternoon.
 
 - CLAUDE.md ("contract-locked schema" rule)
 - D059 directly authorises future BU-prisma-7
-- D060 (forthcoming) — specific schema edits Prisma 7 requires
+- D062 (forthcoming, reserved) — specific schema edits Prisma 7
+  requires (number bumped from D060 because D060/D061 were drafted
+  first for the link-share work)
 - `docs/build/session-handoffs/dependabot-major-bumps-diagnosis.md`
   — original diagnosis of PR #40
 - Closed PR #40 (Dependabot auto-PR superseded by this ADR)
+
+# D060 — Post schema additions for link-share preview cards
+
+**Date:** 2026-04-26
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** BU-link-share
+
+## Context
+
+SCN-19 (Sharon shares a Guardian article with a preview card) and the
+inbound-sharing.md product spec require GPS Action to render link
+preview cards for shared URLs — title, description, hero image, site
+name, and the URL itself. Today, `Post` has only `activistMailerUrl`
+as a URL field, treated as a CTA button rather than a preview card.
+
+The user's confirmed direction (this session): both `activistMailerUrl`
+and a new `linkUrl` should render through the same preview-card
+primitive ("title, picture, words, action") with no separate button
+treatment for AM URLs. That means we need the same five preview-card
+data fields available regardless of which URL the user supplied.
+
+CLAUDE.md is explicit: `prisma/schema.prisma` is contract-locked and
+edits require an ADR.
+
+## Decisions
+
+### 1. Five new optional fields on `Post`
+
+```prisma
+model Post {
+  // ... existing fields ...
+
+  // Link preview card data (BU-link-share — D060)
+  linkUrl         String?
+  linkTitle       String?
+  linkDescription String?
+  linkImageUrl    String?
+  linkSiteName    String?
+
+  // ... existing fields ...
+}
+```
+
+All five are `String?` (nullable). No backfill needed. Existing posts
+remain unaffected.
+
+### 2. Validation rules at the boundary (zod, not Prisma)
+
+- `linkUrl`: must be a valid URL if present. `https?://` only — no
+  `javascript:`, no `data:`, no `mailto:`. Validated at the tRPC input
+  schema (`shared/validation/post.ts`).
+- `linkTitle`: max 200 chars. Truncate silently in the composer if
+  over, with a tooltip ("trimmed for display").
+- `linkDescription`: max 500 chars. Same truncation rule.
+- `linkImageUrl`: must be a valid URL if present. `https?://` only.
+- `linkSiteName`: max 100 chars.
+
+Schema-level constraints stay loose; product rules live at the API
+boundary so they can evolve without migrations.
+
+### 3. AM URL render policy
+
+Both `activistMailerUrl` and `linkUrl` render through the same
+`<LinkPreviewCard>` primitive — no separate CTA-button treatment for
+AM URLs. The component takes a `size` prop (`'small' | 'large'`) so
+the same component drives the small (in-feed, collapsed-card) and
+large (expanded card + post detail) presentations.
+
+When a post has both an AM URL and a `linkUrl`, both render — AM URL
+first (as it's the primary action), `linkUrl` second (as supporting
+context). MVP shows both stacked.
+
+**AM brand mark.** When `<LinkPreviewCard>` renders an AM URL, it
+displays an AM brand mark (small badge / logo / icon — exact form a
+design call inside BU-link-share) so members visually recognise the
+card as an Activist Mailer action distinct from a generic news-link
+share. Without this affordance, the AM card and the link card look
+identical and members lose the "this is the action" signal.
+
+### 3a. Future direction — primary CTA + multiple secondary CTAs
+
+MVP locks in two URL slots (`activistMailerUrl` + `linkUrl`). The
+future model — confirmed in this session — is: every post has one
+primary CTA (currently the AM URL) plus optional secondary CTAs
+visible inside the post detail. Schema evolution would replace the
+two-slot pattern with a typed `Action[]` array (each action carries
+its own URL, label, role, and ordering).
+
+Out of scope for D060 — captured as a parking-lot row so it surfaces
+when the second-CTA need is real (e.g., share + petition + donate as
+three CTAs on one post). Until then, the two-slot pattern is enough.
+
+### 4. Migration is single-step additive
+
+Five new nullable columns. No backfill. No data movement. No
+two-phase staging needed (per F08 / B05 — additive nullable columns
+are inherently safe). Lands in one Prisma migration:
+
+```sql
+ALTER TABLE "Post"
+  ADD COLUMN "linkUrl" TEXT,
+  ADD COLUMN "linkTitle" TEXT,
+  ADD COLUMN "linkDescription" TEXT,
+  ADD COLUMN "linkImageUrl" TEXT,
+  ADD COLUMN "linkSiteName" TEXT;
+```
+
+### 5. Index policy — none added
+
+Link fields are not query targets in MVP. No `WHERE linkUrl = ...`
+queries; no full-text search across `linkTitle`. If the dedup
+feature (BU-dedup) eventually queries by URL hash, that adds an
+index in its own migration with its own ADR — out of scope for D060.
+
+## Consequences
+
+### Wins
+
+- SCN-19 unblocked: schema supports the manual-fill composer flow
+- AM URL + link URL share one rendering primitive — no UI duplication
+- Additive migration is safe to ship without staging
+- All five fields visible to the OG-scraper (Phase C of BU-link-share)
+  for live auto-fill
+
+### Costs
+
+- Five new fields on `Post` widen the surface; every list endpoint
+  that returns posts must decide whether to project them. Default:
+  always project (they're small, always serialisable, the feed needs
+  them on the small card).
+- Existing tests with hand-built `Post` fixtures need to add the
+  nullable fields (TS will warn, not fail — they're optional).
+- Adds ~50 bytes of nullable column overhead per row. Negligible.
+
+### Open questions deferred to BU-link-share brief
+
+- Composer "Share a link?" toggle vs always-shown — affects
+  composer-form layout
+- OG scrape implementation lives in the brief, not here
+- Image moderation (link images come from external URLs — could be
+  anything) — out of scope; addressed by image-handling.md Phase 2
+
+## Alternatives considered
+
+- **Separate `LinkPreview` table joined to `Post` 1:1**. Rejected —
+  always-1:1 join across two tables for every feed render is wasted
+  IO; a single nullable field group on `Post` matches the access
+  pattern.
+- **JSONB blob `linkPreview JSONB?`**. Rejected — destroys typed
+  access, makes validation harder, no individual-field indexing
+  ever, no nice migration path when fields evolve.
+- **Reuse `activistMailerUrl` for any URL**. Rejected — AM URL has
+  semantic meaning ("call-to-action that the post is recruiting for")
+  distinct from `linkUrl` ("article being shared"). One post can
+  have both.
+- **Add `linkPreviewVersion INT` for cache invalidation**. Rejected
+  — premature; the OG scraper caches in-memory in MVP. If we move
+  to a persistent cache later, invalidation becomes a separate ADR.
+
+## Related
+
+- D045 (Post visibility model — link-share posts inherit visibility rules unchanged)
+- D050 (Reaction polymorphic schema — link-share posts react like any other post)
+- D052 (Comment polymorphic schema — link-share posts comment like any other)
+- D061 (Global tap interaction pattern — defines how the preview card responds to tap)
+- SCN-19 (Sharon shares a Guardian article — primary scenario this serves)
+- `docs/product/image-handling.md` (D046 — phased image strategy; link images are MVP day-1)
+- `docs/product/inbound-sharing.md` (D018 — clipboard detection + share endpoint, Phase B/C of BU)
+
+# D061 — Global tap interaction pattern
+
+**Date:** 2026-04-26
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** Cross-cutting — applies to every UI BU
+
+## Context
+
+GPS Action surfaces are increasingly card-shaped: post cards, comment
+threads, request rows (D054), notification entries (D057), alert
+tiles (D058). Each of these has multiple interactive zones — body
+content, buttons, links, reactions, chevrons, comment counts.
+
+Without an explicit pattern, every BU re-litigates "what does tap
+here do?" That produces inconsistency: in one BU a body tap navigates,
+in another it expands, in a third it does nothing. Members can't
+predict outcomes. Discoverability rots.
+
+The user's question this session — "We have cards, 1-click areas,
+reactions, expand to detail, nav to details page... need to find our
+perfect pattern" — surfaced the gap and asked for a global rule.
+
+This ADR establishes the rule. Every UI BU after this one inherits
+it; existing BUs (BU-feed, BU-composer, BU-comments) get retrofitted
+opportunistically as they're touched.
+
+## Decisions
+
+### 1. Three element classes, three behaviours
+
+| Element class                                                                  | Tap behaviour                                                           |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| **Container / content body**                                                   | Go _deeper_ (collapsed → expanded → detail). Never performs an action.  |
+| **Explicit interactive element** (button, link, icon, chip, link-preview card) | Performs that element's specific action. Never navigates the container. |
+| **Reaction / quick-action UI**                                                 | Performs the quick action. Never expands or navigates.                  |
+
+"Deeper" is a defined progression: every container has at most two
+"deeper" steps. Cards: collapsed → expanded → detail page. Lists:
+list → focused row. Comments: row → reply composer.
+
+### 2. Discoverability rule
+
+Every tappable element carries a visible affordance:
+
+- Buttons have button shape (filled or bordered, not bare text)
+- Links have link colour (`var(--colour-text-link)`)
+- Icons that act have icon styling distinct from decorative icons
+- Chevrons indicate expand/collapse state
+- "Open thread →" or similar link makes navigation discoverable
+
+If it looks like text and isn't styled as a link, it's not tappable.
+
+### 3. Long-press is browser-default
+
+GPS Action does NOT override long-press in MVP / PWA. Browser
+defaults handle text selection, link preview, image save-as. Reasons:
+
+- iOS Safari has its own long-press behaviour that fights any custom
+  override; experience is inconsistent
+- Members reasonably expect to copy text or save an image from a
+  card; overriding long-press breaks that
+- Any contextual-menu need is better served by an explicit `⋯` icon
+  per the discoverability rule
+
+Long-press in native Phase 2 apps is a separate decision, deferred
+to that phase's ADR (will reference D061 as the predecessor).
+
+### 4. State persistence on expand
+
+Card expand/collapse is **session-only**. Reload re-collapses. Not
+URL-encoded. Reasons:
+
+- URL-encoded expand state pollutes share links ("here's the post
+  but also it'll be expanded for you")
+- Most reload paths (browser back, hot-reload, PWA refresh) reset
+  the visual state — keeping it flat avoids surprises
+- The cost of re-expanding after reload is a single tap
+
+### 5. Card three-state model
+
+Cards specifically follow this model:
+
+| State               | Body tap        | Action tap | Reaction tap | Chevron tap  | Comment-count tap         |
+| ------------------- | --------------- | ---------- | ------------ | ------------ | ------------------------- |
+| Collapsed (in feed) | Expand          | Open URL   | Add/remove   | Expand       | Detail page               |
+| Expanded (in feed)  | Detail page     | Open URL   | Add/remove   | Collapse     | Detail page               |
+| Detail page         | (no body click) | Open URL   | Add/remove   | (no chevron) | (focus jumps to comments) |
+
+An "Open thread →" affordance appears at the bottom of the expanded
+state to make detail-nav discoverable, even though body-tap also
+navigates.
+
+### 6. Affordance for "deeper"
+
+Body-tap in collapsed/expanded cards must be discoverable. The
+chevron is the primary affordance. In addition, a textual link
+("tap to expand" / "Open thread →") gives screen-reader users and
+first-time members the discovery path.
+
+## Consequences
+
+### Wins
+
+- One contract for every BU; reviewer doesn't relitigate "what does
+  this tap do" per PR
+- Consistent member mental model: action targets do, body taps go
+  deeper, reactions react
+- Aligns with how X / Bluesky / Slack / LinkedIn / Apple Mail behave
+  — members already know this pattern from elsewhere
+- Long-press neutrality means we inherit browser/OS quality-of-life
+  features for free
+
+### Costs
+
+- Existing BUs need retrofitting where they violate the contract
+  (BU-feed and BU-comments are mostly compliant; minor tightening)
+- Every new component PR has one extra reviewer-checklist item:
+  "follows D061 tap contract"
+- Designers can't make body-tap do an action even when it would be
+  faster — discipline cost
+
+### Open questions
+
+- Does this contract extend to the FAB (D044 intent-cards)? FAB tap
+  opens the composer, FAB long-press would be a global override
+  exception. **Provisional answer: no exception; FAB obeys D061.**
+  Re-open if a real need surfaces.
+- Does this apply to admin surfaces (D054 Requests)? Yes — same
+  contract. Admin views are still card-shaped.
+
+## Alternatives considered
+
+- **Body-tap = action (e.g., body-tap on AM-URL-bearing post = open AM URL)**.
+  Rejected — overloads body tap, fights the discoverability rule, and
+  produces invisible-actions-on-content (the worst kind of UX surprise).
+- **Custom long-press menus everywhere**. Rejected — see §3.
+- **Body-tap = nothing** (only buttons navigate). Rejected — modern
+  cards have body-tap = navigate baked in across every comparable
+  product; rejecting it would feel underbuilt.
+- **Per-BU tap rules**. Rejected — that's exactly what this ADR
+  prevents.
+
+## Related
+
+- D044 (FAB intent-cards composer — FAB is the only would-be exception; provisionally folded into D061)
+- D054 (Requests — admin surface; D061 applies)
+- D060 (Link-share preview cards — first BU to fully exercise D061)
+- design-philosophy.md principle 1 (one-click is king)
+- design-philosophy.md principle 5 (honesty — action targets do what they say)
+- F14 (require-testid — every new tap target also gets a testid)
