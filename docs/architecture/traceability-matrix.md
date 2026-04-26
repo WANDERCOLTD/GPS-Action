@@ -29,9 +29,9 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-18 | Eddie writes his first post (the demo flow) | 2 | BU-composer, BU-feed | — | ✓ shipped |
 | SCN-19 | Sharon shares a Guardian article with a preview card | 2 | BU-composer, BU-link-share | D060, D061 | ✓ shipped |
 | SCN-20 | Eddie reads the Sky News post and writes his first comment | 11 | BU-comments, BU-reactions | D045, D050, D052 | ✓ shipped |
-| SCN-21 | Eddie tracks his vetting application from submission to outcome | 2 | BU-requests-foundation | D054, D055 | ✓ shipped |
-| SCN-22 | Sharon picks up and resolves Eddie's vetting application | 2 | BU-requests-foundation | D054, D055 | ✓ shipped |
-| SCN-23 | Maya raises an urgent alert at the school gate | 0 | — | — | parked |
+| SCN-21 | Eddie tracks his vetting application from submission to outcome | 2 | BU-requests-foundation, BU-requests-urgent | D054, D055, D058 | ✓ shipped |
+| SCN-22 | Sharon picks up and resolves Eddie's vetting application | 2 | BU-requests-foundation, BU-requests-urgent | D054, D055, D058 | ✓ shipped |
+| SCN-23 | Maya raises an urgent alert at the school gate | 6 | BU-requests-foundation, BU-requests-urgent | D044, D054, D055, D058, D061 | ✓ shipped |
 
 ## Build Units
 
@@ -48,7 +48,8 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-healthcheck | 3 | — | D037 |
 | BU-link-share | 5 | SCN-19 | D045, D048, D060, D061 |
 | BU-reactions | 9 | SCN-3, SCN-20 | D036, D050, D052 |
-| BU-requests-foundation | 6 | SCN-21, SCN-22 | D054, D055, D061 |
+| BU-requests-foundation | 6 | SCN-21, SCN-22, SCN-23 | D054, D055, D058, D061 |
+| BU-requests-urgent | 10 | SCN-21, SCN-22, SCN-23 | D044, D054, D055, D058, D061 |
 | BU-seed | 1 | — | D038 |
 
 ## ADRs (referenced by code)
@@ -60,12 +61,14 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D037 | Observability stack — Sentry + PostHog + Better Stack | 3 |
 | D038 | Traceability infrastructure — YAML frontmatter + file annotations + `trace` script | 1 |
 | D042 | Coordinator identity vs queue_manager permission — split into two concepts | 1 |
+| D044 | Intent-first post creation (FAB cards model) | 3 |
 | D045 | Public-by-default post visibility with author override | 4 |
 | D048 | Post axes taxonomy + deferred PostType | 2 |
 | D050 | Reaction schema, fixed 8-emoji set, polymorphic target | 7 |
 | D052 | Comment schema + polymorphic reuse of ReactionTargetType | 13 |
-| D054 | Request entity (the unified "things needing decision/discussion" surface) | 4 |
-| D055 | Per-type role scopes (granular reviewer permissions) | 1 |
+| D054 | Request entity (the unified "things needing decision/discussion" surface) | 5 |
+| D055 | Per-type role scopes (granular reviewer permissions) | 2 |
+| D058 | Urgent flag, AlertCategory, admin-configurable TTL, polling | 10 |
 | D060 | Post schema additions for link-share preview cards | 5 |
-| D061 | Global tap interaction pattern | 2 |
+| D061 | Global tap interaction pattern | 4 |
 

@@ -11,6 +11,7 @@ import { devRouter } from '@/server/routers/dev';
 import { postRouter } from '@/server/routers/post';
 import { reactionRouter } from '@/server/routers/reaction';
 import { commentRouter } from '@/server/routers/comment';
+import { requestRouter } from '@/server/routers/request';
 
 export const appRouter = router({
   // Dev-only router: user picker, login helpers. Unreachable in production.
@@ -19,6 +20,7 @@ export const appRouter = router({
   post: postRouter,
   reaction: reactionRouter,
   comment: commentRouter,
+  request: requestRouter,
 });
 
 export type AppRouter = typeof appRouter;

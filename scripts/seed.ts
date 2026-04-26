@@ -54,6 +54,10 @@ const SEED_USERS = [
     email: 'ingrid@demo.gps-action.test',
     displayName: 'Ingrid Blum',
   },
+  {
+    email: 'maya@demo.gps-action.test',
+    displayName: 'Maya Greenberg',
+  },
 ] as const;
 
 // ── Seed groups ──────────────────────────────────────────────────────────
@@ -423,6 +427,75 @@ async function main(): Promise<void> {
     console.warn('  ✓ Demo flag Request created (Humphrey)');
   } else {
     console.warn('  ✓ Demo flag Request already present');
+  }
+
+  // ── BU-requests-urgent (D058) — AlertCategory + SystemSetting + Maya's alert
+
+  // AlertCategory: "Happening now" — seeded per D058 §4
+  const happeningNowSlug = 'happening-now';
+  const existingHappeningNow = await prisma.alertCategory.findUnique({
+    where: { slug: happeningNowSlug },
+  });
+  if (!existingHappeningNow) {
+    await prisma.alertCategory.create({
+      data: {
+        slug: happeningNowSlug,
+        displayName: 'Happening now',
+        icon: 'alert-triangle',
+        sortOrder: 0,
+      },
+    });
+    console.warn('  ✓ AlertCategory "Happening now" created');
+  } else {
+    console.warn('  ✓ AlertCategory "Happening now" already present');
+  }
+
+  const happeningNowCategory = await prisma.alertCategory.findUniqueOrThrow({
+    where: { slug: happeningNowSlug },
+  });
+
+  // SystemSetting: urgent_ttl_hours = 4 (D058 default)
+  const existingTtl = await prisma.systemSetting.findUnique({ where: { key: 'urgent_ttl_hours' } });
+  if (!existingTtl) {
+    await prisma.systemSetting.create({
+      data: {
+        key: 'urgent_ttl_hours',
+        value: '4',
+        updatedByUserId: betteId,
+      },
+    });
+    console.warn('  ✓ SystemSetting urgent_ttl_hours=4 created');
+  } else {
+    console.warn('  ✓ SystemSetting urgent_ttl_hours already present');
+  }
+
+  // Maya's pre-seeded urgent — SCN-23 starting state
+  const mayaId = userIds['maya']!;
+  const mayaAlertId = '00000000-0000-4000-8000-00000000a003';
+  const existingMayaAlert = await prisma.request.findUnique({ where: { id: mayaAlertId } });
+
+  if (!existingMayaAlert) {
+    await prisma.request.create({
+      data: {
+        id: mayaAlertId,
+        type: 'incident',
+        status: 'unclaimed',
+        priority: 'urgent',
+        urgency: true,
+        urgencyExpiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000),
+        alertCategoryId: happeningNowCategory.id,
+        regionSlug: 'tower-hamlets',
+        context: {
+          summary: 'Antisemitic leaflets at school gate — Cheddar Road, Bristol',
+          body: 'Two people handing out leaflets that appear antisemitic at school pickup. Took photos discreetly. Need someone with media contacts to act fast.',
+          source: 'alert_composer',
+        },
+        createdByUserId: mayaId,
+      },
+    });
+    console.warn('  ✓ Demo urgent alert created (Maya, school gate)');
+  } else {
+    console.warn('  ✓ Demo urgent alert already present');
   }
 
   // ── Seed groups ──────────────────────────────────────────────────────
