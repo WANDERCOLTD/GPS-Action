@@ -66,6 +66,7 @@ export default async function FeedPage() {
       kindSlug: p.kindSlug,
       kindDisplayName: p.kindDisplayName,
       urgency: p.urgency,
+      heroImageUrl: p.heroImageUrl,
       createdAt: p.createdAt.toISOString(),
       author: {
         displayName: p.author.displayName,

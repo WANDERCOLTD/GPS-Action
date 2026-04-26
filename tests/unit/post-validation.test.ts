@@ -169,4 +169,53 @@ describe('postCreateSchema', () => {
       expect(result.success).toBe(false);
     });
   });
+
+  // ── Hero image URL (BU-post-hero-demo / D064) ────────────────────────
+
+  describe('heroImageUrl', () => {
+    it('accepts a URL from the seeded set', () => {
+      const result = postCreateSchema.safeParse({
+        ...validInput,
+        heroImageUrl: '/seed-images/01.svg',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts null to clear the hero', () => {
+      const result = postCreateSchema.safeParse({
+        ...validInput,
+        heroImageUrl: null,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts an empty string (treated as no hero)', () => {
+      const result = postCreateSchema.safeParse({
+        ...validInput,
+        heroImageUrl: '',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts the field being omitted entirely', () => {
+      const result = postCreateSchema.safeParse(validInput);
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects a URL that is not in the seeded set', () => {
+      const result = postCreateSchema.safeParse({
+        ...validInput,
+        heroImageUrl: 'https://malicious.example.com/evil.jpg',
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a path that looks similar but is not in the set', () => {
+      const result = postCreateSchema.safeParse({
+        ...validInput,
+        heroImageUrl: '/seed-images/99.svg',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
 });

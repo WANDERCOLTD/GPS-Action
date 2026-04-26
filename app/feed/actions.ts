@@ -45,6 +45,7 @@ export async function loadMorePosts(cursor: FeedCursor): Promise<LoadMoreResult>
         kindSlug: p.kindSlug,
         kindDisplayName: p.kindDisplayName,
         urgency: p.urgency,
+        heroImageUrl: p.heroImageUrl,
         createdAt: p.createdAt.toISOString(),
         author: {
           displayName: p.author.displayName,
