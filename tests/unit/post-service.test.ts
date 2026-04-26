@@ -81,6 +81,11 @@ describe('listPosts', () => {
       body: 'Test body',
       visibility: 'public',
       activistMailerUrl: null,
+      linkUrl: null,
+      linkTitle: null,
+      linkDescription: null,
+      linkImageUrl: null,
+      linkSiteName: null,
       groupTags: [],
       createdAt: post.createdAt,
       author: {

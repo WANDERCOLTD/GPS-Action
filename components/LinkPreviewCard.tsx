@@ -18,7 +18,10 @@
  */
 
 import type { CSSProperties, ReactElement } from 'react';
+import * as React from 'react';
 import { ExternalLink } from 'lucide-react';
+
+void React;
 
 export type LinkPreviewSize = 'small' | 'large';
 
