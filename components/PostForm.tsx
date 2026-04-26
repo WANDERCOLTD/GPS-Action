@@ -32,8 +32,10 @@ import {
   CalendarDays,
   Users,
   HelpCircle,
+  ChevronDown,
 } from 'lucide-react';
 import type { CreatePostResult } from '@/app/compose/actions';
+import { KindPickerSheet } from './KindPickerSheet';
 
 export interface KindMapEntry {
   id: string;
@@ -180,19 +182,35 @@ function getMeta(intent: string | null | undefined): IntentMeta {
 export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
   const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
-  // For "undecided", the user picks from the selector. Otherwise the intent IS the kind.
+  // currentIntent is initialised from the prop but mutable — tapping the
+  // banner opens KindPickerSheet which calls setCurrentIntent.
+  const [currentIntent, setCurrentIntent] = useState<string | null>(intent);
+  // For "undecided", the user picks from the selector. Otherwise currentIntent IS the kind.
   const [selectedKind, setSelectedKind] = useState(
     intent === 'undecided' ? 'thought' : (intent ?? ''),
   );
-  const isUndecided = intent === 'undecided';
-  const meta = getMeta(isUndecided ? selectedKind : intent);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const isUndecided = currentIntent === 'undecided';
+  const meta = getMeta(isUndecided ? selectedKind : currentIntent);
   // Open the link-share field by default for intents that historically
   // asked for an Activist Mailer URL above-the-fold (call_to_action) or
   // explicitly share-a-link.
-  const showLinkOpenByDefault = intent === 'link_share' || intent === 'call_to_action';
-  const [shareLinkOpen, setShareLinkOpen] = useState(showLinkOpenByDefault);
+  const [shareLinkOpen, setShareLinkOpen] = useState(
+    currentIntent === 'link_share' || currentIntent === 'call_to_action',
+  );
 
   const resolvedKindId = selectedKind ? kindMap[selectedKind]?.id : undefined;
+
+  function handleIntentSwitch(slug: string): void {
+    setCurrentIntent(slug);
+    if (slug === 'undecided') {
+      if (!selectedKind || selectedKind === '') setSelectedKind('thought');
+    } else {
+      setSelectedKind(slug);
+    }
+    if (slug === 'link_share' || slug === 'call_to_action') setShareLinkOpen(true);
+    if (slug === 'cultural') setShareLinkOpen(false);
+  }
 
   function handleSubmit(formData: FormData): void {
     if (resolvedKindId) formData.set('kindId', resolvedKindId);
@@ -212,11 +230,27 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
     <form
       action={handleSubmit}
       data-testid="compose-newpost-form"
-      data-intent={intent ?? 'none'}
+      data-intent={currentIntent ?? 'none'}
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}
     >
-      {/* Intent banner — visual differentiation per FAB tile */}
-      {intent && <IntentBanner meta={meta} testIdSuffix={isUndecided ? selectedKind : intent} />}
+      {/* Intent banner — visual differentiation per FAB tile, also a
+          tappable trigger to switch kinds without losing typed content. */}
+      {currentIntent && (
+        <>
+          <IntentBanner
+            meta={meta}
+            testIdSuffix={isUndecided ? selectedKind : currentIntent}
+            onClick={() => setPickerOpen(true)}
+          />
+          <KindPickerSheet
+            open={pickerOpen}
+            onClose={() => setPickerOpen(false)}
+            onPick={handleIntentSwitch}
+            excludeKeys={['flag', 'edit_request']}
+            title="Change post kind"
+          />
+        </>
+      )}
 
       {/* Form-level error */}
       {errors._form && (
@@ -681,9 +715,10 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
 interface IntentBannerProps {
   meta: IntentMeta;
   testIdSuffix: string;
+  onClick: () => void;
 }
 
-function IntentBanner({ meta, testIdSuffix }: IntentBannerProps) {
+function IntentBanner({ meta, testIdSuffix, onClick }: IntentBannerProps) {
   const bannerStyle: CSSProperties = {
     display: 'flex',
     gap: 'var(--space-3)',
@@ -694,9 +729,21 @@ function IntentBanner({ meta, testIdSuffix }: IntentBannerProps) {
     borderRight: '1px solid var(--colour-border-subtle)',
     borderBottom: '1px solid var(--colour-border-subtle)',
     borderLeft: `4px solid ${meta.accent}`,
+    cursor: 'pointer',
+    width: '100%',
+    textAlign: 'left',
+    fontFamily: 'inherit',
+    color: 'inherit',
   };
   return (
-    <div style={bannerStyle} data-testid="compose-intent-banner" data-intent-key={testIdSuffix}>
+    <button
+      type="button"
+      onClick={onClick}
+      style={bannerStyle}
+      data-testid="compose-intent-banner"
+      data-intent-key={testIdSuffix}
+      aria-label={`${meta.bannerHeading} — tap to change kind`}
+    >
       <div
         style={{
           color: meta.accent,
@@ -708,7 +755,15 @@ function IntentBanner({ meta, testIdSuffix }: IntentBannerProps) {
       >
         {meta.icon}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-1)',
+          flex: 1,
+          minWidth: 0,
+        }}
+      >
         <strong
           style={{
             fontFamily: 'var(--font-ui)',
@@ -730,6 +785,11 @@ function IntentBanner({ meta, testIdSuffix }: IntentBannerProps) {
           {meta.bannerBody}
         </p>
       </div>
-    </div>
+      <ChevronDown
+        size={18}
+        aria-hidden="true"
+        style={{ color: 'var(--colour-text-tertiary)', alignSelf: 'center' }}
+      />
+    </button>
   );
 }
