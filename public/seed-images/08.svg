@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g8" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#922b21"/>
+      <stop offset="100%" stop-color="#c0392b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#g8)"/>
+  <g opacity="0.85" fill="#fff" font-family="system-ui, sans-serif" font-weight="900">
+    <text x="800" y="380" font-size="160" text-anchor="middle">!</text>
+  </g>
+  <g opacity="0.85" fill="none" stroke="#fff" stroke-width="14">
+    <circle cx="800" cy="450" r="220"/>
+  </g>
+  <g opacity="0.5" fill="#fff">
+    <rect x="200" y="700" width="1200" height="6"/>
+  </g>
+  <text x="800" y="820" font-family="system-ui, sans-serif" font-size="32" font-weight="600"
+        fill="#fff" text-anchor="middle" opacity="0.9">Direct action · placeholder</text>
+</svg>

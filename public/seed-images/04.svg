@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g4" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8e44ad"/>
+      <stop offset="100%" stop-color="#e91e63"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#g4)"/>
+  <g opacity="0.25" fill="#fff">
+    <circle cx="280" cy="540" r="120"/>
+    <circle cx="500" cy="500" r="100"/>
+    <circle cx="700" cy="540" r="120"/>
+    <circle cx="920" cy="500" r="100"/>
+    <circle cx="1140" cy="540" r="120"/>
+    <circle cx="1340" cy="500" r="100"/>
+  </g>
+  <g opacity="0.7" fill="#fff">
+    <circle cx="280" cy="380" r="60"/>
+    <circle cx="500" cy="350" r="50"/>
+    <circle cx="700" cy="380" r="60"/>
+    <circle cx="920" cy="350" r="50"/>
+    <circle cx="1140" cy="380" r="60"/>
+    <circle cx="1340" cy="350" r="50"/>
+  </g>
+  <text x="800" y="820" font-family="system-ui, sans-serif" font-size="32" font-weight="600"
+        fill="#fff" text-anchor="middle" opacity="0.85">Community gathering · placeholder</text>
+</svg>
