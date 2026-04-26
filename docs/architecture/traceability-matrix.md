@@ -42,6 +42,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-001-lite | 11 | — | D003, D007, D042 |
 | BU-001-prep | 1 | — | — |
 | BU-admin-audit-integration | 3 | — | — |
+| BU-admin-bulk-ops | 8 | — | — |
 | BU-admin-crud | 21 | — | — |
 | BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057 |
 | BU-composer | 7 | SCN-18, SCN-19 | D044, D045, D048, D060, D062 |
