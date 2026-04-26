@@ -6,7 +6,10 @@
  * @spec architecture/decision-log.md (D053)
  */
 
-import { describe, it, expect } from 'vitest';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { afterEach, beforeEach, describe, it, expect } from 'vitest';
 import {
   parseScenarios,
   parseADRs,
@@ -16,6 +19,8 @@ import {
   runChecks,
   renderMatrix,
   computeImpact,
+  walkSource,
+  loadGraphFromDisk,
 } from '../../scripts/trace';
 
 describe('parseScenarios', () => {
@@ -495,5 +500,202 @@ describe('renderMatrix', () => {
     expect(md1).toContain('SCN-3');
     expect(md1).toContain('parked');
     expect(md1).toContain('✓ shipped');
+  });
+});
+
+describe('walkSource — exclusion is scoped to repo-relative paths', () => {
+  // Regression cover for the bug where EXCLUDED_PATH_FRAGMENTS was
+  // matched against absolute paths. Running the script from inside a
+  // `.claude/worktrees/<name>/` worktree caused every file path to
+  // contain `.claude/worktrees`, so the walker excluded the entire
+  // repo and trace:matrix wiped every shipped scenario.
+  //
+  // The fix matches fragments against paths *relative to* repoRoot.
+  // From a worktree, repoRoot IS the worktree, so the relative path
+  // does NOT contain `.claude/worktrees`. From the primary repo, a
+  // nested `.claude/worktrees/<sub>/...` relative path still matches.
+  let tmpDirs: string[] = [];
+
+  beforeEach(() => {
+    tmpDirs = [];
+  });
+
+  afterEach(() => {
+    for (const d of tmpDirs) {
+      try {
+        rmSync(d, { recursive: true, force: true });
+      } catch {
+        // ignore cleanup failure
+      }
+    }
+  });
+
+  function makeTmp(prefix: string): string {
+    const d = mkdtempSync(join(tmpdir(), prefix));
+    tmpDirs.push(d);
+    return d;
+  }
+
+  it('includes files when repoRoot lives under a .claude/worktrees ancestor', () => {
+    // Simulate the worktree shape: <tmp>/.claude/worktrees/<name>/app/feed/page.tsx
+    // The worktree IS the repo root for the script invocation, so the
+    // file's repo-relative path is `app/feed/page.tsx` — no
+    // `.claude/worktrees` substring — and it must be included.
+    const tmp = makeTmp('trace-worktree-');
+    const worktreeRoot = join(tmp, '.claude', 'worktrees', 'agent-xyz');
+    const featureDir = join(worktreeRoot, 'app', 'feed');
+    mkdirSync(featureDir, { recursive: true });
+    writeFileSync(join(featureDir, 'page.tsx'), 'export const x = 1;\n');
+
+    const found = walkSource(join(worktreeRoot, 'app'), worktreeRoot);
+
+    expect(found).toHaveLength(1);
+    expect(found[0]).toBe(join(worktreeRoot, 'app', 'feed', 'page.tsx'));
+  });
+
+  it('excludes files inside .claude/worktrees/<sub>/ when scanned from the primary repo', () => {
+    // Simulate the primary-repo shape: <repo>/app/feed/page.tsx is
+    // included; <repo>/.claude/worktrees/sub/app/foo.tsx is NOT.
+    const repoRoot = makeTmp('trace-primary-');
+
+    const primaryDir = join(repoRoot, 'app', 'feed');
+    mkdirSync(primaryDir, { recursive: true });
+    writeFileSync(join(primaryDir, 'page.tsx'), 'export const x = 1;\n');
+
+    const worktreeChild = join(repoRoot, '.claude', 'worktrees', 'sub', 'app');
+    mkdirSync(worktreeChild, { recursive: true });
+    writeFileSync(join(worktreeChild, 'foo.tsx'), 'export const y = 2;\n');
+
+    const fromApp = walkSource(join(repoRoot, 'app'), repoRoot);
+    expect(fromApp.map((p) => p.replace(repoRoot, ''))).toEqual(['/app/feed/page.tsx']);
+
+    // Direct walk of the .claude/worktrees subtree from the primary
+    // repo's perspective: every entry's relative path contains
+    // `.claude/worktrees` and must be excluded.
+    const fromClaude = walkSource(join(repoRoot, '.claude'), repoRoot);
+    expect(fromClaude).toEqual([]);
+  });
+
+  it('still excludes node_modules whether scanned from worktree or primary repo', () => {
+    const repoRoot = makeTmp('trace-nm-');
+    const nm = join(repoRoot, 'node_modules', 'pkg');
+    mkdirSync(nm, { recursive: true });
+    writeFileSync(join(nm, 'index.ts'), 'export {};\n');
+    const src = join(repoRoot, 'app');
+    mkdirSync(src, { recursive: true });
+    writeFileSync(join(src, 'page.tsx'), 'export const x = 1;\n');
+
+    const found = walkSource(repoRoot, repoRoot);
+    expect(found.some((p) => p.includes('node_modules'))).toBe(false);
+    expect(found.some((p) => p.endsWith('app/page.tsx'))).toBe(true);
+  });
+});
+
+describe('loadGraphFromDisk — end-to-end pipeline from a worktree-shaped path', () => {
+  // The walker fix already has unit cover above. This suite catches
+  // the END-TO-END regression: the full `trace:check` pipeline
+  // (load + buildGraph + runChecks) must work when REPO_ROOT lives
+  // under a `.claude/worktrees/<name>/` ancestor. Earlier test cover
+  // exercised `walkSource` in isolation but didn't catch a future
+  // regression where another path-comparison bug crept into
+  // `loadGraphFromDisk` itself.
+  let tmpDirs: string[] = [];
+
+  beforeEach(() => {
+    tmpDirs = [];
+  });
+
+  afterEach(() => {
+    for (const d of tmpDirs) {
+      try {
+        rmSync(d, { recursive: true, force: true });
+      } catch {
+        // ignore cleanup failure
+      }
+    }
+  });
+
+  function makeTmp(prefix: string): string {
+    const d = mkdtempSync(join(tmpdir(), prefix));
+    tmpDirs.push(d);
+    return d;
+  }
+
+  function seedRepo(repoRoot: string): void {
+    // Minimal scenarios + decision-log + one source file that backs
+    // the scenario, so runChecks should pass cleanly.
+    mkdirSync(join(repoRoot, 'docs', 'product'), { recursive: true });
+    mkdirSync(join(repoRoot, 'docs', 'architecture'), { recursive: true });
+    mkdirSync(join(repoRoot, 'app', 'feed'), { recursive: true });
+
+    writeFileSync(
+      join(repoRoot, 'docs', 'product', 'scenarios.md'),
+      '### Scenario 1 — Sharon does a thing\n\n_Sharon._\n',
+    );
+    writeFileSync(
+      join(repoRoot, 'docs', 'architecture', 'decision-log.md'),
+      '### D050 · Reactions\n\nBody.\n',
+    );
+    writeFileSync(
+      join(repoRoot, 'app', 'feed', 'page.tsx'),
+      [
+        '/**',
+        ' * @build-unit BU-feed',
+        ' * @spec product/scenarios.md (SCN-1)',
+        ' * @spec architecture/decision-log.md (D050)',
+        ' */',
+        'export const x = 1;',
+      ].join('\n') + '\n',
+    );
+  }
+
+  it('indexes files and passes runChecks when repoRoot is under .claude/worktrees', () => {
+    // Reproduce the original failure mode: REPO_ROOT itself is a
+    // worktree-shaped path. Pre-fix, walkSource matched
+    // `.claude/worktrees` against the absolute `app/feed/page.tsx`
+    // path and excluded the file, leaving SCN-1 with zero backing
+    // code and runChecks reporting a bogus coverage gap.
+    const tmp = makeTmp('trace-e2e-worktree-');
+    const worktreeRoot = join(tmp, '.claude', 'worktrees', 'agent-e2e');
+    seedRepo(worktreeRoot);
+
+    const graph = loadGraphFromDisk(worktreeRoot);
+
+    expect(graph.files.map((f) => f.path)).toEqual(['app/feed/page.tsx']);
+    expect(graph.scenarios.has('SCN-1')).toBe(true);
+    expect(graph.filesByScenario.get('SCN-1')).toEqual(['app/feed/page.tsx']);
+
+    const result = runChecks(graph);
+    expect(result.errors).toEqual([]);
+  });
+
+  it('still excludes nested .claude/worktrees subtrees when repoRoot is the primary repo', () => {
+    // Belt-and-braces: from a primary-repo shape, a nested worktree
+    // directory must still be excluded so in-flight agent work
+    // doesn't pollute the matrix.
+    const repoRoot = makeTmp('trace-e2e-primary-');
+    seedRepo(repoRoot);
+
+    // Plant a file inside .claude/worktrees/<sub>/app/ that, if
+    // included, would create a duplicate-path entry in the graph.
+    const nested = join(repoRoot, '.claude', 'worktrees', 'sub', 'app', 'feed');
+    mkdirSync(nested, { recursive: true });
+    writeFileSync(
+      join(nested, 'page.tsx'),
+      [
+        '/**',
+        ' * @build-unit BU-shadow',
+        ' * @spec product/scenarios.md (SCN-1)',
+        ' */',
+        'export const y = 2;',
+      ].join('\n') + '\n',
+    );
+
+    const graph = loadGraphFromDisk(repoRoot);
+
+    // Only the primary-repo file is indexed. The shadow file under
+    // .claude/worktrees/sub is excluded.
+    expect(graph.files.map((f) => f.path)).toEqual(['app/feed/page.tsx']);
+    expect(graph.buildUnits.has('BU-shadow')).toBe(false);
   });
 });
