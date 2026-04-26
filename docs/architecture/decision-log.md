@@ -3761,3 +3761,106 @@ Storing the draft in `Request.context` is cheap, isolated, and reuses the polymo
 - D062 — PostKind table + orthogonal urgency (the schema this consumes)
 - D056 — Comment audience (reviewer's resolution comment uses `audience: 'all'`)
 - D057 — Notifications (member sees publish/archive outcome)
+
+# D064 — Post.heroImageUrl optional field; demo-stub picker on top of D046's phased plan
+
+**Date:** 2026-04-26
+**Tier:** Architecture
+**Status:** Accepted
+**Build Unit:** BU-post-hero-demo
+
+## Context
+
+Posts today are visually flat. The Post model carries `linkImageUrl`
+(fetched from the linked URL's og:image, per BU-link-share / D060) but
+no member-chosen hero image. The 2026-04-26 WhatsApp pattern review
+made the gap concrete: real activist comms in our target community
+lead with photos and videos (e.g. the "Asda called out" action video,
+the Archway Our-Fight field-report photo, the Writers' Circle promo
+graphic). Text-only "postcards" are materially weaker for the post
+patterns we want to support.
+
+D046 (Image handling phased) sets the day-1 plan as og:image-only —
+no member-uploaded hero. The phased plan defers direct upload to a
+proper Phase 2 BU-image scope (S3 + moderation + thumbnails + EXIF
+strip + size limits). That's the right phasing for production but
+leaves the demo visually flat in the meantime.
+
+## Decision
+
+Add an optional `heroImageUrl: String?` field to the `Post` model.
+Compose-time UI is a `<HeroImagePicker>` that lets the member pick
+from a fixed set of seeded demo images (8 royalty-free JPGs in
+`public/seed-images/`). Server validation rejects any URL not in the
+seeded set — for demo, the picker is the only legitimate path.
+
+The `heroImageUrl` field is **additive and survives** the eventual
+swap to real upload: when Phase 2 BU-image lands, only the picker UI
+and the validator's allow-list change. The field shape, the storage,
+the rendering on cards and detail pages, and the API contract all
+stay.
+
+This decision **does not revise D046** — the og:image-fetch path
+described there remains the production day-1 plan. D064 sits on top
+of it as a **demo enhancement** that becomes obsolete (its
+`SEED_HERO_IMAGES` constant is removed) when real upload ships.
+
+## Consequences
+
+### Wins
+
+- Demo posts can carry hero images today, materially closer to the
+  WhatsApp post patterns we want to support.
+- Field shape is forward-compatible — Phase 2 BU-image swap touches
+  only the picker UI + validator, not the schema or rendering.
+- Existing `linkImageUrl` flow (BU-link-share) is untouched. When
+  both fields are present on a post, hero wins for the top-of-card
+  slot; the link card keeps its own thumbnail.
+- Single-purpose BU keeps the slice small and reviewable.
+
+### Costs
+
+- Two image fields on Post (`heroImageUrl` + `linkImageUrl`) —
+  semantically distinct but visually adjacent. Documenting the
+  precedence (hero > link) for future readers is required.
+- The seeded image set lives in `public/seed-images/` and ships in
+  the repo. Adds ~2-3 MB to repo size; goes away when Phase 2
+  BU-image lands.
+- Validator's allow-list constraint is a deliberate demo guard.
+  Removing it before Phase 2 upload is in place would let any URL
+  be stored — must not be removed casually.
+
+### Open questions deferred
+
+- Final image set selection — surfaced for sign-off in the brief's
+  "Open questions" section, not pre-committed in this decision.
+- Card aspect ratio (16:9 proposed) — surfaced in the brief.
+- Hero-vs-link rendering precedence on the card — proposed in the
+  brief; confirmed at build time.
+
+## Alternatives considered
+
+- **Wait for Phase 2 BU-image.** Rejected — the demo is now, the
+  visual gap is now, and the phased plan would leave demo posts
+  flat for weeks-to-months.
+- **Repurpose `linkImageUrl` as a generic hero field.** Rejected —
+  conflates two distinct data sources (og:image fetch vs member
+  pick) with different lifecycles. og:image refreshes when `linkUrl`
+  changes; a member-picked hero should not.
+- **Free-form URL input (no allow-list) for demo.** Rejected — opens
+  the door to arbitrary external URLs (broken links, hotlinking,
+  takedowns) before any moderation infrastructure exists. The
+  fixed-bucket constraint is intentional.
+- **Real S3 upload as Phase 2 BU-image, no demo path.** This is the
+  D046 status quo. Rejected for the demo timeline reason above.
+  D064 is explicitly a stop-gap that BU-image will replace.
+
+## Related
+
+- D046 — Image handling phased (this decision sits on top, does not
+  revise)
+- D060 — Link preview card (BU-link-share, source of `linkImageUrl`)
+- Parking-lot entry: "Direct image upload on Post — priority bump
+  from image-handling phased plan" (the originating signal)
+- Parking-lot entry: "Call out a problem — content post intent"
+  (downstream consumer; hero is part of its composer field shape)
