@@ -20,6 +20,7 @@ import { useState } from 'react';
 import type { FC } from 'react';
 import { CommentItem, type CommentForView } from '@/components/CommentItem';
 import { CommentComposer } from '@/components/CommentComposer';
+import type { FeedReactionEmoji } from '@/components/PostCard';
 
 type Filter = 'discussion' | 'activity' | 'all';
 
@@ -28,6 +29,10 @@ interface CommentListProps {
   initialComments: CommentForView[];
   canComment: boolean;
   onAddComment: (postId: string, body: string) => Promise<{ id: string }>;
+  reactionsEnabled: boolean;
+  canReact: boolean;
+  onAddReactionToComment: (commentId: string, emoji: FeedReactionEmoji) => Promise<void>;
+  onRemoveReactionFromComment: (commentId: string, emoji: FeedReactionEmoji) => Promise<void>;
 }
 
 export const CommentList: FC<CommentListProps> = ({
@@ -35,6 +40,10 @@ export const CommentList: FC<CommentListProps> = ({
   initialComments,
   canComment,
   onAddComment,
+  reactionsEnabled,
+  canReact,
+  onAddReactionToComment,
+  onRemoveReactionFromComment,
 }) => {
   const [committed, setCommitted] = useState<CommentForView[]>(initialComments);
   const [optimistic, setOptimistic] = useState<CommentForView[]>([]);
@@ -134,7 +143,14 @@ export const CommentList: FC<CommentListProps> = ({
       {visibleComments.length > 0 && (
         <div data-testid="comment-thread-list">
           {visibleComments.map((comment) => (
-            <CommentItem key={comment.id} comment={comment} />
+            <CommentItem
+              key={comment.id}
+              comment={comment}
+              reactionsEnabled={reactionsEnabled}
+              canReact={canReact}
+              onAddReaction={onAddReactionToComment}
+              onRemoveReaction={onRemoveReactionFromComment}
+            />
           ))}
         </div>
       )}

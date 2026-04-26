@@ -31,6 +31,10 @@ import {
   removeReaction,
   listReactionsForPost,
   listReactionsForPosts,
+  addReactionToComment,
+  removeReactionFromComment,
+  listReactionsForComment,
+  listReactionsForComments,
 } from '@/server/services/reaction';
 import { prisma } from '@/server/db/client';
 
@@ -224,5 +228,120 @@ describe('listReactionsForPosts (bulk)', () => {
       { emoji: 'pray', count: 1, mine: false },
     ]);
     expect(result.get('p2')).toEqual([{ emoji: 'heart', count: 1, mine: true }]);
+  });
+});
+
+describe('addReactionToComment', () => {
+  it('creates a reaction row with targetType=comment and writes audit', async () => {
+    mockReactionCreate.mockResolvedValueOnce({} as never);
+
+    const result = await addReactionToComment({
+      commentId: '00000000-0000-0000-0000-00000000000c',
+      emoji: 'heart',
+      userId: 'user-1',
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(mockReactionCreate).toHaveBeenCalledWith({
+      data: {
+        userId: 'user-1',
+        targetType: 'comment',
+        targetId: '00000000-0000-0000-0000-00000000000c',
+        commentId: '00000000-0000-0000-0000-00000000000c',
+        emoji: 'heart',
+      },
+    });
+    expect(mockAuditCreate).toHaveBeenCalledOnce();
+  });
+
+  it('is idempotent on unique-constraint violation', async () => {
+    mockReactionCreate.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: '5.x',
+      }),
+    );
+
+    const result = await addReactionToComment({
+      commentId: '00000000-0000-0000-0000-00000000000c',
+      emoji: 'heart',
+      userId: 'user-1',
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(mockAuditCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe('removeReactionFromComment', () => {
+  it('deletes the matching row when present', async () => {
+    mockReactionDeleteMany.mockResolvedValueOnce({ count: 1 });
+
+    const result = await removeReactionFromComment({
+      commentId: '00000000-0000-0000-0000-00000000000c',
+      emoji: 'heart',
+      userId: 'user-1',
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(mockReactionDeleteMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        targetType: 'comment',
+        targetId: '00000000-0000-0000-0000-00000000000c',
+        emoji: 'heart',
+      },
+    });
+    expect(mockAuditCreate).toHaveBeenCalledOnce();
+  });
+
+  it('is idempotent when nothing to delete', async () => {
+    mockReactionDeleteMany.mockResolvedValueOnce({ count: 0 });
+
+    const result = await removeReactionFromComment({
+      commentId: '00000000-0000-0000-0000-00000000000c',
+      emoji: 'heart',
+      userId: 'user-1',
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(mockAuditCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe('listReactionsForComment', () => {
+  it('aggregates by emoji with mine for the caller', async () => {
+    mockReactionGroupBy.mockResolvedValueOnce([{ emoji: 'heart', _count: { _all: 2 } }] as never);
+    mockReactionFindMany.mockResolvedValueOnce([{ emoji: 'heart' }] as never);
+
+    const result = await listReactionsForComment({
+      commentId: '00000000-0000-0000-0000-00000000000c',
+      callerId: 'user-1',
+    });
+
+    expect(result).toEqual([{ emoji: 'heart', count: 2, mine: true }]);
+  });
+});
+
+describe('listReactionsForComments (bulk)', () => {
+  it('returns empty Map for empty input', async () => {
+    const result = await listReactionsForComments({ commentIds: [], callerId: null });
+    expect(result.size).toBe(0);
+  });
+
+  it('groups reactions by commentId', async () => {
+    mockReactionGroupBy.mockResolvedValueOnce([
+      { targetId: 'c1', emoji: 'heart', _count: { _all: 3 } },
+      { targetId: 'c2', emoji: 'pray', _count: { _all: 1 } },
+    ] as never);
+
+    const result = await listReactionsForComments({
+      commentIds: ['c1', 'c2', 'c3'],
+      callerId: null,
+    });
+
+    expect(result.get('c1')).toEqual([{ emoji: 'heart', count: 3, mine: false }]);
+    expect(result.get('c2')).toEqual([{ emoji: 'pray', count: 1, mine: false }]);
+    expect(result.get('c3')).toEqual([]);
   });
 });

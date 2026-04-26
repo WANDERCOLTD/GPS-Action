@@ -1,10 +1,11 @@
 /**
- * @build-unit BU-comments
+ * @build-unit BU-comments BU-reactions
  * @spec architecture/decision-log.md (D052)
  * @spec product/scenarios.md (SCN-20)
  *
  * Single comment render. Author display name + role chips +
- * "new member" chip + body (paragraph-split) + relative timestamp.
+ * "new member" chip + body (paragraph-split) + relative timestamp
+ * + reaction pill below body (when reactions enabled).
  *
  * No edit / delete UI in MVP per D052.
  */
@@ -12,6 +13,8 @@
 import type { FC } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import type { SystemRole } from '@prisma/client';
+import type { FeedReaction, FeedReactionEmoji } from '@/components/PostCard';
+import { ReactionPill } from '@/components/ReactionPill';
 
 export interface CommentForView {
   id: string;
@@ -23,6 +26,7 @@ export interface CommentForView {
     roles: SystemRole[];
     isNewMember: boolean;
   };
+  reactions: FeedReaction[];
 }
 
 function formatRole(role: string): string {
@@ -34,9 +38,19 @@ function formatRole(role: string): string {
 
 interface CommentItemProps {
   comment: CommentForView;
+  reactionsEnabled: boolean;
+  canReact: boolean;
+  onAddReaction: (commentId: string, emoji: FeedReactionEmoji) => Promise<void>;
+  onRemoveReaction: (commentId: string, emoji: FeedReactionEmoji) => Promise<void>;
 }
 
-export const CommentItem: FC<CommentItemProps> = ({ comment }) => {
+export const CommentItem: FC<CommentItemProps> = ({
+  comment,
+  reactionsEnabled,
+  canReact,
+  onAddReaction,
+  onRemoveReaction,
+}) => {
   const paragraphs = comment.body.split('\n\n');
   const relativeTime = formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true });
 
@@ -80,6 +94,14 @@ export const CommentItem: FC<CommentItemProps> = ({ comment }) => {
           </p>
         ))}
       </div>
+      {reactionsEnabled && (
+        <ReactionPill
+          reactions={comment.reactions}
+          onAdd={(emoji) => onAddReaction(comment.id, emoji)}
+          onRemove={(emoji) => onRemoveReaction(comment.id, emoji)}
+          canReact={canReact}
+        />
+      )}
     </article>
   );
 };

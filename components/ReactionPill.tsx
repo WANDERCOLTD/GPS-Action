@@ -2,21 +2,17 @@
 
 /**
  * @build-unit BU-reactions
- * @spec architecture/decision-log.md (D050)
- * @spec product/scenarios.md (SCN-3)
+ * @spec architecture/decision-log.md (D050, D052)
+ * @spec product/scenarios.md (SCN-3, SCN-20)
  * @spec product/design-philosophy.md
  *
- * Quiet reactions pill on a post card. Shows aggregate counts
- * (top emoji + total) when reactions exist; "React" affordance
- * otherwise. Tap to open the 8-emoji tray. Multi-select per user
- * per post; toggling an already-picked emoji removes it.
+ * Quiet reactions pill — target-agnostic. Renders on posts and
+ * comments. The caller wraps the targetId in the onAdd/onRemove
+ * callbacks; this component just calls (emoji) => Promise<void>.
  *
- * Optimistic UI via React 19 useOptimistic. The server action
- * still runs; if it fails, the optimistic state rolls back via
- * a re-derive from props (next render).
- *
- * Per design-philosophy.md principle 3 — no celebration, no
- * streaks, no "+1 reaction" toast. Just acceptance.
+ * Optimistic UI via React 19 useOptimistic with the committed-
+ * state pattern from PR #47. Per design-philosophy.md principle 3
+ * — no celebration, no streaks, no "+1 reaction" toast.
  */
 
 import { useOptimistic, useState, useTransition, useRef, useEffect } from 'react';
@@ -25,13 +21,14 @@ import type { FeedReaction, FeedReactionEmoji } from '@/components/PostCard';
 import { REACTION_GLYPH, ReactionTray } from '@/components/ReactionTray';
 
 interface ReactionPillProps {
-  postId: string;
   reactions: FeedReaction[];
-  /** Server actions injected from the page (server component). */
-  onAdd: (postId: string, emoji: FeedReactionEmoji) => Promise<void>;
-  onRemove: (postId: string, emoji: FeedReactionEmoji) => Promise<void>;
+  /** Caller wraps the targetId — pill just calls these with the emoji. */
+  onAdd: (emoji: FeedReactionEmoji) => Promise<void>;
+  onRemove: (emoji: FeedReactionEmoji) => Promise<void>;
   /** When false, the pill renders read-only (no tray, no toggling). */
   canReact: boolean;
+  /** Optional — for testid disambiguation when many pills render side-by-side. */
+  testIdSuffix?: string;
 }
 
 interface OptimisticAction {
@@ -60,13 +57,7 @@ function applyOptimistic(state: FeedReaction[], action: OptimisticAction): FeedR
   );
 }
 
-export const ReactionPill: FC<ReactionPillProps> = ({
-  postId,
-  reactions,
-  onAdd,
-  onRemove,
-  canReact,
-}) => {
+export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove, canReact }) => {
   const [open, setOpen] = useState(false);
   const [, startTransition] = useTransition();
   // Local state — committed truth for this client. Initialised from
@@ -101,16 +92,13 @@ export const ReactionPill: FC<ReactionPillProps> = ({
       setOptimistic(action);
       try {
         if (isOn) {
-          await onRemove(postId, emoji);
+          await onRemove(emoji);
         } else {
-          await onAdd(postId, emoji);
+          await onAdd(emoji);
         }
-        // Commit the change locally so the optimistic state survives
-        // the transition completing.
         setCommitted((prev) => applyOptimistic(prev, action));
       } catch {
-        // Failure: optimistic rolls back to `committed`, which we
-        // didn't update — so UI reflects the un-mutated state.
+        // Failure: optimistic rolls back to `committed`.
       }
     });
   }
@@ -119,7 +107,6 @@ export const ReactionPill: FC<ReactionPillProps> = ({
     <div
       ref={containerRef}
       data-testid="reaction-pill-container"
-      data-post-id={postId}
       style={{
         position: 'relative',
         display: 'flex',
