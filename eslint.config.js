@@ -151,6 +151,7 @@ export default [
     ignores: [
       'node_modules/**',
       '.next/**',
+      '.claude/**',
       'dist/**',
       'build/**',
       'eslint-rules/**',
