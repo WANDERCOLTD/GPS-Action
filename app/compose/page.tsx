@@ -1,7 +1,7 @@
 /**
  * @build-unit BU-composer
  * @spec product/design-philosophy.md
- * @spec product/scenarios.md (SCN-01)
+ * @spec product/scenarios.md (SCN-18)
  *
  * Compose page — server component that renders the post form shell.
  * Redirects unauthenticated users to /dev/login.

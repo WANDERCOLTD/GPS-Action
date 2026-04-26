@@ -1,7 +1,7 @@
 /**
  * @build-unit BU-feed
  * @spec product/design-philosophy.md
- * @spec product/scenarios.md (SCN-01)
+ * @spec product/scenarios.md (SCN-18)
  *
  * Feed page — the core demo page. Authenticated users see a
  * chronological list of posts. Unauthenticated users see a
