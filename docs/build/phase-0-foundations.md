@@ -33,7 +33,7 @@ D039 (Build Units), `docs/build/engineering-roadmap.md` (Tier B/C/D backlog).
 | F08 | Database migration validation on CI | ☐ | — |
 | F09 | Preview deploys + staging environment | ☐ | — |
 | F10 | Seed data script (realistic fixtures) | ☐ | — |
-| F11 | Error boundaries in UI shell | ☐ | — |
+| F11 | Error boundaries in UI shell | ✅ | phase-0/bu-shell-foundations |
 | F12 | Health check endpoints (`/healthz`, `/readyz`) | ☐ | — |
 | F13 | Enforce `@spec` traceability tag (ESLint) | ☐ | — |
 | F15 | Enforce design token usage (ESLint) | ☐ | — |
