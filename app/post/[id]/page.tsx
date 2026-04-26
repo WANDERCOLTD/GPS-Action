@@ -17,12 +17,12 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
-import { ExternalLink } from 'lucide-react';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { CommentList } from '@/components/CommentList';
 import { ReactionPill } from '@/components/ReactionPill';
+import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 import {
   addCommentAction,
   addReactionToCommentAction,
@@ -161,20 +161,29 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
           />
         )}
 
+        {/* AM URL preview card (D060 §3 — same primitive, AM brand mark on, large size on detail) */}
         {post.activistMailerUrl && (
-          <div className="gps-card__footer">
-            <a
-              href={post.activistMailerUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="gps-btn gps-btn--primary gps-btn--sm"
-              data-testid="post-am-link"
-              data-post-id={post.id}
-            >
-              Open in Activist Mailer
-              <ExternalLink size={14} aria-hidden="true" />
-            </a>
-          </div>
+          <LinkPreviewCard
+            linkUrl={post.activistMailerUrl}
+            linkTitle={null}
+            linkDescription={null}
+            linkImageUrl={null}
+            linkSiteName={null}
+            size="large"
+            isAmAction={true}
+          />
+        )}
+
+        {/* Link-share preview card (D060 — supporting context) */}
+        {post.linkUrl && (
+          <LinkPreviewCard
+            linkUrl={post.linkUrl}
+            linkTitle={post.linkTitle}
+            linkDescription={post.linkDescription}
+            linkImageUrl={post.linkImageUrl}
+            linkSiteName={post.linkSiteName}
+            size="large"
+          />
         )}
       </article>
 
