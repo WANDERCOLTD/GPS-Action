@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { createTRPCContext } from '@/server/routers/context';
 import { AppNav } from '@/components/AppNav';
+import { ClaimButton, ResolveForm } from '@/components/RequestActionButtons';
 import {
   listRequestsForSubmitter,
   listRequestsForReviewer,
@@ -62,7 +63,14 @@ function statusColour(status: string): string {
   }
 }
 
-function RequestRow({ row }: { row: RequestListItem }) {
+interface RequestRowProps {
+  row: RequestListItem;
+  /** Whether the caller can act on this row (claim if unclaimed, resolve if claimed by caller). */
+  canAct: boolean;
+  callerId: string;
+}
+
+function RequestRow({ row, canAct, callerId }: RequestRowProps) {
   const ctxText =
     typeof row.context === 'object' &&
     row.context !== null &&
@@ -71,20 +79,47 @@ function RequestRow({ row }: { row: RequestListItem }) {
       ? String((row.context as { summary?: unknown }).summary ?? '')
       : '';
 
+  const isClaimedByCaller = row.claimedByUserId === callerId;
+  const showClaim = canAct && row.status === 'unclaimed';
+  const showResolve =
+    canAct && (row.status === 'claimed' || row.status === 'in_review') && isClaimedByCaller;
+
   return (
     <li
       data-testid="requests-row"
       data-request-id={row.id}
+      data-urgent={row.urgency || undefined}
       style={{
         listStyle: 'none',
         padding: 'var(--space-3) var(--space-4)',
         borderBottom: '1px solid var(--colour-border-subtle)',
+        borderLeft: row.urgency ? '4px solid var(--colour-urgent)' : '4px solid transparent',
+        background: row.urgency ? 'var(--colour-urgent-subtle)' : undefined,
         display: 'flex',
         flexDirection: 'column',
         gap: 'var(--space-1)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}
+      >
+        {row.urgency && (
+          <span
+            data-testid="requests-row-urgent-badge"
+            style={{
+              fontSize: 'var(--text-2xs)',
+              background: 'var(--colour-urgent)',
+              color: 'var(--colour-urgent-contrast)',
+              padding: '2px var(--space-2)',
+              borderRadius: 'var(--radius-pill)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              fontWeight: 700,
+            }}
+          >
+            {row.alertCategoryDisplayName ?? 'Urgent'}
+          </span>
+        )}
         <strong style={{ fontSize: 'var(--text-sm)' }}>{TYPE_LABELS[row.type]}</strong>
         <span
           style={{
@@ -123,6 +158,23 @@ function RequestRow({ row }: { row: RequestListItem }) {
           Submitted by <strong>{row.createdBy.displayName}</strong>
         </div>
       )}
+      {row.resolutionNotes && (
+        <div
+          style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--colour-text-secondary)',
+            fontStyle: 'italic',
+          }}
+        >
+          Resolved with note: {row.resolutionNotes}
+        </div>
+      )}
+      {showClaim && (
+        <div style={{ marginTop: 'var(--space-2)' }}>
+          <ClaimButton requestId={row.id} />
+        </div>
+      )}
+      {showResolve && <ResolveForm requestId={row.id} />}
     </li>
   );
 }
@@ -190,7 +242,7 @@ export default async function RequestsPage() {
           ) : (
             <ul style={{ margin: 0, padding: 0 }}>
               {mine.map((r) => (
-                <RequestRow key={r.id} row={r} />
+                <RequestRow key={r.id} row={r} canAct={false} callerId={userId} />
               ))}
             </ul>
           )}
@@ -227,7 +279,7 @@ export default async function RequestsPage() {
             ) : (
               <ul style={{ margin: 0, padding: 0 }}>
                 {queue.map((r) => (
-                  <RequestRow key={r.id} row={r} />
+                  <RequestRow key={r.id} row={r} canAct={true} callerId={userId} />
                 ))}
               </ul>
             )}

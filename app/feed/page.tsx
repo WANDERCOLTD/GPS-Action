@@ -13,6 +13,7 @@ import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { FeedList } from '@/components/FeedList';
 import { AppNav } from '@/components/AppNav';
+import { AlertFAB } from '@/components/AlertFAB';
 import { loadMorePosts, addReactionAction, removeReactionAction } from '@/app/feed/actions';
 import type { FeedPost, FeedCursor, FeedReactionEmoji } from '@/components/PostCard';
 
@@ -119,6 +120,7 @@ export default async function FeedPage() {
           reactionsEnabled={reactionsEnabled}
         />
       </main>
+      {ctx.user && <AlertFAB />}
     </>
   );
 }
