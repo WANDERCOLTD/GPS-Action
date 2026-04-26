@@ -46,18 +46,19 @@ are rejected — too generic to be stable.
 
 The first segment must come from this approved list:
 
-| Prefix     | Surface                                           |
-| ---------- | ------------------------------------------------- |
-| `auth`     | Login, dev-login, account recovery                |
-| `feed`     | The main feed page and its post cards             |
-| `compose`  | The post composer (BU-composer; later FAB cards)  |
-| `post`     | Post detail page and post-related components      |
-| `nav`      | Bottom tabs, sidebars, top-level navigation       |
-| `admin`    | Admin surfaces (queues, role grants, content mod) |
-| `network`  | Network tab — coordinator/group directory (D030)  |
-| `inbox`    | Inbox tab — DMs, notifications, requests (D030)   |
-| `me`       | Me tab — profile, settings, account (D030)        |
-| `reaction` | Reaction pill + tray on post cards (BU-reactions) |
+| Prefix     | Surface                                                |
+| ---------- | ------------------------------------------------------ |
+| `auth`     | Login, dev-login, account recovery                     |
+| `feed`     | The main feed page and its post cards                  |
+| `compose`  | The post composer (BU-composer; later FAB cards)       |
+| `post`     | Post detail page and post-related components           |
+| `nav`      | Bottom tabs, sidebars, top-level navigation            |
+| `admin`    | Admin surfaces (queues, role grants, content mod)      |
+| `network`  | Network tab — coordinator/group directory (D030)       |
+| `inbox`    | Inbox tab — DMs, notifications, requests (D030)        |
+| `me`       | Me tab — profile, settings, account (D030)             |
+| `reaction` | Reaction pill + tray on post cards (BU-reactions)      |
+| `comment`  | Comment thread + composer on post detail (BU-comments) |
 
 To add a new area:
 

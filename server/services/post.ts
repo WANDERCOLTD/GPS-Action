@@ -14,6 +14,7 @@ import { prisma } from '@/server/db/client';
 import type { PostCreateInput } from '@/shared/validation/post';
 import { auditLog } from '@/server/services/audit';
 import { listReactionsForPosts, type ReactionAggregate } from '@/server/services/reaction';
+import { listCommentCountsForPosts } from '@/server/services/comment';
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,8 @@ export interface PostListItem {
   author: PostAuthor;
   /** Per BU-reactions / D050 — empty array when none. */
   reactions: ReactionAggregate[];
+  /** Per BU-comments / D052 — non-deleted comment count. */
+  commentCount: number;
 }
 
 export interface ListPostsResult {
@@ -110,10 +113,11 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
   const nextCursor: PostCursor | null =
     hasMore && lastPost ? { createdAt: lastPost.createdAt, id: lastPost.id } : null;
 
-  const reactionsByPost = await listReactionsForPosts({
-    postIds: resultPosts.map((p) => p.id),
-    callerId: input.callerId,
-  });
+  const postIds = resultPosts.map((p) => p.id);
+  const [reactionsByPost, commentCountsByPost] = await Promise.all([
+    listReactionsForPosts({ postIds, callerId: input.callerId }),
+    listCommentCountsForPosts({ postIds }),
+  ]);
 
   const mapped: PostListItem[] = resultPosts.map((post) => ({
     id: post.id,
@@ -129,6 +133,7 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
       roles: post.author.roleGrants.map((g) => g.role),
     },
     reactions: reactionsByPost.get(post.id) ?? [],
+    commentCount: commentCountsByPost.get(post.id) ?? 0,
   }));
 
   return { posts: mapped, nextCursor };

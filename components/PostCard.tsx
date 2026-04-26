@@ -1,18 +1,25 @@
+'use client';
+
 /**
- * @build-unit BU-feed
+ * @build-unit BU-feed BU-comments
  * @spec product/design-philosophy.md
+ * @spec architecture/decision-log.md (D052)
  *
  * Single post card for the feed. Renders author, timestamp, title,
- * body paragraphs, and an optional Activist Mailer button.
+ * body paragraphs, the reaction pill, comment-count link, and an
+ * optional Activist Mailer button.
  *
- * Not a client component — works in both server and client contexts.
- * When imported by a client component (FeedList), React bundles it
- * for the client automatically.
+ * Tap-card-to-detail navigates to /post/[id] (BU-comments / D052).
+ * The article's onClick checks `event.target.closest('a, button')`
+ * and bails if the click landed on an interactive child — this is
+ * cleaner than wrapping in <Link> (which would require nested
+ * anchors / aggressive stopPropagation across the reaction pill).
  */
 
-import type { FC } from 'react';
+import type { FC, MouseEvent as ReactMouseEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, MessageSquare } from 'lucide-react';
 import { ReactionPill } from '@/components/ReactionPill';
 
 // ── Types (shared with FeedList and feed page) ──────────────────────────
@@ -44,6 +51,8 @@ export interface FeedPost {
     roles: string[];
   };
   reactions: FeedReaction[];
+  /** Per BU-comments / D052 — non-deleted count. */
+  commentCount: number;
 }
 
 export interface FeedCursor {
@@ -109,13 +118,38 @@ export const PostCard: FC<PostCardProps> = ({
   canReact,
   reactionsEnabled,
 }) => {
+  const router = useRouter();
   const paragraphs = post.body.split('\n\n');
   const relativeTime = formatDistanceToNow(new Date(post.createdAt), {
     addSuffix: true,
   });
 
+  function handleCardClick(event: ReactMouseEvent<HTMLElement>): void {
+    // Bail if the click landed on an interactive child (anchor, button,
+    // input, label, form, etc.) — the child handles its own action.
+    const target = event.target as HTMLElement;
+    if (target.closest('a, button, input, label, form, textarea')) return;
+    router.push(`/post/${post.id}`);
+  }
+
   return (
-    <article className="gps-card">
+    <article
+      className="gps-card"
+      onClick={handleCardClick}
+      role="link"
+      aria-label={`Open post: ${post.title}`}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          if ((e.target as HTMLElement).closest('a, button, input, label, form, textarea')) return;
+          e.preventDefault();
+          router.push(`/post/${post.id}`);
+        }
+      }}
+      data-testid="post-card-article"
+      data-post-id={post.id}
+      style={{ cursor: 'pointer' }}
+    >
       {/* Header: avatar · name · role chip · timestamp */}
       <div className="gps-card__header">
         <span
@@ -163,6 +197,27 @@ export const PostCard: FC<PostCardProps> = ({
           onRemove={onRemoveReaction}
           canReact={canReact}
         />
+      )}
+
+      {/* Comment count (BU-comments / D052) */}
+      {post.commentCount > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-1)',
+            marginTop: 'var(--space-2)',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--colour-text-secondary)',
+          }}
+          data-testid="post-card-comment-count"
+          data-post-id={post.id}
+        >
+          <MessageSquare size={14} aria-hidden="true" />
+          <span>
+            {post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}
+          </span>
+        </div>
       )}
 
       {/* Activist Mailer button */}

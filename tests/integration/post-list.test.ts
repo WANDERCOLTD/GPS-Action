@@ -28,6 +28,9 @@ vi.mock('@/server/db/client', () => ({
       groupBy: vi.fn().mockResolvedValue([]),
       findMany: vi.fn().mockResolvedValue([]),
     },
+    comment: {
+      groupBy: vi.fn().mockResolvedValue([]),
+    },
   },
 }));
 

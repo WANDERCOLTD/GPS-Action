@@ -66,6 +66,7 @@ export default async function FeedPage() {
         count: r.count,
         mine: r.mine,
       })),
+      commentCount: p.commentCount,
     }),
   );
 
