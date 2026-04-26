@@ -10,6 +10,21 @@ export default defineConfig({
     globals: false,
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx', 'eslint-rules/tests/**/*.test.js'],
     css: false,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html', 'lcov'],
+      exclude: [
+        'node_modules/**',
+        '.next/**',
+        'coverage/**',
+        '**/*.d.ts',
+        '**/*.config.*',
+        'eslint-rules/**',
+        'prisma/migrations/**',
+        'prisma/seed.ts',
+        'tests/**',
+      ],
+    },
   },
   css: {
     postcss: { plugins: [] },

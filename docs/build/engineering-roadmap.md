@@ -296,6 +296,61 @@ completeness so the concept is catalogued in one place.
 
 ---
 
+### B11 · Codecov upload (re-enable)
+
+**What:** Re-add the `Upload coverage` step in `.github/workflows/ci.yml` so
+the lcov report `npm run test:coverage` emits gets posted to Codecov, which
+then computes patch coverage and posts a status check on PRs. The 80% patch
+target already lives in `codecov.yml` at repo root, waiting.
+
+**Trigger:** The repo is connected to Codecov in the Codecov GUI AND
+`CODECOV_TOKEN` is provisioned as a GitHub Actions secret. Until both are
+true, the upload step is a no-op (or worse — it broke CI in #60 because
+step-level `if: ${{ secrets.* }}` is invalid GHA syntax, so the gate
+attempt itself crashed the workflow).
+
+**Effort:** ~10 minutes once the token exists. Re-add this block under the
+`Coverage` step:
+
+```yaml
+- name: Upload coverage
+  if: env.HAS_CODECOV == 'yes'
+  uses: codecov/codecov-action@v4
+  with:
+    files: ./coverage/lcov.info
+    fail_ci_if_error: false
+    token: ${{ secrets.CODECOV_TOKEN }}
+```
+
+…and add this `env` block at the `check` job level (NOT step level):
+
+```yaml
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      HAS_CODECOV: ${{ secrets.CODECOV_TOKEN != '' && 'yes' || '' }}
+    steps:
+      ...
+```
+
+**Why this pattern:** GitHub Actions forbids `secrets.*` in step-level `if:`.
+Job-level env-var indirection is the standard workaround.
+
+**Why not do it now:** The Codecov account / repo connection / token
+provisioning is a manual GUI task for the repo owner. Until those exist, the
+upload step is pure dead weight and risks breaking CI again. F07 (`npm run
+test:coverage`) already runs locally and in CI; the only thing missing is
+the dashboard / patch-coverage gate.
+
+**Dependencies:** F01 (branch protection) — for the patch-coverage status
+check to be a *required* gate, branch protection has to add it.
+
+**Origin:** Dropped from PR #60 to keep that PR landable; recorded here so
+it isn't forgotten.
+
+---
+
 ## Tier C — Nice to have, adopt when value is clear
 
 These aren't wrong — they're just not earning their cost at MVP scale. Each
