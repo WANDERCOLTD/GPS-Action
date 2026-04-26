@@ -2680,3 +2680,154 @@ manual reviewer effort.
 - D054 (Request entity — primary consumer)
 - D057 (Notifications — sends to submitter on `audience: all`
   comments only)
+
+---
+
+# D057 — Notifications entity + in-app delivery
+
+**Date:** 2026-04-26
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** BU-notifications (forthcoming, may fold into BU-requests)
+
+## Context
+
+The Requests workspace (D054) needs a notification mechanism so
+submitters know when their request has been picked up, reviewers
+know when they've been @mentioned, and the team learns about
+urgent requests in near real-time. Today the codebase has no
+notification primitive — events fire silently via audit log.
+
+Per the user's call (option B in the design discussion):
+notifications are a **separate entity** surfaced **in the same tab**
+as Requests, not collapsed into Request sub-types.
+
+## Decision
+
+A new `Notification` entity, delivered in-app, surfaced in the
+Requests tab in a dedicated section.
+
+### Schema
+
+```prisma
+model Notification {
+  id           String           @id @default(uuid())
+  recipientId  String
+  recipient    User             @relation("notificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  type         NotificationType
+  payload      Json             // type-specific; references the source entity
+
+  // For tap-to-navigate
+  targetType   NotificationTargetType  // 'request', 'post', 'comment'
+  targetId     String
+
+  readAt       DateTime?
+  createdAt    DateTime         @default(now())
+
+  @@index([recipientId, readAt])
+  @@index([recipientId, createdAt(sort: Desc)])
+}
+
+enum NotificationType {
+  new_request_in_scope        // throttled; one per scope per hour
+  request_claimed             // submitter — your request was picked up
+  submitter_message           // submitter — reviewer added an `audience: all` comment to your request
+  mention                     // anyone — you were @mentioned in a comment
+  request_done                // submitter — your request was resolved
+  urgent_request_raised       // all reviewers; NOT throttled
+  flag_outcome                // flagger — your flag was resolved
+}
+
+enum NotificationTargetType {
+  request
+  post
+  comment
+}
+```
+
+### Throttling
+
+Some notification types fire frequently and must bundle:
+
+| Type                    | Throttle                                                                                                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `new_request_in_scope`  | At most one per (recipient, scope) per hour. Subsequent triggers update the existing one's payload (count, latest_request_id) instead of creating new rows. |
+| `submitter_message`     | Up to 3 unread for one Request before bundling: "Sharon and 2 others have replied"                                                                          |
+| `mention`               | Never throttled — explicit @ should always notify                                                                                                           |
+| `urgent_request_raised` | Never throttled — explicit point of the type                                                                                                                |
+| Others                  | Never throttled                                                                                                                                             |
+
+Throttling logic lives in `server/services/notification.ts` —
+`createNotification` checks for an existing unread notification
+matching the throttle key before creating a new row.
+
+### Delivery — in-app only at MVP
+
+- Notifications appear in the Requests tab's "Notifications"
+  section (above or interleaved with Requests, with type chip)
+- The bottom-tab navbar shows an unread count badge
+- `readAt` set when user taps the notification (navigates to its
+  target) — single-touch acknowledgement, no separate "mark as
+  read" step
+- "Mark all as read" affordance per design-philosophy principle 3
+  (give people permission to close the app)
+
+Future delivery channels (parking-lot):
+
+- Email digest (daily / weekly)
+- Web push (PWA)
+- Native push (Phase 2 native apps)
+
+These all consume the same `Notification` rows; delivery is a
+fan-out from the canonical store.
+
+### Quiet hours
+
+Per design-philosophy principle 3, notifications respect quiet
+hours (default 22:00–07:00 local). In-app delivery isn't affected
+(no audible/visible alert outside the app), but future push
+channels will honour the user's quiet-hours preference.
+
+### Permission
+
+`Notification.recipientId` is the only access vector — users can
+only list/read their own. tRPC procedure: `notification.listMine`,
+`notification.markRead({ id })`, `notification.markAllRead()`.
+
+## Consequences
+
+- New `Notification` table + enums — migration adds them
+- `User` model gains relation back-ref `notifications`
+- `server/services/notification.ts` — `createNotification`
+  helper (throttle-aware), `listMine`, `markRead`, `markAllRead`
+- `server/routers/notification.ts` — tRPC surface
+- Hooks into Request status transitions (D054), Comment
+  posting with `audience: all` (D056), Comment @mentions
+- Hook into Urgent flag (D058) — fires `urgent_request_raised`
+- F06 rule 3 (`no-pii-in-logs`) — Notification payloads stored
+  in `payload` JSONB are NOT logged; only IDs are
+- Audit log unchanged — Notifications are user-visible delivery,
+  not an audit primitive
+
+## Alternatives considered
+
+- **Collapse into Request sub-type** (Option A in design
+  discussion). Rejected — stretches Request semantically; mention
+  notifications aren't really "things needing decision."
+- **Single global event stream that clients filter**. Rejected —
+  privacy risk + bandwidth waste. Per-user rows are simpler.
+- **Push-only (no in-app surface)**. Rejected — in-app is the
+  canonical store; push is a delivery channel layered on top.
+- **Send to email immediately**. Rejected for MVP — needs
+  email infrastructure (BU-email or similar future BU). In-app
+  first; email digest later.
+
+## Related
+
+- D054 (Request entity — primary trigger source)
+- D056 (Comment audience — `audience: all` triggers
+  `submitter_message`)
+- D058 (Urgent flag — triggers `urgent_request_raised`)
+- D036 (feature flags — notifications behind `ff_notifications`)
+- design-philosophy.md principle 3 (no anxiety amplification)
