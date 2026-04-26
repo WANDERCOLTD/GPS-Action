@@ -3083,3 +3083,152 @@ downgrade fires again. The notification deep-links to the Request.
 - D057 (Notifications — `urgent_request_raised` type)
 - design-philosophy.md §3 (no anxiety amplification —
   governing principle for the guardrails)
+
+# D059 — Prisma 7 upgrade (deferred behind ADR; draft)
+
+**Date:** 2026-04-26
+**Tier:** Foundation
+**Status:** Proposed / Open · April 2026
+**Build Unit:** BU-prisma-7 (forthcoming, not yet briefed)
+
+## Context
+
+Dependabot opened PR #40 to bump `@prisma/client` from 5.22.0 to
+7.8.0. CI failed at the `npm run db:generate` step — but the failure
+was a **packaging mismatch**, not a real upgrade signal: Dependabot
+bumped only `@prisma/client`, leaving the `prisma` CLI pinned at
+`^5.22.0`. The Prisma 7 client expects a `prisma-schema-wasm` peer
+that ships only in matching `prisma@7.x`, so the generator hits an
+ENOENT immediately. Pairing the two would unmask the _real_ work.
+
+CLAUDE.md is explicit:
+
+> Don't change `prisma/schema.prisma` without an ADR (it's
+> contract-locked).
+
+Prisma 7 is a major bump that almost certainly requires schema-level
+changes (`previewFeatures` defaults, `binaryTargets` config, possibly
+implicit relation cascading). Some of those bleed into the TypeScript
+surface area used by `server/services/*.ts`, `server/db/client.ts`,
+and tests — the strict-typed services would silently drift if we
+upgraded the runtime without auditing the codegen surface.
+
+The right move is to gate the upgrade behind this ADR rather than let
+Dependabot's auto-PR force the question on the wrong terms.
+
+PR #40 is closed in favour of this ADR. The auto-PR will be re-opened
+or replaced by a manually-authored upgrade PR once decisions below are
+made.
+
+## Decisions
+
+### 1. The packaging mismatch is a non-issue once we control the upgrade
+
+Any manually-authored upgrade PR bumps `prisma` and `@prisma/client`
+together (and `prisma migrate dev` regenerates the engine binaries
+matched to the client). Dependabot's split-PR behaviour is a known
+limitation. We will not chase Dependabot's individual `@prisma/client`
+auto-PRs — closed when raised, with a comment pointing here.
+
+### 2. The schema-locked contract still holds
+
+`prisma/schema.prisma` cannot be edited without a **further** ADR
+that documents the specific schema directive/migration changes Prisma
+7 introduces. This ADR (D059) authorises the _upgrade work_, not the
+specific schema edits. The schema-edit ADR (D060 if/when written)
+must enumerate:
+
+- Every changed `previewFeatures` flag and what behaviour it now
+  emits at runtime
+- Every changed `binaryTargets` entry and the supported deploy
+  surfaces
+- Any implicit-relation default that migrated (e.g. cascading
+  `onDelete` defaults)
+- Any `@db.<type>` mapping that no longer round-trips identically
+
+### 3. Prisma 7's TS surface area must be audited before merge
+
+Prisma 7 changes some return types (`findUnique`/`findFirst` null
+handling, JSON field type widenings, possibly relation include
+inference). The audit must run a `tsc --noEmit` against the new
+client and surface any service that needs a type cast or refactor.
+No `any` / `@ts-ignore` workarounds — fix the call site or roll back.
+
+### 4. Migration must run against a copy of production data before merge
+
+Prisma 7 may emit different SQL for edge cases (Postgres array
+handling, JSON path queries, decimal precision). A migration test on
+a snapshotted copy of the production database — not just the seed
+fixture — is a hard prerequisite. This is the first project precedent
+for a "real-data dry run" before merging a major dep bump; document
+the procedure as part of the BU brief.
+
+### 5. Sequence
+
+1. **D059 (this ADR) accepted** — authorises upgrade work
+2. **BU-prisma-7 brief written** — scoping the audit + migration test
+3. **D060 schema-edit ADR drafted** — enumerating exact schema changes
+4. **Audit branch** — pair `prisma` + `@prisma/client` to 7.x, run
+   typecheck, surface every service-layer break
+5. **Production-snapshot migration dry-run** — record results in BU
+6. **PR opens** — schema diff + service patches + brief link in
+   description; merge requires reviewer sign-off on the schema
+   directive changes specifically
+
+This is at least a multi-session piece of work, not a "knock it out"
+afternoon.
+
+## Consequences
+
+### Wins
+
+- Stops Dependabot from re-raising auto-PRs that can't merge: each
+  one gets closed with a one-line comment pointing at D059.
+- The contract-locked schema policy remains intact — no upgrade
+  shortcut exists.
+- Forces the type-surface audit and data-migration dry-run _before_
+  any mainline change, not as a post-merge fire drill.
+
+### Costs
+
+- Multi-session investment instead of a one-shot Dependabot merge.
+- Locks us into Prisma 5 for the immediate term (acceptable —
+  Prisma 5 is still in active support; no security CVEs as of this
+  ADR).
+- The `prisma`/`@prisma/client` version pin stays at 5.x in
+  `package.json` until the upgrade brief lands; Dependabot will
+  keep raising auto-PRs against this pin.
+
+### Open questions (deferred to BU-prisma-7 brief)
+
+- Do we want to wait for Prisma 7's first patch release (7.x.1+)
+  before upgrading, to let early-adopter bug reports surface?
+- Does the migration dry-run procedure become a permanent
+  requirement for any future schema-affecting dep bump, or a
+  one-shot for this upgrade?
+- Are there `previewFeatures` we currently rely on that became
+  GA in Prisma 6/7 — i.e. the `previewFeatures` array shrinks in
+  the upgrade?
+
+## Alternatives considered
+
+- **Merge Dependabot's auto-PRs as-is** (paired manually). Rejected —
+  ignores the contract-lock, no audit, no data dry-run.
+- **No ADR; just upgrade in a feature branch later**. Rejected —
+  CLAUDE.md is explicit; ADR-gated work is the discipline.
+- **Stay on Prisma 5 indefinitely**. Rejected as a final state but
+  acceptable as a holding pattern; revisit if Prisma 5 hits EOL or
+  a security CVE.
+- **Pin `@prisma/client` to 5.x exactly** to suppress Dependabot
+  noise. Rejected — minor/patch updates inside 5.x are still
+  desirable; the noise from major-bump auto-PRs is acceptable
+  cost for keeping minor security patches automated.
+
+## Related
+
+- CLAUDE.md ("contract-locked schema" rule)
+- D059 directly authorises future BU-prisma-7
+- D060 (forthcoming) — specific schema edits Prisma 7 requires
+- `docs/build/session-handoffs/dependabot-major-bumps-diagnosis.md`
+  — original diagnosis of PR #40
+- Closed PR #40 (Dependabot auto-PR superseded by this ADR)
