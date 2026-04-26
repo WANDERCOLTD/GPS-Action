@@ -14,6 +14,7 @@
 
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { listNotificationsForUser, countUnreadForUser } from '@/server/services/notification';
 import { formatDistanceToNow } from 'date-fns';
 import { createTRPCContext } from '@/server/routers/context';
 import { AppNav } from '@/components/AppNav';
@@ -175,6 +176,20 @@ function RequestRow({ row, canAct, callerId }: RequestRowProps) {
         </div>
       )}
       {showResolve && <ResolveForm requestId={row.id} />}
+      <Link
+        href={`/requests/${row.id}`}
+        data-testid="requests-row-thread-link"
+        data-request-id={row.id}
+        style={{
+          marginTop: 'var(--space-2)',
+          color: 'var(--colour-text-link)',
+          fontSize: 'var(--text-xs)',
+          textDecoration: 'none',
+          alignSelf: 'flex-start',
+        }}
+      >
+        Open thread →
+      </Link>
     </li>
   );
 }
@@ -194,7 +209,7 @@ export default async function RequestsPage() {
 
   const isReviewer = hasUnscopedQueueManager || hasAdmin || scopedTypes.length > 0;
 
-  const [mine, queue] = await Promise.all([
+  const [mine, queue, notifications, unreadCount] = await Promise.all([
     listRequestsForSubmitter(userId),
     isReviewer
       ? listRequestsForReviewer({
@@ -204,11 +219,17 @@ export default async function RequestsPage() {
           scopedTypes,
         })
       : Promise.resolve([] as RequestListItem[]),
+    listNotificationsForUser({ userId, limit: 20 }),
+    countUnreadForUser(userId),
   ]);
 
   return (
     <>
-      <AppNav active="requests" hasReviewerAccess={isReviewer} />
+      <AppNav
+        active="requests"
+        hasReviewerAccess={isReviewer}
+        unreadNotificationCount={unreadCount}
+      />
       <main
         style={{
           padding: 'var(--space-6) var(--space-4)',
@@ -222,6 +243,77 @@ export default async function RequestsPage() {
         <h1 className="gps-title" data-testid="requests-page-title">
           Requests
         </h1>
+
+        {/* Notifications section (BU-requests-vetting / D057) — only when there are any */}
+        {notifications.length > 0 && (
+          <section data-testid="requests-notifications-section">
+            <h2
+              className="gps-subtitle"
+              style={{ marginBottom: 'var(--space-3)' }}
+              data-testid="requests-notifications-title"
+            >
+              Notifications{' '}
+              {unreadCount > 0 && (
+                <span style={{ color: 'var(--colour-urgent)' }}>({unreadCount} new)</span>
+              )}
+            </h2>
+            <ul
+              style={{
+                margin: 0,
+                padding: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-2)',
+              }}
+              data-testid="requests-notifications-list"
+            >
+              {notifications.slice(0, 5).map((n) => (
+                <li
+                  key={n.id}
+                  data-testid="requests-notifications-row"
+                  data-notification-id={n.id}
+                  data-unread={n.readAt === null || undefined}
+                  style={{
+                    listStyle: 'none',
+                    padding: 'var(--space-2) var(--space-3)',
+                    borderRadius: 'var(--radius-sm)',
+                    background:
+                      n.readAt === null
+                        ? 'var(--colour-warning-subtle)'
+                        : 'var(--colour-surface-raised)',
+                    border: '1px solid var(--colour-border-subtle)',
+                    fontSize: 'var(--text-sm)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                  }}
+                >
+                  <span style={{ flex: 1 }}>
+                    <strong>{n.fromDisplayName ?? 'Someone'}</strong>{' '}
+                    {n.type === 'request_mention' && 'mentioned you in a request'}
+                    {n.type === 'request_status_changed' && 'updated your request'}
+                    {n.type === 'request_resolved' && 'resolved your request'}
+                    {n.type === 'request_published' && 'published your draft'}
+                    {n.type === 'request_archived' && 'archived your draft'}
+                  </span>
+                  {n.requestId && (
+                    <Link
+                      href={`/requests/${n.requestId}`}
+                      data-testid="requests-notifications-open-link"
+                      style={{
+                        color: 'var(--colour-text-link)',
+                        fontSize: 'var(--text-xs)',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      Open →
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* Submitter section — always visible */}
         <section data-testid="requests-submitter-section">
