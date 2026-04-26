@@ -19,8 +19,9 @@
 import type { FC, MouseEvent as ReactMouseEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { ExternalLink, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { ReactionPill } from '@/components/ReactionPill';
+import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 
 // ── Types (shared with FeedList and feed page) ──────────────────────────
 
@@ -45,6 +46,12 @@ export interface FeedPost {
   title: string;
   body: string;
   activistMailerUrl: string | null;
+  /** Link-share preview card data (BU-link-share / D060). */
+  linkUrl: string | null;
+  linkTitle: string | null;
+  linkDescription: string | null;
+  linkImageUrl: string | null;
+  linkSiteName: string | null;
   createdAt: string; // ISO 8601
   author: {
     displayName: string;
@@ -219,21 +226,29 @@ export const PostCard: FC<PostCardProps> = ({
         </div>
       )}
 
-      {/* Activist Mailer button */}
+      {/* AM URL preview card (D060 §3 — same primitive as linkUrl, AM brand mark on) */}
       {post.activistMailerUrl && (
-        <div className="gps-card__footer">
-          <a
-            href={post.activistMailerUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="gps-btn gps-btn--primary gps-btn--sm"
-            data-testid="post-am-link"
-            data-post-id={post.id}
-          >
-            Open in Activist Mailer
-            <ExternalLink size={14} aria-hidden="true" />
-          </a>
-        </div>
+        <LinkPreviewCard
+          linkUrl={post.activistMailerUrl}
+          linkTitle={null}
+          linkDescription={null}
+          linkImageUrl={null}
+          linkSiteName={null}
+          size="small"
+          isAmAction={true}
+        />
+      )}
+
+      {/* Link-share preview card (D060 — supporting context, e.g. SCN-19 article share) */}
+      {post.linkUrl && (
+        <LinkPreviewCard
+          linkUrl={post.linkUrl}
+          linkTitle={post.linkTitle}
+          linkDescription={post.linkDescription}
+          linkImageUrl={post.linkImageUrl}
+          linkSiteName={post.linkSiteName}
+          size="small"
+        />
       )}
     </article>
   );

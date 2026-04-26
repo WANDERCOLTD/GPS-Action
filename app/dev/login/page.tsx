@@ -14,7 +14,7 @@ export const metadata = {
 };
 
 export default async function DevLoginPage() {
-  const caller = createCaller({ user: null, activeRoles: [] });
+  const caller = createCaller({ user: null, activeRoles: [], activeScopes: [] });
   // dev router is always present here — guarded by app/dev/layout.tsx
   const { users } = await caller.dev!.listUsers();
 

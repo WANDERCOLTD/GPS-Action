@@ -12,6 +12,7 @@ import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { FeedList } from '@/components/FeedList';
+import { AppNav } from '@/components/AppNav';
 import { loadMorePosts, addReactionAction, removeReactionAction } from '@/app/feed/actions';
 import type { FeedPost, FeedCursor, FeedReactionEmoji } from '@/components/PostCard';
 
@@ -56,6 +57,11 @@ export default async function FeedPage() {
       title: p.title,
       body: p.body,
       activistMailerUrl: p.activistMailerUrl,
+      linkUrl: p.linkUrl,
+      linkTitle: p.linkTitle,
+      linkDescription: p.linkDescription,
+      linkImageUrl: p.linkImageUrl,
+      linkSiteName: p.linkSiteName,
       createdAt: p.createdAt.toISOString(),
       author: {
         displayName: p.author.displayName,
@@ -77,34 +83,42 @@ export default async function FeedPage() {
       }
     : null;
 
+  const hasReviewerAccess =
+    ctx.activeRoles.includes('admin') ||
+    ctx.activeRoles.includes('queue_manager') ||
+    ctx.activeScopes.length > 0;
+
   return (
-    <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 'var(--space-6)',
-        }}
-      >
-        <h1 className="gps-title">Feed</h1>
-        <a
-          href="/compose"
-          className="gps-btn gps-btn--primary gps-btn--sm"
-          data-testid="feed-newpost-link"
+    <>
+      <AppNav active="feed" hasReviewerAccess={hasReviewerAccess} />
+      <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 'var(--space-6)',
+          }}
         >
-          New post
-        </a>
-      </div>
-      <FeedList
-        initialPosts={posts}
-        initialCursor={cursor}
-        loadMore={loadMorePosts}
-        onAddReaction={addReactionAction}
-        onRemoveReaction={removeReactionAction}
-        canReact={reactionsEnabled}
-        reactionsEnabled={reactionsEnabled}
-      />
-    </main>
+          <h1 className="gps-title">Feed</h1>
+          <a
+            href="/compose"
+            className="gps-btn gps-btn--primary gps-btn--sm"
+            data-testid="feed-newpost-link"
+          >
+            New post
+          </a>
+        </div>
+        <FeedList
+          initialPosts={posts}
+          initialCursor={cursor}
+          loadMore={loadMorePosts}
+          onAddReaction={addReactionAction}
+          onRemoveReaction={removeReactionAction}
+          canReact={reactionsEnabled}
+          reactionsEnabled={reactionsEnabled}
+        />
+      </main>
+    </>
   );
 }
