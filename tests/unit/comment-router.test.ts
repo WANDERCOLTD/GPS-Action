@@ -73,7 +73,7 @@ describe('comment.add', () => {
 
     await expect(
       caller.comment.add({
-        postId: '00000000-0000-0000-0000-000000000001',
+        postId: '00000000-0000-4000-8000-000000000001',
         body: 'hello',
       }),
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
@@ -85,7 +85,7 @@ describe('comment.add', () => {
 
     await expect(
       caller.comment.add({
-        postId: '00000000-0000-0000-0000-000000000001',
+        postId: '00000000-0000-4000-8000-000000000001',
         body: 'hello',
       }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
@@ -96,7 +96,7 @@ describe('comment.add', () => {
 
     await expect(
       caller.comment.add({
-        postId: '00000000-0000-0000-0000-000000000001',
+        postId: '00000000-0000-4000-8000-000000000001',
         body: '   ',
       }),
     ).rejects.toThrow();
@@ -108,7 +108,7 @@ describe('comment.add', () => {
 
     await expect(
       caller.comment.add({
-        postId: '00000000-0000-0000-0000-000000000001',
+        postId: '00000000-0000-4000-8000-000000000001',
         body: longBody,
       }),
     ).rejects.toThrow();
@@ -126,7 +126,7 @@ describe('comment.add', () => {
     const caller = createCaller(authedContext());
 
     const result = await caller.comment.add({
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
       body: 'hello',
     });
 
@@ -141,7 +141,7 @@ describe('comment.listForPost', () => {
     const caller = createCaller(publicContext());
 
     const result = await caller.comment.listForPost({
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
     });
 
     expect(result).toEqual([]);
@@ -165,7 +165,7 @@ describe('comment.listForPost', () => {
     const caller = createCaller(authedContext());
 
     const result = await caller.comment.listForPost({
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
     });
 
     expect(result).toHaveLength(1);
