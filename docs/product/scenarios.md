@@ -51,6 +51,8 @@ Scenarios feed session briefs. Every Claude Code session building a feature gets
 
 ### Scenario 1 — Sharon sees a Sky News bias post and boosts it
 
+<!-- @no-code-yet -->
+
 _Sharon, member, writers group lead. Sunday afternoon, on the sofa with tea._
 
 Sharon is scrolling her GPS Action feed when she sees a post from Maya — a Sky News coverage complaint. The card shows a graphic with the Sky News logo and "ACTION ON ANTISEMITISM" in a corner. She taps the card to open the detail.
@@ -89,6 +91,8 @@ A quiet toast: "Shared · thanks!" The engage strip now shows "💬 2 groups · 
 ---
 
 ### Scenario 2 — Emma has a concern about leafleting at her child's school
+
+<!-- @no-code-yet -->
 
 _Emma, new member. Tuesday, walking home from school pickup. On her phone._
 
@@ -152,6 +156,8 @@ He closes the app. Two minutes of connection, no friction.
 
 ### Scenario 4 — Rachel attends a local gathering — RSVP and follow-up
 
+<!-- @no-code-yet -->
+
 _Rachel, member in Leicester. Thursday evening, on her laptop at the kitchen table._
 
 Rachel sees a post in her feed: "Leicester solidarity gathering — Saturday 2pm" by the Leicester coordinator. It's an Event type post. Card shows a venue photo, date, address, a map thumbnail, and an "I'll come →" button.
@@ -179,6 +185,8 @@ The post's system-comment area shows: "✓ Event concluded · 34 RSVP / 32 atten
 ---
 
 ### Scenario 5 — Michael loses his phone, needs to log in on a new device
+
+<!-- @no-code-yet -->
 
 _Michael, member 18 months in, moderately tech-savvy. Saturday morning, panicked — phone lost at a wedding yesterday._
 
@@ -210,6 +218,8 @@ A message appears: "Grant has been notified. He'll verify your identity and help
 ---
 
 ### Scenario 6 — Claire publishes an outcome post about a successful letter placement
+
+<!-- @no-code-yet -->
 
 _Claire, writer, Nottinghamshire. Monday 09:15 — she just got the email._
 
@@ -286,6 +296,8 @@ Total elapsed time: under three minutes from "I should share this" to "it's shar
 
 ### Scenario 7 — Sharon creates a Writers event
 
+<!-- @no-code-yet -->
+
 _Sharon, writers lead. Thursday morning, planning Monday's Writers session._
 
 She needs to announce next Monday's event to the Writers team. Opens GPS Action, taps +, picks "Start a Post."
@@ -313,6 +325,8 @@ On the card: the Join meeting button is disabled until Monday 18:45 (15 min befo
 ---
 
 ### Scenario 8 — Grant drafts an urgent council-motion action post
+
+<!-- @no-code-yet -->
 
 _Grant, coordinator East Midlands, also a writer. Thursday 14:00 — just saw the motion in tomorrow's Derbyshire CC agenda._
 
@@ -349,6 +363,8 @@ On the feed, the post shows as Urgent with a countdown timer ("18 hours remainin
 
 ### Scenario 9 — Claire responds to a newspaper op-ed
 
+<!-- @no-code-yet -->
+
 _Claire, writer. Sees the op-ed in the morning Guardian._
 
 Opens GPS Action, but notices Maya has already posted about this op-ed with a call for responses. Claire doesn't need to create a new post; she engages with Maya's.
@@ -378,6 +394,8 @@ She taps Send. GPS Action opens her email client with the response pre-filled (T
 ## Coordinator scenarios
 
 ### Scenario 10 — Maya triages her flagged-content queue
+
+<!-- @no-code-yet -->
 
 _Maya, Tower Hamlets coordinator. Monday morning, coffee and laptop._
 
@@ -410,6 +428,8 @@ She clears three items in 20 minutes. Three others need follow-up today.
 
 ### Scenario 11 — Jeremy edits a miscategorised regional post
 
+<!-- @no-code-yet -->
+
 _Jeremy, director. Late evening, checking the network on his iPad._
 
 He sees a post tagged "Bristol" but the content is about Brent (London). Clear mistake — the member typed Bristol when they meant Brent. The post is getting dispatched to the Bristol region feed.
@@ -439,6 +459,8 @@ Author later sees, understands, says thank you. No ill feeling.
 ---
 
 ### Scenario 12 — Sharon vets a new enrolment application
+
+<!-- @no-code-yet -->
 
 _Sharon, vetter (she's a writer with the vetter permission flag). Wednesday evening._
 
@@ -472,6 +494,8 @@ Anna gets an approval email with a signup link. The vouch ledger gets a new entr
 
 ### Scenario 13 — Jeremy pins a network-wide urgent post
 
+<!-- @no-code-yet -->
+
 _Jeremy, director. Thursday evening — major news just broke._
 
 A significant event has happened (some example: a BBC piece). Multiple members have posted reactions. Jeremy wants to consolidate — lift one good post to the top.
@@ -501,6 +525,8 @@ System auto-comment on the post: "📌 Pinned network-wide by Jeremy — 48h." M
 
 ### Scenario 14 — Jeremy reviews an escalated vetting case
 
+<!-- @no-code-yet -->
+
 _Jeremy, director. Tuesday morning._
 
 An applicant was escalated to director by a vetter because the named voucher said No. The applicant has re-nominated: "Actually I mean Miriam, not Sharon."
@@ -528,6 +554,8 @@ Jeremy approves with summary: "Re-nominated voucher confirmed. Clean lineage. Ap
 ---
 
 ### Scenario 15 — Jeremy investigates a voucher's lineage
+
+<!-- @no-code-yet -->
 
 _Jeremy, director. Friday — just got a flag from Sarah that David M (member) may have posted something problematic._
 
@@ -564,6 +592,8 @@ He DMs Maya (the flagger) to explain his approach. Maya appreciates it.
 
 ### Scenario 16 — Coordinator dispatches a Boost/Remove post to WhatsApp
 
+<!-- @no-code-yet -->
+
 _Grant, coordinator. Wednesday 09:00._
 
 A member has just published a Boost post — a positive X post from a Jewish MP that deserves amplification. Grant saw it in the dispatch queue (the member skipped self-dispatch).
@@ -593,6 +623,8 @@ Total elapsed time: 25 seconds.
 ---
 
 ### Scenario 17 — System auto-comments on a closing campaign
+
+<!-- @no-code-yet -->
 
 _A post created days ago approaching its cap and expiry. The author is Grant._
 
@@ -664,6 +696,8 @@ _Author: Paul · Status: Draft · Build unit: BU-link-share_
 ---
 
 ### Scenario 19 — Sharon shares a Guardian article with a preview card
+
+<!-- @no-code-yet -->
 
 _Sharon, member, writers group lead. Sunday morning, in the kitchen
 with toast and tea. Her phone is on the counter._

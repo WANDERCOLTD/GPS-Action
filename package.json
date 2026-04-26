@@ -18,6 +18,9 @@
     "db:seed": "tsx scripts/seed.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "trace": "tsx scripts/trace.ts",
+    "trace:check": "tsx scripts/trace.ts --check",
+    "trace:matrix": "tsx scripts/trace.ts --matrix",
     "prepare": "husky"
   },
   "dependencies": {
