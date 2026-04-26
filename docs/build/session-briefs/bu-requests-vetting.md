@@ -274,13 +274,19 @@ Pre-flight: pull main, `npx prisma migrate deploy`, `npm run db:seed`, restart d
 
 ---
 
-## Open questions / risks
+## Confirmed design calls (resolved during brief review, 2026-04-26)
 
-1. **`@mention` parsing scope** — fuzzy match against `displayName` or strict against unique `@username`? MVP: fuzzy match against displayName; collisions resolve to the most-recently-active user. If two reviewers share a displayName, escalation lands on the wrong person — acceptable for MVP since seed names are unique.
-2. **System-comment author identity** — seeded `system` user vs nullable `authorId` field on Comment? MVP: seeded user (simpler; renders with avatar slot — just shown muted). Future ADR can change to nullable if it becomes a contract problem.
-3. **Comment-on-Post audience filter** — D056 was scoped to Request comments. Should Post comments also gain the audience toggle? **Provisional answer: no** — Post comments are public-by-design (everyone who can see the post can see the comment). Audience model is Request-only.
-4. **Flag/Edit-request post-selection UI** — tile 9/10 from FAB lacks a `postId` context. Two paths: (a) FAB tile → composer with no preselect → free-text reference; (b) FAB tile disabled outside post-detail context, only enabled via the "..." menu on a specific post. **MVP: (a) — composer asks for the post URL or ID**. Post-detail "..." menu is a Phase 2 nice-to-have.
-5. **Notification fanout limits** — what if @mention names 5 reviewers? MVP: emit one Notification per mention, no aggregation. If spam becomes a thing, dedup at insert.
+1. **`@mention` parser** — **Option A: fuzzy match against `displayName`**. With current seed users (5–8 unique names) collisions can't happen. Username-style strict matching (`@sharon-w`) parked for when member count hits ~50.
+2. **System-comment author identity** — seeded `system` user (simpler; renders muted with no avatar). Future ADR can convert to nullable `authorId` if needed.
+3. **Comment-on-Post audience filter** — Request-only. Post comments stay public-by-design. Extending audience to Post comments is parked.
+4. **Flag/Edit-request post-selection UI** — composer asks for post URL or ID free-text in MVP. Post-detail "..." menu enabling tiles 9/10 contextually is a Phase 2 nice-to-have.
+5. **Notification fanout** — one Notification per @mention, no aggregation. Revisit if spam emerges.
+
+## Parked items (added to `docs/product/parking-lot.md` alongside this BU)
+
+- **Username system for collision-safe @mentions** — add `User.username String? @unique` + onboarding step to pick handle. Trigger: member count ~50 OR first reported wrong-mention.
+- **Post-comment audience model** — extend D056 audience toggle to Post comments. Trigger: a real use case where author + reviewers want internal notes on a published Post (e.g. coordinator-only annotations).
+- **Contextual flag/edit composer launchers** — disable FAB tiles 9/10 globally; surface them via post-detail "..." menu where `postId` is implicit. Trigger: usage data shows members guessing post IDs / pasting wrong URLs into the free-text MVP composer.
 
 ---
 
