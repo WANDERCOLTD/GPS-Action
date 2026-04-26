@@ -1061,7 +1061,7 @@ This morning he opens the app to check. Bottom nav has a tab labelled **Requests
 The Requests tab opens with two sections:
 
 - **My requests (1)**
-  - Vetting application · *new* · submitted yesterday 19:42
+  - Vetting application · _new_ · submitted yesterday 19:42
 
 - **Notifications**
   - (empty)
@@ -1075,15 +1075,15 @@ Status pill: **new**. He closes the app.
 **Tuesday evening 20:15.** A push-style in-app banner doesn't appear (he's not on the app), but when he opens the app at 22:00, the Requests tab shows a "1 new" badge.
 
 - **My requests (1)**
-  - Vetting application · *in discussion* · Sharon picked up 20:18
+  - Vetting application · _in discussion_ · Sharon picked up 20:18
 
 - **Notifications (1)**
-  - Sharon picked up your application · 1h ago    [unread]
+  - Sharon picked up your application · 1h ago [unread]
 
 He taps his application again. The detail now shows:
 
 > 19:42 — You submitted this request.
-> 20:18 — Sharon picked up this request. *(small grey system line)*
+> 20:18 — Sharon picked up this request. _(small grey system line)_
 > 20:31 — **Sharon**: Hey Eddie — quick check, can you confirm your postcode? The form had E1 but you also mentioned you live in Whitechapel; just want to make sure I match the right region.
 
 A reply box at the bottom says "Reply to the team…" — he taps, types "Yes, E1 4DJ. I work near Whitechapel station, that's why I mentioned it." He hits Post.
@@ -1093,10 +1093,10 @@ The system shows: "Your reply was sent." His own message appears in the timeline
 **Wednesday morning 09:14.** He opens the app. Banner at the top of feed: "Welcome to GPS Action 🤝". The Requests tab badge is gone. He taps anyway.
 
 - **My requests (1)**
-  - Vetting application · *done · approved* · resolved 09:08
+  - Vetting application · _done · approved_ · resolved 09:08
 
 - **Notifications (1)**
-  - Your application has been approved — welcome · 8m ago    [unread]
+  - Your application has been approved — welcome · 8m ago [unread]
 
 He taps the notification. It opens the application. Timeline:
 
@@ -1119,7 +1119,7 @@ He's in.
 **Friction found:**
 
 - What if Eddie's reply to the postcode question takes 4 days? The case sits in `in_discussion` indefinitely. Should there be a "submitter hasn't replied — nudge?" reviewer affordance? Not in MVP, but worth flagging.
-- What if Eddie wants to *withdraw* his application after submitting? Needs a "withdraw" affordance on the submitter side (case → done, outcome `withdrawn`). Plumb in BU-requests.
+- What if Eddie wants to _withdraw_ his application after submitting? Needs a "withdraw" affordance on the submitter side (case → done, outcome `withdrawn`). Plumb in BU-requests.
 - The notification copy ("Sharon picked up your application") is friendly but should not name the reviewer if reviewer-anonymity becomes a privacy concern. For MVP we name them; revisit.
 
 **Related:**
@@ -1169,7 +1169,7 @@ Sharon closes the case and moves to the next item in her queue. She's done what 
 **Wednesday morning 09:00.** Sharon opens GPS Action. Notification badge: 1. She taps.
 
 - **Notifications (1)**
-  - Eddie replied on his application · 11h ago   [unread]
+  - Eddie replied on his application · 11h ago [unread]
 
 She taps. Eddie's case opens to the timeline:
 
@@ -1236,7 +1236,7 @@ She hits Submit. The screen shows "Sent · the team has been alerted." She close
 **Cary (queue manager, generalist — `queue_manager:*`).** Friday 15:36. Cary is on her laptop. The Requests tab she has open in her browser polls every 10 seconds; within 10 seconds, a new section appears at the top:
 
 - **🔴 Urgent (1)**
-  - Maya · Antisemitic leaflet drop at gate of [school]... · *new* · 8s ago
+  - Maya · Antisemitic leaflet drop at gate of [school]... · _new_ · 8s ago
 
 Cary taps. Reads the context. She herself is across town — can't physically respond. But she notices Maya didn't @mention anyone specific. Cary types in the case discussion (audience: reviewers):
 
