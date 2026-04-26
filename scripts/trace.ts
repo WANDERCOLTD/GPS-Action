@@ -53,6 +53,10 @@ interface CodeFile {
   specs: SpecRef[];
   /** Legacy @scenarios SCN-N tags (deprecated, warn-only) */
   legacyScenarios: string[];
+  /** @depends-on BU-foo, BU-bar — explicit BU-level dependencies */
+  dependsOn: string[];
+  /** Raw import specifiers extracted from the file source */
+  imports: string[];
 }
 
 interface BuildUnit {
@@ -60,6 +64,8 @@ interface BuildUnit {
   files: string[]; // repo-relative paths
   scenarios: string[]; // SCN-Ns from referenced files
   adrs: string[]; // D-Ns from referenced files
+  /** BU-names this BU declares dependencies on (union over its files) */
+  dependsOn: string[];
 }
 
 interface TraceGraph {
@@ -73,6 +79,8 @@ interface TraceGraph {
   filesByADR: Map<string, string[]>;
   /** Reverse: BU name → list of file paths with that @build-unit */
   filesByBU: Map<string, string[]>;
+  /** Reverse: file path → list of file paths that import it */
+  importedBy: Map<string, string[]>;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────
@@ -150,11 +158,14 @@ export function parseADRs(markdown: string): ADR[] {
 const BUILD_UNIT_RE = /@build-unit\s+([A-Za-z0-9_-]+(?:\s+[A-Za-z0-9_-]+)*)/;
 const SPEC_RE = /@spec\s+(\S+?)(?:\s+\(([^)]+)\))?(?:\s|$)/g;
 const LEGACY_SCENARIOS_RE = /@scenarios\s+(SCN-\d+(?:\s*,\s*SCN-\d+)*)/g;
+const DEPENDS_ON_RE = /@depends-on\s+(BU-[A-Za-z0-9_-]+(?:\s*,\s*BU-[A-Za-z0-9_-]+)*)/g;
+const IMPORT_RE = /import\s+(?:[^'"]+\s+from\s+)?['"]([^'"]+)['"]/g;
 
 export function parseFileTags(content: string): {
   buildUnits: string[];
   specs: SpecRef[];
   legacyScenarios: string[];
+  dependsOn: string[];
 } {
   // Only look at the first 30 non-blank lines (header zone)
   const lines = content.split('\n');
@@ -209,7 +220,36 @@ export function parseFileTags(content: string): {
     }
   }
 
-  return { buildUnits, specs, legacyScenarios };
+  // @depends-on BU-foo, BU-bar — explicit BU dependency declarations.
+  // Used by `npm run impact <file>` to surface cross-BU effects.
+  const dependsOn: string[] = [];
+  DEPENDS_ON_RE.lastIndex = 0;
+  while ((m = DEPENDS_ON_RE.exec(scanned)) !== null) {
+    const value = m[1] ?? '';
+    for (const tok of value.split(/\s*,\s*/)) {
+      const id = tok.trim();
+      if (id) dependsOn.push(id);
+    }
+  }
+
+  return { buildUnits, specs, legacyScenarios, dependsOn };
+}
+
+/**
+ * Extract import paths from a TS/TSX/JS source file. Returns the raw
+ * specifier strings (e.g. '@/server/services/comment',
+ * './CommentItem', 'react'). Used by `npm run impact <file>` to find
+ * downstream consumers.
+ */
+export function parseImports(content: string): string[] {
+  const imports: string[] = [];
+  let m: RegExpExecArray | null;
+  IMPORT_RE.lastIndex = 0;
+  while ((m = IMPORT_RE.exec(content)) !== null) {
+    const spec = m[1] ?? '';
+    if (spec.length > 0) imports.push(spec);
+  }
+  return imports;
 }
 
 // ── File walking ─────────────────────────────────────────────────────────
@@ -281,6 +321,8 @@ export function buildGraph(input: {
       buildUnits: tags.buildUnits,
       specs: tags.specs,
       legacyScenarios: tags.legacyScenarios,
+      dependsOn: tags.dependsOn,
+      imports: parseImports(file.content),
     });
 
     for (const bu of tags.buildUnits) {
@@ -317,6 +359,7 @@ export function buildGraph(input: {
   for (const [bu, paths] of filesByBU) {
     const scenarioSet = new Set<string>();
     const adrSet = new Set<string>();
+    const dependsOnSet = new Set<string>();
     for (const p of paths) {
       const file = files.find((f) => f.path === p);
       if (!file) continue;
@@ -331,16 +374,89 @@ export function buildGraph(input: {
       for (const scn of file.legacyScenarios) {
         scenarioSet.add(`SCN-${Number(scn.replace(/^SCN-/, ''))}`);
       }
+      for (const dep of file.dependsOn) dependsOnSet.add(dep);
     }
     buildUnits.set(bu, {
       id: bu,
       files: [...paths].sort(),
       scenarios: [...scenarioSet].sort((a, b) => Number(a.slice(4)) - Number(b.slice(4))),
       adrs: [...adrSet].sort(),
+      dependsOn: [...dependsOnSet].sort(),
     });
   }
 
-  return { scenarios, adrs, files, buildUnits, filesByScenario, filesByADR, filesByBU };
+  // Build importedBy reverse map by resolving each file's imports
+  // back to a repo-relative path. Handles `@/foo/bar` (alias for repo
+  // root) and relative paths (./../). External imports (no /) skip.
+  const filesByPath = new Map<string, CodeFile>();
+  for (const f of files) filesByPath.set(f.path, f);
+
+  const importedBy = new Map<string, string[]>();
+
+  for (const file of files) {
+    for (const spec of file.imports) {
+      const targetPath = resolveImportToRepoPath(spec, file.path, filesByPath);
+      if (!targetPath) continue;
+      const arr = importedBy.get(targetPath) ?? [];
+      if (!arr.includes(file.path)) arr.push(file.path);
+      importedBy.set(targetPath, arr);
+    }
+  }
+
+  return {
+    scenarios,
+    adrs,
+    files,
+    buildUnits,
+    filesByScenario,
+    filesByADR,
+    filesByBU,
+    importedBy,
+  };
+}
+
+/**
+ * Resolve an import specifier to a repo-relative path, if it points
+ * at one of the indexed files. Returns null for external packages or
+ * unresolvable paths.
+ */
+function resolveImportToRepoPath(
+  spec: string,
+  fromFile: string,
+  knownFiles: Map<string, CodeFile>,
+): string | null {
+  // External package — no path separator at the start
+  if (!spec.startsWith('@/') && !spec.startsWith('.')) return null;
+
+  let candidate: string;
+  if (spec.startsWith('@/')) {
+    candidate = spec.slice(2); // strip the alias; relative to repo root
+  } else {
+    // Relative path — resolve against the importer's directory
+    const fromDir = fromFile.split('/').slice(0, -1).join('/');
+    const segments = (fromDir + '/' + spec).split('/');
+    const resolved: string[] = [];
+    for (const seg of segments) {
+      if (seg === '' || seg === '.') continue;
+      if (seg === '..') {
+        resolved.pop();
+        continue;
+      }
+      resolved.push(seg);
+    }
+    candidate = resolved.join('/');
+  }
+
+  // Try the candidate with each source extension
+  for (const ext of ['.ts', '.tsx', '.js', '/index.ts', '/index.tsx']) {
+    const test = candidate + ext;
+    if (knownFiles.has(test)) return test;
+  }
+
+  // Maybe the path already includes the extension
+  if (knownFiles.has(candidate)) return candidate;
+
+  return null;
 }
 
 // ── Modes: lookup, check, matrix ─────────────────────────────────────────
@@ -582,6 +698,123 @@ export function renderMatrix(graph: TraceGraph): string {
   return lines.join('\n');
 }
 
+// ── Impact mode (D053 §8 doesn't preclude this — direct edges only) ─────
+
+interface ImpactResult {
+  file: string;
+  buildUnits: string[];
+  scenarios: string[];
+  adrs: string[];
+  /** Files that import this file (1-hop reverse import map). */
+  importedBy: string[];
+  /** BUs declared as @depends-on by this file or its BUs. */
+  dependencies: string[];
+  /** BUs that declare this file's BU(s) as a dependency (reverse). */
+  dependents: string[];
+}
+
+export function computeImpact(graph: TraceGraph, filePath: string): ImpactResult | null {
+  const file =
+    graph.files.find((f) => f.path === filePath) ??
+    graph.files.find((f) => f.path.endsWith('/' + filePath));
+  if (!file) return null;
+
+  const scenarios = new Set<string>();
+  const adrs = new Set<string>();
+  for (const spec of file.specs) {
+    if (!spec.ref) continue;
+    if (spec.specPath.includes('scenarios.md') && /^SCN-\d+$/.test(spec.ref)) {
+      scenarios.add(`SCN-${Number(spec.ref.slice(4))}`);
+    } else if (spec.specPath.includes('decision-log.md') && /^D\d{2,3}$/.test(spec.ref)) {
+      adrs.add(`D${String(Number(spec.ref.slice(1))).padStart(3, '0')}`);
+    }
+  }
+  for (const scn of file.legacyScenarios) {
+    scenarios.add(`SCN-${Number(scn.replace(/^SCN-/, ''))}`);
+  }
+
+  // Forward dependencies — declared via this file's @depends-on OR
+  // via the BUs it belongs to.
+  const dependencies = new Set<string>(file.dependsOn);
+  for (const bu of file.buildUnits) {
+    const buEntry = graph.buildUnits.get(bu);
+    if (!buEntry) continue;
+    for (const dep of buEntry.dependsOn) dependencies.add(dep);
+  }
+
+  // Reverse — BUs that declare any of THIS file's BUs as dependencies.
+  const dependents = new Set<string>();
+  for (const [otherBu, otherEntry] of graph.buildUnits) {
+    if (file.buildUnits.includes(otherBu)) continue;
+    for (const dep of otherEntry.dependsOn) {
+      if (file.buildUnits.includes(dep)) {
+        dependents.add(otherBu);
+        break;
+      }
+    }
+  }
+
+  return {
+    file: file.path,
+    buildUnits: [...file.buildUnits],
+    scenarios: [...scenarios].sort((a, b) => Number(a.slice(4)) - Number(b.slice(4))),
+    adrs: [...adrs].sort(),
+    importedBy: [...(graph.importedBy.get(file.path) ?? [])].sort(),
+    dependencies: [...dependencies].sort(),
+    dependents: [...dependents].sort(),
+  };
+}
+
+function printImpact(graph: TraceGraph, filePath: string): void {
+  const impact = computeImpact(graph, filePath);
+  if (!impact) {
+    console.error(`File "${filePath}" not found in the graph.`);
+    console.error('(Files without @build-unit headers are skipped.)');
+    process.exit(2);
+  }
+
+  console.log(`Impact of changing: ${impact.file}`);
+  console.log('');
+
+  console.log(`  Build Unit(s) (${impact.buildUnits.length}):`);
+  for (const bu of impact.buildUnits) console.log(`    ${bu}`);
+  console.log('');
+
+  console.log(`  Backs scenarios (${impact.scenarios.length}):`);
+  for (const s of impact.scenarios) {
+    const title = graph.scenarios.get(s)?.title ?? '?';
+    console.log(`    ${s} — ${title}`);
+  }
+  console.log('');
+
+  console.log(`  Implements ADRs (${impact.adrs.length}):`);
+  for (const a of impact.adrs) {
+    const title = graph.adrs.get(a)?.title ?? '?';
+    console.log(`    ${a} — ${title}`);
+  }
+  console.log('');
+
+  console.log(`  Imported by (${impact.importedBy.length}):`);
+  for (const f of impact.importedBy) console.log(`    ${f}`);
+  if (impact.importedBy.length === 0) {
+    console.log('    (none — leaf file)');
+  }
+  console.log('');
+
+  console.log(`  Forward BU dependencies (${impact.dependencies.length}):`);
+  for (const d of impact.dependencies) console.log(`    ${d}`);
+  if (impact.dependencies.length === 0) {
+    console.log('    (none declared via @depends-on)');
+  }
+  console.log('');
+
+  console.log(`  BUs that depend on this file's BU (${impact.dependents.length}):`);
+  for (const d of impact.dependents) console.log(`    ${d}`);
+  if (impact.dependents.length === 0) {
+    console.log('    (none declare a @depends-on for this BU)');
+  }
+}
+
 // ── CLI entry point ──────────────────────────────────────────────────────
 
 function loadGraphFromDisk(): TraceGraph {
@@ -616,7 +849,18 @@ function main(): void {
     console.log('  npm run trace <SCN-N | D0NN | BU-name | path>   single-ID lookup');
     console.log('  npm run trace:check                              CI guard (exit 1 on issues)');
     console.log('  npm run trace:matrix                             regenerate the matrix file');
+    console.log('  npm run impact <file>                            change-impact for a file');
     process.exit(args.length === 0 ? 1 : 0);
+  }
+
+  if (args[0] === '--impact') {
+    const target = args[1];
+    if (!target) {
+      console.error('Usage: npm run impact <file-path>');
+      process.exit(2);
+    }
+    printImpact(graph, target);
+    process.exit(0);
   }
 
   if (args[0] === '--check') {

@@ -21,6 +21,7 @@
     "trace": "tsx scripts/trace.ts",
     "trace:check": "tsx scripts/trace.ts --check",
     "trace:matrix": "tsx scripts/trace.ts --matrix",
+    "impact": "tsx scripts/trace.ts --impact",
     "prepare": "husky"
   },
   "dependencies": {

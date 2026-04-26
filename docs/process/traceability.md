@@ -79,6 +79,25 @@ can be:
 - None at all (just a path) — the spec is consulted but no
   specific section pinned
 
+### `@depends-on BU-foo` (optional, no enforcement)
+
+Files (or briefs) can declare explicit BU-level dependencies:
+
+```typescript
+/**
+ * @build-unit BU-comments
+ * @spec architecture/decision-log.md (D052)
+ * @depends-on BU-reactions, BU-auth
+ */
+```
+
+The tag has no lint rule — it's a developer-authored signal, not an
+F-rule. The trace tool aggregates declarations into a per-BU
+dependency graph and surfaces them via `npm run impact`. Use when
+the dependency is non-obvious (e.g. a service relies on a contract
+shape another BU establishes); skip when it's already implicit via
+imports.
+
 ### `@no-code-yet` marker (D053)
 
 Scenarios with no backing code yet carry a marker on the line
@@ -114,6 +133,26 @@ npm run trace components/CommentList.tsx
 
 Resolves any of: scenario ID, BU name, ADR ID, file path. Prints
 the forward + reverse dependency tree.
+
+### Impact mode
+
+```bash
+npm run impact server/services/comment.ts
+```
+
+Given a file path, prints:
+
+- BU(s) the file belongs to
+- Scenarios it backs (via `@spec`)
+- ADRs it implements
+- **Files that import it** (1-hop reverse import map; resolves
+  `@/` alias and relative imports)
+- Forward BU dependencies (via `@depends-on` on the file or its
+  BU)
+- Reverse — BUs that declare this file's BU as a dependency
+
+The single-command answer to "what does changing this file
+affect?" Use before any non-trivial edit to surface blast radius.
 
 ### Check mode (CI)
 
