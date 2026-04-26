@@ -396,6 +396,57 @@ need.
 
 ---
 
+### B13 · Scope-aware filtering on `/data/[entity]` for queue_manager grants
+
+**What:** Layer D055's per-type role scopes (`queue_manager:vetting`,
+`queue_manager:flag`, etc.) into the generic admin CRUD engine
+(`server/routers/admin.ts`) so that a scoped queue_manager visiting
+`/data/<entity>` sees only the rows their scope unlocks — instead of
+every row the role tier would unlock when unscoped.
+
+BU-admin-crud ships **flat** by deliberate choice (Q3 in
+`docs/build/session-briefs/bu-admin-crud.md`): `requireRole(role)` only.
+The privacy concern (a `queue_manager:vetting` seeing `flag` rows) is
+mitigated for MVP by routing `/data/request` → `/requests` (Q4), which
+means no scoped entity renders generically today. This entry is the
+follow-up that makes the engine itself scope-aware so future scoped
+entities don't have to be special-cased.
+
+**Trigger:** Either (a) a second entity gains type-scoped grants in the
+metadata, or (b) `/data/request` stops redirecting to `/requests` and
+admins want it as a debug surface, or (c) the first non-admin
+queue_manager with a non-`*` scope is granted in production —
+whichever first.
+
+**Effort:** ~half a day.
+
+- `server/services/admin/crud.ts` — extend `listEntity` with an
+  optional `scopeFilter` arg derived from `ctx.activeScopes` and a
+  per-entity scope→column mapping
+- `server/admin/entity-metadata.ts` — add an optional
+  `scopeColumn?: string` field to `EntityMetadataEntry` (e.g. for
+  `request`, `'type'`)
+- `server/routers/admin.ts` — middleware passes `ctx.activeScopes`
+  through to the service; service applies the filter when
+  `scopeColumn` is declared
+- `tests/integration/admin-auth.test.ts` — add scoped-grant cases
+
+**Why not now:** Only one entity (`Request`) has type scopes today,
+and it doesn't render under `/data` (per Q4). Building the scope
+plumbing speculatively for one entity that's also redirected away is
+the kind of premature abstraction the project's working-rhythm.md
+explicitly warns against. The hook lands when a real second entity
+needs it.
+
+**Origin:** Surfaced as Open Question 3 during BU-admin-crud brief
+review (2026-04-26). Recorded here per CLAUDE.md's "engineering ideas
+go to roadmap within 48 hours or they die" rule.
+
+**Dependencies:** BU-admin-crud (the engine this layers onto), D055
+(the scope model).
+
+---
+
 ## Tier C — Nice to have, adopt when value is clear
 
 These aren't wrong — they're just not earning their cost at MVP scale. Each

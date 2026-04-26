@@ -633,9 +633,56 @@ enforces a non-trivial `@spec`.
 
 ---
 
+## Decisions confirmed before build (Paul, 2026-04-26)
+
+These lock the eight Open Questions below. The build session executes
+against them.
+
+1. **Slice 1 entities — option (c).** Ship CRUD for the
+   seven-entity operational set: `user`, `post`, `region`,
+   `group`, `roleGrant`, `featureFlag`, `auditLog` (read-only).
+   The remaining metadata entities (`userRegion`,
+   `coordinatorProfile`, `coordinatorGroup`, `groupMembership`,
+   `request`) are **not in scope** this BU; their registry
+   entries land in follow-ups. (`request` redirects per #4.)
+2. **Form-generation approach — registry-Zod.** Per-entity Zod
+   create/update schemas live in
+   `server/services/admin/registry.ts`. The same schema validates
+   both client-side (in `<EntityForm>`) and server-side (at the
+   procedure boundary). No DMMF introspection. No metadata-file
+   edits.
+3. **Auth on `/data` — flat for this BU.** `requireRole(role)`
+   only; no D055 scope filtering. Logged as **B13** in
+   `docs/build/engineering-roadmap.md` for follow-up. The privacy
+   concern is mitigated by #4 (only `request` has scopes today,
+   and `/data/request` redirects to `/requests`).
+4. **`/data/request` redirects to `/requests`** (the queue
+   workflow surface). Queue entities — anything with
+   `workflow: 'queue'` in metadata — never render a generic
+   list. Server-side redirect, not a 404, so the discovery flow
+   from the `/data` index still works.
+5. **Hard-delete UI — typed-confirmation modal.** "Type DELETE
+   to confirm" pattern. Soft-delete uses a standard
+   "Are you sure?" dialog with the honest "Soft-delete —
+   recoverable" copy.
+6. **"Immutable" lives in the registry, not the metadata.**
+   Encoded by absence: an entity registered without
+   `zodInputCreate` / `zodInputUpdate` / delete-mode rejects
+   those procedures with `BAD_REQUEST`. Logged as a future
+   metadata addition once a second immutable entity exists.
+7. **Datetime fields — read-only by default.** Forms omit them.
+   The registry's update Zod schema can opt in case-by-case
+   (e.g. `RoleGrant.revokedAt` for the revocation flow when
+   that BU lands).
+8. **List-page take limit — 50, no pagination.** Cursor
+   pagination lands when `request` count grows; not this BU.
+
+---
+
 ## Open questions to surface to Paul
 
-These are pinned. Build does not start until they're resolved.
+(Originally pinned for review. All resolved above; preserved here
+as the trail of recommendations + rationale.)
 
 ### 1. Which entities ship in slice 1?
 
