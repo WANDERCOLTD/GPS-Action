@@ -77,7 +77,7 @@ describe('reaction.add', () => {
 
     await expect(
       caller.reaction.add({
-        postId: '00000000-0000-0000-0000-000000000001',
+        postId: '00000000-0000-4000-8000-000000000001',
         emoji: 'candle',
       }),
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
@@ -90,7 +90,7 @@ describe('reaction.add', () => {
 
     await expect(
       caller.reaction.add({
-        postId: '00000000-0000-0000-0000-000000000001',
+        postId: '00000000-0000-4000-8000-000000000001',
         emoji: 'candle',
       }),
     ).rejects.toBeInstanceOf(TRPCError);
@@ -99,7 +99,7 @@ describe('reaction.add', () => {
   it('rejects unknown emoji via Zod', async () => {
     const caller = createCaller(authedContext());
     const badInput = {
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
       emoji: 'flame',
     } as unknown as Parameters<typeof caller.reaction.add>[0];
 
@@ -117,7 +117,7 @@ describe('reaction.add', () => {
     const caller = createCaller(authedContext());
 
     const result = await caller.reaction.add({
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
       emoji: 'candle',
     });
 
@@ -131,7 +131,7 @@ describe('reaction.remove', () => {
 
     await expect(
       caller.reaction.remove({
-        postId: '00000000-0000-0000-0000-000000000001',
+        postId: '00000000-0000-4000-8000-000000000001',
         emoji: 'candle',
       }),
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
@@ -142,7 +142,7 @@ describe('reaction.remove', () => {
     const caller = createCaller(authedContext());
 
     const result = await caller.reaction.remove({
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
       emoji: 'candle',
     });
 
@@ -157,7 +157,7 @@ describe('reaction.listForPost', () => {
     const caller = createCaller(publicContext());
 
     const result = await caller.reaction.listForPost({
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
     });
 
     expect(result).toEqual([{ emoji: 'heart', count: 4, mine: false }]);
@@ -173,7 +173,7 @@ describe('reaction.listForPost', () => {
     const caller = createCaller(authedContext());
 
     const result = await caller.reaction.listForPost({
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
     });
 
     expect(result).toContainEqual({ emoji: 'pray', count: 1, mine: true });

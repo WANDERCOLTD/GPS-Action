@@ -54,7 +54,7 @@ describe('addReaction', () => {
     mockReactionCreate.mockResolvedValueOnce({} as never);
 
     const result = await addReaction({
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
       emoji: 'candle',
       userId: 'user-1',
     });
@@ -65,8 +65,8 @@ describe('addReaction', () => {
       data: {
         userId: 'user-1',
         targetType: 'post',
-        targetId: '00000000-0000-0000-0000-000000000001',
-        postId: '00000000-0000-0000-0000-000000000001',
+        targetId: '00000000-0000-4000-8000-000000000001',
+        postId: '00000000-0000-4000-8000-000000000001',
         emoji: 'candle',
       },
     });
@@ -82,7 +82,7 @@ describe('addReaction', () => {
     );
 
     const result = await addReaction({
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
       emoji: 'pray',
       userId: 'user-1',
     });
@@ -96,7 +96,7 @@ describe('addReaction', () => {
 
     await expect(
       addReaction({
-        postId: '00000000-0000-0000-0000-000000000001',
+        postId: '00000000-0000-4000-8000-000000000001',
         emoji: 'heart',
         userId: 'user-1',
       }),
@@ -109,7 +109,7 @@ describe('removeReaction', () => {
     mockReactionDeleteMany.mockResolvedValueOnce({ count: 1 });
 
     const result = await removeReaction({
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
       emoji: 'candle',
       userId: 'user-1',
     });
@@ -119,7 +119,7 @@ describe('removeReaction', () => {
       where: {
         userId: 'user-1',
         targetType: 'post',
-        targetId: '00000000-0000-0000-0000-000000000001',
+        targetId: '00000000-0000-4000-8000-000000000001',
         emoji: 'candle',
       },
     });
@@ -130,7 +130,7 @@ describe('removeReaction', () => {
     mockReactionDeleteMany.mockResolvedValueOnce({ count: 0 });
 
     const result = await removeReaction({
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
       emoji: 'sad',
       userId: 'user-1',
     });
@@ -149,7 +149,7 @@ describe('listReactionsForPost', () => {
     mockReactionFindMany.mockResolvedValueOnce([{ emoji: 'candle' }] as never);
 
     const result = await listReactionsForPost({
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
       callerId: 'user-1',
     });
 
@@ -163,7 +163,7 @@ describe('listReactionsForPost', () => {
     mockReactionGroupBy.mockResolvedValueOnce([{ emoji: 'heart', _count: { _all: 2 } }] as never);
 
     const result = await listReactionsForPost({
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
       callerId: null,
     });
 
@@ -179,7 +179,7 @@ describe('listReactionsForPost', () => {
     ] as never);
 
     const result = await listReactionsForPost({
-      postId: '00000000-0000-0000-0000-000000000001',
+      postId: '00000000-0000-4000-8000-000000000001',
       callerId: null,
     });
 
@@ -236,7 +236,7 @@ describe('addReactionToComment', () => {
     mockReactionCreate.mockResolvedValueOnce({} as never);
 
     const result = await addReactionToComment({
-      commentId: '00000000-0000-0000-0000-00000000000c',
+      commentId: '00000000-0000-4000-8000-00000000000c',
       emoji: 'heart',
       userId: 'user-1',
     });
@@ -246,8 +246,8 @@ describe('addReactionToComment', () => {
       data: {
         userId: 'user-1',
         targetType: 'comment',
-        targetId: '00000000-0000-0000-0000-00000000000c',
-        commentId: '00000000-0000-0000-0000-00000000000c',
+        targetId: '00000000-0000-4000-8000-00000000000c',
+        commentId: '00000000-0000-4000-8000-00000000000c',
         emoji: 'heart',
       },
     });
@@ -263,7 +263,7 @@ describe('addReactionToComment', () => {
     );
 
     const result = await addReactionToComment({
-      commentId: '00000000-0000-0000-0000-00000000000c',
+      commentId: '00000000-0000-4000-8000-00000000000c',
       emoji: 'heart',
       userId: 'user-1',
     });
@@ -278,7 +278,7 @@ describe('removeReactionFromComment', () => {
     mockReactionDeleteMany.mockResolvedValueOnce({ count: 1 });
 
     const result = await removeReactionFromComment({
-      commentId: '00000000-0000-0000-0000-00000000000c',
+      commentId: '00000000-0000-4000-8000-00000000000c',
       emoji: 'heart',
       userId: 'user-1',
     });
@@ -288,7 +288,7 @@ describe('removeReactionFromComment', () => {
       where: {
         userId: 'user-1',
         targetType: 'comment',
-        targetId: '00000000-0000-0000-0000-00000000000c',
+        targetId: '00000000-0000-4000-8000-00000000000c',
         emoji: 'heart',
       },
     });
@@ -299,7 +299,7 @@ describe('removeReactionFromComment', () => {
     mockReactionDeleteMany.mockResolvedValueOnce({ count: 0 });
 
     const result = await removeReactionFromComment({
-      commentId: '00000000-0000-0000-0000-00000000000c',
+      commentId: '00000000-0000-4000-8000-00000000000c',
       emoji: 'heart',
       userId: 'user-1',
     });
@@ -315,7 +315,7 @@ describe('listReactionsForComment', () => {
     mockReactionFindMany.mockResolvedValueOnce([{ emoji: 'heart' }] as never);
 
     const result = await listReactionsForComment({
-      commentId: '00000000-0000-0000-0000-00000000000c',
+      commentId: '00000000-0000-4000-8000-00000000000c',
       callerId: 'user-1',
     });
 
