@@ -155,8 +155,8 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
         {reactionsEnabled && (
           <ReactionPill
             reactions={post.reactions}
-            onAdd={(emoji) => addReactionAction(post.id, emoji)}
-            onRemove={(emoji) => removeReactionAction(post.id, emoji)}
+            onAdd={addReactionAction.bind(null, post.id)}
+            onRemove={removeReactionAction.bind(null, post.id)}
             canReact={canReact}
           />
         )}
