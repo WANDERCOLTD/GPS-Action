@@ -422,60 +422,32 @@ which gives a useful smoke test:
 
 ---
 
-## Open questions to surface
+## Decisions confirmed before build (Paul, 2026-04-26)
 
-Things this session cannot decide autonomously. Surface; do not
-assume.
+These are locked. The build session executes against them.
 
-1. **D053 ADR — needed or not?** D038 already specs the discipline
-   and the script. D053 would add output-format and check-threshold
-   decisions. Recommend: **add D053** for the threshold and
-   parked-scenario marker decisions; they're the kind of thing
-   that benefits from a recorded rationale.
+1. **Add D053** ADR for output-format + check-threshold decisions.
+2. **`<!-- @no-code-yet -->` HTML comment** as the parked-scenario
+   marker.
+3. **Mark all 17 parked scenarios up-front** in this PR (avoids
+   hidden CI-fail surprise after merge).
+4. **Matrix lives at `docs/architecture/traceability-matrix.md`**
+   (architecture-flavoured artefact, like ADRs).
+5. **Commit the matrix + drift-check on CI** (one-glance snapshot
+   for reviewers in PRs).
+6. **Performance target: <2s on cold cache** — soft, revise as the
+   repo grows.
+7. **CI step placement: after lint, before tests** (fast-fail).
+8. **Legacy `@scenarios` tags warn but don't fail** — forward-
+   compat for in-flight cleanup. Hard error in a future cleanup PR.
+9. **Direct references only** (no transitive chain expansion in
+   MVP).
+10. **No retroactive tagging** of existing files without SCN refs.
+    Future BUs add the refs as they touch each file.
 
-2. **`@no-code-yet` marker syntax.** HTML comment vs frontmatter
-   vs an inline shortcode. Recommend: HTML comment
-   (`<!-- @no-code-yet -->`) since scenarios.md is plain markdown
-   and the comment is invisible in rendered view.
+---
 
-3. **Threshold for scenarios with zero refs.** Today many
-   scenarios (1, 2, 4–17, 19) have no code. Brief recommends
-   ship-with-honest-gaps — the matrix shows them, the check
-   tolerates them via `@no-code-yet` markers. Confirm: do we mark
-   all 17 parked scenarios up-front in this PR, or let the next
-   PR opening BU-X do it for the relevant scenarios?
-
-4. **Matrix file path.** `docs/architecture/traceability-matrix.md`
-   per the brief. Alternative: `docs/build/traceability-matrix.md`
-   (build-flavoured artefact). Recommend: architecture (it's
-   structural, like ADRs).
-
-5. **Drift check on the matrix.** Brief recommends CI fails when
-   running `trace:matrix` produces a different file from the
-   committed one. Alternative: don't commit the matrix at all and
-   regenerate on demand. Recommend: commit + drift-check (gives
-   reviewers a one-glance snapshot in PRs).
-
-6. **Performance soft target (<2s on cold cache).** Generous for
-   a small repo; may need adjustment as repo grows. Confirm.
-
-7. **CI step placement.** Recommend after lint, before tests
-   (fast-fail on traceability before slow test suite).
-
-8. **Should the check fail on legacy `@scenarios` tags** or just
-   warn? Recommend: warn (forward-compat for in-flight cleanup).
-   Hard error after a deliberate cleanup pass.
-
-9. **Cross-reference depth.** Brief outputs direct references only
-   (file → scenario, scenario → file). Transitive chains
-   (scenario → BU → ADR → other BUs that depend on it) are
-   future. Confirm.
-
-10. **Adoption rollout.** Once shipped, every new code file
-    needing scenario backing gets `@spec product/scenarios.md
-    (SCN-N)` per D038. Existing files without SCN refs are not
-    retroactively tagged in this PR — only by future BUs as they
-    touch the file. Confirm.
+## Open questions still to surface
 
 (Claude Code: add any further judgement calls encountered during
 implementation.)
