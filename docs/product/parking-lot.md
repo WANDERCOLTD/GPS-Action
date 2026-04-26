@@ -1097,3 +1097,93 @@ real third-action need surfaces.
 
 **Owner:** Paul, surfaced during BU-link-share design session
 (2026-04-26).
+
+---
+
+## Username system for collision-safe @mentions
+
+**Status:** PARKED — surfaced during BU-requests-vetting design.
+Triggers when member count or first reported wrong-mention forces it.
+
+**The shape:** add `User.username String? @unique` plus an onboarding
+step where members pick a handle. @mention parser switches from fuzzy
+`displayName` match to strict `@username` match. Eliminates the
+"two Sharons" collision risk.
+
+**Today's MVP** (per BU-requests-vetting): fuzzy match against
+displayName. With 5–8 seed users (all unique names) collisions can't
+happen. As member count grows, two members named "Sharon" will
+collide and one will get mentions intended for the other.
+
+**Trigger to build:**
+
+- Member count crosses ~50, OR
+- First reported wrong-mention incident, OR
+- A reviewer requests scoped @mention autocomplete that needs a
+  stable handle to disambiguate
+
+**Effort:** ~half a session — schema migration (single nullable
+column + unique index), onboarding step, autocomplete update,
+mention parser swap. Light.
+
+**Owner:** Paul, surfaced during BU-requests-vetting design
+(2026-04-26).
+
+---
+
+## Post-comment audience model
+
+**Status:** PARKED — surfaced during BU-requests-vetting design.
+
+**The shape:** extend the D056 `Comment.audience` toggle (currently
+Request-only) to apply to Post comments too. A coordinator could
+add internal annotations to a published Post that members can't
+see — useful for cross-team coordination notes on a public action.
+
+**Today's MVP** (per BU-requests-vetting): Request-only audience.
+Post comments remain public-by-design — everyone who can see the
+post sees every comment.
+
+**Trigger to build:**
+
+- A real use case where a coordinator wants to annotate a published
+  Post for the reviewer team without member visibility (e.g.
+  "we've contacted the school directly — don't share this widely").
+- OR a member-vs-coordinator information-asymmetry need surfaces.
+
+**Effort:** ~half a session — schema-wise the field already exists,
+just needs the toggle UI on Post comment composer + filter logic
+on the Post detail comment list. Light.
+
+**Owner:** Paul, surfaced during BU-requests-vetting design
+(2026-04-26).
+
+---
+
+## Contextual flag / edit-request composer launchers
+
+**Status:** PARKED — surfaced during BU-requests-vetting design.
+
+**The shape:** disable the global FAB picker tiles 9 (Flag a problem
+post) and 10 (Suggest an edit). Instead, surface them via a "..."
+menu on each post-detail page, where the target `postId` is
+implicit and pre-filled.
+
+**Today's MVP** (per BU-requests-vetting): tiles 9/10 are reachable
+from the FAB picker globally. The composer asks for the target post
+URL or ID as free-text input. Members may guess wrong or paste the
+wrong URL.
+
+**Trigger to build:**
+
+- Usage data shows members consistently guessing post IDs or
+  pasting wrong URLs.
+- Bad flag/edit Requests start clogging the reviewer queue because
+  reviewers can't determine which post the request refers to.
+
+**Effort:** ~half a session — disable tiles in IntentFab, add "..."
+menu to post-detail page with two new menu items, route both to
+existing composers with `postId` query param.
+
+**Owner:** Paul, surfaced during BU-requests-vetting design
+(2026-04-26).
