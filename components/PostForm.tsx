@@ -1,11 +1,12 @@
 'use client';
 
 /**
- * @build-unit BU-composer BU-link-share BU-fab-intent-picker
+ * @build-unit BU-composer BU-link-share BU-fab-intent-picker BU-am-link-collapse
  * @spec product/design-philosophy.md
  * @spec architecture/api-contract.md
  * @spec architecture/decision-log.md (D060, D062)
  * @spec product/scenarios.md (SCN-19)
+ * @spec build/session-briefs/bu-am-link-collapse.md
  *
  * Post creation form. Client component — manages form state, calls
  * the createPostAction server action on submit.
@@ -14,6 +15,10 @@
  * shared but the banner, accent colour, field order, and submit label
  * change per `?intent=<slug>`. Bespoke composers per intent are tracked
  * separately under BU-composer-bespoke-per-intent.
+ *
+ * BU-am-link-collapse: the dedicated <ActivistMailerField /> is gone.
+ * Activist-Mailer URLs paste into the regular link-share field; the
+ * preview card auto-detects AM domains at render time.
  */
 
 import { useState, useTransition, type CSSProperties, type ReactNode } from 'react';
@@ -29,7 +34,6 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import type { CreatePostResult } from '@/app/compose/actions';
-import { ActivistMailerField } from './ActivistMailerField';
 
 export interface KindMapEntry {
   id: string;
@@ -61,12 +65,8 @@ interface IntentMeta {
   bannerHeading: string;
   bannerBody: string;
   submitLabel: string;
-  /** Hide the Activist Mailer URL field (cultural). */
-  hideAM?: boolean;
   /** Hide the Share-a-link toggle entirely (cultural). */
   hideLinkToggle?: boolean;
-  /** Show AM field above the body, not below it (call_to_action). */
-  amFirst?: boolean;
   /** Force urgency=true on submit (happening_now). */
   urgent?: boolean;
   /** Show a "fields coming soon" hint inside the form (event/meeting). */
@@ -105,9 +105,8 @@ const INTENT_META: Record<string, IntentMeta> = {
     accent: 'var(--colour-primary)',
     bannerHeading: 'Call to action',
     bannerBody:
-      'What needs doing, why now. The Activist Mailer URL is where members will send their email.',
+      'What needs doing, why now. Paste the action link below — Activist Mailer URLs render with a "Send email" button automatically.',
     submitLabel: 'Post call to action',
-    amFirst: true,
     titlePlaceholder: 'e.g. Council motion — write to your councillor by Thursday',
     bodyPlaceholder: 'Background, context, the ask. Keep it tight.',
   },
@@ -117,7 +116,6 @@ const INTENT_META: Record<string, IntentMeta> = {
     bannerHeading: 'Cultural moment',
     bannerBody: 'A quiet, dignified note. Shabbat, remembrance, celebration.',
     submitLabel: 'Post moment',
-    hideAM: true,
     hideLinkToggle: true,
     titlePlaceholder: 'e.g. Shabbat Shalom',
     bodyPlaceholder: 'A few warm words for the community.',
@@ -188,7 +186,10 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
   );
   const isUndecided = intent === 'undecided';
   const meta = getMeta(isUndecided ? selectedKind : intent);
-  const showLinkOpenByDefault = intent === 'link_share';
+  // Open the link-share field by default for intents that historically
+  // asked for an Activist Mailer URL above-the-fold (call_to_action) or
+  // explicitly share-a-link.
+  const showLinkOpenByDefault = intent === 'link_share' || intent === 'call_to_action';
   const [shareLinkOpen, setShareLinkOpen] = useState(showLinkOpenByDefault);
 
   const resolvedKindId = selectedKind ? kindMap[selectedKind]?.id : undefined;
@@ -328,11 +329,6 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
         )}
       </div>
 
-      {/* Activist Mailer URL — promoted above body for call_to_action */}
-      {!meta.hideAM && meta.amFirst && (
-        <ActivistMailerField error={errors.activistMailerUrl?.[0]} />
-      )}
-
       {/* Body */}
       <div>
         <label
@@ -378,11 +374,6 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
           </p>
         )}
       </div>
-
-      {/* Activist Mailer URL — default position (below body) */}
-      {!meta.hideAM && !meta.amFirst && (
-        <ActivistMailerField error={errors.activistMailerUrl?.[0]} />
-      )}
 
       {/* Share a link? (BU-link-share / D060 / SCN-19) */}
       {!meta.hideLinkToggle && (

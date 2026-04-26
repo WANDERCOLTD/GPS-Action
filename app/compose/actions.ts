@@ -1,13 +1,21 @@
 'use server';
 
 /**
- * @build-unit BU-composer BU-link-share
+ * @build-unit BU-composer BU-link-share BU-am-link-collapse
  * @spec architecture/api-contract.md
  * @spec architecture/decision-log.md (D060)
+ * @spec build/session-briefs/bu-am-link-collapse.md
  *
  * Server action wrapping post.create for client-side form submit.
  * Mirrors app/feed/actions.ts pattern: createTRPCContext → createCaller.
  * Link-share fields are optional (D060).
+ *
+ * BU-am-link-collapse: the composer no longer submits
+ * `activistMailerUrl`. Activist-Mailer URLs paste into the regular
+ * `linkUrl` field; the preview card auto-detects the AM domain at
+ * render time. The schema validator still accepts
+ * `activistMailerUrl` for backwards-compat (legacy seed + service-
+ * layer writes); the composer just stops sending it.
  */
 
 import { redirect } from 'next/navigation';
@@ -25,7 +33,6 @@ export async function createPostAction(formData: FormData): Promise<CreatePostRe
   const raw = {
     title: formData.get('title')?.toString() ?? '',
     body: formData.get('body')?.toString() ?? '',
-    activistMailerUrl: formData.get('activistMailerUrl')?.toString() || undefined,
     visibility: formData.get('visibility')?.toString() ?? 'public',
     linkUrl: formData.get('linkUrl')?.toString() || undefined,
     linkTitle: formData.get('linkTitle')?.toString() || undefined,
