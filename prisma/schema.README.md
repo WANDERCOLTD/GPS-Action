@@ -101,12 +101,28 @@ npm run db:generate
 # 3. Apply migrations
 npm run db:migrate
 
-# 4. Seed (when prisma/seed.ts lands per Phase 0 F10)
+# 4a. Curated demo seed (5 named users + 18 narrative posts, for
+#     demos / screenshots — see scripts/seed.ts)
 npm run db:seed
+
+# 4b. F10 fixture seed (~50 users, ~200 posts, hundreds of comments
+#     and reactions — for previews, manual QA, future Storybook).
+#     Also runs automatically on `prisma migrate reset`.
+npx prisma db seed
 ```
 
-The seed script is **not** the source of truth for entity shapes — the schema
-is. The seed populates realistic fixtures for Storybook, previews, and tests.
+The seed scripts are **not** the source of truth for entity shapes — the
+schema is. They populate fixtures for Storybook, previews, and tests.
+
+| Seed             | File              | Invoked by           | Purpose                                   |
+| ---------------- | ----------------- | -------------------- | ----------------------------------------- |
+| Demo seed        | `scripts/seed.ts` | `npm run db:seed`    | Hand-curated narrative for demos & design |
+| F10 fixture seed | `prisma/seed.ts`  | `npx prisma db seed` | Bulk realistic fixtures (deterministic)   |
+
+Both are idempotent. They write disjoint datasets (separate email
+domains, separate group slugs) so a developer can run both back to
+back and get the union of the two without collisions. See
+`docs/build/session-briefs/f10-seed-data.md` for the full F10 contract.
 
 ---
 
