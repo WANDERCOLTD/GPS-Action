@@ -370,6 +370,61 @@ async function main(): Promise<void> {
     console.warn('  ✓ Cary already has queue_manager role');
   }
 
+  // ── Demo Requests (BU-requests-foundation / D054 / SCN-21) ───────────
+
+  const eddieId = userIds['eddie']!;
+
+  // Eddie's vetting application — pending review (per SCN-21)
+  const eddieVettingId = '00000000-0000-4000-8000-00000000a001';
+  const existingVetting = await prisma.request.findUnique({ where: { id: eddieVettingId } });
+
+  if (!existingVetting) {
+    await prisma.request.create({
+      data: {
+        id: eddieVettingId,
+        type: 'vetting',
+        status: 'unclaimed',
+        priority: 'normal',
+        context: {
+          summary: 'Eddie Morales — vetting application',
+          subjectUserId: eddieId,
+          submittedFrom: 'self-signup',
+          notes: 'Voucher: Sharon Whitfield. Region: London E1.',
+        },
+        regionSlug: 'north-london',
+        createdByUserId: eddieId,
+      },
+    });
+    console.warn('  ✓ Demo vetting Request created for Eddie');
+  } else {
+    console.warn('  ✓ Demo vetting Request for Eddie already present');
+  }
+
+  // A second pending Request so Cary's queue isn't lonely — a flag from Humphrey
+  const humphreyId = userIds['humphrey']!;
+  const humphreyFlagId = '00000000-0000-4000-8000-00000000a002';
+  const existingFlag = await prisma.request.findUnique({ where: { id: humphreyFlagId } });
+
+  if (!existingFlag) {
+    await prisma.request.create({
+      data: {
+        id: humphreyFlagId,
+        type: 'flag',
+        status: 'unclaimed',
+        priority: 'normal',
+        context: {
+          summary: 'Possible misinformation — bias in linked source',
+          flaggedPostTitle: 'Sky News coverage misses key context',
+          flaggedReason: 'reporter_bias',
+        },
+        createdByUserId: humphreyId,
+      },
+    });
+    console.warn('  ✓ Demo flag Request created (Humphrey)');
+  } else {
+    console.warn('  ✓ Demo flag Request already present');
+  }
+
   // ── Seed groups ──────────────────────────────────────────────────────
 
   const groupIds: Record<string, string> = {};
