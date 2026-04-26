@@ -32,8 +32,10 @@ import {
   CalendarDays,
   Users,
   HelpCircle,
+  ChevronDown,
 } from 'lucide-react';
 import type { CreatePostResult } from '@/app/compose/actions';
+import { KindPickerSheet, TILES, type Tile } from './KindPickerSheet';
 
 export interface KindMapEntry {
   id: string;
@@ -48,16 +50,6 @@ interface PostFormProps {
   /** Active PostKind set keyed by slug (server-resolved at page render time). */
   kindMap: Record<string, KindMapEntry>;
 }
-
-const KIND_OPTIONS = [
-  { value: 'thought', label: 'Just a thought' },
-  { value: 'cultural', label: 'Cultural moment' },
-  { value: 'outcome', label: 'Outcome — what happened' },
-  { value: 'call_to_action', label: 'Call to action' },
-  { value: 'link_share', label: 'Share a link' },
-  { value: 'event', label: 'Event' },
-  { value: 'meeting', label: 'Meeting' },
-];
 
 interface IntentMeta {
   icon: ReactNode;
@@ -180,19 +172,35 @@ function getMeta(intent: string | null | undefined): IntentMeta {
 export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
   const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
-  // For "undecided", the user picks from the selector. Otherwise the intent IS the kind.
+  // currentIntent is initialised from the prop but mutable — tapping the
+  // banner opens KindPickerSheet which calls setCurrentIntent.
+  const [currentIntent, setCurrentIntent] = useState<string | null>(intent);
+  // For "undecided", the user picks from the selector. Otherwise currentIntent IS the kind.
   const [selectedKind, setSelectedKind] = useState(
     intent === 'undecided' ? 'thought' : (intent ?? ''),
   );
-  const isUndecided = intent === 'undecided';
-  const meta = getMeta(isUndecided ? selectedKind : intent);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const isUndecided = currentIntent === 'undecided';
+  const meta = getMeta(isUndecided ? selectedKind : currentIntent);
   // Open the link-share field by default for intents that historically
   // asked for an Activist Mailer URL above-the-fold (call_to_action) or
   // explicitly share-a-link.
-  const showLinkOpenByDefault = intent === 'link_share' || intent === 'call_to_action';
-  const [shareLinkOpen, setShareLinkOpen] = useState(showLinkOpenByDefault);
+  const [shareLinkOpen, setShareLinkOpen] = useState(
+    currentIntent === 'link_share' || currentIntent === 'call_to_action',
+  );
 
   const resolvedKindId = selectedKind ? kindMap[selectedKind]?.id : undefined;
+
+  function handleIntentSwitch(slug: string): void {
+    setCurrentIntent(slug);
+    if (slug === 'undecided') {
+      if (!selectedKind || selectedKind === '') setSelectedKind('thought');
+    } else {
+      setSelectedKind(slug);
+    }
+    if (slug === 'link_share' || slug === 'call_to_action') setShareLinkOpen(true);
+    if (slug === 'cultural') setShareLinkOpen(false);
+  }
 
   function handleSubmit(formData: FormData): void {
     if (resolvedKindId) formData.set('kindId', resolvedKindId);
@@ -212,11 +220,27 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
     <form
       action={handleSubmit}
       data-testid="compose-newpost-form"
-      data-intent={intent ?? 'none'}
+      data-intent={currentIntent ?? 'none'}
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}
     >
-      {/* Intent banner — visual differentiation per FAB tile */}
-      {intent && <IntentBanner meta={meta} testIdSuffix={isUndecided ? selectedKind : intent} />}
+      {/* Intent banner — visual differentiation per FAB tile, also a
+          tappable trigger to switch kinds without losing typed content. */}
+      {currentIntent && (
+        <>
+          <IntentBanner
+            meta={meta}
+            testIdSuffix={isUndecided ? selectedKind : currentIntent}
+            onClick={() => setPickerOpen(true)}
+          />
+          <KindPickerSheet
+            open={pickerOpen}
+            onClose={() => setPickerOpen(false)}
+            onPick={handleIntentSwitch}
+            excludeKeys={['flag', 'edit_request']}
+            title="Change post kind"
+          />
+        </>
+      )}
 
       {/* Form-level error */}
       {errors._form && (
@@ -232,39 +256,9 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
         </p>
       )}
 
-      {/* Kind selector — visible when intent=undecided (BU-fab-intent-picker / D062) */}
-      {isUndecided && (
-        <div>
-          <label
-            htmlFor="post-kind"
-            data-testid="intent-selector-label"
-            style={{
-              display: 'block',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 500,
-              marginBottom: 'var(--space-1)',
-              fontFamily: 'var(--font-ui)',
-            }}
-          >
-            What kind of post is this?
-          </label>
-          <select
-            id="post-kind"
-            name="kind"
-            value={selectedKind}
-            onChange={(e) => setSelectedKind(e.target.value)}
-            data-testid="intent-selector-select"
-            className="gps-input"
-            style={{ width: '100%' }}
-          >
-            {KIND_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      {/* Kind chip grid — visible when intent=undecided. Tap a chip to
+          commit the form to that kind (banner + fields update; grid hides). */}
+      {isUndecided && <KindChipGrid onPick={handleIntentSwitch} />}
 
       {/* Inline hint banner for event / meeting (date/time fields coming) */}
       {meta.hint && (
@@ -681,9 +675,10 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
 interface IntentBannerProps {
   meta: IntentMeta;
   testIdSuffix: string;
+  onClick: () => void;
 }
 
-function IntentBanner({ meta, testIdSuffix }: IntentBannerProps) {
+function IntentBanner({ meta, testIdSuffix, onClick }: IntentBannerProps) {
   const bannerStyle: CSSProperties = {
     display: 'flex',
     gap: 'var(--space-3)',
@@ -694,9 +689,21 @@ function IntentBanner({ meta, testIdSuffix }: IntentBannerProps) {
     borderRight: '1px solid var(--colour-border-subtle)',
     borderBottom: '1px solid var(--colour-border-subtle)',
     borderLeft: `4px solid ${meta.accent}`,
+    cursor: 'pointer',
+    width: '100%',
+    textAlign: 'left',
+    fontFamily: 'inherit',
+    color: 'inherit',
   };
   return (
-    <div style={bannerStyle} data-testid="compose-intent-banner" data-intent-key={testIdSuffix}>
+    <button
+      type="button"
+      onClick={onClick}
+      style={bannerStyle}
+      data-testid="compose-intent-banner"
+      data-intent-key={testIdSuffix}
+      aria-label={`${meta.bannerHeading} — tap to change kind`}
+    >
       <div
         style={{
           color: meta.accent,
@@ -708,7 +715,15 @@ function IntentBanner({ meta, testIdSuffix }: IntentBannerProps) {
       >
         {meta.icon}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-1)',
+          flex: 1,
+          minWidth: 0,
+        }}
+      >
         <strong
           style={{
             fontFamily: 'var(--font-ui)',
@@ -730,6 +745,109 @@ function IntentBanner({ meta, testIdSuffix }: IntentBannerProps) {
           {meta.bannerBody}
         </p>
       </div>
+      <ChevronDown
+        size={18}
+        aria-hidden="true"
+        style={{ color: 'var(--colour-text-tertiary)', alignSelf: 'center' }}
+      />
+    </button>
+  );
+}
+
+interface KindChipGridProps {
+  onPick: (slug: string) => void;
+}
+
+const CHIP_EXCLUDE = new Set(['undecided', 'flag', 'edit_request']);
+
+function KindChipGrid({ onPick }: KindChipGridProps) {
+  const tiles = TILES.filter((t) => !CHIP_EXCLUDE.has(t.key) && !t.disabled);
+  return (
+    <div data-testid="compose-kind-chip-grid">
+      <p
+        style={{
+          margin: 0,
+          marginBottom: 'var(--space-2)',
+          fontFamily: 'var(--font-ui)',
+          fontSize: 'var(--text-sm)',
+          fontWeight: 500,
+          color: 'var(--colour-text-primary)',
+        }}
+      >
+        What kind of post is this?
+      </p>
+      <ul
+        style={{
+          listStyle: 'none',
+          margin: 0,
+          padding: 0,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+          gap: 'var(--space-3)',
+        }}
+      >
+        {tiles.map((tile) => (
+          <li key={tile.key}>
+            <button
+              type="button"
+              onClick={() => onPick(tile.key)}
+              data-testid="compose-kind-chip"
+              data-intent-key={tile.key}
+              style={chipStyle(tile)}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  color: tile.accent,
+                }}
+              >
+                {tile.icon}
+                <strong
+                  style={{
+                    fontFamily: 'var(--font-ui)',
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--colour-text-primary)',
+                  }}
+                >
+                  {tile.label}
+                </strong>
+              </div>
+              <p
+                style={{
+                  margin: 0,
+                  fontFamily: 'var(--font-ui)',
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--colour-text-secondary)',
+                }}
+              >
+                {tile.hint}
+              </p>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
+}
+
+function chipStyle(tile: Tile): CSSProperties {
+  return {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 'var(--space-2)',
+    padding: 'var(--space-3) var(--space-4)',
+    borderRadius: 'var(--radius-md)',
+    background: 'var(--colour-surface-raised)',
+    borderTop: '1px solid var(--colour-border-subtle)',
+    borderRight: '1px solid var(--colour-border-subtle)',
+    borderBottom: '1px solid var(--colour-border-subtle)',
+    borderLeft: `4px solid ${tile.accent}`,
+    textAlign: 'left',
+    cursor: 'pointer',
+    width: '100%',
+    fontFamily: 'inherit',
+    color: 'inherit',
+  };
 }
