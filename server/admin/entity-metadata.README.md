@@ -46,9 +46,12 @@ The map extends one slice at a time, mirroring `prisma/schema.prisma`:
 
 Rules:
 
-1. **One entry per Prisma model.** No more, no fewer. CI will eventually
-   enforce this (a script that diffs schema model names against metadata
-   keys).
+1. **One entry per Prisma model.** No more, no fewer. **Enforced by**
+   `tests/unit/schema-metadata-coverage.test.ts` (B14): the test reads
+   Prisma's DMMF model list and diffs against `Object.keys(entityMetadata)`
+   in both directions. Models in flight (schema landed, metadata not yet)
+   sit on an explicit allow-list at the top of that test file; each line
+   names the BU that added the schema and is a TODO until metadata lands.
 2. **Keys are URL segments.** `entityMetadata.user` becomes `/admin/user`.
    Renaming a key breaks the admin URL — treat as a breaking change with
    redirect handling.
