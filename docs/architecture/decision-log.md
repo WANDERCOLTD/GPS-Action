@@ -2238,3 +2238,169 @@ product/scenarios.md (SCN-N)` per D038
 - F06 rule 1 + F13 + F14 (the three lint rules whose tags this
   script reads)
 - Brief: `docs/build/session-briefs/bu-trace.md`
+
+---
+
+# D054 — Request entity (the unified "things needing decision/discussion" surface)
+
+**Date:** 2026-04-26
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** BU-requests (forthcoming)
+
+## Context
+
+The system needs a single home for everything the moderation /
+admin / vetter team picks up and resolves: vetting applications,
+flagged content, edit requests, post drafts submitted for review,
+auto-generated tips, urgent calls for help, and so on.
+
+Pre-D054, this surface had three overlapping concepts:
+
+1. The `WorkItem` entity (per claim-and-lease.md / D040) — a polymorphic
+   queue with 8 types and `unclaimed/claimed/in_review/resolved`
+   statuses.
+2. The bottom-tab "Inbox" (per D030) — a member-facing nav slot,
+   never specced beyond the label.
+3. Admin "inbox"-style notifications (per SCN-5) — a third hand-wavy
+   surface for things like account-recovery requests routed to a
+   coordinator.
+
+These three were never reconciled. The user-facing UX implication
+("how does Eddie see his vetting application status? where does Maya
+pick up a flag? where does Jeremy see an escalation?") fell through
+the gaps.
+
+D054 collapses all three into one entity, one surface, one status
+enum.
+
+## Decisions
+
+### 1. Naming
+
+| Layer           | Name                                                                 |
+| --------------- | -------------------------------------------------------------------- |
+| Entity          | `Request`                                                            |
+| Tab / surface   | "Requests" — replaces "Inbox" in D030                                |
+| Schema rename   | `WorkItem` → `Request`, `WorkItemType` → `RequestType`               |
+| F14 area prefix | rename `inbox` → `requests` (one-shot sweep when BU-requests builds) |
+
+"Request" was chosen over alternatives (`Submission`, `Case`,
+`Ask`, `Item`) because:
+
+- It accommodates the breadth: vetting requests, post-review
+  requests, system-generated tips, urgent help requests
+- Plain English; not formal (Submission) or heavy (Case)
+- Already used naturally in product writing ("requests are new /
+  in discussion / done")
+- Reads well in copy: "3 requests waiting", "your request is in
+  discussion", "Sharon raised an urgent request"
+
+### 2. Three statuses (collapsed from claim-and-lease.md's five)
+
+| Status          | Meaning                                                                                                               |
+| --------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `new`           | Created. Awaiting reviewer pickup.                                                                                    |
+| `in_discussion` | A reviewer has claimed it. Threaded discussion may be open with the submitter, with internal reviewer notes, or both. |
+| `done`          | Resolved with an outcome (approved / dismissed / rejected / edited / published / archived / etc., type-specific).     |
+
+This collapses claim-and-lease.md's `unclaimed → claimed →
+in_review → resolved` into three. `claimed` and `in_review` were
+operationally indistinguishable; merging them as `in_discussion`
+matches how reviewers actually work the queue.
+
+### 3. Eleven types (extends claim-and-lease.md's eight)
+
+The eight existing: `vetting`, `flag`, `outcome_review`,
+`dedup_merge`, `edit_request`, `incident`, `content_submission`,
+`link_submission`.
+
+Three new:
+
+| Type                | What it is                                                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `draft_post`        | A member sends a post for team review before publishing. Outcomes: publish / archive / delete.                                              |
+| `system_suggestion` | Auto-generated tip — "the system noticed X, should we make a post?" Outcomes: act on it / dismiss.                                          |
+| `alert`             | Urgent help / awareness call. Auto-`urgency=urgent` (per D058). Created via the FAB alert tile by members. Outcomes vary by alert category. |
+
+### 4. Submitter is a first-class participant
+
+Every Request has a `submitterId` (User or system marker). The
+submitter:
+
+- Reads the Request's status as it changes (notifications fire)
+- Reads the `audience: 'all'` slice of the discussion thread (per
+  D056)
+- Can post replies to the thread (always `audience: 'all'`)
+- Cannot resolve, claim, or change status
+
+System-generated requests (`system_suggestion`) have a synthetic
+`submitterId` (a designated system user, e.g. `system@gps-action`).
+
+### 5. Discussion thread reuses Comment primitive
+
+A Request's discussion is a thread of `Comment` rows with
+`targetType: 'request'` (extends D050's `ReactionTargetType`-style
+polymorphism). The Comment model gains a nullable `requestId` FK
+mirroring how `commentId` was added in D052.
+
+Per-comment audience flag is captured in D056.
+
+### 6. The eleven outcomes are type-specific
+
+`done` requests carry an `outcome` field whose valid values depend
+on `type`. Service-layer validation enforces the type×outcome
+matrix; details land in BU-requests's brief.
+
+Examples:
+
+- `vetting` outcomes: `approved` / `declined` / `withdrawn`
+- `flag` outcomes: `dismissed` / `removed` / `escalated_to_admin`
+- `draft_post` outcomes: `published` / `archived` / `deleted`
+- `alert` outcomes: `acted_published_post` / `acted_dispatched` / `dismissed_no_action`
+
+## Consequences
+
+- Schema migration: rename `WorkItem` → `Request` table, columns,
+  enum, FKs. Status enum collapse with data backfill.
+  `unclaimed → new`, `claimed/in_review → in_discussion`,
+  `resolved → done`.
+- New `Request.outcome` column (text, type-specific values
+  enforced in service layer)
+- New `Request.alertCategoryId` nullable FK (per D058)
+- Comment model gains `requestId` nullable FK
+- `ReactionTargetType` enum gains `request` value (forward-compat;
+  reactions on requests are not part of MVP but schema-ready)
+- F14 `inbox` area prefix renames to `requests` (sweep)
+- `bu-sequence.md` updated: BU-requests becomes a named BU
+- `claim-and-lease.md` updated to reflect the simplified status
+  set (or the file is renamed since "claim and lease" is now a
+  sub-section of D054's larger architecture)
+
+## Alternatives considered
+
+- **Keep WorkItem name; add types.** Rejected — the old name was
+  warehouse-y and didn't capture the editorial / urgent flavours.
+- **Split into Request + Submission + Alert separate entities.**
+  Rejected — three entities with near-identical lifecycles (claim,
+  discuss, resolve) collapse to one with type as a discriminator.
+- **Five statuses.** Rejected — claim-and-lease's `claimed` vs
+  `in_review` was a distinction reviewers didn't experience.
+- **Submitter sees everything in the thread.** Rejected (per
+  D056) — internal reviewer deliberation needs a private channel.
+
+## Related
+
+- D040 (work_items as the queue primitive — superseded by D054 in
+  naming and status taxonomy; the underlying single-table polymorphic
+  design is preserved)
+- D041 (region as tag, not filter — preserved)
+- D042 (coordinator vs queue-manager split — preserved; extended in
+  D055)
+- D055 — per-type role scopes (companion ADR)
+- D056 — Comment audience model (companion ADR)
+- D057 — Notifications entity (companion ADR)
+- D058 — urgency + alerts + admin-configurable TTL (companion ADR)
+- D044 (FAB intent-cards composer — the alert tile lands when
+  BU-composer-fab ships per D058)
+- SCN-21, SCN-22, SCN-23 — canonical Requests UX scenarios
