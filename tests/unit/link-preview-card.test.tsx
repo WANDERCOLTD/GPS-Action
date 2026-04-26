@@ -136,4 +136,47 @@ describe('LinkPreviewCard', () => {
     expect(mark).toBeDefined();
     expect(el.props['data-am-action']).toBe(true);
   });
+
+  // ── BU-am-link-collapse: render-time auto-detection + CTA ────────────
+
+  it('auto-detects an AM domain in linkUrl when isAmAction is undefined', () => {
+    const el = render({
+      ...baseProps,
+      linkUrl: 'https://activistmailer.com/c/abc123',
+      linkSiteName: null,
+      linkTitle: null,
+    });
+    expect(el.props['data-am-action']).toBe(true);
+    const mark = findByTestId(el, 'link-preview-card-am-mark');
+    expect(mark).toBeDefined();
+  });
+
+  it('renders "Send email →" CTA when AM is detected', () => {
+    const el = render({
+      ...baseProps,
+      linkUrl: 'https://activistmailer.com/c/abc123',
+    });
+    const cta = findByTestId(el, 'link-preview-card-cta');
+    expect(cta).toBeDefined();
+    expect(JSON.stringify(cta)).toContain('Send email');
+  });
+
+  it('renders "Open link →" CTA for non-AM domains', () => {
+    const el = render(baseProps);
+    const cta = findByTestId(el, 'link-preview-card-cta');
+    expect(cta).toBeDefined();
+    expect(JSON.stringify(cta)).toContain('Open link');
+  });
+
+  it('explicit isAmAction=false overrides auto-detection on AM URLs', () => {
+    const el = render({
+      ...baseProps,
+      linkUrl: 'https://activistmailer.com/c/abc123',
+      isAmAction: false,
+    });
+    const mark = findByTestId(el, 'link-preview-card-am-mark');
+    expect(mark).toBeUndefined();
+    const cta = findByTestId(el, 'link-preview-card-cta');
+    expect(JSON.stringify(cta)).toContain('Open link');
+  });
 });

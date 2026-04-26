@@ -140,13 +140,16 @@ Cookie-based, no passwords. The cookie `gps_dev_user_id` persists
 until cleared. `<LoggedInAs />` in the root layout shows who's
 logged in. All dev-only code is gated by `NODE_ENV !== 'production'`.
 
-## Post composer (BU-composer)
+## Post composer (BU-composer / BU-am-link-collapse)
 
 Visit `/compose` to create a new post. Requires authentication —
 unauthenticated users are redirected to `/dev/login`. The form has
-4 fields: title, body, optional Activist Mailer URL, and visibility
-(public / logged-in only). On submit, the post appears at the top
-of `/feed`.
+3 core fields: title, body, visibility (public / logged-in only),
+plus an optional link-share section. Activist-Mailer URLs are no
+longer a dedicated field — paste any link, and the preview card
+auto-detects AM domains (per `ACTIVIST_MAILER_ALLOWED_DOMAINS`
+env list) and renders a "Send email →" call-to-action. On submit,
+the post appears at the top of `/feed`.
 
 ---
 

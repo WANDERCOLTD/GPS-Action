@@ -1,14 +1,22 @@
 /**
- * @build-unit BU-link-share
+ * @build-unit BU-link-share BU-am-link-collapse
  * @spec architecture/decision-log.md (D060, D061)
  * @spec product/scenarios.md (SCN-19)
  * @spec product/image-handling.md
+ * @spec build/session-briefs/bu-am-link-collapse.md
  *
  * Monolithic link preview card. One <a> tap target per D061.
  * Used for both linkUrl shares (Sharon's Guardian article) and
  * activistMailerUrl actions (the AM brand mark flips on via
  * isAmAction). Two sizes: small for collapsed feed cards, large
  * for expanded views and post detail pages.
+ *
+ * BU-am-link-collapse: when `isAmAction` is undefined, the card
+ * auto-detects from `linkUrl` against the Activist-Mailer domain
+ * allowlist. Explicit `true`/`false` from the caller overrides
+ * detection (preserves the legacy AM-render path). The CTA at
+ * the bottom of the card reads "Send email →" for AM links and
+ * "Open link →" otherwise.
  *
  * Falls back gracefully:
  *   - missing title → URL host (truncated)
@@ -20,6 +28,7 @@
 import type { CSSProperties, ReactElement } from 'react';
 import * as React from 'react';
 import { ExternalLink } from 'lucide-react';
+import { isActivistMailerDomain } from '@/shared/validation/am-domain';
 
 void React;
 
@@ -32,7 +41,11 @@ interface LinkPreviewCardProps {
   linkImageUrl?: string | null;
   linkSiteName?: string | null;
   size: LinkPreviewSize;
-  /** True when this card is rendering an Activist Mailer URL — flips on the AM brand mark per D060 §3. */
+  /**
+   * Override the AM brand-mark + CTA. When undefined, the card
+   * infers from `linkUrl` via the Activist-Mailer domain
+   * allowlist (BU-am-link-collapse).
+   */
   isAmAction?: boolean;
 }
 
@@ -51,12 +64,15 @@ export function LinkPreviewCard({
   linkImageUrl,
   linkSiteName,
   size,
-  isAmAction = false,
+  isAmAction,
 }: LinkPreviewCardProps): ReactElement {
   const host = hostFromUrl(linkUrl);
   const displayTitle = linkTitle?.trim() || host;
   const displaySite = linkSiteName?.trim() || host;
   const isLarge = size === 'large';
+  // Auto-detect AM domain when caller didn't explicitly override.
+  const amAction = isAmAction ?? isActivistMailerDomain(linkUrl);
+  const ctaLabel = amAction ? 'Send email →' : 'Open link →';
 
   const containerStyle: CSSProperties = isLarge
     ? {
@@ -158,7 +174,7 @@ export function LinkPreviewCard({
       data-testid="link-preview-card"
       data-link-url={linkUrl}
       data-size={size}
-      data-am-action={isAmAction || undefined}
+      data-am-action={amAction || undefined}
     >
       <div style={imageStyle} aria-hidden="true" />
       <div style={bodyStyle}>
@@ -168,8 +184,20 @@ export function LinkPreviewCard({
         </div>
         <h3 style={titleStyle}>{displayTitle}</h3>
         {linkDescription && <p style={descriptionStyle}>{linkDescription}</p>}
+        <span
+          data-testid="link-preview-card-cta"
+          data-am-action={amAction || undefined}
+          style={{
+            marginTop: 'var(--space-2)',
+            fontSize: 'var(--text-xs)',
+            fontWeight: 600,
+            color: amAction ? 'var(--colour-primary)' : 'var(--colour-text-link)',
+          }}
+        >
+          {ctaLabel}
+        </span>
       </div>
-      {isAmAction && (
+      {amAction && (
         <span
           aria-label="Activist Mailer action"
           data-testid="link-preview-card-am-mark"
