@@ -3556,7 +3556,136 @@ first-time members the discovery path.
 - design-philosophy.md principle 5 (honesty — action targets do what they say)
 - F14 (require-testid — every new tap target also gets a testid)
 
-# D062 — Post.kind label + deferred-taxonomy stance
+# D062 — PostKind table + alert orthogonality
+
+**Date:** 2026-04-26 (revised in-place)
+**Tier:** Foundation
+**Status:** Accepted
+**Build Unit:** BU-fab-intent-picker
+
+> **Revision history:** Initial draft proposed `Post.kind` as a free-form
+> string with `alert` as one peer label. Revised in place (still on the
+> same draft branch) to (a) promote kind to a managed `PostKind` table
+> and (b) split alert-ness into an orthogonal `Post.urgency` flag. The
+> string-only model collapsed two concerns into one axis and blocked
+> "urgent cultural" / "urgent outcome" combinations; this revision
+> matches D058's already-orthogonal model on Request.
+
+## Context
+
+BU-fab-intent-picker introduces a single FAB → tile picker that dispatches to type-specific composer flows. Each intent (cultural moment, call to action, event, meeting, outcome, etc.) needs to leave a mark on the resulting Post so the feed can render type-specific affordances (chips, styling, future filtering).
+
+Two design pressures shape the schema:
+
+1. **D048 deferred a `PostType` enum** — premature taxonomy commitment was identified as a risk. A code-locked enum is the wrong shape.
+2. **Alert-ness is orthogonal to kind.** D058 already treats alert-ness as a separate axis on Request (urgency boolean + alertCategoryId). Posts should match — a "happening now" alert and a "cultural moment" can both be urgent.
+
+A free-form `kind` string with `alert` as one peer label conflates these axes. This ADR resolves both.
+
+## Decision
+
+### 1. PostKind as a managed table
+
+```prisma
+model PostKind {
+  id               String   @id @default(uuid())
+  slug             String   @unique
+  displayName      String
+  icon             String?
+  sortOrder        Int      @default(0)
+  isAlertEligible  Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  deletedAt        DateTime?
+
+  posts    Post[]
+  requests Request[]
+}
+```
+
+Code defines the **set of slugs** (the FAB picker tiles know which to offer); admin manages **policy per row** (`isAlertEligible`, `displayName`, `sortOrder`, soft-delete). This is between an enum (locked) and a free-form string (no shared schema). Slugs are the join key between code labels and DB rows.
+
+Seeded with eight rows, two flagged alert-eligible:
+
+| slug           | displayName     | isAlertEligible |
+| -------------- | --------------- | --------------- |
+| happening_now  | Happening now   | ✅              |
+| meeting        | Meeting         | ✅              |
+| cultural       | Cultural moment | —               |
+| call_to_action | Call to action  | —               |
+| outcome        | Outcome         | —               |
+| thought        | Just a thought  | —               |
+| link_share     | Share a link    | —               |
+| event          | Event           | —               |
+
+Admins can flip `isAlertEligible` per row without code changes.
+
+### 2. Post.kindId FK + Post.urgency Boolean (orthogonal)
+
+```prisma
+model Post {
+  // ... existing fields ...
+  kindId   String?
+  kind     PostKind? @relation(fields: [kindId], references: [id], onDelete: SetNull)
+  urgency  Boolean   @default(false)
+}
+```
+
+`kind` (via FK) and `urgency` are independent. Composer enforces the
+gate: `urgency` can only be true when the selected `PostKind.isAlertEligible`
+is true. Validated at both the form and the API.
+
+### 3. AlertCategory dropped — merges into PostKind
+
+D058's `AlertCategory` table (single row, "Happening now") merges into PostKind. The "Happening now" PostKind row IS what was the AlertCategory row. Existing `Request.alertCategoryId` migrates to `Request.kindId` pointing at the same PostKind FK.
+
+Single source of truth: PostKind owns categorisation for both Posts and Requests. The same row that drives the FAB tile drives the alert category on a published post.
+
+### 4. The composer's two buttons (consequence — not the decision itself)
+
+This refactor pairs with **D063 (Send-for-Review)**. The composer offers `Post` and `Send for Review` buttons; the alert toggle is independent of which button is pressed. So a member can:
+
+- Post a `cultural` `urgency: false` post → publishes to feed
+- Post a `happening_now` `urgency: true` post → publishes to feed with alert flag
+- Send for review a `cultural` `urgency: false` post → reviewer queue
+- Send for review a `happening_now` `urgency: true` post → reviewer queue (high-stakes alert that benefits from oversight)
+
+All four combinations are valid. The Schema doesn't enforce alert-eligibility (per D048 stance — schema stays flexible); the composer + API do.
+
+## Consequences
+
+### Wins
+
+- Alert-ness is genuinely orthogonal — every kind can be alert-eligible (admin policy)
+- Single source of truth — PostKind drives both kind labels AND alert categories
+- Admin can edit policy (`isAlertEligible`, `displayName`, `sortOrder`) without code deploys
+- Honours D048 (no enum lock) AND avoids D058's slight redundancy (separate AlertCategory + status fields)
+
+### Costs
+
+- Slightly more schema surface (one new table, one new boolean, one renamed FK)
+- Composer logic to gate the alert toggle by `isAlertEligible` adds a small client-server call (read PostKind list)
+- AlertCategory migration is non-trivial because BU-requests-urgent (#75, merged) seeded data using the old shape
+
+### Open questions deferred
+
+- Whether `Post.urgency` needs an `urgencyExpiresAt` like Request has (D058). MVP: no — feed alerts don't time-box; the alert flag stays on until edited.
+- Whether multiple alert categories will exist (admin can add). MVP: just "Happening now" is seeded; admin can add via future BU-admin-crud or direct DB insert.
+
+## Alternatives considered
+
+- **String-only kind + boolean alert** (the original D062 draft, before revision). Rejected — admin couldn't manage policy; alert eligibility was hard-coded. The discussion that produced this revision is on the BU branch.
+- **Keep AlertCategory separate from PostKind.** Rejected — two tables for the same conceptual thing (a labeled bucket of urgent stuff) is redundant; the merge is cleaner.
+- **Add `urgentExpiresAt` on Post mirroring D058.** Rejected for MVP per the open question above; can land in a future ADR if the demand surfaces.
+
+## Related
+
+- D044 — FAB intent-cards composer (the BU consuming this schema)
+- D048 — PostType deferred-taxonomy stance (this honours it: managed table, not enum)
+- D058 — Urgent flag + AlertCategory on Request (the model this matches; AlertCategory deprecated by this ADR)
+- D063 — Send-for-Review (the second button on the composer)
+- BU-fab-intent-picker brief — implementation surface
+
+# D063 — Send-for-Review pattern (Post button vs Review button)
 
 **Date:** 2026-04-26
 **Tier:** Foundation
@@ -3565,51 +3694,70 @@ first-time members the discovery path.
 
 ## Context
 
-BU-fab-intent-picker introduces a single FAB → tile picker that dispatches to type-specific composer flows. Each intent (cultural moment, call to action, event, meeting, outcome, etc.) needs to leave a mark on the resulting Post so the feed can render type-specific affordances (chips, styling, future filtering).
+Today the composer has one button (`Post`) that publishes to the feed immediately. There's no path to "I want to write a post but want a reviewer to vet it before it goes public."
 
-D048 explicitly deferred a `PostType` enum — premature taxonomy commitment was identified as a risk. We need a label-shaped field that doesn't violate that stance.
+Members benefit from the review path on:
+
+- High-stakes alerts (a `happening_now` urgency=true post that goes wrong reflects on the network)
+- New members building trust ("can someone check this is OK?")
+- Sensitive content (cultural moments, vetting outcomes, anything that touches third parties)
+- Members who simply prefer oversight
+
+Reviewers benefit from a queue of drafts they can shape before publication.
 
 ## Decision
 
-Add a nullable string field on Post:
+The composer ships **two buttons**:
 
-```prisma
-kind String?
-```
+| Button              | Action                                                                                                                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Post**            | Existing path. Creates a published `Post` row. Visible on /feed immediately.                                                                                                           |
+| **Send for Review** | New path. Creates a `Request` of `type: content_submission` containing the draft fields in `context: JSONB`. **No `Post` is created yet.** Routes to /requests for the reviewer queue. |
 
-Stored values are unconstrained at the DB layer. The composer writes one of: `alert | link_share | call_to_action | cultural | outcome | thought | event | meeting`. Existing posts have `kind: null` and render unchanged. Migration is single additive.
+Both buttons are visible on every composer load, regardless of kind or urgency. Member chooses which path applies.
 
-Why string, not enum:
+### Reviewer actions on a content_submission Request
 
-- D048's stance: don't lock taxonomy until usage patterns settle. An enum would lock; a string defers.
-- Adding new kinds (e.g. "fundraiser", "rally") doesn't require a migration — a future composer addition writes the new label.
-- Enforcement happens at the composer (UI knows which labels it offers); the DB remains accepting.
+A Request created via Send-for-Review carries the full draft in its `context` JSONB. The reviewer queue gains two new actions:
 
-When the taxonomy stabilises, a future ADR may promote `kind` to an enum with a one-shot data migration. Until then, the string field is enough.
+- **Publish** — service reads `context`, creates a `Post` row from those fields (with `kindId`, `urgency`, all link fields, etc.), then resolves the Request with `resolution: 'approved'`. Member sees a notification (D057) and the post appears on the feed.
+- **Archive** — resolves the Request with `resolution: 'dismissed'`. No Post is created. Member sees a notification with reason. Optional: the reviewer leaves a comment explaining (audience: 'all').
+
+### Why no draft-Post state on the Post table
+
+An alternative is to create a `Post` row in `draft` status when Send-for-Review is hit, then flip it to published on approval. Rejected because:
+
+1. Draft Posts pollute every "list posts" query unless we add a `published` filter to every call site
+2. Posts are designed to be public-by-default; introducing a draft state changes the contract
+3. The Request's `context: JSONB` is a perfectly good draft container — it already exists and is queryable
+
+Storing the draft in `Request.context` is cheap, isolated, and reuses the polymorphic Request envelope.
 
 ## Consequences
 
 ### Wins
 
-- Composer can write a label per tile without enum churn
-- Feed can render kind-specific chips / styling without a code change per kind
-- Honours D048 — no premature taxonomy lock
-- Migration is the cheapest possible additive
+- Members get oversight on demand — no policy needed
+- Reviewers get a useful queue of drafts to shape
+- The Request entity stays the universal "things needing decision" surface (per D054)
+- No new tables, no Post.draft state — single new code path on top of existing entities
 
 ### Costs
 
-- DB doesn't reject typo'd kinds — relies on composer correctness
-- Adding a chip for a new kind requires the chip-rendering code to handle it (graceful default: no chip)
-- Aggregate queries by kind cannot use Postgres enum optimisations; standard string index is fine for MVP scale
+- Two buttons on the composer instead of one — small UX cost; clearly labelled
+- Send-for-Review is a hidden gate by default; members might miss it if they don't notice the second button
+- Reviewer queue gets noisier — content_submission joins vetting + flag + edit_request as a Request type. Mitigated by D055 scope filtering (reviewers can scope to specific types)
 
 ## Alternatives considered
 
-- **Add `enum PostKind` now.** Rejected per D048 — premature.
-- **JSONB `metadata` field on Post.** Rejected — over-flexible, hard to query, hard to index, hard to type at the boundary.
-- **Don't store kind anywhere** (composer pre-fills, post is plain). Rejected — loses the ability to render chips and to filter the feed by kind in future BUs. Half the value of the picker is reflected back in the feed.
+- **One button + a "review me?" checkbox.** Rejected — easier to miss, less honest about the path divergence.
+- **Auto-route certain kinds (e.g. all alerts) through review.** Rejected — paternalistic; remove member agency. Member decides.
+- **Draft Posts in a separate `PostDraft` table.** Rejected — duplicates Post schema for a transient state.
 
 ## Related
 
-- D044 — FAB intent-cards composer (the BU consuming this field)
-- D048 — Post axes taxonomy + deferred PostType (the stance D062 honours)
-- BU-fab-intent-picker brief — the implementation that ships D062's storage
+- D054 — Request entity (the universal "things needing decision" surface)
+- D055 — per-type role scopes (reviewer queues filter Request types)
+- D062 — PostKind table + orthogonal urgency (the schema this consumes)
+- D056 — Comment audience (reviewer's resolution comment uses `audience: 'all'`)
+- D057 — Notifications (member sees publish/archive outcome)

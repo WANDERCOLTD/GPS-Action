@@ -63,9 +63,13 @@ export const postCreateSchema = z.object({
   linkDescription: z.string().trim().max(500).optional(),
   linkImageUrl: httpUrlSchema,
   linkSiteName: z.string().trim().max(100).optional(),
-  // Intent kind label (D062). Free-form string; composer writes one of:
-  // 'alert' | 'link_share' | 'call_to_action' | 'cultural' | 'outcome' | 'thought' | 'event' | 'meeting'.
-  kind: z.string().trim().max(50).optional(),
+  // Intent kind FK (D062 revised). UUID of a PostKind row. Composer
+  // resolves the slug → id before submit; the API takes the id directly.
+  kindId: z.string().trim().min(1).optional(),
+  // Alert flag (D062 revised). Composer enforces that this can only be
+  // true when the selected PostKind has isAlertEligible=true; the
+  // service double-checks at write time.
+  urgency: z.boolean().optional(),
 });
 
 export type PostCreateInput = z.infer<typeof postCreateSchema>;

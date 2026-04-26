@@ -271,11 +271,12 @@ model Request {
   resolution       RequestResolution?
   resolutionNotes  String?
 
-  // Urgent flag + alert category (BU-requests-urgent — D058)
-  urgency          Boolean        @default(false)
+  // Urgent flag + kind (BU-requests-urgent — D058; D062 revision merges
+  // AlertCategory into PostKind; FK renamed alertCategoryId → kindId).
+  urgency          Boolean   @default(false)
   urgencyExpiresAt DateTime?
-  alertCategoryId  String?
-  alertCategory    AlertCategory? @relation(fields: [alertCategoryId], references: [id], onDelete: SetNull)
+  kindId           String?
+  kind             PostKind? @relation(fields: [kindId], references: [id], onDelete: SetNull)
 
   deletedAt DateTime?
   updatedAt DateTime  @updatedAt
@@ -289,20 +290,28 @@ model Request {
   @@index([deletedAt])
 }
 
-// ─── AlertCategory ───────────────────────────────────────────────────────────
+// ─── PostKind ────────────────────────────────────────────────────────────────
 //
-// BU-requests-urgent / D058. Admin-managed category for urgent Requests.
-// Seeded with one row ("Happening now"). Soft-deletable so retired
-// categories don't break old Requests.
-model AlertCategory {
-  id          String   @id @default(uuid())
-  slug        String   @unique
-  displayName String
-  icon        String?
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  deletedAt   DateTime?
+// BU-fab-intent-picker (D062 revised). Admin-managed table that backs
+// every kind a Post can have AND every category an alert can carry.
+// Single source of truth — replaces the original AlertCategory entity
+// from D058 (which has been collapsed into this model).
+//
+// Code defines the slug set (the FAB picker tiles know which slugs to
+// offer); admin manages per-row policy via isAlertEligible, displayName,
+// sortOrder, and soft-delete. Slugs are the join key between code labels
+// and DB rows — see D062 for the orthogonality model.
+model PostKind {
+  id              String    @id @default(uuid())
+  slug            String    @unique
+  displayName     String
+  icon            String?
+  sortOrder       Int       @default(0)
+  isAlertEligible Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  deletedAt       DateTime?
 
+  posts    Post[]
   requests Request[]
 
   @@index([deletedAt, sortOrder])
@@ -673,9 +682,16 @@ model Post {
   linkImageUrl    String?
   linkSiteName    String?
 
-  // Intent kind label (BU-fab-intent-picker — D062). Free-form string,
-  // not enum, per D048's deferred-taxonomy stance.
-  kind String?
+  // Intent kind (BU-fab-intent-picker — D062). FK to managed PostKind table.
+  // Code defines slugs; admin manages policy (isAlertEligible, displayName,
+  // sortOrder) per row. See D062 for the orthogonality model.
+  kindId String?
+  kind   PostKind? @relation(fields: [kindId], references: [id], onDelete: SetNull)
+
+  // Alert flag — orthogonal to kind (D062 revision). Composer enforces
+  // that urgency=true is only allowed when the selected kind is
+  // alert-eligible.
+  urgency Boolean @default(false)
 
   // Group tags — array of Group slugs (mirrors WorkItem pattern; informational only in MVP)
   groupTags String[] @default([])

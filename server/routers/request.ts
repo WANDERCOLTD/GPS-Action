@@ -21,7 +21,7 @@ import {
 } from '@/server/services/request';
 
 const createUrgentSchema = z.object({
-  alertCategoryId: z.string().min(1),
+  kindId: z.string().min(1),
   title: z.string().trim().min(3).max(200),
   body: z.string().trim().min(10).max(2000),
   regionSlug: z.string().trim().max(100).optional(),
@@ -39,7 +39,7 @@ export const requestRouter = router({
   createUrgent: authedProcedure.input(createUrgentSchema).mutation(async ({ ctx, input }) => {
     const result = await createUrgentRequest({
       callerId: ctx.user.id,
-      alertCategoryId: input.alertCategoryId,
+      kindId: input.kindId,
       title: input.title,
       body: input.body,
       regionSlug: input.regionSlug ?? null,

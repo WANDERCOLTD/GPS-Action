@@ -1220,16 +1220,20 @@ _Maya, Tower Hamlets coordinator. Friday 15:35 — at her child's school for pic
 
 Maya is at the school gates. Two people are handing out leaflets that look antisemitic. She took photos discreetly. She wants to alert the team — both for situational awareness and because someone with media contacts might need to act fast.
 
-She opens GPS Action on her phone. Bottom-right FAB. She taps. Tile picker opens with the post-type tiles. One tile is a **red warning triangle with exclamation mark** labelled "Alert." She taps that.
+She opens GPS Action on her phone. Bottom-right FAB. She taps. Tile picker opens with the post-type tiles. One tile is a **red warning triangle with exclamation mark** labelled "Urgent — happening now." She taps that.
 
-The alert composer opens:
+The composer opens with the **Happening now** kind preselected (a PostKind row admins flag as alert-eligible). Because this kind is alert-eligible, the **alert toggle is on by default** (red flag/icon) — Maya can untoggle if she wants, but it's right for this situation. She leaves it on.
 
-- Category: "Happening now" (preselected — only category active right now)
-- Reason / context (required, free text):
+She fills in:
 
-She types: "Antisemitic leaflet drop at gate of [school name redacted], Bow E3. Two people, ~30s, white men. Photos available. Anyone available to advise / pick up by phone? I'm with my kid; can't engage but can stay 10 min."
+- Title: "Antisemitic leaflet drop at school gate — Bow E3"
+- Body: "Two people, ~30s, white men. Photos available. Anyone available to advise / pick up by phone? I'm with my kid; can't engage but can stay 10 min."
 
-She hits Submit. The screen shows "Sent · the team has been alerted." She closes the app and watches the gate.
+At the bottom, two buttons: **[Post]** and **[Send for Review]**. Posting publishes immediately (visible to all reviewers via the urgent strip on /feed; also picked up by their /requests reviewer queue thanks to D058 visibility-broadening). Send for Review puts the post into the reviewer queue without publishing — useful when she wants oversight before going public.
+
+This time Maya hits **[Send for Review]** — she wants Sharon or David to vet the wording before it goes to the wider feed (the post mentions a specific school). The screen shows "Sent for review · the team has been alerted."
+
+She closes the app and watches the gate.
 
 ---
 
@@ -1266,15 +1270,16 @@ Sharon types another reply:
 
 > "All ok. Teacher came out, asked them to leave. They left. I have photos. School is on it. Thanks Sharon."
 
-Sharon resolves the case. Outcome: **acted_published_post** (the team will write a public-facing incident note from the photos in the next hour) plus optional follow-up.
+Now Sharon has a decision to make on the draft Maya sent for review (D063):
 
-In the resolution message:
+- **Publish** — promote the draft into a published Post on the feed (with the alert flag). The wider network sees it and takes situational awareness from it.
+- **Archive** — close the draft without publishing. Used when the situation is resolved without needing public broadcast.
 
-> "Glad you're safe. Photos with us. Will follow up with school + post a network-wide incident note within the hour. Thanks for raising this fast."
+Sharon publishes — but first edits the body slightly to remove the school's specific name (she replaces it with "an East London primary"). The draft has light editorial polish; the alert flag stays on; the kind stays "Happening now" (which renders a red "Happening now" chip + the orthogonal alert flag in the feed).
 
-Status flips `in_discussion → done`. Auto-downgrade is moot — the case is resolved well within the 4-hour TTL.
+Tap **Publish**. The feed gets a new post. Status flips `in_discussion → done`, resolution `approved`. Auto-downgrade is moot — the case is resolved well within the 4-hour TTL.
 
-**Maya** opens the app on her way home. Notification: "Sharon resolved your request — outcome: acted." She reads. Closes app. Nothing more she needs to do.
+**Maya** opens the app on her way home. Notification: "Sharon resolved your request — published as 'Antisemitic leaflets at East London primary' with alert flag." She reads. Closes app. Nothing more she needs to do.
 
 **What the scenario surfaces:**
 

@@ -52,8 +52,11 @@ export interface FeedPost {
   linkDescription: string | null;
   linkImageUrl: string | null;
   linkSiteName: string | null;
-  /** Intent kind label (BU-fab-intent-picker / D062). */
-  kind: string | null;
+  /** Intent kind (BU-fab-intent-picker / D062 revised — FK + display fields). */
+  kindSlug: string | null;
+  kindDisplayName: string | null;
+  /** Alert flag (D062 revised, orthogonal to kind). */
+  urgency: boolean;
   createdAt: string; // ISO 8601
   author: {
     displayName: string;
@@ -110,6 +113,11 @@ function formatRole(role: string): string {
 // ── KindChip (BU-fab-intent-picker / D062) ───────────────────────────────
 
 const KIND_CHIPS: Record<string, { label: string; bg: string; fg: string }> = {
+  happening_now: {
+    label: 'Happening now',
+    bg: 'var(--colour-urgent-subtle)',
+    fg: 'var(--colour-urgent)',
+  },
   cultural: {
     label: 'Cultural',
     bg: 'var(--colour-cultural-subtle)',
@@ -137,29 +145,55 @@ const KIND_CHIPS: Record<string, { label: string; bg: string; fg: string }> = {
   },
 };
 
-function KindChip({ kind }: { kind: string | null }) {
-  if (!kind) return null;
-  const chip = KIND_CHIPS[kind];
-  if (!chip) return null;
-  return (
+function KindChip({ kindSlug, urgency }: { kindSlug: string | null; urgency: boolean }) {
+  // Alert flag chip (D062 revised — orthogonal). Renders ahead of the kind
+  // chip so urgency is the first thing the eye catches.
+  const alertChip = urgency ? (
     <span
-      data-testid="post-kind-chip"
-      data-kind={kind}
+      data-testid="post-urgent-chip"
       style={{
         display: 'inline-block',
+        marginRight: 'var(--space-2)',
         marginBottom: 'var(--space-2)',
         padding: '2px var(--space-2)',
         borderRadius: 'var(--radius-pill)',
-        background: chip.bg,
-        color: chip.fg,
+        background: 'var(--colour-urgent)',
+        color: 'var(--colour-urgent-contrast)',
         fontSize: 'var(--text-2xs)',
         fontWeight: 700,
-        letterSpacing: '0.04em',
+        letterSpacing: '0.06em',
         textTransform: 'uppercase' as const,
       }}
     >
-      {chip.label}
+      Alert
     </span>
+  ) : null;
+
+  if (!kindSlug) return alertChip;
+  const chip = KIND_CHIPS[kindSlug];
+  if (!chip) return alertChip;
+  return (
+    <div style={{ marginBottom: 'var(--space-1)' }}>
+      {alertChip}
+      <span
+        data-testid="post-kind-chip"
+        data-kind={kindSlug}
+        style={{
+          display: 'inline-block',
+          marginBottom: 'var(--space-1)',
+          padding: '2px var(--space-2)',
+          borderRadius: 'var(--radius-pill)',
+          background: chip.bg,
+          color: chip.fg,
+          fontSize: 'var(--text-2xs)',
+          fontWeight: 700,
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase' as const,
+        }}
+      >
+        {chip.label}
+      </span>
+    </div>
   );
 }
 
@@ -240,7 +274,7 @@ export const PostCard: FC<PostCardProps> = ({
       </div>
 
       {/* Kind chip (BU-fab-intent-picker / D062) — only for kinds that warrant a visual badge */}
-      <KindChip kind={post.kind} />
+      <KindChip kindSlug={post.kindSlug} urgency={post.urgency} />
 
       {/* Title */}
       <h2 className="gps-subtitle" style={{ marginBottom: 'var(--space-2)' }}>

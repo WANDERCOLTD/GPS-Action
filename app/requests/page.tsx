@@ -117,7 +117,7 @@ function RequestRow({ row, canAct, callerId }: RequestRowProps) {
               fontWeight: 700,
             }}
           >
-            {row.alertCategoryDisplayName ?? 'Urgent'}
+            {row.kindDisplayName ?? 'Urgent'}
           </span>
         )}
         <strong style={{ fontSize: 'var(--text-sm)' }}>{TYPE_LABELS[row.type]}</strong>

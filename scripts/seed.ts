@@ -429,29 +429,79 @@ async function main(): Promise<void> {
     console.warn('  ✓ Demo flag Request already present');
   }
 
-  // ── BU-requests-urgent (D058) — AlertCategory + SystemSetting + Maya's alert
+  // ── BU-fab-intent-picker (D062 revised) — PostKind catalogue ──────────
+  // Code defines the 8 slugs; admin manages per-row policy. Seed marks
+  // happening_now and meeting as alert-eligible.
 
-  // AlertCategory: "Happening now" — seeded per D058 §4
-  const happeningNowSlug = 'happening-now';
-  const existingHappeningNow = await prisma.alertCategory.findUnique({
-    where: { slug: happeningNowSlug },
-  });
-  if (!existingHappeningNow) {
-    await prisma.alertCategory.create({
-      data: {
-        slug: happeningNowSlug,
-        displayName: 'Happening now',
-        icon: 'alert-triangle',
-        sortOrder: 0,
+  const POST_KINDS = [
+    {
+      slug: 'happening_now',
+      displayName: 'Happening now',
+      icon: 'alert-triangle',
+      sortOrder: 0,
+      isAlertEligible: true,
+    },
+    {
+      slug: 'meeting',
+      displayName: 'Meeting',
+      icon: 'users',
+      sortOrder: 10,
+      isAlertEligible: true,
+    },
+    {
+      slug: 'cultural',
+      displayName: 'Cultural moment',
+      icon: 'feather',
+      sortOrder: 20,
+      isAlertEligible: false,
+    },
+    {
+      slug: 'call_to_action',
+      displayName: 'Call to action',
+      icon: 'megaphone',
+      sortOrder: 30,
+      isAlertEligible: false,
+    },
+    { slug: 'outcome', displayName: 'Outcome', icon: 'pin', sortOrder: 40, isAlertEligible: false },
+    {
+      slug: 'thought',
+      displayName: 'Just a thought',
+      icon: 'message-circle',
+      sortOrder: 50,
+      isAlertEligible: false,
+    },
+    {
+      slug: 'link_share',
+      displayName: 'Share a link',
+      icon: 'link',
+      sortOrder: 60,
+      isAlertEligible: false,
+    },
+    {
+      slug: 'event',
+      displayName: 'Event',
+      icon: 'calendar-days',
+      sortOrder: 70,
+      isAlertEligible: false,
+    },
+  ];
+
+  for (const def of POST_KINDS) {
+    await prisma.postKind.upsert({
+      where: { slug: def.slug },
+      create: def,
+      update: {
+        displayName: def.displayName,
+        icon: def.icon,
+        sortOrder: def.sortOrder,
+        isAlertEligible: def.isAlertEligible,
       },
     });
-    console.warn('  ✓ AlertCategory "Happening now" created');
-  } else {
-    console.warn('  ✓ AlertCategory "Happening now" already present');
   }
+  console.warn(`  ✓ ${POST_KINDS.length} PostKinds upserted`);
 
-  const happeningNowCategory = await prisma.alertCategory.findUniqueOrThrow({
-    where: { slug: happeningNowSlug },
+  const happeningNowKind = await prisma.postKind.findUniqueOrThrow({
+    where: { slug: 'happening_now' },
   });
 
   // SystemSetting: urgent_ttl_hours = 4 (D058 default)
@@ -469,7 +519,9 @@ async function main(): Promise<void> {
     console.warn('  ✓ SystemSetting urgent_ttl_hours already present');
   }
 
-  // Maya's pre-seeded urgent — SCN-23 starting state
+  // Maya's pre-seeded urgent — SCN-23 starting state, now under the
+  // Send-for-Review pattern (D063): a Request wraps the draft alert
+  // post fields. Reviewers can publish or archive.
   const mayaId = userIds['maya']!;
   const mayaAlertId = '00000000-0000-4000-8000-00000000a003';
   const existingMayaAlert = await prisma.request.findUnique({ where: { id: mayaAlertId } });
@@ -478,24 +530,32 @@ async function main(): Promise<void> {
     await prisma.request.create({
       data: {
         id: mayaAlertId,
-        type: 'incident',
+        type: 'content_submission',
         status: 'unclaimed',
         priority: 'urgent',
         urgency: true,
         urgencyExpiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000),
-        alertCategoryId: happeningNowCategory.id,
+        kindId: happeningNowKind.id,
         regionSlug: 'tower-hamlets',
         context: {
           summary: 'Antisemitic leaflets at school gate — Cheddar Road, Bristol',
           body: 'Two people handing out leaflets that appear antisemitic at school pickup. Took photos discreetly. Need someone with media contacts to act fast.',
-          source: 'alert_composer',
+          source: 'send_for_review',
+          // Draft post fields for the Publish action
+          draftPost: {
+            title: 'Antisemitic leaflets at school gate — Bristol',
+            body: 'Two people handing out leaflets that appear antisemitic at school pickup, Cheddar Road, Bristol. Took photos discreetly. Need someone with media contacts to act fast.',
+            visibility: 'authenticated_only',
+            kindSlug: 'happening_now',
+            urgency: true,
+          },
         },
         createdByUserId: mayaId,
       },
     });
-    console.warn('  ✓ Demo urgent alert created (Maya, school gate)');
+    console.warn('  ✓ Demo Send-for-Review alert created (Maya, school gate)');
   } else {
-    console.warn('  ✓ Demo urgent alert already present');
+    console.warn('  ✓ Demo Send-for-Review alert already present');
   }
 
   // ── Seed groups ──────────────────────────────────────────────────────

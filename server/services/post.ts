@@ -41,8 +41,13 @@ export interface PostListItem {
   linkDescription: string | null;
   linkImageUrl: string | null;
   linkSiteName: string | null;
-  /** Intent kind label (D062). */
-  kind: string | null;
+  /** Intent kind (D062 revised — FK). Slug + display surfaced for clients. */
+  kindId: string | null;
+  kindSlug: string | null;
+  kindDisplayName: string | null;
+  isAlertEligibleKind: boolean;
+  /** Alert flag (D062 revised, orthogonal to kind). */
+  urgency: boolean;
   groupTags: string[];
   createdAt: Date;
   author: PostAuthor;
@@ -111,6 +116,7 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
           },
         },
       },
+      kind: { select: { slug: true, displayName: true, isAlertEligible: true } },
     },
   });
 
@@ -138,7 +144,11 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
     linkDescription: post.linkDescription,
     linkImageUrl: post.linkImageUrl,
     linkSiteName: post.linkSiteName,
-    kind: post.kind,
+    kindId: post.kindId,
+    kindSlug: post.kind?.slug ?? null,
+    kindDisplayName: post.kind?.displayName ?? null,
+    isAlertEligibleKind: post.kind?.isAlertEligible ?? false,
+    urgency: post.urgency,
     groupTags: post.groupTags,
     createdAt: post.createdAt,
     author: {
@@ -159,6 +169,20 @@ export async function createPost(
   input: PostCreateInput,
   authorId: string,
 ): Promise<{ id: string }> {
+  // D062 §2: enforce alert orthogonality at the service. urgency=true is
+  // only allowed when the selected PostKind has isAlertEligible=true.
+  let urgency = input.urgency ?? false;
+  if (urgency && input.kindId) {
+    const k = await prisma.postKind.findUnique({
+      where: { id: input.kindId },
+      select: { isAlertEligible: true, deletedAt: true },
+    });
+    if (!k || k.deletedAt || !k.isAlertEligible) urgency = false;
+  } else if (urgency && !input.kindId) {
+    // No kind picked → can't be an alert (kind drives eligibility).
+    urgency = false;
+  }
+
   const post = await prisma.post.create({
     data: {
       title: input.title,
@@ -169,7 +193,8 @@ export async function createPost(
       linkDescription: input.linkDescription?.trim() || null,
       linkImageUrl: input.linkImageUrl?.trim() || null,
       linkSiteName: input.linkSiteName?.trim() || null,
-      kind: input.kind?.trim() || null,
+      kindId: input.kindId?.trim() || null,
+      urgency,
       visibility: input.visibility,
       authorId,
     },
@@ -187,6 +212,8 @@ export async function createPost(
       visibility: input.visibility,
       hasActivistMailerUrl: Boolean(input.activistMailerUrl),
       hasLinkUrl: Boolean(input.linkUrl),
+      kindId: input.kindId ?? null,
+      urgency,
     },
     context: { source: 'composer' },
   });

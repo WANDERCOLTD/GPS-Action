@@ -43,10 +43,10 @@ interface Tile {
 
 const TILES: Tile[] = [
   {
-    key: 'urgent',
+    key: 'happening_now',
     label: 'Urgent — happening now',
-    hint: 'Reviewers see it within 10 seconds',
-    href: '/alert/new',
+    hint: 'Posts with a red alert flag; reviewers see it instantly',
+    href: '/compose?intent=happening_now',
     icon: <AlertTriangle size={24} />,
     accent: 'var(--colour-urgent)',
   },
