@@ -447,52 +447,47 @@ go to roadmap within 48 hours or they die" rule.
 
 ---
 
-### B14 · CI guard — schema models ↔ entity-metadata coverage
+### B14 · CI guard — schema models ↔ entity-metadata coverage **[ADOPTED 2026-04-26]**
 
-**What:** A test (or lint rule) that diffs Prisma model names against
-the keys of `entityMetadata` in `server/admin/entity-metadata.ts`.
-Fails the build when a model lives in the schema without a metadata
-entry, or when a metadata key has no corresponding model.
+**Status:** Shipped. Lives at
+`tests/unit/schema-metadata-coverage.test.ts`. Companion to G2 + G3
+in `tests/unit/admin-registry.test.ts`.
 
-`server/admin/entity-metadata.README.md` already names this guard
-("CI will eventually enforce this") but doesn't ship it. Without it,
-schema additions silently miss the admin surface — the entity
-becomes invisible to admins until someone notices and edits the
-metadata file by hand.
+**What:** Diffs Prisma's DMMF model list against the keys of
+`entityMetadata` in `server/admin/entity-metadata.ts`. Hard-fails on
+either-direction drift:
 
-The companion guards inside the CRUD engine — registry coverage and
-enum-literal drift — ship with BU-admin-crud as
-`tests/unit/admin-registry.test.ts`. B14 is the layer above those:
-it polices the metadata file itself against the schema, before any
-registry exists.
+- A new schema model without a metadata entry (silent invisibility).
+- A metadata key without a corresponding model (stale entry).
 
-**Trigger:** Either (a) the next slice of entities lands (any
-schema add that introduces ≥1 new model), or (b) the first time a
-metadata entry goes stale in code review (a "you forgot to add it
-to metadata" comment) — whichever first.
+**The allow-list pattern.** When B14 was first run on main, six
+models were already in the schema without metadata entries (Reaction,
+Comment, PostKind, SystemSetting, Notification — Slice 2 + various
+later BUs). Rather than block this PR on adding all five entries,
+they're listed in `SCHEMA_MODELS_AWAITING_METADATA` at the top of
+the test file. Each line names the BU that added the schema; each
+line is a TODO that should shrink. A future BU touching one of
+those entities removes its allowlist line as part of the work.
 
-**Effort:** ~1 hour.
-
-- `tests/unit/schema-metadata-coverage.test.ts` (new) — reads the
-  Prisma DMMF model list at test time, diffs against
-  `Object.keys(entityMetadata)`. Hard-fails on either-direction
-  drift. An explicit allow-list at the top of the file lets us opt
-  out specific models if a real reason emerges (none expected).
-- Optionally, an ESLint rule for the same check (post-test if
-  the test feels slow). Test alone is fine for MVP.
-
-**Why not now:** Slice 1, 1.5, and 2 (minimal) all have hand-curated
-metadata entries that match the schema today. The guard's value is
-preventive — it catches the moment the next slice lands. Adding it
-right now is fine but isn't blocking the BU-admin-crud build.
+The third assertion — "every allowlisted model still exists" — is
+the forcing function: if a model is removed from the schema (as
+`AlertCategory` was during BU-requests-vetting), the allowlist
+must be pruned, otherwise CI fails.
 
 **Origin:** Surfaced during BU-admin-crud build (2026-04-26) when
 discussing how the admin surface stays current as schemas evolve.
-Logged per CLAUDE.md's roadmap discipline.
 
-**Dependencies:** None (this guard is upstream of the engine —
-doesn't require BU-admin-crud to land first, but lands more
-naturally after).
+**Files shipped:**
+
+- `tests/unit/schema-metadata-coverage.test.ts` (new)
+- `server/admin/entity-metadata.README.md` (updated: drops the
+  "CI will eventually enforce this" line, references the test)
+
+**Follow-ups:**
+
+- Each allowlist entry → its own follow-up BU adding metadata.
+- Optional: ESLint rule for the same check if the test ever feels
+  slow (current run < 1s, fine).
 
 ---
 
