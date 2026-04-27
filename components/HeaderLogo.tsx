@@ -47,10 +47,7 @@ export function HeaderLogo() {
         <g transform="translate(4 4)">
           <path fill={MARK} d="M12 32 L19.2 21.6 A12 12 0 1 0 4.8 21.6 Z" />
           <path fill={TILE} d="M12 30 L17.7 20.7 A10 10 0 1 0 6.3 20.7 Z" />
-          <path
-            fill={MARK}
-            d="M12 6.5 L17.2 15.5 L6.8 15.5 Z M12 18.5 L6.8 9.5 L17.2 9.5 Z"
-          />
+          <path fill={MARK} d="M12 6.5 L17.2 15.5 L6.8 15.5 Z M12 18.5 L6.8 9.5 L17.2 9.5 Z" />
         </g>
       </svg>
     </Link>
