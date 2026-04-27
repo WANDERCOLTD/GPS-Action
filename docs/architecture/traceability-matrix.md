@@ -38,8 +38,8 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU | Files | Scenarios | ADRs |
 | -- | -----:| --------- | ---- |
 | BU-000-root | 1 | — | — |
-| BU-000-scaffold | 2 | — | D003 |
-| BU-001-lite | 11 | — | D003, D007, D042 |
+| BU-000-scaffold | 2 | — | D003, D065 |
+| BU-001-lite | 11 | — | D003, D007, D042, D065 |
 | BU-001-prep | 1 | — | — |
 | BU-admin-audit-integration | 3 | — | — |
 | BU-admin-bulk-ops | 8 | — | — |
@@ -47,18 +47,19 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-am-link-collapse | 4 | SCN-19 | D060, D061, D062, D064 |
 | BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057 |
 | BU-composer | 8 | SCN-18, SCN-19 | D044, D045, D048, D060, D061, D062, D064 |
-| BU-error-boundary | 2 | — | D003, D037 |
+| BU-error-boundary | 2 | — | D003, D037, D065 |
 | BU-fab-intent-picker | 7 | SCN-18, SCN-19 | D044, D045, D048, D060, D061, D062, D064 |
 | BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060, D064 |
 | BU-healthcheck | 3 | — | D037 |
 | BU-link-share | 5 | SCN-19 | D045, D048, D060, D061, D062, D064 |
 | BU-post-hero-demo | 6 | SCN-19 | D045, D048, D060, D062, D064 |
 | BU-reactions | 9 | SCN-3, SCN-20 | D036, D050, D052 |
-| BU-requests-foundation | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061 |
+| BU-requests-foundation | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061, D065 |
 | BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061 |
 | BU-requests-vetting | 7 | SCN-20, SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061 |
 | BU-seed | 1 | — | D038 |
-| BU-versioning | 3 | — | D003 |
+| BU-sticky-nav | 4 | — | D003, D054, D061, D065 |
+| BU-versioning | 3 | — | D003, D065 |
 
 ## ADRs (referenced by code)
 
@@ -83,4 +84,5 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D061 | Global tap interaction pattern | 6 |
 | D062 | PostKind table + alert orthogonality | 7 |
 | D064 | Post.heroImageUrl optional field; demo-stub picker on top of D046's phased plan | 4 |
+| D065 | Sticky app header + soft refresh button (BU-sticky-nav) | 4 |
 
