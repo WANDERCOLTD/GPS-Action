@@ -297,23 +297,43 @@ WhatsApp pattern reference (informal, no canonical scenario yet):
 
 ---
 
-## Open questions to surface
+## Open questions — RESOLVED (2026-04-27, Paul)
 
-These should be raised back to Paul, not decided autonomously:
+- **Specific image set:** **6–8 images is fine for now.** Pick from
+  Unsplash CC0 / Pexels free-license per the brief's existing
+  guidance. No further sign-off needed before commit.
 
-- **Hero vs link image priority on the card** — when a post has BOTH
-  `heroImageUrl` and `linkImageUrl`, the brief assumes hero wins for
-  top-of-card and the link card keeps its own thumbnail in its own
-  card below. Confirm this is the intended layering.
-- **Specific image set** — final selection of the 8 images. The brief
-  describes the genre (generic, activist-friendly); actual JPGs need
-  to be picked and committed. Source recommendations: Unsplash CC0
-  search terms `protest`, `community`, `street`, `signs`. Surface
-  the chosen set for sign-off before commit.
-- **Card aspect ratio** — 16:9 is the proposed default. WhatsApp's
-  posts are often 4:3 or square. If the demo images are mostly
-  landscape, 16:9 is fine. If mixed, consider letting the natural
-  aspect render with `object-fit: cover` and a fixed max-height.
+- **Card aspect ratio:** **16:9 is fine for the demo.** Real-world
+  rendering should be responsive (mobile constraints differ from
+  desktop). For this BU stick with 16:9 + `object-fit: cover`; log a
+  follow-up engineering-roadmap entry to revisit responsive aspect
+  ratios when the demo path graduates to production rendering.
+
+- **Hero vs link image — top-of-card behaviour:** **No automatic
+  precedence rule.** The composer (member) explicitly chooses which
+  image appears at the top of the card. The choice must be clear in
+  the picker UX:
+  - `heroImageUrl` remains the single source of truth for the
+    top-of-card image slot. Only one image renders at the top.
+  - When the post has a `linkUrl` and the og:image fetch populated
+    `linkImageUrl`, that fetched image appears as an additional
+    selectable option inside `<HeroImagePicker>`, alongside the
+    seeded set. The member can pick the og:image as their hero,
+    pick a seeded image, or pick none.
+  - The picker visibly groups options: a small "From your link"
+    section showing the og:image (when present), and a "Or pick a
+    photo" section showing the seeded set.
+  - Server-side validation must permit `heroImageUrl` to equal
+    `linkImageUrl` (the URL was fetched from the linked page) in
+    addition to the seeded allow-list. Validator checks both lists.
+  - Card rendering remains as the brief proposed: render
+    `heroImageUrl` at top when set; otherwise no top-of-card image
+    (the link preview, if any, still renders in its own slot below).
+
+  **Why this shape:** keeps a single field as source of truth (no
+  precedence logic to maintain), surfaces the choice at compose time
+  where it's cheap to make, and avoids the surprise of "I attached a
+  link but the system picked a different image".
 
 ---
 

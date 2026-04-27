@@ -704,6 +704,37 @@ When a Tier B/C/D item is adopted, it typically:
 
 ---
 
+### B15 · Responsive card aspect ratio for hero/link images
+
+**Surfaced:** 2026-04-27 (Paul, while signing off BU-post-hero-demo
+open questions)
+
+**Trigger:** when BU-post-hero-demo lands and the demo path graduates
+to production rendering, or when the first member-feedback session
+flags that 16:9 feels wrong on mobile.
+
+**The thing:** the BU-post-hero-demo brief locks card image aspect
+ratio at 16:9 with `object-fit: cover` for demo simplicity. Real-world
+use will need responsive behaviour (mobile is taller-thinner than
+desktop; some seeded photos will be portrait). Options to evaluate
+when this fires:
+
+- Container-query based aspect ratio (different ratio at
+  ≥768px vs <768px)
+- `aspect-ratio: auto` with a `max-height` cap
+- Two distinct image variants (mobile-cropped + desktop-cropped) —
+  expensive but visually best
+
+**Cost when adopted:** ≈1 design session + ≈1 implementation BU
+(`BU-card-image-responsive`). Touches `PostCard` + post-detail
+rendering only.
+
+**Why deferred:** demo is 16:9-only and that ships visually fine on
+laptops. Mobile responsiveness is a real concern but not a demo
+blocker.
+
+---
+
 ## Adopted items (log)
 
 *Once items land, move them here with PR references so the history is visible.*
