@@ -58,6 +58,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061 |
 | BU-requests-vetting | 7 | SCN-20, SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061 |
 | BU-seed | 1 | — | D038 |
+| BU-versioning | 3 | — | D003 |
 
 ## ADRs (referenced by code)
 
