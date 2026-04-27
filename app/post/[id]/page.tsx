@@ -23,6 +23,7 @@ import { isFeatureEnabled } from '@/server/services/flags';
 import { CommentList } from '@/components/CommentList';
 import { ReactionPill } from '@/components/ReactionPill';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
+import { PostShareGroup } from '@/components/PostShareGroup';
 import {
   addCommentAction,
   addReactionToCommentAction,
@@ -92,6 +93,40 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
   const paragraphs = post.body.split('\n\n');
   const relativeTime = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
 
+  // Primary CTA = AM URL when present, else linkUrl. Mirrors PostCard.
+  const primaryCta = post.activistMailerUrl ? (
+    <LinkPreviewCard
+      linkUrl={post.activistMailerUrl}
+      linkTitle={null}
+      linkDescription={null}
+      linkImageUrl={null}
+      linkSiteName={null}
+      size="large"
+      isAmAction={true}
+    />
+  ) : post.linkUrl ? (
+    <LinkPreviewCard
+      linkUrl={post.linkUrl}
+      linkTitle={post.linkTitle}
+      linkDescription={post.linkDescription}
+      linkImageUrl={post.linkImageUrl}
+      linkSiteName={post.linkSiteName}
+      size="large"
+    />
+  ) : null;
+
+  const secondaryCta =
+    post.activistMailerUrl && post.linkUrl ? (
+      <LinkPreviewCard
+        linkUrl={post.linkUrl}
+        linkTitle={post.linkTitle}
+        linkDescription={post.linkDescription}
+        linkImageUrl={post.linkImageUrl}
+        linkSiteName={post.linkSiteName}
+        size="large"
+      />
+    ) : null;
+
   // Serialise for the client component boundary
   const serialisedComments: CommentForView[] = comments.map((c) => ({
     id: c.id,
@@ -140,8 +175,25 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
           </div>
         </div>
 
+        {/* Horizontal share-bar — WhatsApp lead pill + X/IG/FB socials.
+        Placed prominently between the author row and the primary CTA so
+        every visitor sees the share affordances above the fold. Mirrors
+        the share group on the PostCard (which renders the same set
+        vertically in the right rail). */}
+        <div style={{ marginBottom: 'var(--space-4)' }}>
+          <PostShareGroup
+            postId={post.id}
+            postTitle={post.title}
+            postBody={post.body}
+            variant="detail-bar"
+          />
+        </div>
+
+        {/* Primary CTA — top of content (D060 §3a / D066-proposed). */}
+        {primaryCta}
+
         {/* Hero image (BU-post-hero-demo / D064). Larger than card; hero
-            wins over linkImageUrl for the top-of-detail slot. */}
+        wins over linkImageUrl for the top-of-detail slot. */}
         {post.heroImageUrl && (
           <img
             src={post.heroImageUrl}
@@ -180,30 +232,8 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
           />
         )}
 
-        {/* AM URL preview card (D060 §3 — same primitive, AM brand mark on, large size on detail) */}
-        {post.activistMailerUrl && (
-          <LinkPreviewCard
-            linkUrl={post.activistMailerUrl}
-            linkTitle={null}
-            linkDescription={null}
-            linkImageUrl={null}
-            linkSiteName={null}
-            size="large"
-            isAmAction={true}
-          />
-        )}
-
-        {/* Link-share preview card (D060 — supporting context) */}
-        {post.linkUrl && (
-          <LinkPreviewCard
-            linkUrl={post.linkUrl}
-            linkTitle={post.linkTitle}
-            linkDescription={post.linkDescription}
-            linkImageUrl={post.linkImageUrl}
-            linkSiteName={post.linkSiteName}
-            size="large"
-          />
-        )}
+        {/* Secondary linkUrl card (legacy edge case: both AM + link populated). */}
+        {secondaryCta}
       </article>
 
       {/* Discussion thread */}

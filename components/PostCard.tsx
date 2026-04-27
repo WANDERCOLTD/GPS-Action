@@ -22,6 +22,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { MessageSquare } from 'lucide-react';
 import { ReactionPill } from '@/components/ReactionPill';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
+import { PostShareGroup } from '@/components/PostShareGroup';
 
 // ── Types (shared with FeedList and feed page) ──────────────────────────
 
@@ -226,6 +227,44 @@ export const PostCard: FC<PostCardProps> = ({
     addSuffix: true,
   });
 
+  // Primary CTA = the AM URL when present, else the linkUrl. Renders as the
+  // top-of-card visual, just below the header (D060 §3 puts AM first when both
+  // are set; D066 generalises this to a primary/secondary Action[] model).
+  // Secondary CTA = the linkUrl, but only when an AM URL is also set; the
+  // legacy "both populated" path keeps its supporting-context slot at the bottom.
+  const primaryCta = post.activistMailerUrl ? (
+    <LinkPreviewCard
+      linkUrl={post.activistMailerUrl}
+      linkTitle={null}
+      linkDescription={null}
+      linkImageUrl={null}
+      linkSiteName={null}
+      size="small"
+      isAmAction={true}
+    />
+  ) : post.linkUrl ? (
+    <LinkPreviewCard
+      linkUrl={post.linkUrl}
+      linkTitle={post.linkTitle}
+      linkDescription={post.linkDescription}
+      linkImageUrl={post.linkImageUrl}
+      linkSiteName={post.linkSiteName}
+      size="small"
+    />
+  ) : null;
+
+  const secondaryCta =
+    post.activistMailerUrl && post.linkUrl ? (
+      <LinkPreviewCard
+        linkUrl={post.linkUrl}
+        linkTitle={post.linkTitle}
+        linkDescription={post.linkDescription}
+        linkImageUrl={post.linkImageUrl}
+        linkSiteName={post.linkSiteName}
+        size="small"
+      />
+    ) : null;
+
   function handleCardClick(event: ReactMouseEvent<HTMLElement>): void {
     // Bail if the click landed on an interactive child (anchor, button,
     // input, label, form, etc.) — the child handles its own action.
@@ -252,121 +291,123 @@ export const PostCard: FC<PostCardProps> = ({
       data-post-id={post.id}
       style={{ cursor: 'pointer' }}
     >
-      {/* Header: avatar · name · role chip · timestamp */}
-      <div className="gps-card__header">
-        <span
-          className="gps-avatar"
-          style={{ background: getAvatarColour(post.author.displayName) }}
-          aria-hidden="true"
-        >
-          {getInitials(post.author.displayName)}
-        </span>
+      <div
+        style={{
+          display: 'flex',
+          gap: 'var(--space-3)',
+          alignItems: 'flex-start',
+        }}
+      >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="gps-row gps-row--tight" style={{ flexWrap: 'wrap' }}>
-            <strong style={{ fontSize: 'var(--text-sm)' }}>{post.author.displayName}</strong>
-            {post.author.roles.map((role) => (
-              <span key={role} className="gps-chip gps-chip--static gps-chip--info">
-                {formatRole(role)}
-              </span>
+          {/* Header: avatar · name · role chip · timestamp */}
+          <div className="gps-card__header">
+            <span
+              className="gps-avatar"
+              style={{ background: getAvatarColour(post.author.displayName) }}
+              aria-hidden="true"
+            >
+              {getInitials(post.author.displayName)}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="gps-row gps-row--tight" style={{ flexWrap: 'wrap' }}>
+                <strong style={{ fontSize: 'var(--text-sm)' }}>{post.author.displayName}</strong>
+                {post.author.roles.map((role) => (
+                  <span key={role} className="gps-chip gps-chip--static gps-chip--info">
+                    {formatRole(role)}
+                  </span>
+                ))}
+              </div>
+              <time className="gps-meta" dateTime={post.createdAt} suppressHydrationWarning>
+                {relativeTime}
+              </time>
+            </div>
+          </div>
+
+          {/* Primary CTA — moved to top of content (just under header) so the
+          action sits above the title. D060 §3a / D066-proposed direction. */}
+          {primaryCta}
+
+          {/* Kind chip (BU-fab-intent-picker / D062) — only for kinds that warrant a visual badge */}
+          <KindChip kindSlug={post.kindSlug} urgency={post.urgency} />
+
+          {/* Hero image (BU-post-hero-demo / D064). Hero wins over linkImageUrl
+          for top-of-card; the link card retains its own thumbnail below. */}
+          {post.heroImageUrl && (
+            <img
+              src={post.heroImageUrl}
+              alt=""
+              loading="lazy"
+              data-testid="post-card-hero-image"
+              style={{
+                display: 'block',
+                width: '100%',
+                aspectRatio: '16 / 9',
+                objectFit: 'cover',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: 'var(--space-3)',
+              }}
+            />
+          )}
+
+          {/* Title */}
+          <h2 className="gps-subtitle" style={{ marginBottom: 'var(--space-2)' }}>
+            {post.title}
+          </h2>
+
+          {/* Body — \n\n split into <p> tags */}
+          <div className="gps-card__body">
+            {paragraphs.map((paragraph, i) => (
+              <p key={i} style={i > 0 ? { marginTop: 'var(--space-3)' } : undefined}>
+                {paragraph}
+              </p>
             ))}
           </div>
-          <time className="gps-meta" dateTime={post.createdAt} suppressHydrationWarning>
-            {relativeTime}
-          </time>
+
+          {/* Reaction pill (BU-reactions / D050) */}
+          {reactionsEnabled && (
+            <ReactionPill
+              reactions={post.reactions}
+              onAdd={(emoji) => onAddReaction(post.id, emoji)}
+              onRemove={(emoji) => onRemoveReaction(post.id, emoji)}
+              canReact={canReact}
+            />
+          )}
+
+          {/* Comment count (BU-comments / D052) */}
+          {post.commentCount > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-1)',
+                marginTop: 'var(--space-2)',
+                fontSize: 'var(--text-sm)',
+                color: 'var(--colour-text-secondary)',
+              }}
+              data-testid="post-card-comment-count"
+              data-post-id={post.id}
+            >
+              <MessageSquare size={14} aria-hidden="true" />
+              <span>
+                {post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}
+              </span>
+            </div>
+          )}
+
+          {/* Secondary linkUrl card (legacy edge case: both AM + link populated).
+          Stays at the bottom as supporting context per D060 §3. */}
+          {secondaryCta}
         </div>
+
+        {/* Right rail of share affordances — WhatsApp (lead) + socials.
+        Mirrors the detail page's horizontal share-bar but in vertical card form. */}
+        <PostShareGroup
+          postId={post.id}
+          postTitle={post.title}
+          postBody={post.body}
+          variant="card-rail"
+        />
       </div>
-
-      {/* Kind chip (BU-fab-intent-picker / D062) — only for kinds that warrant a visual badge */}
-      <KindChip kindSlug={post.kindSlug} urgency={post.urgency} />
-
-      {/* Hero image (BU-post-hero-demo / D064). Hero wins over linkImageUrl
-          for top-of-card; the link card retains its own thumbnail below. */}
-      {post.heroImageUrl && (
-        <img
-          src={post.heroImageUrl}
-          alt=""
-          loading="lazy"
-          data-testid="post-card-hero-image"
-          style={{
-            display: 'block',
-            width: '100%',
-            aspectRatio: '16 / 9',
-            objectFit: 'cover',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: 'var(--space-3)',
-          }}
-        />
-      )}
-
-      {/* Title */}
-      <h2 className="gps-subtitle" style={{ marginBottom: 'var(--space-2)' }}>
-        {post.title}
-      </h2>
-
-      {/* Body — \n\n split into <p> tags */}
-      <div className="gps-card__body">
-        {paragraphs.map((paragraph, i) => (
-          <p key={i} style={i > 0 ? { marginTop: 'var(--space-3)' } : undefined}>
-            {paragraph}
-          </p>
-        ))}
-      </div>
-
-      {/* Reaction pill (BU-reactions / D050) */}
-      {reactionsEnabled && (
-        <ReactionPill
-          reactions={post.reactions}
-          onAdd={(emoji) => onAddReaction(post.id, emoji)}
-          onRemove={(emoji) => onRemoveReaction(post.id, emoji)}
-          canReact={canReact}
-        />
-      )}
-
-      {/* Comment count (BU-comments / D052) */}
-      {post.commentCount > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-1)',
-            marginTop: 'var(--space-2)',
-            fontSize: 'var(--text-sm)',
-            color: 'var(--colour-text-secondary)',
-          }}
-          data-testid="post-card-comment-count"
-          data-post-id={post.id}
-        >
-          <MessageSquare size={14} aria-hidden="true" />
-          <span>
-            {post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}
-          </span>
-        </div>
-      )}
-
-      {/* AM URL preview card (D060 §3 — same primitive as linkUrl, AM brand mark on) */}
-      {post.activistMailerUrl && (
-        <LinkPreviewCard
-          linkUrl={post.activistMailerUrl}
-          linkTitle={null}
-          linkDescription={null}
-          linkImageUrl={null}
-          linkSiteName={null}
-          size="small"
-          isAmAction={true}
-        />
-      )}
-
-      {/* Link-share preview card (D060 — supporting context, e.g. SCN-19 article share) */}
-      {post.linkUrl && (
-        <LinkPreviewCard
-          linkUrl={post.linkUrl}
-          linkTitle={post.linkTitle}
-          linkDescription={post.linkDescription}
-          linkImageUrl={post.linkImageUrl}
-          linkSiteName={post.linkSiteName}
-          size="small"
-        />
-      )}
     </article>
   );
 };

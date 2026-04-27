@@ -3986,3 +3986,206 @@ standalone." No custom pull-to-refresh, no PWA manifest work, no
   into the same sticky header
 - Memory: `project_ios_standalone_constraint` — the iPhone home-screen
   bookmark constraint that motivates the refresh button
+
+# D066 — Multi-CTA Action model for Post (primary + secondary CTAs)
+
+**Date:** 2026-04-27
+**Tier:** Foundation
+**Status:** Proposed (UI placeholders shipped first; schema migration deferred until composer link-first work begins)
+**Build Unit:** BU-multi-cta (proposed)
+
+_Originally drafted as D065; renumbered to D066 after merge collision
+with the BU-sticky-nav ADR that landed first on `main`._
+
+## Context
+
+D060 §3a flagged the future direction: every post has one primary
+CTA plus optional secondary CTAs available inside the post detail.
+The current schema is a stop-gap with two hardcoded URL slots —
+`activistMailerUrl` (primary) and `linkUrl` (secondary, currently
+treated as a preview card rather than a button). Post-demo, the
+user has confirmed:
+
+- The primary CTA is the **first thing** in a post — both visually
+  (top row of card / detail) and in the composer (URL field first,
+  body and title pre-filled from link metadata).
+- Posts surface **secondary CTAs** alongside the primary — at MVP
+  they're social re-share targets (X, Instagram, Facebook), rendered
+  as a small icon rail. Future kinds include "Sign petition",
+  "Donate", "Email your MP", "Share to WhatsApp", "Add to calendar".
+
+The two-slot pattern can't grow into this — there's no array, no
+labels, no kind discriminator, no ordering. Per CLAUDE.md, schema
+changes need an ADR.
+
+## Decision
+
+Replace the two URL slots with a typed `Action[]` collection
+attached to `Post`. One row per CTA. Schema-locked to a small
+enum of action kinds; per-action label, URL, ordering, and a
+single `isPrimary` flag.
+
+```prisma
+model Post {
+  // ... existing fields, minus the two URL slots ...
+  actions  Action[]
+}
+
+model Action {
+  id          String     @id @default(uuid())
+  postId      String
+  post        Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  kind        ActionKind
+  url         String
+  label       String?    // optional override for the auto-derived button copy
+  orderIndex  Int        // 0 = primary slot when isPrimary, else stable secondary order
+  isPrimary   Boolean    @default(false)
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([postId, orderIndex])
+}
+
+enum ActionKind {
+  am_action          // Activist Mailer (today's activistMailerUrl)
+  external_link      // generic article / resource (today's linkUrl)
+  petition
+  donation
+  email_mp
+  share_whatsapp
+  share_x
+  share_instagram
+  share_facebook
+  calendar_invite
+}
+```
+
+### Rules
+
+1. **Exactly one primary** per post. Enforced at the API boundary
+   (zod refines `actions` so `actions.filter(a => a.isPrimary).length <= 1`),
+   not at the DB layer (no partial-unique-index gymnastics needed yet).
+   A post may have zero primary actions (a "Just write" post with no
+   CTA).
+2. **Cap on secondary actions: soft, in the UI; no schema cap.**
+   The composer surfaces "add up to 2 secondary CTAs" but the schema
+   itself doesn't enforce a count. Reason: real growth (e.g. "petition
+   - donate + share + email-MP" combos) shouldn't require another
+     migration. UI cap is a product decision; let it move freely.
+3. **`orderIndex` is stable.** Drag-reorder in the composer rewrites
+   indices. Display orders by `orderIndex ASC` within `isPrimary` partitions.
+4. **`label` is optional.** When null, the button copy is derived
+   from `kind` (e.g. `am_action` → "Send email →", `donation` →
+   "Donate"). Member can override per-post (e.g. "Donate to the
+   appeal"). 200-char cap.
+5. **`url` validation** is per-kind at the boundary:
+   - `am_action`: must match `ACTIVIST_MAILER_ALLOWED_DOMAINS`
+   - `share_x` / `share_instagram` / `share_facebook`: optional —
+     if null, the rail uses platform homepage as a placeholder
+     (matches current MVP placeholder rail behaviour)
+   - all others: `https?://` only, length-capped, no `javascript:`/`data:`/`mailto:`
+
+### Migration
+
+Two-phase, expand-then-contract (per F08 / B05):
+
+**Phase 1 — additive (this ADR):**
+
+1. Add `Action` table and `ActionKind` enum.
+2. Backfill: for each existing `Post`, synthesise rows:
+   - one `Action(kind=am_action, isPrimary=true, orderIndex=0, url=activistMailerUrl)` if `activistMailerUrl IS NOT NULL`
+   - one `Action(kind=external_link, isPrimary={NOT activistMailerUrl}, orderIndex=0|1, url=linkUrl, label=linkTitle, ...)` if `linkUrl IS NOT NULL`
+3. Keep `activistMailerUrl` and `linkUrl` columns nullable on `Post` for the duration of Phase 1 — read paths consult both, write paths begin writing to `Action`.
+4. Move existing link-preview metadata (`linkTitle`, `linkDescription`, `linkImageUrl`, `linkSiteName`) onto a separate concern (parking-lot already proposes a `LinkPreview` cache table keyed by URL; that work is independent of D066).
+
+**Phase 2 — drop legacy columns:**
+
+- After all read/write paths are off the legacy columns and at least one production deploy has run cleanly on `Action[]` only, remove `activistMailerUrl` / `linkUrl` / `linkTitle` / `linkDescription` / `linkImageUrl` / `linkSiteName` from `Post` in a follow-up migration with its own ADR. Don't bundle the drop into Phase 1.
+
+### What ships before the schema migration
+
+The visible UI for secondary CTAs (right-rail X / Instagram / Facebook
+placeholders on every post card and detail) lands ahead of D066's
+schema work. The placeholders aren't backed by `Action` rows yet —
+they're a static rail in `<SecondaryCtaRail>` linking to platform
+homepages. When D066 lands, the rail's `PLATFORMS` array becomes
+`post.actions.filter(a => !a.isPrimary)` and the per-icon URL is
+composed from the action's `url` and `kind`.
+
+## Consequences
+
+### Wins
+
+- One model covers today's two slots and tomorrow's petition-and-donate
+  combos. No further migrations to grow the CTA surface.
+- Composer becomes URL-first with a clean primary-action concept:
+  member pastes the URL, kind is auto-detected (or picked from a
+  small menu), the row becomes the post's primary `Action`.
+- Per-action labels solve the "Send email" vs "Donate" vs "Sign
+  petition" copy problem without per-kind hardcoding in
+  `<LinkPreviewCard>`.
+- Secondary CTAs are typed, so analytics events can carry
+  `cta_kind` (helpful for measuring petition-CTR vs donate-CTR).
+
+### Costs
+
+- Every `Post` read now hydrates an `Action[]` (Prisma `include`).
+  At MVP scale (≤1000 posts × ≤3 actions) this is fine; if/when
+  feed pagination needs further tuning, we add a projection.
+- Migration writes one or two rows per existing post — straightforward
+  but not free. Backfill plan needs to run inside the migration
+  (idempotent), not as an out-of-band script.
+- API contract churn: the tRPC `post.list` / `post.getById` payloads
+  grow an `actions` field; existing callers (`PostCard`, detail page)
+  must read from `actions` instead of the legacy columns. Plan to
+  ship a server-side mapper that synthesises `actions` from the
+  legacy columns during Phase 1 so client code can switch over once
+  and not move twice.
+
+### Open questions deferred to BU-multi-cta brief
+
+- Composer UX for picking secondary CTA kinds (chip menu? dropdown?
+  search?). Tied to the link-first composer brief.
+- Whether `share_x` / `share_instagram` / `share_facebook` are
+  modelled as Actions at all, or whether they're a UI affordance
+  the rail renders unconditionally (no DB row). Likely the latter —
+  resolve in the brief.
+- Per-kind icon set. Currently hand-rolled SVGs in `<SecondaryCtaRail>`;
+  the brief picks an icon dependency (simple-icons via react-icons/si
+  is a strong candidate) and replaces them.
+- Drag-reorder UI in the composer.
+
+## Alternatives considered
+
+- **Add a third `petitionUrl` slot** (and a fourth, and a fifth, ...).
+  Rejected — every new CTA kind would be a schema migration; doesn't
+  scale.
+- **JSONB `actions` blob on `Post`**. Rejected — same reasons as
+  D060 (no typed access, no per-action validation, no eventual
+  per-action analytics joins, no nice migration when fields evolve).
+- **Polymorphic `CtaTarget` like `ReactionTarget` (D050)**. Rejected
+  for now — only `Post` has CTAs in the foreseeable surface;
+  polymorphism would add complexity without a second target type
+  to justify it. If `Comment` or `Request` ever grows CTAs, revisit.
+- **Keep two slots; add a third "linkUrl2"**. Rejected — explicit
+  YAGNI; we already know we want unbounded growth, half-measures buy
+  nothing.
+
+## Related
+
+- D060 — Post schema additions for link-share preview cards
+  (D066 supersedes §3 and §3a; the link-preview metadata fields are
+  a separate refactor onto a `LinkPreview` cache table per the parking lot)
+- D050 — Reaction polymorphic schema (a model for typed-target relations
+  if `Action` ever needs to attach to non-Post entities)
+- Parking-lot entry: "Multi-CTA model — primary action + multiple
+  secondary actions per post" (this ADR fulfils that parking-lot row)
+- Parking-lot entry: "Auto-fetch Open Graph metadata" (D066-adjacent —
+  the URL-first composer that drives `Action` creation depends on
+  OG fetch landing or being parked-explicit)
+- `docs/product/post-creation-flow.md` (the link-first composer vision
+  D066 unblocks)
+- `components/SecondaryCtaRail.tsx` (the placeholder UI shipped
+  ahead of this ADR's schema migration)
