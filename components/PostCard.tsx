@@ -1,19 +1,25 @@
 'use client';
 
 /**
- * @build-unit BU-feed BU-comments
+ * @build-unit BU-feed BU-comments BU-whatsapp-share
  * @spec product/design-philosophy.md
- * @spec architecture/decision-log.md (D052)
+ * @spec architecture/decision-log.md (D052, D065)
  *
  * Single post card for the feed. Renders author, timestamp, title,
- * body paragraphs, the reaction pill, comment-count link, and an
- * optional Activist Mailer button.
+ * body paragraphs, the reaction pill, the bottom action row, and
+ * link / AM preview cards.
  *
  * Tap-card-to-detail navigates to /post/[id] (BU-comments / D052).
  * The article's onClick checks `event.target.closest('a, button')`
  * and bails if the click landed on an interactive child — this is
  * cleaner than wrapping in <Link> (which would require nested
  * anchors / aggressive stopPropagation across the reaction pill).
+ *
+ * Action row (D065): the bottom of every card carries comment-count
+ * on the left and a WhatsApp forward affordance on the right. The
+ * reaction pill stays above this row, between body and footer —
+ * memory `project_share_taxonomy` keeps WhatsApp visually separate
+ * from the future X / IG / FB rail (BU-share-out).
  */
 
 import type { FC, MouseEvent as ReactMouseEvent } from 'react';
@@ -22,6 +28,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { MessageSquare } from 'lucide-react';
 import { ReactionPill } from '@/components/ReactionPill';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
+import { WhatsAppShareButton } from '@/components/WhatsAppShareButton';
 
 // ── Types (shared with FeedList and feed page) ──────────────────────────
 
@@ -322,27 +329,6 @@ export const PostCard: FC<PostCardProps> = ({
         />
       )}
 
-      {/* Comment count (BU-comments / D052) */}
-      {post.commentCount > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-1)',
-            marginTop: 'var(--space-2)',
-            fontSize: 'var(--text-sm)',
-            color: 'var(--colour-text-secondary)',
-          }}
-          data-testid="post-card-comment-count"
-          data-post-id={post.id}
-        >
-          <MessageSquare size={14} aria-hidden="true" />
-          <span>
-            {post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}
-          </span>
-        </div>
-      )}
-
       {/* AM URL preview card (D060 §3 — same primitive as linkUrl, AM brand mark on) */}
       {post.activistMailerUrl && (
         <LinkPreviewCard
@@ -367,6 +353,42 @@ export const PostCard: FC<PostCardProps> = ({
           size="small"
         />
       )}
+
+      {/* Action row (BU-whatsapp-share / D065). Comment-count L, WhatsApp forward R.
+          Reaction pill stays above this row. */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginTop: 'var(--space-3)',
+        }}
+        data-testid="post-card-action-row"
+        data-post-id={post.id}
+      >
+        {post.commentCount > 0 ? (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-1)',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--colour-text-secondary)',
+            }}
+            data-testid="post-card-comment-count"
+            data-post-id={post.id}
+          >
+            <MessageSquare size={14} aria-hidden="true" />
+            <span>
+              {post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}
+            </span>
+          </div>
+        ) : (
+          <span aria-hidden="true" />
+        )}
+
+        <WhatsAppShareButton postId={post.id} postTitle={post.title} postBody={post.body} />
+      </div>
     </article>
   );
 };
