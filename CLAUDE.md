@@ -52,6 +52,13 @@ discipline is:
   continue. The next session reads the brief AND the handoff.
 - **Surface, don't assume** — when context is unclear, ask. Better one
   surfaced question than ten silent assumptions.
+- **Verify branch after every git op** — run `git branch --show-current`
+  after checkout / switch / stash / stash pop / reset / merge / rebase /
+  pull / branch / worktree-create. Combine into the same Bash call where
+  possible (`git checkout X && git branch --show-current`). This repo
+  is sometimes worked by parallel Claude sessions; HEAD can move under
+  you. For genuinely independent parallel work, prefer `git worktree`
+  over branch-switching in the shared checkout.
 
 See `docs/process/session-hygiene.md` for the full discipline, the
 handoff doc template, and anti-patterns to avoid.
