@@ -1,7 +1,7 @@
 ---
 slug: bu-tick-or-cross
 status: shipped
-shipped_in: "#TBD"
+shipped_in: "#129"
 phase: 2
 priority: high
 note: "Demo slice — shipped. Channel deep-link cannot prefill; flow uses copy-to-clipboard + open channel."
