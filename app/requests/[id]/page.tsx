@@ -17,7 +17,6 @@ import { listCommentsForRequest } from '@/server/services/comment';
 import { markReadForRequest } from '@/server/services/notification';
 import { scopeToRequestType } from '@/server/services/request';
 import { prisma } from '@/server/db/client';
-import { AppNav } from '@/components/AppNav';
 import { ClaimButton, ResolveForm } from '@/components/RequestActionButtons';
 import { RequestDetailPanel, type DetailComment } from '@/components/RequestDetailPanel';
 import type { RequestType } from '@prisma/client';
@@ -127,140 +126,135 @@ export default async function RequestDetailPage({ params }: PageProps) {
     (isClaimedByCaller || hasAdmin);
 
   return (
-    <>
-      <AppNav active="requests" hasReviewerAccess={isReviewer} />
-      <main
+    <main
+      style={{
+        padding: 'var(--space-6) var(--space-4)',
+        maxWidth: 720,
+        margin: '0 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-5)',
+      }}
+    >
+      <Link
+        href="/requests"
+        data-testid="requests-detail-back-link"
         style={{
-          padding: 'var(--space-6) var(--space-4)',
-          maxWidth: 720,
-          margin: '0 auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'var(--space-5)',
+          color: 'var(--colour-text-link)',
+          fontSize: 'var(--text-sm)',
+          textDecoration: 'none',
         }}
       >
-        <Link
-          href="/requests"
-          data-testid="requests-detail-back-link"
-          style={{
-            color: 'var(--colour-text-link)',
-            fontSize: 'var(--text-sm)',
-            textDecoration: 'none',
-          }}
-        >
-          ← Back to Requests
-        </Link>
+        ← Back to Requests
+      </Link>
 
-        <header
+      <header
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-2)',
+          padding: 'var(--space-4)',
+          borderRadius: 'var(--radius-md)',
+          background: request.urgency
+            ? 'var(--colour-urgent-subtle)'
+            : 'var(--colour-surface-raised)',
+          border: '1px solid var(--colour-border-subtle)',
+          borderLeft: request.urgency ? '4px solid var(--colour-urgent)' : '4px solid transparent',
+        }}
+      >
+        <div
           style={{
             display: 'flex',
-            flexDirection: 'column',
             gap: 'var(--space-2)',
-            padding: 'var(--space-4)',
-            borderRadius: 'var(--radius-md)',
-            background: request.urgency
-              ? 'var(--colour-urgent-subtle)'
-              : 'var(--colour-surface-raised)',
-            border: '1px solid var(--colour-border-subtle)',
-            borderLeft: request.urgency
-              ? '4px solid var(--colour-urgent)'
-              : '4px solid transparent',
+            alignItems: 'center',
+            flexWrap: 'wrap',
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              gap: 'var(--space-2)',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-            }}
-          >
-            {request.urgency && (
-              <span
-                data-testid="requests-detail-urgent-badge"
-                style={{
-                  fontSize: 'var(--text-2xs)',
-                  background: 'var(--colour-urgent)',
-                  color: 'var(--colour-urgent-contrast)',
-                  padding: '2px var(--space-2)',
-                  borderRadius: 'var(--radius-pill)',
-                  textTransform: 'uppercase',
-                  fontWeight: 700,
-                }}
-              >
-                {request.kind?.displayName ?? 'Urgent'}
-              </span>
-            )}
-            <strong>{TYPE_LABELS[request.type]}</strong>
+          {request.urgency && (
             <span
-              data-testid="requests-detail-status"
+              data-testid="requests-detail-urgent-badge"
               style={{
                 fontSize: 'var(--text-2xs)',
+                background: 'var(--colour-urgent)',
+                color: 'var(--colour-urgent-contrast)',
                 padding: '2px var(--space-2)',
                 borderRadius: 'var(--radius-pill)',
-                background: 'var(--colour-surface-sunken)',
                 textTransform: 'uppercase',
+                fontWeight: 700,
               }}
             >
-              {STATUS_LABELS[request.status] ?? request.status}
+              {request.kind?.displayName ?? 'Urgent'}
             </span>
-            <time
-              dateTime={request.createdAt.toISOString()}
-              style={{
-                marginLeft: 'auto',
-                fontSize: 'var(--text-xs)',
-                color: 'var(--colour-text-secondary)',
-              }}
-              suppressHydrationWarning
-            >
-              {formatDistanceToNow(request.createdAt, { addSuffix: true })}
-            </time>
-          </div>
-          {ctxText && (
-            <p
-              style={{
-                margin: 0,
-                fontSize: 'var(--text-sm)',
-                color: 'var(--colour-text-primary)',
-              }}
-            >
-              {ctxText}
-            </p>
           )}
-          {request.createdBy && (
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--colour-text-secondary)' }}>
-              Submitted by <strong>{request.createdBy.displayName}</strong>
-              {request.claimedBy && (
-                <>
-                  {' · Picked up by '}
-                  <strong>{request.claimedBy.displayName}</strong>
-                </>
-              )}
-            </div>
-          )}
-          {showClaim && (
-            <div style={{ marginTop: 'var(--space-2)' }}>
-              <ClaimButton requestId={request.id} />
-            </div>
-          )}
-          {showResolve && <ResolveForm requestId={request.id} />}
-        </header>
-
-        <section data-testid="requests-detail-thread-section">
-          <h2
-            className="gps-subtitle"
-            style={{ marginBottom: 'var(--space-3)' }}
-            data-testid="requests-detail-thread-title"
+          <strong>{TYPE_LABELS[request.type]}</strong>
+          <span
+            data-testid="requests-detail-status"
+            style={{
+              fontSize: 'var(--text-2xs)',
+              padding: '2px var(--space-2)',
+              borderRadius: 'var(--radius-pill)',
+              background: 'var(--colour-surface-sunken)',
+              textTransform: 'uppercase',
+            }}
           >
-            Discussion ({comments.length})
-          </h2>
-          <RequestDetailPanel
-            requestId={request.id}
-            comments={detailComments}
-            isReviewer={isReviewer}
-          />
-        </section>
-      </main>
-    </>
+            {STATUS_LABELS[request.status] ?? request.status}
+          </span>
+          <time
+            dateTime={request.createdAt.toISOString()}
+            style={{
+              marginLeft: 'auto',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--colour-text-secondary)',
+            }}
+            suppressHydrationWarning
+          >
+            {formatDistanceToNow(request.createdAt, { addSuffix: true })}
+          </time>
+        </div>
+        {ctxText && (
+          <p
+            style={{
+              margin: 0,
+              fontSize: 'var(--text-sm)',
+              color: 'var(--colour-text-primary)',
+            }}
+          >
+            {ctxText}
+          </p>
+        )}
+        {request.createdBy && (
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--colour-text-secondary)' }}>
+            Submitted by <strong>{request.createdBy.displayName}</strong>
+            {request.claimedBy && (
+              <>
+                {' · Picked up by '}
+                <strong>{request.claimedBy.displayName}</strong>
+              </>
+            )}
+          </div>
+        )}
+        {showClaim && (
+          <div style={{ marginTop: 'var(--space-2)' }}>
+            <ClaimButton requestId={request.id} />
+          </div>
+        )}
+        {showResolve && <ResolveForm requestId={request.id} />}
+      </header>
+
+      <section data-testid="requests-detail-thread-section">
+        <h2
+          className="gps-subtitle"
+          style={{ marginBottom: 'var(--space-3)' }}
+          data-testid="requests-detail-thread-title"
+        >
+          Discussion ({comments.length})
+        </h2>
+        <RequestDetailPanel
+          requestId={request.id}
+          comments={detailComments}
+          isReviewer={isReviewer}
+        />
+      </section>
+    </main>
   );
 }
