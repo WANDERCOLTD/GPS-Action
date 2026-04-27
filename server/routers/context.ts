@@ -14,13 +14,14 @@
 import type { TRPCContext } from '@/server/lib/trpc';
 import { getUserIdFromCookie } from '@/server/lib/auth';
 import { resolveUser, getActiveRoles, getActiveScopes } from '@/server/services/auth';
+import { isDemoMode } from '@/shared/demo-mode';
 
 /**
  * Build the tRPC context for the current request. Reads the dev auth
  * cookie, resolves the user, and fetches their active roles + scopes.
  */
 export async function createTRPCContext(): Promise<TRPCContext> {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' && !isDemoMode()) {
     // In production, real auth (BU-002) replaces this.
     return { user: null, activeRoles: [], activeScopes: [] };
   }

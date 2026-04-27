@@ -47,6 +47,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-am-link-collapse | 4 | SCN-19 | D060, D061, D062, D064 |
 | BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057 |
 | BU-composer | 8 | SCN-18, SCN-19 | D044, D045, D048, D060, D061, D062, D064 |
+| BU-demo-mode | 2 | — | — |
 | BU-error-boundary | 2 | — | D003, D037, D065 |
 | BU-fab-intent-picker | 7 | SCN-18, SCN-19 | D044, D045, D048, D060, D061, D062, D064 |
 | BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060, D064 |
