@@ -58,7 +58,6 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | Brief | Status | PR |
 |---|---|---|
 | **bu-composer** — BU-composer | ✅ Merged | — |
-| **bu-demo-mode** — Brief: BU-demo-mode | ✅ Merged | #TBD |
 | **f15-require-design-tokens** — F15 | ✅ Merged | — |
 | **erd-slice-1** — ERD Slice 1 | ✅ Merged | #1 |
 | **f06-eslint-rules** — F06 | ✅ Merged | #2 |
@@ -88,6 +87,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-post-hero-demo** — BU-post-hero-demo | ✅ Merged | #95 |
 | **bu-sticky-nav** — BU-sticky-nav | ✅ Merged | #106 |
 | **bu-brief-status-mechanism** — BU-brief-status-mechanism | ✅ Merged | #116 |
+| **bu-demo-mode** — Brief: BU-demo-mode | ✅ Merged | #124 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |

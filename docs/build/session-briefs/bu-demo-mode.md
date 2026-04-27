@@ -1,7 +1,7 @@
 ---
 slug: bu-demo-mode
 status: shipped
-shipped_in: "#TBD"
+shipped_in: "#124"
 phase: 0
 ---
 # Brief: BU-demo-mode — dev-auth surfaces on a Vercel preview
