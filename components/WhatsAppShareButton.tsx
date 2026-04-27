@@ -1,8 +1,9 @@
 'use client';
 
 /**
- * @build-unit BU-share-rail-on-detail
+ * @build-unit BU-share-rail-on-detail BU-whatsapp-share
  * @spec build/session-briefs/bu-whatsapp-share.md
+ * @spec architecture/decision-log.md (D067)
  *
  * One-tap WhatsApp share affordance. Larger and visually distinct from
  * the X / Instagram / Facebook icons in `<SecondaryCtaRail>` because
@@ -18,12 +19,17 @@
  * On click:
  *   1. event.stopPropagation() so the PostCard's body-tap does not fire
  *      (D061 tap precedence).
- *   2. Opens `wa.me/?text=...` in a new tab. Mobile OSes route the
+ *   2. Fires the catalogued `post_shared_out` analytics event with
+ *      `destination: 'whatsapp'` via sendBeacon (fetch fallback with
+ *      keepalive: true). The ping survives the navigation away to
+ *      WhatsApp. Fire-and-forget — never blocks the share UX. See D067.
+ *   3. Opens `wa.me/?text=...` in a new tab. Mobile OSes route the
  *      universal link to the installed WhatsApp app; desktop falls
  *      through to WhatsApp Web.
  */
 
 import type { FC, MouseEvent as ReactMouseEvent } from 'react';
+import * as React from 'react';
 import { whatsAppShareUrl } from '@/shared/share/whatsapp-url';
 import { getSiteOrigin } from '@/shared/site-origin';
 
@@ -49,6 +55,7 @@ export const WhatsAppShareButton: FC<WhatsAppShareButtonProps> = ({
 
   function handleClick(event: ReactMouseEvent<HTMLAnchorElement>): void {
     event.stopPropagation();
+    pingShareIntent(postId);
   }
 
   const isPill = variant === 'pill';
@@ -98,6 +105,29 @@ export const WhatsAppShareButton: FC<WhatsAppShareButtonProps> = ({
 // carries the visual cue ("messaging") without being the registered
 // logo. Replace with the official asset once the brand-asset license is
 // confirmed.
+
+function pingShareIntent(postId: string): void {
+  if (typeof window === 'undefined') return;
+  const payload = JSON.stringify({ postId, destination: 'whatsapp' });
+  const url = '/api/analytics/share-intent';
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+      const blob = new Blob([payload], { type: 'application/json' });
+      const sent = navigator.sendBeacon(url, blob);
+      if (sent) return;
+    }
+  } catch {
+    // sendBeacon throws in some restricted contexts — fall through to fetch.
+  }
+  void fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: payload,
+    keepalive: true,
+  }).catch(() => {
+    // Analytics is fire-and-forget; never block the share UX on a ping failure.
+  });
+}
 
 const WhatsAppGlyph: FC<{ size: number }> = ({ size }) => (
   <svg
