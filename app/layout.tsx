@@ -29,9 +29,7 @@ import { VersionBadge } from '@/components/VersionBadge';
 import { DemoBanner } from '@/components/DemoBanner';
 import { createTRPCContext } from '@/server/routers/context';
 import { countUnreadForUser } from '@/server/services/notification';
-import { scopeToRequestType } from '@/server/services/request';
 import { isDemoMode } from '@/shared/demo-mode';
-import type { RequestType } from '@prisma/client';
 
 export const metadata = {
   title: 'GPS Action',
@@ -81,15 +79,6 @@ function RootErrorFallback() {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const ctx = await createTRPCContext();
 
-  // Resolve nav data once per render (D065). When there is no user the
-  // checks are cheap (empty arrays / zero count) and short-circuited.
-  const hasUnscopedQueueManager = ctx.activeRoles.includes('queue_manager');
-  const hasAdmin = ctx.activeRoles.includes('admin');
-  const scopedTypes: RequestType[] = ctx.activeScopes
-    .map(scopeToRequestType)
-    .filter((t): t is RequestType => t !== null);
-  const hasReviewerAccess =
-    !!ctx.user && (hasUnscopedQueueManager || hasAdmin || scopedTypes.length > 0);
   const unreadNotificationCount = ctx.user ? await countUnreadForUser(ctx.user.id) : 0;
 
   // The sticky header is suppressed entirely when there is genuinely
@@ -123,10 +112,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   paddingRight: 'var(--space-4)',
                 }}
               >
-                <AppNav
-                  hasReviewerAccess={hasReviewerAccess}
-                  unreadNotificationCount={unreadNotificationCount}
-                />
+                <AppNav unreadNotificationCount={unreadNotificationCount} />
                 <HeaderRefreshButton />
               </div>
             )}
