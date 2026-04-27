@@ -45,11 +45,11 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-admin-bulk-ops | 8 | — | — |
 | BU-admin-crud | 21 | — | — |
 | BU-am-link-collapse | 4 | SCN-19 | D060, D061, D062, D064 |
-| BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057 |
+| BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057, D065 |
 | BU-composer | 8 | SCN-18, SCN-19 | D044, D045, D048, D060, D061, D062, D064 |
 | BU-error-boundary | 2 | — | D003, D037 |
 | BU-fab-intent-picker | 7 | SCN-18, SCN-19 | D044, D045, D048, D060, D061, D062, D064 |
-| BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060, D064 |
+| BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060, D064, D065 |
 | BU-healthcheck | 3 | — | D037 |
 | BU-link-share | 5 | SCN-19 | D045, D048, D060, D061, D062, D064 |
 | BU-post-hero-demo | 6 | SCN-19 | D045, D048, D060, D062, D064 |
@@ -59,6 +59,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-requests-vetting | 7 | SCN-20, SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061 |
 | BU-seed | 1 | — | D038 |
 | BU-versioning | 3 | — | D003 |
+| BU-whatsapp-share | 5 | — | D052, D065 |
 
 ## ADRs (referenced by code)
 
@@ -83,4 +84,5 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D061 | Global tap interaction pattern | 6 |
 | D062 | PostKind table + alert orthogonality | 7 |
 | D064 | Post.heroImageUrl optional field; demo-stub picker on top of D046's phased plan | 4 |
+| D065 | WhatsApp share affordance: demo slice diverging from share-out-mechanics | 5 |
 
