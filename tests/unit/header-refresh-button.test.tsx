@@ -56,7 +56,7 @@ function findByTestId(el: AnyElement, testId: string): AnyElement | undefined {
 describe('HeaderRefreshButton', () => {
   it('renders a button with the canonical testid and aria-label', () => {
     const tree = HeaderRefreshButton() as AnyElement;
-    const button = findByTestId(tree, 'header-refresh-button');
+    const button = findByTestId(tree, 'nav-refresh-button');
     expect(button).toBeDefined();
     expect(button?.type).toBe('button');
     expect(button?.props['aria-label']).toBe('Refresh page');
@@ -65,7 +65,7 @@ describe('HeaderRefreshButton', () => {
   it('invokes router.refresh() when the click handler runs', () => {
     refreshSpy.mockClear();
     const tree = HeaderRefreshButton() as AnyElement;
-    const button = findByTestId(tree, 'header-refresh-button');
+    const button = findByTestId(tree, 'nav-refresh-button');
     expect(button).toBeDefined();
 
     const onClick = button?.props.onClick as () => void;
@@ -77,14 +77,14 @@ describe('HeaderRefreshButton', () => {
   it('renders the resting (non-pending) state by default', () => {
     useTransitionMock.mockReturnValueOnce([false, (cb: () => void) => cb()]);
     const tree = HeaderRefreshButton() as AnyElement;
-    const button = findByTestId(tree, 'header-refresh-button');
+    const button = findByTestId(tree, 'nav-refresh-button');
     expect(button?.props.disabled).toBe(false);
   });
 
   it('renders the pending state (disabled) when a transition is in flight', () => {
     useTransitionMock.mockReturnValueOnce([true, (cb: () => void) => cb()]);
     const tree = HeaderRefreshButton() as AnyElement;
-    const button = findByTestId(tree, 'header-refresh-button');
+    const button = findByTestId(tree, 'nav-refresh-button');
     expect(button?.props.disabled).toBe(true);
   });
 });

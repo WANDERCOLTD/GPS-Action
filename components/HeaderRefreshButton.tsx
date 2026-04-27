@@ -49,7 +49,7 @@ export function HeaderRefreshButton() {
         onClick={() => startTransition(() => router.refresh())}
         disabled={isPending}
         aria-label="Refresh page"
-        data-testid="header-refresh-button"
+        data-testid="nav-refresh-button"
         style={buttonStyle}
       >
         {isPending ? (

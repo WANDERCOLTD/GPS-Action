@@ -14,7 +14,7 @@ testing on 2026-04-27 (D065).
 ## Contract
 
 - Renders an icon button with `aria-label="Refresh page"` and
-  `data-testid="header-refresh-button"`.
+  `data-testid="nav-refresh-button"`.
 - On click: calls `router.refresh()` from `next/navigation` inside a
   `startTransition(...)`. Server components for the current route
   re-run; data dependencies refresh; scroll position and client
@@ -26,19 +26,22 @@ testing on 2026-04-27 (D065).
 
 ## Why `router.refresh()` over `window.location.reload()`
 
-| | `router.refresh()` | `window.location.reload()` |
-|---|---|---|
-| Scroll preserved | yes | no |
-| Client state preserved | yes | no |
-| Visual flash | none | yes |
-| Re-runs server components | yes | yes (full page) |
-| Network cost | only changed segments | full page |
+|                           | `router.refresh()`    | `window.location.reload()` |
+| ------------------------- | --------------------- | -------------------------- |
+| Scroll preserved          | yes                   | no                         |
+| Client state preserved    | yes                   | no                         |
+| Visual flash              | none                  | yes                        |
+| Re-runs server components | yes                   | yes (full page)            |
+| Network cost              | only changed segments | full page                  |
 
 Soft refresh is strictly better for the demo audience.
 
 ## Testid
 
-`header-refresh-button`. Stable contract for tests and a11y tools.
+`nav-refresh-button` (uses the canonical `nav` area prefix per
+`docs/process/testid-convention.md`; the button visually lives inside
+the nav strip in the sticky header). Stable contract for tests and
+a11y tools.
 
 ## Layer
 
