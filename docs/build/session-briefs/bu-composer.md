@@ -1,3 +1,9 @@
+---
+slug: bu-composer
+status: shipped
+phase: 1
+note: "Pre-PR-numbering era; see commit 6646521"
+---
 # SESSION BRIEF · BU-composer — Simple post creation form
 
 *Brief version: 1.0 · Author: Paul · Date: April 2026*

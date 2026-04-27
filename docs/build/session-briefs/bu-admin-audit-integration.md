@@ -1,3 +1,9 @@
+---
+slug: bu-admin-audit-integration
+status: shipped
+shipped_in: "#84"
+phase: 2
+---
 # SESSION BRIEF · BU-admin-audit-integration — wire AuditLog into generic admin mutations
 
 _Brief version: 1.0 · Author: Paul + Claude · Date: 2026-04-26_

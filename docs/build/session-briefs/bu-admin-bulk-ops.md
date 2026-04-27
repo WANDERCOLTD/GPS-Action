@@ -1,3 +1,9 @@
+---
+slug: bu-admin-bulk-ops
+status: shipped
+shipped_in: "#86"
+phase: 2
+---
 # SESSION BRIEF · BU-admin-bulk-ops — checkbox selection + bulk mutations
 
 _Brief version: 1.0 · Author: Paul + Claude · Date: 2026-04-26_

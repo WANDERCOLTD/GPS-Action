@@ -1,3 +1,9 @@
+---
+slug: bu-composer-link-first
+status: planned
+priority: low
+note: "Status uncertain — verify on next pass"
+---
 # SESSION BRIEF · BU-composer-link-first — URL-first composer with 1-click intent
 
 _Brief version: 0.1 (draft, awaiting user sign-off) · Author: Paul + Claude · Date: 2026-04-27_

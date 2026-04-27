@@ -1,3 +1,10 @@
+---
+slug: bu-search-surface
+status: planned
+phase: 2
+priority: medium
+note: "Stub — parked, not yet ready to start"
+---
 # SESSION BRIEF · BU-search-surface — App-wide member search
 
 _Brief version: 0.1 (stub — parked, not yet ready to start) · Author: Paul + Claude · Date: 2026-04-27_

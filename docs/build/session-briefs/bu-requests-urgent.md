@@ -1,3 +1,9 @@
+---
+slug: bu-requests-urgent
+status: shipped
+shipped_in: "#75"
+phase: 2
+---
 # SESSION BRIEF · BU-requests-urgent — alerts + claim/resolve + polling + FAB tile
 
 _Brief version: 1.0 · Author: Paul (via Claude) · Date: 2026-04-26._

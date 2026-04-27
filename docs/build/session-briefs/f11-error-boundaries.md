@@ -1,3 +1,9 @@
+---
+slug: f11-error-boundaries
+status: shipped
+shipped_in: "#63"
+phase: 0
+---
 # SESSION BRIEF · F11 — Error boundaries in the UI shell
 
 _Brief version: 1.0 · Author: Paul · Date: April 2026_

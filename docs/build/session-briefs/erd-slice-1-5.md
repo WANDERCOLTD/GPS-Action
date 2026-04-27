@@ -1,3 +1,9 @@
+---
+slug: erd-slice-1-5
+status: shipped
+shipped_in: "#4"
+phase: 1
+---
 # SESSION BRIEF · ERD Slice 1.5 — Groups entities
 
 *Brief version: 1.0 · Author: Paul · Date: April 2026*

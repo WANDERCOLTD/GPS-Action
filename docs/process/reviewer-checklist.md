@@ -130,6 +130,10 @@ Can the next person understand this work?
 - [ ] **PR description summarises changes** and links to the brief.
 - [ ] **Breaking changes flagged** in PR description prominently.
 - [ ] **Open questions documented** — session should have surfaced judgement calls made.
+- [ ] **Brief status flipped to shipped** — if this PR ships a named BU, its
+  `docs/build/session-briefs/<slug>.md` front-matter has `status: shipped` and
+  `shipped_in: "#<this-PR>"` in the same diff. CI enforces; this row is the
+  manual backstop. (Per D068.)
 
 **If fails:** the work becomes legacy code immediately. Documentation is not optional.
 

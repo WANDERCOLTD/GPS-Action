@@ -1,6 +1,6 @@
 {
   "name": "gps-action",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "private": true,
   "description": "GPS Action — purpose-built platform for coordinated activism",
   "scripts": {
@@ -23,6 +23,8 @@
     "trace:check": "tsx scripts/trace.ts --check",
     "trace:matrix": "tsx scripts/trace.ts --matrix",
     "impact": "tsx scripts/trace.ts --impact",
+    "trackers": "tsx scripts/generate-trackers.ts",
+    "trackers:check": "tsx scripts/generate-trackers.ts --check",
     "prepare": "husky"
   },
   "dependencies": {

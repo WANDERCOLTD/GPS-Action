@@ -1,3 +1,9 @@
+---
+slug: bu-post-hero-demo
+status: shipped
+shipped_in: "#95"
+phase: 2
+---
 # SESSION BRIEF · BU-post-hero-demo — Hero image on Post (demo path)
 
 _Brief version: 1.0 · Author: Paul + Claude · Date: 2026-04-26_

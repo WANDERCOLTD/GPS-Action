@@ -1,3 +1,9 @@
+---
+slug: f06-eslint-rules
+status: shipped
+shipped_in: "#2"
+phase: 0
+---
 # SESSION BRIEF · F06 — Custom ESLint rules (traceability + safety)
 
 *Brief version: 1.1 · Author: Paul · Date: April 2026*

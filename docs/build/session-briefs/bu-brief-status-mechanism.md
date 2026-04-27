@@ -1,7 +1,14 @@
+---
+slug: bu-brief-status-mechanism
+status: shipped
+shipped_in: "#116"
+phase: 2
+priority: high
+---
 # SESSION BRIEF · BU-brief-status-mechanism — Front-matter status + auto-generated trackers + CI ship-flip gate
 
-_Brief version: 0.1 DRAFT · Author: Paul + Claude · Date: 2026-04-27_
-_Status: draft for review — not yet a committed brief._
+_Brief version: 1.0 · Author: Paul + Claude · Date: 2026-04-27_
+_Realised in PR #116; ADR is D068 (D067 was claimed by BU-whatsapp-share analytics, which merged just before this PR rebased)._
 
 ---
 

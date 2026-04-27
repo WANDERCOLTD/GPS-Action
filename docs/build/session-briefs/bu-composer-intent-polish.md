@@ -1,3 +1,9 @@
+---
+slug: bu-composer-intent-polish
+status: shipped
+shipped_in: "#85, #91, #93, #94"
+phase: 2
+---
 # Brief: BU-composer-intent-polish (demo polish)
 
 **Status:** in flight (this session)

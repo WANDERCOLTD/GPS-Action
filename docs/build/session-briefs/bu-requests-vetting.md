@@ -1,3 +1,9 @@
+---
+slug: bu-requests-vetting
+status: shipped
+shipped_in: "#81"
+phase: 2
+---
 # SESSION BRIEF · BU-requests-vetting — comment thread + audience + @mentions + Notification + flag/edit tiles
 
 _Brief version: 1.0 · Author: Paul (via Claude) · Date: 2026-04-26._

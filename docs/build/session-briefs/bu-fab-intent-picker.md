@@ -1,3 +1,9 @@
+---
+slug: bu-fab-intent-picker
+status: shipped
+shipped_in: "#78"
+phase: 2
+---
 # SESSION BRIEF · BU-fab-intent-picker — single FAB → tile picker → composer (D044)
 
 _Brief version: 1.0 · Author: Paul (via Claude) · Date: 2026-04-26._

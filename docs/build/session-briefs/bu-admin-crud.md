@@ -1,3 +1,9 @@
+---
+slug: bu-admin-crud
+status: shipped
+shipped_in: "#79"
+phase: 2
+---
 # SESSION BRIEF · BU-admin-crud — Generic CRUD UI for `/data/[entity]`
 
 _Brief version: 1.0 · Author: Paul + Claude · Date: 2026-04-26_

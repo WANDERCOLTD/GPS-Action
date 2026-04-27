@@ -1,3 +1,9 @@
+---
+slug: f03-husky-commitlint
+status: shipped
+shipped_in: "#5"
+phase: 0
+---
 # SESSION BRIEF · F03 — Husky pre-commit + commitlint
 
 *Brief version: 1.0 · Author: Paul · Date: April 2026*

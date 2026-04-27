@@ -1,3 +1,9 @@
+---
+slug: bu-am-link-collapse
+status: shipped
+shipped_in: "#89"
+phase: 2
+---
 # SESSION BRIEF · BU-am-link-collapse — fold AM into the generic link primitive
 
 _Brief version: 1.0 · Author: Paul + Claude · Date: 2026-04-26_
