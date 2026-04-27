@@ -22,6 +22,7 @@ import '@/styles/tokens.css';
 import '@/styles/components.css';
 import { LoggedInAs } from '@/components/auth/LoggedInAs';
 import { AppNav } from '@/components/AppNav';
+import { HeaderLogo } from '@/components/HeaderLogo';
 import { HeaderRefreshButton } from '@/components/HeaderRefreshButton';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { IntentFab } from '@/components/IntentFab';
@@ -109,6 +110,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   paddingRight: 'var(--space-4)',
                 }}
               >
+                <HeaderLogo />
                 <AppNav unreadNotificationCount={unreadNotificationCount} />
                 <HeaderRefreshButton />
               </div>
