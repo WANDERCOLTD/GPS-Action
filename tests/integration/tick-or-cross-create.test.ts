@@ -43,6 +43,7 @@ vi.mock('@/server/services/audit', () => ({
 
 import { createCaller } from '@/server/routers/_app';
 import { prisma } from '@/server/db/client';
+import type { TRPCContext } from '@/server/lib/trpc';
 
 const mockPostCreate = vi.mocked(prisma.post.create);
 const mockKindFindUnique = vi.mocked(prisma.postKind.findUnique);
@@ -50,10 +51,20 @@ const mockPostFindUnique = vi.mocked(prisma.post.findUnique);
 const mockPostUpdate = vi.mocked(prisma.post.update);
 const mockUserFindUnique = vi.mocked(prisma.user.findUnique);
 
-const callerCtx = {
-  user: { id: 'user-1', email: 'eddie@example.test' },
-  activeRoles: [] as string[],
-  activeScopes: [] as string[],
+const callerCtx: TRPCContext = {
+  user: {
+    id: 'user-1',
+    email: 'eddie@example.test',
+    displayName: 'Eddie Test',
+    phoneNumber: null,
+    verifiedAt: new Date(),
+    lastSeenAt: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deletedAt: null,
+  },
+  activeRoles: [],
+  activeScopes: [],
 };
 
 beforeEach(() => {
