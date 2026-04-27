@@ -754,6 +754,29 @@ When a Tier B/C/D item is adopted, it typically:
 
 ---
 
+### B16 · Worktree Prisma client contamination guard
+
+**Surfaced:** 2026-04-27 (Paul, after typecheck failures on `main` traced to a Claude Code worktree's `prisma generate` having silently overwritten the parent checkout's generated client).
+
+**Trigger:** Either (a) a second contamination incident (local typecheck fails with fields the on-disk `prisma/schema.prisma` doesn't have), or (b) a second contributor reports the same class of bug — whichever first.
+
+**The thing:** Claude Code worktrees at `.claude/worktrees/<name>/` are git worktrees that share the parent's `.git` but have their own working tree. If a worktree's `node_modules` is empty (no `npm install` after creation), running `npx prisma generate` inside it walks up Node's module resolution, finds `@prisma/client` in the parent checkout's `node_modules`, and writes the generated client there — using the worktree's in-flight schema. End state: the parent checkout's `node_modules/.prisma/client/index.d.ts` describes fields that the parent's `prisma/schema.prisma` doesn't have. Local typecheck fails on test fixtures cast against the generated client (`Awaited<ReturnType<typeof prisma.post.findMany>>`). CI is unaffected — fresh install regenerates correctly.
+
+**Witnessed once:** 2026-04-27 — the `bu-tick-or-cross` worktree added `signal: Signal?` and `sharedToNetworkAt: DateTime?` to `Post`, ran `prisma generate`, contaminated main's generated client. PR #128 review uncovered the trace; cleared with `npx prisma generate` from main.
+
+**Options to evaluate when this fires** (in order of cost / robustness):
+
+1. **`npm install` on worktree create.** Bake into whatever script bootstraps `.claude/worktrees/<name>/`. Cheap to add but every worktree pays the install cost (≈30s, ≈1GB disk per worktree).
+2. **Sentinel `package.json` in empty worktree `node_modules`.** Drop a stub that short-circuits upward Node resolution without a full install. Cheap but fragile; needs validation that it actually blocks resolution in all the toolchains we use (Prisma, tsx, vitest).
+3. **Pre-test / pre-typecheck guard.** `scripts/check-prisma-client.ts` diffs the generated client's model fields against `prisma/schema.prisma`'s DMMF and fails fast with "your generated client is stale; run `npx prisma generate`". Hooks into `package.json` `pretypecheck` and `pretest`. Most robust, surfaces the symptom directly; ≈1–2 hours to write.
+4. **Document the pattern.** Add a "Working in worktrees" note to `docs/process/session-hygiene.md` covering the contamination vector and the one-line fix. Zero infra change; relies on humans remembering. Pair with whichever guard (1–3) is adopted.
+
+**Cost when adopted:** ≈1–2 hours for option 3 (the most robust). Option 1 or 2 are minutes. Option 4 is documentation only.
+
+**Why deferred:** witnessed once, fix is a single command, failure is loud (typecheck fails locally — won't ship broken code). Adopt the moment a second incident shows the first wasn't a one-off, or the moment a contributor without context burns time chasing it. Until then, the roadmap entry is the institutional memory.
+
+---
+
 ### B15 · Responsive card aspect ratio for hero/link images
 
 **Surfaced:** 2026-04-27 (Paul, while signing off BU-post-hero-demo
