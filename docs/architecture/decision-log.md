@@ -4356,6 +4356,7 @@ deferred, not forgotten.
 - BU-share-out (future) — reconciles every divergence recorded above
 - Memory: `project_share_taxonomy` — WhatsApp + socials rail both
   fire the same event with different `destination` values
+
 # D068 — Brief lifecycle status as typed front-matter; generator + CI gate
 
 _Status: accepted (2026-04-27). Authored by Paul + Claude._
@@ -4384,13 +4385,13 @@ unflipped state from reaching main.
 
 ```yaml
 ---
-slug: <kebab-case>           # filename without .md
+slug: <kebab-case> # filename without .md
 status: planned | in_progress | shipped | abandoned
-shipped_in: "#NNN"           # optional unless status=shipped
-phase: 0 | 1 | 2 | 3 | 4     # optional grouping
+shipped_in: '#NNN' # optional unless status=shipped
+phase: 0 | 1 | 2 | 3 | 4 # optional grouping
 priority: high | medium | low # only meaningful when status=planned
-superseded_by: <slug>        # optional, status=abandoned
-note: "<free text>"          # optional, anything that doesn't fit
+superseded_by: <slug> # optional, status=abandoned
+note: '<free text>' # optional, anything that doesn't fit
 ---
 ```
 

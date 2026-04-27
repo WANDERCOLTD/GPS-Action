@@ -88,7 +88,8 @@ function shippedTable(briefs: Brief[]): string {
       return aPr - bPr;
     });
   const rows = shipped.map(
-    (b) => `| **${b.slug}** ${b.title ? `— ${b.title}` : ''} | ✅ Merged | ${b.shipped_in ?? '—'} |`,
+    (b) =>
+      `| **${b.slug}** ${b.title ? `— ${b.title}` : ''} | ✅ Merged | ${b.shipped_in ?? '—'} |`,
   );
   return ['| Brief | Status | PR |', '|---|---|---|', ...rows].join('\n');
 }
@@ -114,7 +115,9 @@ function plannedList(briefs: Brief[]): string {
 }
 
 function replaceRegion(source: string, marker: string, body: string): string {
-  const re = new RegExp(`(<!-- AUTOGEN:${marker}:start -->)[\\s\\S]*?(<!-- AUTOGEN:${marker}:end -->)`);
+  const re = new RegExp(
+    `(<!-- AUTOGEN:${marker}:start -->)[\\s\\S]*?(<!-- AUTOGEN:${marker}:end -->)`,
+  );
   if (!re.test(source)) {
     throw new Error(`AUTOGEN markers for "${marker}" not found in bu-sequence.md`);
   }

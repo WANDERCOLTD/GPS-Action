@@ -15,10 +15,10 @@ ships without flipping status to `shipped`.
 
 ```yaml
 ---
-slug: bu-<short-noun>           # filename without .md
-status: planned                 # planned | in_progress | shipped | abandoned
-phase: 2                        # 0 | 1 | 2 | 3 | 4 — matches bu-sequence.md
-priority: high                  # high | medium | low (only meaningful if planned)
+slug: bu-<short-noun> # filename without .md
+status: planned # planned | in_progress | shipped | abandoned
+phase: 2 # 0 | 1 | 2 | 3 | 4 — matches bu-sequence.md
+priority: high # high | medium | low (only meaningful if planned)
 # shipped_in: "#NNN"            # add when flipping to shipped, in the same PR
 # superseded_by: <slug>         # add when flipping to abandoned, if relevant
 # note: "<free text>"           # anything that doesn't fit the schema

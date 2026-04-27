@@ -83,7 +83,7 @@ Violations are errors, not warnings. Don't bypass.
 6. Update README.md in directories you touch
 7. Run `npm run typecheck && npm run lint && npm test` before declaring done
 8. **If shipping a named BU:** flip `status: shipped` and add `shipped_in:
-   "#<PR>"` to its front-matter in `docs/build/session-briefs/<slug>.md`.
+"#<PR>"` to its front-matter in `docs/build/session-briefs/<slug>.md`.
    Run `npm run trackers` to refresh the AUTOGEN regions in
    `bu-sequence.md`. CI blocks merge otherwise. (Per D068.)
 
