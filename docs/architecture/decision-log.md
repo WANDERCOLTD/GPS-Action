@@ -3864,3 +3864,175 @@ of it as a **demo enhancement** that becomes obsolete (its
   from image-handling phased plan" (the originating signal)
 - Parking-lot entry: "Call out a problem — content post intent"
   (downstream consumer; hero is part of its composer field shape)
+
+---
+
+# D065 — WhatsApp share affordance: demo slice diverging from share-out-mechanics
+
+**Date:** 2026-04-27
+**Tier:** UX / Product
+**Status:** Accepted
+**Build Unit:** BU-whatsapp-share
+
+## Context
+
+`docs/product/share-out-mechanics.md` defines BU-share-out as a
+post-publish modal: matched **Routes** (saved WhatsApp groups) listed
+as checkboxes, per-route per-tap dispatch, **DispatchEvent**
+persistence (`dispatch_initiated` → `dispatch_confirmed` → `abandoned`
+state machine), and a return-confirmation prompt ("Did you send to
+North London? [Yes] [Not yet] [Skip]") to close each route's loop.
+That spec also contemplates X (Twitter), Facebook, Instagram, and
+copy-link as parallel channels in the same menu.
+
+The demo audience needs the **WhatsApp-replacement loop** to be
+present and tappable, on the feed, today. Building the full BU-share-out
+requires:
+
+- A `Route` table (ERD Slice 3 territory)
+- `DispatchEvent` schema + state machine
+- The post-publish modal flow + return-confirmation prompt
+- Channel-specific UIs for X / FB / Instagram / copy-link
+- Analytics event `post_shared_out` is already catalogued, but the
+  catalogue's "Fired from" line points at a future
+  `app/components/ShareMenu.tsx`
+
+That is multiple sessions of work. The demo cannot wait, and the
+narrow path that delivers ~80% of the felt value is "every PostCard
+has a tappable WhatsApp icon that opens WhatsApp with a pre-filled
+message including the post URL."
+
+## Decision
+
+Build **BU-whatsapp-share** as a deliberately scoped slice of
+BU-share-out, narrowed along five axes:
+
+1. **Affordance lives on the PostCard, not in a post-publish modal.**
+   A new bottom-of-card action row carries comment-count on the left
+   and a `<WhatsAppShareButton>` on the right. The icon is the
+   official full-colour WhatsApp brand glyph. Tap opens WhatsApp via a
+   `https://wa.me/?text=<encoded>` universal link, pre-filled with
+   `<title>\n\n<body>\n\n<post URL>` (hard-capped at 1500 chars total,
+   URL always preserved as the final line).
+
+2. **No Routes table.** The member picks the recipient inside
+   WhatsApp's own contact picker. Saved Routes belong to BU-share-out
+   proper.
+
+3. **No DispatchEvent persistence.** Click fires the existing catalogued
+   `post_shared_out` event with `destination: 'whatsapp'` and that is
+   the only side-effect. No `dispatch_initiated` /
+   `dispatch_confirmed` / `abandoned` state machine. No server-side
+   record of which post was forwarded.
+
+4. **No return-confirmation prompt.** The click is a plain link
+   navigation to WhatsApp. We do not show "Did you send?" on return.
+   Acknowledged: this means we have no signal on whether the message
+   actually went out, and this matters for the full BU's analytics
+   funnel — the demo trades that signal for shipping speed.
+
+5. **WhatsApp only.** X, Facebook, Instagram, copy-link are not in
+   this BU. The `<WhatsAppShareButton>` and the
+   `/api/analytics/share-intent` endpoint are shaped so BU-share-out
+   can extend them rather than replace them.
+
+The `post_shared_out` event catalogue entry's "Fired from" line is
+amended to read:
+`components/WhatsAppShareButton.tsx (BU-whatsapp-share) →
+app/components/ShareMenu.tsx (BU-share-out, future)`.
+
+## Consequences
+
+### Wins
+
+- The "WhatsApp-replacement loop" is demo-able today: log in → see
+  feed → tap WhatsApp icon → message in WhatsApp pre-filled → pick
+  recipient → send.
+- One-tap affordance on every post matches Sharon's reflex ("I'll
+  send this to North London") more directly than a post-publish modal
+  she has to remember to engage with.
+- Zero schema cost. `BU-whatsapp-share` adds no Prisma models, no
+  migrations, no service-layer changes. The whole BU is a component
+  primitive + a URL helper + an analytics ping.
+- Forward-compatible. The `<WhatsAppShareButton>`, the
+  `whatsAppShareUrl()` helper, and the
+  `/api/analytics/share-intent` endpoint all become reusable inputs
+  to BU-share-out. The full menu wraps them rather than rebuilding.
+
+### Costs
+
+- We get no server-side signal on which posts are being forwarded to
+  WhatsApp. Analytics shows an intent event fired, but no
+  confirmation, no per-route breakdown, no abandon rate. Acceptable
+  for demo; not acceptable for pilot — BU-share-out resolves it.
+- "Did you send?" is the make-or-break UX moment that
+  share-out-mechanics.md flags as critical. We are deferring it. The
+  pilot must not ship without it, and a member who taps WhatsApp
+  share but bails out inside WhatsApp leaves no trace.
+- Layout-debt: the card now has a dedicated action row that BU-share-out
+  will likely repurpose into a "share menu trigger" (plus the existing
+  WhatsApp glyph). Plan for the action row to evolve, not for it to
+  disappear.
+- Icon visual weight: the official full-colour WhatsApp brand glyph is
+  brighter than the rest of the card chrome. Justified by recognisability
+  but worth re-checking in design review — if it dominates the feed, a
+  smaller size or a softer treatment (background tint instead of solid
+  green) is the first-line adjustment, not a recolour of the glyph
+  itself (brand guidelines).
+
+### Reconciliation path
+
+When BU-share-out builds:
+
+- The post-publish modal lifts the existing
+  `<WhatsAppShareButton>` as one channel among several.
+- A `Route` table lands; the modal lists matched routes.
+- `DispatchEvent` schema + state machine lands; the per-route Send
+  flow records `dispatch_initiated` → `dispatch_confirmed`.
+- The return-confirmation prompt is added; analytics gain the funnel
+  data that this BU intentionally omits.
+- The card-level WhatsApp icon stays — it's the fast path. BU-share-out
+  decides whether the icon opens the modal (one-tap → channel picker)
+  or continues to be the direct WhatsApp shortcut alongside a "more
+  channels" affordance.
+
+This ADR is the contract that those decisions are deliberately
+deferred, not forgotten.
+
+## Alternatives considered
+
+- **Build the full BU-share-out as the first share BU.** Rejected for
+  demo timeline. Multi-session, schema-touching, and several open
+  decisions (Route shape, DispatchEvent fields, channel UI per
+  platform) that should not be rushed.
+- **No card affordance; share lives only on the post detail page.**
+  Rejected — Sharon's reflex is on the feed, not on the detail page.
+  Forcing a navigation defeats the one-tap principle.
+- **Monochrome WhatsApp glyph for calmer feed.** Considered, rejected
+  per Paul's call. Recognisability matters more than visual restraint
+  for the demo's "look at this concrete affordance" moment.
+- **Pre-publish share menu only (modal at compose time, no card
+  affordance).** Rejected — that flow is part of BU-share-out's full
+  scope; the demo needs the share to work on **already-published**
+  posts on the feed, not just on fresh-from-the-composer posts.
+- **Skip the analytics event for the demo.** Rejected — the catalogue
+  already specifies `post_shared_out`; firing it costs nothing and
+  preserves BU-share-out's analytics contract.
+
+## Related
+
+- `docs/product/share-out-mechanics.md` — the full spec this slice
+  intentionally narrows
+- `docs/build/session-briefs/bu-whatsapp-share.md` — the brief
+  implementing this decision
+- `docs/product/analytics-events.md` — `post_shared_out` event row
+  consumed by this BU
+- D013 — self-dispatch default
+- D061 — global tap interaction pattern (the WA button respects
+  it via `stopPropagation()` on click)
+- BU-share-out (future) — reconciles every divergence recorded above
+- BU-reactions (brief exists) — reaction pill stays above the new
+  action row; this BU's layout resolves the pill-placement open
+  question in that brief
+- Memory: `project_ios_standalone_constraint` — `wa.me` universal
+  link works in iOS standalone mode without a native share-sheet API
