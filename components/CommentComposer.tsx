@@ -26,8 +26,12 @@ interface CommentComposerProps {
   onSubmit: (postId: string, body: string) => Promise<{ id: string }>;
   /** Called with a temporary optimistic comment so the parent list can render it. */
   onOptimisticInsert: (optimistic: CommentForView) => void;
-  /** Called when the server returns; lets the parent commit (replace optimistic with real). */
-  onCommit: (optimisticId: string, realId: string) => void;
+  /**
+   * Called when the server returns. We pass back the same optimistic
+   * placeholder we inserted, so the parent doesn't need to look it up
+   * by id across re-renders (closure / StrictMode hazards).
+   */
+  onCommit: (optimistic: CommentForView, realId: string) => void;
   /** Called when the server fails; lets the parent roll back. */
   onRollback: (optimisticId: string) => void;
 }
@@ -74,7 +78,7 @@ export const CommentComposer: FC<CommentComposerProps> = ({
     startTransition(async () => {
       try {
         const result = await onSubmit(postId, trimmed);
-        onCommit(optimisticId, result.id);
+        onCommit(optimisticComment, result.id);
       } catch (err: unknown) {
         onRollback(optimisticId);
         setError(err instanceof Error ? err.message : 'Could not post comment.');
