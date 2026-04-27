@@ -4189,3 +4189,170 @@ composed from the action's `url` and `kind`.
   D066 unblocks)
 - `components/SecondaryCtaRail.tsx` (the placeholder UI shipped
   ahead of this ADR's schema migration)
+
+---
+
+# D067 — WhatsApp share analytics: stub ping completes the catalogued event
+
+**Date:** 2026-04-27
+**Tier:** Analytics / Product
+**Status:** Accepted
+**Build Unit:** BU-whatsapp-share
+
+## Context
+
+PR #111 (BU-share-rail-on-detail) shipped the WhatsApp share
+affordance: a green button on every PostCard right rail and a labelled
+pill on the post detail page, both opening `wa.me/?text=...` with the
+post title + body + post URL pre-filled. The "WhatsApp-replacement
+loop" — Sharon's reflex of "I'll send this to North London" — is now
+one tap away.
+
+What did not ship in #111: the analytics ping. The catalogued event
+`post_shared_out` (in `docs/product/analytics-events.md`) lists
+`destination: 'whatsapp'` as a valid value but its "Fired from" line
+still points at a hypothetical future `app/components/ShareMenu.tsx`.
+In production today, every WhatsApp tap is invisible to us.
+
+The full BU-share-out spec (`docs/product/share-out-mechanics.md`)
+describes a richer system: a `Route` table for saved WhatsApp groups,
+a `DispatchEvent` schema with a `dispatch_initiated → dispatch_confirmed
+→ abandoned` state machine, and a return-confirmation prompt ("Did
+you send to North London? [Yes] [Not yet] [Skip]"). Building all of
+that requires multiple sessions and ERD-Slice-3 territory.
+
+The demo audience needs visibility into share usage now, not after
+BU-share-out ships.
+
+## Decision
+
+Wire `<WhatsAppShareButton>` to fire the existing catalogued
+`post_shared_out` event on click via a stub server endpoint. Five
+deliberate omissions vs the full BU-share-out spec:
+
+1. **Stub server sink.** `POST /api/analytics/share-intent` accepts
+   `{ postId, destination }` and logs a tagged line to stdout with the
+   post id one-way hashed (matches the catalogue's `post_id_hash`
+   property name). When BU-share-out lands a real analytics sink, this
+   endpoint becomes a thin pass-through and the contract is unchanged.
+
+2. **No DispatchEvent persistence.** No `Route` table, no
+   `DispatchEvent` table, no `dispatch_initiated → dispatch_confirmed
+→ abandoned` state machine. The event is fire-and-forget; the
+   server has no record of which post was forwarded.
+
+3. **No return-confirmation prompt.** The click is a plain link
+   navigation to WhatsApp. We do not show "Did you send?" on return.
+   Acknowledged: this means the server cannot distinguish "tapped and
+   sent" from "tapped, looked at WhatsApp, backed out." Acceptable
+   for demo; not acceptable for pilot — BU-share-out resolves it.
+
+4. **`post_type` property not populated.** The catalogued event lists
+   `post_type` as a property; the demo slice does not look up the post
+   to populate it (would cost a DB query per share). BU-share-out's
+   richer endpoint resolves this.
+
+5. **WhatsApp only.** The X / Instagram / Facebook buttons in the
+   shipped `<SecondaryCtaRail>` are not wired to the endpoint by this
+   ADR. The contract supports them — `destination` accepts the full
+   catalogued enum — but a follow-up slice (or BU-share-out itself)
+   wires them in.
+
+The transport mechanism is `navigator.sendBeacon` (which survives the
+navigation away to WhatsApp), with a `fetch keepalive: true` fallback
+for restricted contexts where sendBeacon refuses or is unavailable.
+Fire-and-forget — the share UX never blocks on a ping failure.
+
+The catalogue's "Fired from" line is updated to read:
+`components/WhatsAppShareButton.tsx (BU-whatsapp-share, demo slice —
+fires intent on click; post_type not yet populated, see D067) →
+app/components/ShareMenu.tsx (BU-share-out, future — fires on
+confirmed handoff with full property set)`.
+
+## Consequences
+
+### Wins
+
+- Every WhatsApp tap on the demo now produces a server-side analytics
+  line. The "is anyone using this?" question has a real answer.
+- Zero schema cost. No Prisma model, no migration, no service-layer
+  changes. The whole slice is one component edit + one endpoint +
+  three docs.
+- Forward-compatible. The `<WhatsAppShareButton>` tap handler, the
+  `pingShareIntent()` helper inside it, and the
+  `/api/analytics/share-intent` endpoint all become reusable inputs
+  to BU-share-out.
+- The catalogue's contract is honoured. `post_shared_out` is no
+  longer an aspirational entry pointing at a non-existent component.
+
+### Costs
+
+- Tap-event analytics is not the same as confirmed-share analytics.
+  We see intents, not deliveries. The "Did you send?" prompt is the
+  conversion-funnel signal we are deferring; pilot needs it.
+- The endpoint logs to stdout. Production deploys must capture
+  stdout into something queryable (already true for any Next.js
+  server log; no new infra). When BU-share-out wires a real sink,
+  this endpoint becomes a pass-through.
+- `post_type` stays unpopulated until BU-share-out. Analytics queries
+  cannot break down WhatsApp shares by post kind from this slice
+  alone.
+- The tap handler now has a side-effect (the ping). Any future
+  refactor of `<WhatsAppShareButton>` must preserve it; the component
+  test (`tests/unit/whatsapp-share-button-analytics.test.tsx`) catches
+  regressions.
+
+### Reconciliation path
+
+When BU-share-out builds:
+
+- The `pingShareIntent()` helper inside `<WhatsAppShareButton>` is
+  lifted into a shared client helper that the X / IG / FB buttons in
+  `<SecondaryCtaRail>` also use.
+- The `/api/analytics/share-intent` endpoint gains a `post_type`
+  lookup (one query per share intent — acceptable when the volume
+  justifies it).
+- The endpoint stops logging to stdout and writes to the real
+  analytics sink.
+- The "Did you send?" return-confirmation prompt lands. The endpoint
+  gains a separate `share_confirmed` analytics event (or extends
+  `post_shared_out` to carry a `confirmed: bool` property).
+- `Route` table + `DispatchEvent` state machine ship in the same
+  BU-share-out PR or a sibling.
+
+This ADR is the contract that those decisions are deliberately
+deferred, not forgotten.
+
+## Alternatives considered
+
+- **Skip the analytics ping for the demo.** Rejected — the catalogue
+  already specifies `post_shared_out` and the cost of firing it is
+  trivial. Skipping leaves the "Fired from" line dangling and gives
+  us no signal at all.
+- **Fire the event from a tRPC mutation instead of a REST endpoint.**
+  Rejected — the catalogue's "Fired from" pattern uses client-side
+  fire-and-forget for share events; a tRPC mutation would block the
+  navigation away to WhatsApp. sendBeacon is the right primitive.
+- **Look up the post in the endpoint to populate `post_type`.**
+  Rejected for this slice — costs a DB query per share intent and
+  the demo doesn't need the breakdown yet. BU-share-out picks it up.
+- **Wire X / IG / FB at the same time.** Rejected for scope. Same
+  shape, different commit. Keeps this PR small and reviewable.
+
+## Related
+
+- PR #111 (BU-share-rail-on-detail) — the affordance this ADR
+  instruments
+- `docs/build/session-briefs/bu-whatsapp-share.md` — the brief
+  implementing this decision (also fixes #111's dangling `@spec`
+  reference)
+- `docs/product/share-out-mechanics.md` — the full spec this slice
+  intentionally narrows
+- `docs/product/analytics-events.md` — `post_shared_out` event row
+  consumed by this BU
+- D013 — self-dispatch default
+- D061 — global tap interaction pattern (the click handler respects
+  it via `stopPropagation()`)
+- BU-share-out (future) — reconciles every divergence recorded above
+- Memory: `project_share_taxonomy` — WhatsApp + socials rail both
+  fire the same event with different `destination` values
