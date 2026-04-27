@@ -58,6 +58,16 @@ function diffContainsFlip(slug: string, base: string, head: string): boolean {
   return addedShipped;
 }
 
+function alreadyShippedOnBase(slug: string, base: string): boolean {
+  const path = `${BRIEFS_DIR}/${slug}.md`;
+  try {
+    const content = execSync(`git show ${base}:${path}`, { encoding: 'utf8' });
+    return /^status:\s*shipped\b/m.test(content);
+  } catch {
+    return false;
+  }
+}
+
 function main(): void {
   const title = process.env.PR_TITLE ?? '';
   const body = process.env.PR_BODY ?? '';
@@ -80,6 +90,10 @@ function main(): void {
 
   const failures: string[] = [];
   for (const slug of refs) {
+    if (alreadyShippedOnBase(slug, base)) {
+      console.log(`  ${slug}: already shipped on base — no flip required.`);
+      continue;
+    }
     if (!diffContainsFlip(slug, base, head)) {
       failures.push(slug);
     }
