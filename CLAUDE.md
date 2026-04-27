@@ -126,22 +126,24 @@ BU reference in any doc, consult D051 to translate it.
 
 ## Current focus
 
-**Demo milestone reached.** Demo path is fully shipped: ERD Slices 1,
-1.5, 2 (minimal), BU-001-lite (dev auth), BU-feed, BU-composer, BU-am-link.
-Eddie can log in → see feed → write a post with AM URL → see it appear →
-click through to AM. See `docs/build/bu-sequence.md`.
+**Phase 2 underway.** Phase 1 demo path shipped; Phase 2 has shipped
+steadily through April 2026 — Reactions, Comments, Reactions-on-
+comments, Link share, Requests foundation + Urgent, FAB intent picker,
+Admin CRUD + audit + bulk-ops, Vetting Phase 1, AM-link collapse,
+Hero images, Versioning. F14 testid rule is now enforced. See
+`docs/build/bu-sequence.md` for the canonical ship list.
 
-**Outstanding before next BU:**
+**In flight:** BU-sticky-nav (`feat/bu-sticky-nav`).
 
-- F14 (require `data-testid` lint rule) — brief written, rule not yet
-  enforced. Only partial item from Phase 0 / foundations.
+**Next BU candidates (unshipped briefs):**
 
-**Next BU undecided.** Highest demo-leverage candidates:
+- BU-whatsapp-share — one-tap WhatsApp forward from PostCard. Tagged
+  CRITICAL (1-click sharing) elsewhere in this file. Brief at
+  `docs/build/session-briefs/bu-whatsapp-share.md`.
 
-- Reactions (unblocks Scenarios 1, 3 in `docs/product/scenarios.md`)
-- FAB composer + urgent-action templates (D044, unblocks Scenarios 7–9)
-
-User decision needed before starting.
+User decision needed before starting any new BU. The wider Phase 2/3
+queue lives in `bu-sequence.md`; parking-lot has product candidates
+not yet briefed.
 
 ## Dev auth (BU-001-lite)
 
