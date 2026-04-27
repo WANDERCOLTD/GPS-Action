@@ -57,6 +57,23 @@ function hostFromUrl(url: string): string {
   }
 }
 
+/**
+ * Returns the path + query + hash portion of a URL, or null if the URL
+ * has no meaningful path component (e.g. `https://example.com/`). Used
+ * by the large-variant fallback so the title row shows DIFFERENT info
+ * from the site row (which already shows the host).
+ */
+function pathFromUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const tail = `${u.pathname}${u.search}${u.hash}`;
+    if (tail === '' || tail === '/') return null;
+    return tail;
+  } catch {
+    return null;
+  }
+}
+
 export function LinkPreviewCard({
   linkUrl,
   linkTitle,
@@ -67,9 +84,56 @@ export function LinkPreviewCard({
   isAmAction,
 }: LinkPreviewCardProps): ReactElement {
   const host = hostFromUrl(linkUrl);
-  const displayTitle = linkTitle?.trim() || host;
-  const displaySite = linkSiteName?.trim() || host;
   const isLarge = size === 'large';
+
+  // Host-duplication dedup (BU-link-preview-dedup):
+  //
+  // When a post has a linkUrl but neither linkTitle nor linkSiteName, the
+  // naive fallback (`host` for both rows) prints the host twice. The two
+  // size variants resolve this differently:
+  //
+  // small: drop the site row entirely — show only the host as the title.
+  // large: keep the site row (it's the primary identification) and use
+  //        the URL pathname as the title so each row shows DIFFERENT
+  //        info. If pathname is "/" or empty, fall back to the full URL
+  //        string for the title row.
+  //
+  // When linkTitle IS set, behaviour is unchanged.
+  const trimmedTitle = linkTitle?.trim();
+  const trimmedSite = linkSiteName?.trim();
+  const titleMissing = !trimmedTitle;
+  const siteMissing = !trimmedSite;
+
+  let displayTitle: string;
+  let showSiteRow: boolean;
+  let displaySite: string;
+
+  if (!titleMissing) {
+    // Title set: render both rows as today.
+    displayTitle = trimmedTitle;
+    showSiteRow = true;
+    displaySite = trimmedSite || host;
+  } else if (siteMissing) {
+    // Both title AND site name missing — dedup.
+    if (isLarge) {
+      // Large: site row keeps host, title row shows pathname (or full
+      // URL if pathname is "/" or empty).
+      showSiteRow = true;
+      displaySite = host;
+      displayTitle = pathFromUrl(linkUrl) ?? linkUrl;
+    } else {
+      // Small: drop the site row, host becomes the title.
+      showSiteRow = false;
+      displaySite = host;
+      displayTitle = host;
+    }
+  } else {
+    // Title missing, site name present — host fills the title row, site
+    // name fills the site row. No duplication, no change in behaviour.
+    showSiteRow = true;
+    displaySite = trimmedSite;
+    displayTitle = host;
+  }
   // Auto-detect AM domain when caller didn't explicitly override.
   const amAction = isAmAction ?? isActivistMailerDomain(linkUrl);
   const ctaLabel = amAction ? 'Send email →' : 'Open link →';
@@ -178,10 +242,12 @@ export function LinkPreviewCard({
     >
       <div style={imageStyle} aria-hidden="true" />
       <div style={bodyStyle}>
-        <div style={siteRowStyle}>
-          <span>{displaySite}</span>
-          <ExternalLink size={11} aria-hidden="true" />
-        </div>
+        {showSiteRow && (
+          <div style={siteRowStyle}>
+            <span>{displaySite}</span>
+            <ExternalLink size={11} aria-hidden="true" />
+          </div>
+        )}
         <h3 style={titleStyle}>{displayTitle}</h3>
         {linkDescription && <p style={descriptionStyle}>{linkDescription}</p>}
         <span

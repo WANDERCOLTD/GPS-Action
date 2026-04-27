@@ -179,4 +179,117 @@ describe('LinkPreviewCard', () => {
     const cta = findByTestId(el, 'link-preview-card-cta');
     expect(JSON.stringify(cta)).toContain('Open link');
   });
+
+  // ── Host-duplication dedup (BU-link-preview-dedup) ───────────────────
+  //
+  // When linkTitle AND linkSiteName are both null, the naive fallback
+  // would print the URL host twice (once as the small-caps site row,
+  // once as the large-text title). Small-variant cards drop the site
+  // row; large-variant cards keep the site row and put the path in the
+  // title slot.
+
+  describe('host-duplication dedup', () => {
+    it('small + null title + null site → drops site row, host shown only once', () => {
+      const el = render({
+        linkUrl: 'https://example-host.test/news/uk-12345',
+        linkTitle: null,
+        linkSiteName: null,
+        size: 'small',
+      });
+      const descendants = flatChildren(el).slice(1);
+
+      // Site row is rendered as a <span> wrapping the host string. When
+      // the row is dropped, no <span> in the tree should carry the host
+      // as a direct text child.
+      const siteRowSpans = descendants.filter(
+        (e) =>
+          e.type === 'span' &&
+          typeof e.props.children === 'string' &&
+          e.props.children === 'example-host.test',
+      );
+      expect(siteRowSpans).toHaveLength(0);
+
+      // Title row (<h3>) shows the host exactly once.
+      const titleNodes = descendants.filter(
+        (e) =>
+          e.type === 'h3' &&
+          typeof e.props.children === 'string' &&
+          e.props.children === 'example-host.test',
+      );
+      expect(titleNodes).toHaveLength(1);
+
+      // Host as a display value appears exactly once across all
+      // displayed text nodes (so no double-print).
+      const displayedHostCount = descendants.filter(
+        (e) => typeof e.props.children === 'string' && e.props.children === 'example-host.test',
+      ).length;
+      expect(displayedHostCount).toBe(1);
+    });
+
+    it('small + null title + populated site → both rows present, no dedup change', () => {
+      const el = render({
+        linkUrl: 'https://bbc.co.uk/news/uk-12345',
+        linkTitle: null,
+        linkSiteName: 'BBC News',
+        size: 'small',
+      });
+      const text = JSON.stringify(el);
+      // Site row shows the explicit site name; title row shows the host.
+      expect(text).toContain('BBC News');
+      expect(text).toContain('bbc.co.uk');
+    });
+
+    it('small + populated title → site row + title both render', () => {
+      const el = render({
+        linkUrl: 'https://bbc.co.uk/news/uk-12345',
+        linkTitle: 'UK headline of the day',
+        linkSiteName: null,
+        size: 'small',
+      });
+      const text = JSON.stringify(el);
+      expect(text).toContain('UK headline of the day');
+      // Site row falls back to host (legacy behaviour preserved).
+      expect(text).toContain('bbc.co.uk');
+    });
+
+    it('large + null title + null site → site row shows host, title shows pathname', () => {
+      const el = render({
+        linkUrl: 'https://bbc.co.uk/news/uk-12345',
+        linkTitle: null,
+        linkSiteName: null,
+        size: 'large',
+      });
+      const text = JSON.stringify(el);
+      // Site row keeps the host…
+      expect(text).toContain('bbc.co.uk');
+      // …and the title is the URL path (so the two rows show DIFFERENT
+      // info, no duplication).
+      expect(text).toContain('/news/uk-12345');
+    });
+
+    it('large + null title + null site + bare-domain URL → title falls back to full URL', () => {
+      const el = render({
+        linkUrl: 'https://bbc.co.uk/',
+        linkTitle: null,
+        linkSiteName: null,
+        size: 'large',
+      });
+      const text = JSON.stringify(el);
+      // Title slot shows the full URL when there's no meaningful path.
+      expect(text).toContain('https://bbc.co.uk/');
+    });
+
+    it('large + null title + populated site → site row shows site name, title shows host', () => {
+      const el = render({
+        linkUrl: 'https://bbc.co.uk/news/uk-12345',
+        linkTitle: null,
+        linkSiteName: 'BBC News',
+        size: 'large',
+      });
+      const text = JSON.stringify(el);
+      expect(text).toContain('BBC News');
+      // Title row gets the host (today's behaviour, unchanged).
+      expect(text).toContain('bbc.co.uk');
+    });
+  });
 });
