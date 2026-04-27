@@ -1,0 +1,199 @@
+'use client';
+
+/**
+ * @build-unit BU-requests-foundation
+ * @spec architecture/decision-log.md (D052, D054)
+ *
+ * Single Request row for the workspace list. Tap-card-to-detail
+ * navigates to /requests/[id], matching the PostCard pattern (D052):
+ * the row's onClick checks `event.target.closest('a, button, …')` and
+ * bails if the click landed on an interactive child (Claim, Resolve
+ * form, etc.) so those keep their own action.
+ */
+
+import type { MouseEvent as ReactMouseEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import { formatDistanceToNow } from 'date-fns';
+import { ClaimButton, ResolveForm } from '@/components/RequestActionButtons';
+import type { RequestListItem } from '@/server/services/request';
+import type { RequestType } from '@prisma/client';
+
+const TYPE_LABELS: Record<RequestType, string> = {
+  vetting: 'Vetting application',
+  flag: 'Flagged content',
+  outcome_review: 'Outcome review',
+  dedup_merge: 'Duplicate merge',
+  edit_request: 'Edit request',
+  incident: 'Incident',
+  content_submission: 'Content submission',
+  link_submission: 'Link submission',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  unclaimed: 'new',
+  claimed: 'in discussion',
+  in_review: 'in discussion',
+  resolved: 'done',
+  abandoned: 'abandoned',
+};
+
+function statusColour(status: string): string {
+  switch (status) {
+    case 'unclaimed':
+      return 'var(--colour-info-subtle)';
+    case 'claimed':
+    case 'in_review':
+      return 'var(--colour-warning-subtle)';
+    case 'resolved':
+      return 'var(--colour-success-subtle)';
+    default:
+      return 'var(--colour-surface-sunken)';
+  }
+}
+
+export interface RequestRowProps {
+  row: RequestListItem;
+  /** Whether the caller can act on this row (claim if unclaimed, resolve if claimed by caller). */
+  canAct: boolean;
+  callerId: string;
+}
+
+const INTERACTIVE_SELECTOR = 'a, button, input, label, form, textarea';
+
+export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
+  const router = useRouter();
+
+  const ctxText =
+    typeof row.context === 'object' &&
+    row.context !== null &&
+    !Array.isArray(row.context) &&
+    'summary' in row.context
+      ? String((row.context as { summary?: unknown }).summary ?? '')
+      : '';
+
+  const isClaimedByCaller = row.claimedByUserId === callerId;
+  const showClaim = canAct && row.status === 'unclaimed';
+  const showResolve =
+    canAct && (row.status === 'claimed' || row.status === 'in_review') && isClaimedByCaller;
+
+  const href = `/requests/${row.id}`;
+
+  function navigate() {
+    router.push(href);
+  }
+
+  function handleClick(event: ReactMouseEvent<HTMLLIElement>) {
+    const target = event.target as HTMLElement;
+    if (target.closest(INTERACTIVE_SELECTOR)) return;
+    navigate();
+  }
+
+  function handleKeyDown(event: ReactKeyboardEvent<HTMLLIElement>) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    if ((event.target as HTMLElement).closest(INTERACTIVE_SELECTOR)) return;
+    event.preventDefault();
+    navigate();
+  }
+
+  const ariaLabel = `Open request: ${TYPE_LABELS[row.type]}${ctxText ? ` — ${ctxText}` : ''}`;
+
+  return (
+    <li
+      data-testid="requests-row-card"
+      data-request-id={row.id}
+      data-urgent={row.urgency || undefined}
+      role="link"
+      tabIndex={0}
+      aria-label={ariaLabel}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      style={{
+        listStyle: 'none',
+        padding: 'var(--space-3) var(--space-4)',
+        borderBottom: '1px solid var(--colour-border-subtle)',
+        borderLeft: row.urgency ? '4px solid var(--colour-urgent)' : '4px solid transparent',
+        background: row.urgency ? 'var(--colour-urgent-subtle)' : undefined,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-1)',
+        cursor: 'pointer',
+      }}
+    >
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}
+      >
+        {row.urgency && (
+          <span
+            data-testid="requests-row-urgent-badge"
+            style={{
+              fontSize: 'var(--text-2xs)',
+              background: 'var(--colour-urgent)',
+              color: 'var(--colour-urgent-contrast)',
+              padding: '2px var(--space-2)',
+              borderRadius: 'var(--radius-pill)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              fontWeight: 700,
+            }}
+          >
+            {row.kindDisplayName ?? 'Urgent'}
+          </span>
+        )}
+        <strong style={{ fontSize: 'var(--text-sm)' }}>{TYPE_LABELS[row.type]}</strong>
+        <span
+          style={{
+            fontSize: 'var(--text-2xs)',
+            background: statusColour(row.status),
+            padding: '2px var(--space-2)',
+            borderRadius: 'var(--radius-pill)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+          }}
+        >
+          {STATUS_LABELS[row.status] ?? row.status}
+        </span>
+        <span
+          style={{
+            marginLeft: 'auto',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--colour-text-secondary)',
+          }}
+        >
+          {formatDistanceToNow(row.createdAt, { addSuffix: true })}
+        </span>
+      </div>
+      {ctxText && (
+        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--colour-text-secondary)' }}>
+          {ctxText}
+        </div>
+      )}
+      {row.claimedBy && (
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--colour-text-secondary)' }}>
+          Picked up by <strong>{row.claimedBy.displayName}</strong>
+        </div>
+      )}
+      {row.createdBy && (
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--colour-text-secondary)' }}>
+          Submitted by <strong>{row.createdBy.displayName}</strong>
+        </div>
+      )}
+      {row.resolutionNotes && (
+        <div
+          style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--colour-text-secondary)',
+            fontStyle: 'italic',
+          }}
+        >
+          Resolved with note: {row.resolutionNotes}
+        </div>
+      )}
+      {showClaim && (
+        <div style={{ marginTop: 'var(--space-2)' }}>
+          <ClaimButton requestId={row.id} />
+        </div>
+      )}
+      {showResolve && <ResolveForm requestId={row.id} />}
+    </li>
+  );
+}
