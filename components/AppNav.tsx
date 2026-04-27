@@ -1,28 +1,43 @@
+'use client';
+
 /**
- * @build-unit BU-requests-foundation
- * @spec architecture/decision-log.md (D054, D061)
+ * @build-unit BU-requests-foundation BU-sticky-nav
+ * @spec architecture/decision-log.md (D054, D061, D065)
  * @spec architecture/admin-surface.md
  *
- * Top-level horizontal navigation strip. Only renders for authenticated
- * users; anonymous viewers see the LoggedInAs strip instead. Visible
- * links surface the demo-able app surfaces:
+ * Top-level horizontal navigation strip. Rendered once by the root
+ * layout inside the sticky `<header>`. Active link is derived from
+ * `usePathname()` rather than a per-page `active` prop (D065).
  *
- *   Feed | Compose | Requests | Data | Settings
+ *   Feed | Requests | Data | Settings
  *
  * Per D061 every link is an explicit interactive element with a
- * canonical testid (F14 'nav' area).
+ * canonical testid (F14 'nav' area). All testids preserved verbatim
+ * across the BU-sticky-nav consolidation.
  */
 
-import Link from 'next/link';
+import * as React from 'react';
 import type { CSSProperties } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface AppNavProps {
-  /** Active route key for highlighting; null = none active. */
-  active?: 'feed' | 'compose' | 'requests' | 'data' | 'settings' | null;
   /** True when the caller has any reviewer scope (queue_manager role/scope). */
   hasReviewerAccess?: boolean;
   /** Unread Notification count (BU-requests-vetting / D057). Renders a red dot when > 0. */
   unreadNotificationCount?: number;
+}
+
+type ActiveKey = 'feed' | 'compose' | 'requests' | 'data' | 'settings' | null;
+
+function deriveActive(pathname: string | null): ActiveKey {
+  if (!pathname) return null;
+  if (pathname === '/feed' || pathname.startsWith('/feed/')) return 'feed';
+  if (pathname === '/compose' || pathname.startsWith('/compose/')) return 'compose';
+  if (pathname === '/requests' || pathname.startsWith('/requests/')) return 'requests';
+  if (pathname === '/data' || pathname.startsWith('/data/')) return 'data';
+  if (pathname === '/settings' || pathname.startsWith('/settings/')) return 'settings';
+  return null;
 }
 
 const linkStyle: CSSProperties = {
@@ -40,11 +55,9 @@ const activeStyle: CSSProperties = {
   fontWeight: 600,
 };
 
-export function AppNav({
-  active = null,
-  hasReviewerAccess = false,
-  unreadNotificationCount = 0,
-}: AppNavProps) {
+export function AppNav({ hasReviewerAccess = false, unreadNotificationCount = 0 }: AppNavProps) {
+  const active = deriveActive(usePathname());
+
   return (
     <nav
       data-testid="nav-app-strip"
@@ -52,9 +65,9 @@ export function AppNav({
         display: 'flex',
         gap: 'var(--space-2)',
         padding: 'var(--space-2) var(--space-4)',
-        borderBottom: '1px solid var(--colour-border-subtle)',
-        background: 'var(--colour-surface-raised)',
         flexWrap: 'wrap',
+        alignItems: 'center',
+        flex: 1,
       }}
     >
       <Link
