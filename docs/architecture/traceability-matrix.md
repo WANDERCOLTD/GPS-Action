@@ -60,6 +60,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-secondary-cta-placeholders | 1 | — | DNaN |
 | BU-seed | 1 | — | D038 |
 | BU-share-rail-on-detail | 4 | — | — |
+| BU-versioning | 3 | — | D003 |
 
 ## ADRs (referenced by code)
 

@@ -57,13 +57,19 @@ export const CommentList: FC<CommentListProps> = ({
     setOptimistic((prev) => [...prev, comment]);
   }
 
-  function handleCommit(optimisticId: string, realId: string): void {
-    setOptimistic((prev) => prev.filter((c) => c.id !== optimisticId));
-    setCommitted((prev) => {
-      const placeholder = optimistic.find((c) => c.id === optimisticId);
-      if (!placeholder) return prev;
-      return [...prev, { ...placeholder, id: realId }];
-    });
+  function handleCommit(optimistic: CommentForView, realId: string): void {
+    // The composer hands the placeholder back to us so neither setter
+    // has to reach across renders. Avoids two traps that previous
+    // versions hit:
+    //   1) closure: handleCommit runs after an `await`, so any reference
+    //      to the `optimistic` state variable was stale.
+    //   2) StrictMode: calling setCommitted from inside the setOptimistic
+    //      updater is a side effect, and StrictMode double-invokes
+    //      updaters in dev — committing the row twice and producing
+    //      duplicate React keys.
+    // Both setters are now plain updaters with no cross-talk.
+    setOptimistic((prev) => prev.filter((c) => c.id !== optimistic.id));
+    setCommitted((prev) => [...prev, { ...optimistic, id: realId }]);
   }
 
   function handleRollback(optimisticId: string): void {

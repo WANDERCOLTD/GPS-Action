@@ -1098,6 +1098,14 @@ real third-action need surfaces.
 **Owner:** Paul, surfaced during BU-link-share design session
 (2026-04-26).
 
+**Real-world evidence (April 2026):** WhatsApp pattern review surfaced
+an "ASDA called out" post in the wild structured as exactly this
+shape — three numbered actions ("Watch & Share / Boycott / Speak
+Up"), each with a different verb-kind. This is the second-CTA-
+threshold-met trigger landing in real activist comms even before
+GPS Action ships. Promote-to-build when a comparable post lands on
+GPS Action and the two-slot pattern visibly fails it.
+
 ---
 
 ## Username system for collision-safe @mentions
@@ -1162,31 +1170,48 @@ on the Post detail comment list. Light.
 
 ## Contextual flag / edit-request composer launchers
 
-**Status:** PARKED — surfaced during BU-requests-vetting design.
+**Status:** PARKED — superseded in part by the disambiguation work
+of 2026-04-26 (see "Tile 9 disambiguation" note below). Tile 10 only
+remains in scope for this entry.
 
-**The shape:** disable the global FAB picker tiles 9 (Flag a problem
-post) and 10 (Suggest an edit). Instead, surface them via a "..."
-menu on each post-detail page, where the target `postId` is
-implicit and pre-filled.
+**Disambiguation (2026-04-26):** This entry originally covered both
+tile 9 ("Flag a problem post") and tile 10 ("Suggest an edit"). On
+review, those were two different things mashed together:
 
-**Today's MVP** (per BU-requests-vetting): tiles 9/10 are reachable
-from the FAB picker globally. The composer asks for the target post
-URL or ID as free-text input. Members may guess wrong or paste the
+- **Tile 9 was never moderation flagging.** It's a _content post
+  intent_ — "I saw this horrible thing in the world and want action."
+  Renamed to **"Call out a problem"** and moved to its own parking-lot
+  entry below ("Call out a problem — content post intent").
+- **Moderation flagging** of an existing GPS Action post or comment
+  is a separate primitive — a small typed affordance on every post
+  and every comment, distinct from reactions. Moved to its own entry
+  below ("Member flagging primitive — internal moderation flag").
+- **Tile 10 ("Suggest an edit")** stays in scope for this entry. The
+  contextual-launcher idea (move out of the global FAB picker into
+  a "..." menu on the target post) still applies to it.
+
+**Tile 10 — the shape:** disable the global FAB picker tile 10.
+Instead, surface it via a "..." menu on each post-detail page,
+where the target `postId` is implicit and pre-filled.
+
+**Today's MVP** (per BU-requests-vetting): tile 10 is reachable from
+the FAB picker globally. The composer asks for the target post URL
+or ID as free-text input. Members may guess wrong or paste the
 wrong URL.
 
 **Trigger to build:**
 
 - Usage data shows members consistently guessing post IDs or
   pasting wrong URLs.
-- Bad flag/edit Requests start clogging the reviewer queue because
+- Bad edit-Requests start clogging the reviewer queue because
   reviewers can't determine which post the request refers to.
 
-**Effort:** ~half a session — disable tiles in IntentFab, add "..."
-menu to post-detail page with two new menu items, route both to
-existing composers with `postId` query param.
+**Effort:** ~quarter of a session — disable tile in IntentFab, add
+"..." menu item on post-detail page, route to existing composer
+with `postId` query param.
 
 **Owner:** Paul, surfaced during BU-requests-vetting design
-(2026-04-26).
+(2026-04-26); disambiguated 2026-04-26.
 
 ---
 
@@ -1213,3 +1238,470 @@ verdict actions for `kind: 'post_review'` Requests.
 
 **Owner:** Paul, surfaced during BU-fab-intent-picker UX session
 (2026-04-26 — undecided chip-grid).
+
+---
+
+## Image management & gallery — member-facing
+
+**Status:** PARKED — outstanding action for Paul/IRL. Bundles the
+member-facing surface that several already-parked engineering items
+will eventually feed into.
+
+**Origin:** 2026-04-27, raised after BU-post-hero-demo shipped its
+demo path (D064). The seeded SVG bucket gets us through demo, but
+the real-world need is broader: members should be able to manage
+their own images across posts, not just pick from a fixed bucket.
+
+**The shape (member-facing):**
+
+- **Upload** — pick an image from device, drag and drop on web,
+  camera roll on mobile. Sane size limits, EXIF stripped.
+- **Gallery** — a member's own image library: re-use a photo across
+  multiple posts without re-uploading; see what's been used where.
+- **Post composer** — pick from gallery or upload new, in the same
+  flow. Carousel (multiple images per post) becomes natural here.
+- **Moderation** — coordinator/admin can hide an image (cascade to
+  every post that uses it) without nuking the post body.
+- **Provenance** — caption / credit / "where I got this" capture at
+  upload time, surfaced on the post.
+
+**How this maps to existing parked engineering items:**
+
+- "Direct image upload on Post" — the upload primitive. Phase 2
+  BU-image scope. Replaces the seeded-SVG demo path from D064.
+- "Multimedia composer" — multiple images per post, carousel,
+  video. Same family.
+- "Image handling phased — D046" — the phasing plan that BU-image
+  delivers against.
+
+**Why park as a single user-facing entry instead of relying on the
+engineering items alone:** the engineering items are scoped to what
+the _system_ needs (upload, storage, moderation). The user-facing
+"gallery" experience pulls them together with reuse, library, and
+provenance — which the engineering items don't articulate as a
+unified surface. This entry is the IRL/product-side outstanding
+action; the engineering items remain the build-side pointers.
+
+**Trigger to promote:**
+
+- Phase 2 starts (post-demo) AND a real member needs the gallery
+  experience for a recurring use case (e.g. a coordinator who
+  re-uses the same banner photo across multiple regional posts).
+- OR the seeded-SVG bucket from D064 starts visibly limiting demo
+  storytelling (members ask "can I use my own photo?").
+
+**Out of scope here (separate parking entries cover them):**
+
+- Reactions on images, image-only posts, image albums as a Post
+  variant — different shapes, separate decisions.
+- Video — under "Multimedia composer".
+- Group/coordinator avatar uploads — under image-handling.md.
+
+**Owner:** Paul. Outstanding action for IRL, not a Claude Code
+session task.
+
+---
+
+## Reactions reveal-on-hover — refinement to BU-reactions before build
+
+**Status:** PARKED — design refinement to fold into the BU-reactions
+brief before that BU starts. Not a separate BU.
+
+**Origin:** WhatsApp pattern review, 2026-04-26 (Asda action video,
+Archway Our-Fight field-report photo). Reaction: "see how reactions
+are nicely tucked away, and the on-float face reveals the reaction
+bar."
+
+**Today's plan** (per `docs/build/session-briefs/bu-reactions.md`):
+a `<ReactionPill>` is **always-visible** on every post card showing
+aggregate counts; tap opens the tray.
+
+**The refinement:** prefer the WhatsApp pattern — picker hidden by
+default, revealed on hover (desktop) or long-press (touch). The
+aggregate count remains visible but as a small subordinate signal
+under the body (e.g. `👍🙏 2` micro-row), not a tappable pill that
+takes layout weight even when nobody has reacted. Two reasons:
+
+1. Cleaner feed by default — matches design-philosophy.md principles
+   1 (one-click) and 3 (no anxiety amplification). The picker is
+   one gesture away, not present-but-passive.
+2. Empty-state handling becomes free: if zero reactions, nothing
+   renders. No "0" affordance to look at.
+
+**Open questions to resolve in the brief:**
+
+- Touch parity — long-press on the card body? A small reaction
+  affordance bottom-right that expands on tap? WhatsApp uses
+  long-press; we may want a more discoverable mobile gesture.
+- The aggregate micro-row: always present once reactions exist, or
+  only above some threshold (e.g. ≥1)?
+- Does the always-visible aggregate eat one tap to open the picker
+  (i.e. tap the row → tray), or is reveal a separate gesture from
+  count display?
+
+**When to action:** before BU-reactions starts (Phase 2 demo-leverage,
+not yet begun). The brief should be amended with this pattern, OR
+an ADR records the divergence if we keep the always-visible pill.
+
+**Owner:** Paul, surfaced during WhatsApp pattern review (2026-04-26).
+
+---
+
+## Direct image upload on Post — priority bump from image-handling phased plan
+
+**Status:** PARKED — priority signal, not a redesign of the phased
+plan in `image-handling.md`.
+
+**Origin:** WhatsApp pattern review, 2026-04-26. Reaction: posts in
+real activist channels are "much more colourful than our postcards"
+— photos and videos are the hero, not the exception. The Archway
+field-report photo and the Asda action video would each be
+materially weaker without the media.
+
+**Today's plan** (per D046 / `docs/product/image-handling.md` Phase
+MVP day 1): no member-uploaded post hero. Members paste a URL →
+server fetches og:image → that becomes the hero.
+
+**The signal:** og:image-only is too thin for the post patterns we
+want to support (field reports, on-the-ground action calls). Direct
+upload should land sooner than the current phased plan implies.
+
+**Demo path — fakeable upload:** the upload pipeline can be **stubbed
+for demo**. A small fixed bucket of seeded images, drag-and-drop /
+file picker returns one of them rather than performing a real S3
+upload. Real upload + storage + moderation + EXIF strip + size limits
+remain the proper Phase 2 BU-image scope. This unblocks visual
+richness in the demo without committing to that infrastructure.
+
+**Effort sketch:**
+
+- Demo-only: `<HeroImagePicker>` returns a URL from a fixed seeded
+  set. Post schema gains `heroImageUrl` (nullable). Either rolled
+  into the next composer-touching BU or a small standalone
+  "BU-post-hero-demo".
+- Real Phase 2: the full BU-image scope (S3, moderation, thumbnails,
+  EXIF, size limits). The demo's `heroImageUrl` field survives;
+  only its source-of-truth changes.
+
+**Open questions:**
+
+- Is one hero per post enough for demo, or do we need a small
+  carousel from day one? (Carousel was Phase 2/3 per "Multimedia
+  composer" entry.)
+- For seeded demo images — generic stock or scenario-specific
+  visuals (Archway-style banner, Asda-style storefront)?
+
+**Owner:** Paul, surfaced during WhatsApp pattern review (2026-04-26).
+
+---
+
+## Bullet-list rendering in post body — narrow markdown subset (display-only)
+
+**Status:** PARKED — display-only refinement. Distinct from the
+broader "markdown/rich text" composer idea parked under "Composer
+enhancements (Phase 2+)".
+
+**Origin:** WhatsApp pattern review, 2026-04-26. The Archway field-
+report used `✅ ✅ ✅` ticks for "what went well", and the Asda post
+used `1. 2. 3.` numbered actions. Rendering both as run-on plain
+text with newlines loses scannability — the list-ness of the
+content is part of the message.
+
+**The shape:** detect a narrow set of list patterns in the existing
+plain-text `body` field at render time and present them as styled
+lists. No composer changes — members already type lists in plain
+text; the renderer interprets them.
+
+**Scope (deliberately narrow):**
+
+- Bullet list: lines starting with `-`, `*`, or `•`
+- Numbered list: lines starting with `1.`, `2.`, ...
+- Emoji-prefix list: lines starting `✅`, `☐`, or any emoji followed
+  by a space (the Archway pattern) — render as a tighter spacing
+  with hanging indent
+- NOT in scope: bold, italic, links inside body, headings,
+  blockquotes, code — those belong to the broader markdown/rich-
+  text question parked under Composer enhancements
+
+**Why split this from the parked composer rich-text entry:** that
+entry is a _composer_ feature (rich editor, full markdown). This is
+a _renderer_ feature — interpret plain text people already type.
+Different effort (small), different risk (low — display-only), and
+ships independently.
+
+**Trigger:** bake into the next post-rendering touch (e.g. when
+adding hero image rendering, or when BU-reactions changes the card
+layout). Cheap inline. ADR not required (display-only, no schema
+change).
+
+**Owner:** Paul, surfaced during WhatsApp pattern review (2026-04-26).
+
+---
+
+## Member flagging primitive — internal moderation flag
+
+**Status:** PARKED — design agreed, not yet briefed. Likely a thin
+sibling BU (`BU-flag`) before BU-requests-vetting Phase 2 builds on
+it. Not part of demo scope.
+
+**Origin:** WhatsApp pattern review + Q1 disambiguation,
+2026-04-26. Distinguished from the renamed tile 9 ("Call out a
+problem", which is a content post intent — see entry below).
+Moderation flagging is a separate primitive entirely.
+
+**The shape:** a small typed affordance available on every post and
+every comment, distinct from reactions. Members tap it to send the
+target into the reviewers' queue. The post or comment itself stays
+visible — flagging never hides content; it only enters the review
+queue.
+
+**State machine:**
+
+```
+unflagged → flagged → flagged + reviewed-tick
+                  ↳ (re-flag possible after tick, clears tick)
+```
+
+The reviewed-tick is a visible audit trail: "this was flagged AND a
+reviewer has dealt with it". Re-flagging after a tick re-enters the
+queue and clears the tick (per F5 below) — otherwise one early
+review immunises content forever.
+
+**Reviewer actions on a flagged item (demo scope):**
+
+- Mark reviewed → tick. Single button.
+- Add a comment to the post or to the flag itself.
+- (Branched moderation actions — dismiss vs uphold-and-hide — defer
+  until real moderation needs surface in pilot.)
+
+**Design questions and demo-feasible defaults (F1–F7):**
+
+| #   | Question                                         | Demo default                                                                                                                                          |
+| --- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1  | Who sees the flag's existence?                   | Reviewers + the post's author. Other readers do not — avoids social pile-on.                                                                          |
+| F2  | Is there a flag count or single state?           | Single boolean state. Multiple flaggers de-dupe to one queue entry with a `flaggedBy[]` array on the reviewer side; the post UI just shows "flagged". |
+| F3  | Does flagging take a reason?                     | Optional reason in a follow-up textarea — skippable. One-tap stays cheap, reason stays useful when given.                                             |
+| F4  | What does "deal with" mean?                      | Single "mark reviewed" → tick. Branching (dismiss vs uphold-and-act) when real moderation needs surface.                                              |
+| F5  | After tick, can the post be flagged again?       | Yes — re-enters queue, tick clears.                                                                                                                   |
+| F6  | Where does the flag affordance live on the card? | `…` menu, not the reaction row. Reactions are positive; flagging is sober. Distinct gesture, different surface.                                       |
+| F7  | Comment flagging — same affordance, smaller?     | Yes — `…` on comment hover/long-press. Same state machine.                                                                                            |
+
+**BU path (decision pending):**
+
+- **Path A — fold into BU-requests-vetting Phase 2:** one larger
+  slice covering flag affordance + queue UI + reviewer actions +
+  the `autoRouteToReview` plumbing for the renamed tile 9 + the
+  "Seeking actions" tile. Faster to demo end-to-end.
+- **Path B — thin standalone `BU-flag` first:** ships only the
+  flag primitive (affordance + state machine + minimal queue).
+  BU-requests-vetting Phase 2 then layers reviewer queue UI and
+  the auto-route plumbing on top. Cleaner foundation; smaller
+  sessions.
+
+Lean: B. Flagging is a primitive that other BUs depend on (incl.
+the renamed tile 9 and comments), so building it standalone gives
+a clean base. A is faster but bundles concerns.
+
+**Schema sketch:**
+
+- `Flag` model on Post — `targetType: 'post' | 'comment'`,
+  `targetId`, `flaggedBy: User`, `reason?: string`, `reviewedAt?:
+DateTime`, `reviewedBy?: User`, `createdAt`.
+- The `reviewed-tick` UI state is `flag.reviewedAt !== null` AND
+  no later un-reviewed flag exists on the same target.
+
+**Effort:** ~1 session for Path B (schema migration + service +
+router + flag affordance + minimal queue list). Reviewer queue UI
+polish layers on later.
+
+**Owner:** Paul, surfaced during WhatsApp pattern review and Q1
+disambiguation (2026-04-26).
+
+---
+
+## `autoRouteToReview` per-intent config + "Seeking Actions" intent
+
+**Status:** PARKED — agreed shape, awaiting commitment to brief.
+Demo-feasible in 1-2 sessions on top of `BU-flag` (or alongside it
+if Path A is taken — see member-flagging entry above).
+
+**Origin:** WhatsApp pattern review, 2026-04-26 (Asda video → "this
+is how to act" reply dynamic). Discussion converged on: don't model
+counter-posts as a new entity; instead, give certain post intents
+a config flag that auto-routes them into the reviewer queue at
+publish time, while the post itself is published live to the feed.
+
+**The primitive — `autoRouteToReview: boolean` on the intent
+definition:**
+
+- A property on the intent registry (the FAB picker's intent
+  definitions, per D062), not a per-post field.
+- When `true`, publishing a post of that intent automatically
+  creates a queue entry on the reviewer side. The post itself is
+  live in the feed normally.
+- Distinguished from the member-flagging primitive: the queue entry
+  here is _intent-driven_ (author chose this intent, system routed
+  it), not _flag-driven_ (a reader flagged it).
+
+**The "Seeking Actions" intent (new tile in the FAB picker):**
+
+- Member's framing: "I have something worth surfacing but I'm not
+  sure what the right action is — what do you suggest?"
+- Composer is the standard one + a pre-filled framing line in the
+  body, prompting the member to acknowledge they're seeking input.
+- `autoRouteToReview: true`.
+- On the post card, a small "Actions under review" or "👀 reviewer-
+  pending" pill until a reviewer marks it reviewed.
+- Reader-side affordance: a "💡 Suggest an action" button that
+  opens a regular comment composer pre-filled with `[suggested
+action] ` prefix. Untyped for demo (per Q6 — author manually
+  folds prose into the body or future `Action[]` rows). Typed
+  `commentKind: 'action_proposal'` lands when multi-CTA does (see
+  the multi-CTA entry above).
+
+**Reviewer queue distinguishes origin:**
+
+- Tab or filter: "Auto-routed (intent)" vs "Internally flagged"
+  (per F-questions in the member-flagging entry above).
+- Reviewer's action set differs by origin: auto-routed posts get
+  "mark reviewed / archive (queue) / add comment". Internally
+  flagged posts add the flag-state machine.
+
+**Schema sketch:**
+
+- No Post field changes — the intent definitions in code carry the
+  flag (e.g. `INTENTS.SEEKING_ACTIONS.autoRouteToReview = true`).
+- A `ReviewQueueEntry` model (or reuse of `Flag` if Path A is
+  taken) — `originType: 'intent_auto' | 'member_flag'`,
+  `targetId`, `intentKind?`, `flagId?`, `reviewedAt?`,
+  `reviewedBy?`.
+
+**Effort:** ~half to one session on top of `BU-flag` (or bundled
+into BU-requests-vetting Phase 2 under Path A).
+
+**Why parked, not built now:** depends on `BU-flag` (or Path A's
+combined slice) for the queue infrastructure. Promote to brief
+once BU-flag's path is decided.
+
+**Owner:** Paul, surfaced during WhatsApp pattern review and Q-
+discussion (2026-04-26).
+
+---
+
+## Call out a problem — content post intent (renamed tile 9)
+
+**Status:** PARKED — most-developed of the WhatsApp-review
+parking entries, brief-ready. The "highlight horrible content"
+post type is the focus of the 2026-04-26 review and the closest
+real-world post pattern we want to support natively.
+
+**Origin:** WhatsApp pattern review, 2026-04-26 — specifically the
+"🚨 ACTION IN MANCHESTER: ASDA CALLED OUT! 🚨" video post, which is
+the canonical shape: hero media (video or photo) of a problem
+happening in the world, an explainer body, an emoji-prefixed urgent
+title, structured action steps, and hashtags.
+
+**Renaming + reframing:**
+
+- Old tile-9 name: "Flag a problem post" — ambiguous. Sounded like
+  flagging an existing GPS Action post, which is the moderation
+  primitive (see "Member flagging primitive" entry above).
+- New name: **"Call out a problem"** (working title; alternatives
+  include "Share & call to action", "Raise the alarm", or simply
+  "Call out"). Decision deferred to copy-library review.
+- This intent creates a **new post in the feed** about something
+  problematic happening in the world — it does not flag any
+  existing GPS Action content.
+
+**Composer field shape (the differentiated bits vs the standard
+post composer):**
+
+| Field                                               | Rationale (from the WhatsApp examples)                                                                                                                                                                                                       |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hero media (image or video, with og:image fallback) | The Asda video and the Archway photo carry the post — text alone is materially weaker. Demo path: faked upload from a seeded set per the "Direct image upload" entry.                                                                        |
+| Title with optional emoji prefix                    | The 🚨 pattern signals urgency without needing a separate "urgency" field. Compose-time UI suggests a small emoji palette but doesn't enforce.                                                                                               |
+| Body (explainer of the wrong)                       | Plain text with bullet-list rendering (per the "Bullet-list rendering" entry above) so `- ✅ -` lines render as scannable lists.                                                                                                             |
+| Actions[] (multi-CTA)                               | The Asda post had three: Watch & Share / Boycott / Speak Up. Real evidence for the multi-CTA trigger (see the multi-CTA entry). For demo: stay on the two-slot pattern (`activistMailerUrl` + `linkUrl`) until the multi-CTA refactor lands. |
+| Optional location tag                               | "ACTION IN MANCHESTER: ASDA CALLED OUT" — location is part of the urgency. Likely reuses whatever region/proximity primitive lands per `region-and-proximity-decision.md`.                                                                   |
+| Hashtags (parsed from body)                         | `#FreePalestine #BDS #BoycottIsraeliApartheid` in the Asda post. Phase 2 nav primitive — display-only at first, no hashtag-feed slicing yet.                                                                                                 |
+
+**On-card rendering:**
+
+- Hero media at the top — image or video thumbnail. Cards in this
+  intent are visually heavier than standard post cards (cf. user's
+  "much more colourful than our postcards").
+- Optional urgent-marker visual treatment — a coloured top-rule or
+  edge in the same family as the bordeaux cultural-marker
+  (`#6B3045`) but in an action register. Static only — no flashing,
+  no countdown timers (per design-philosophy.md principle 3, no
+  anxiety amplification). A specific colour token is a separate
+  decision; treat as TBD.
+- "Reviewer-pending" pill while in the queue (see
+  `autoRouteToReview` entry above) — small, subordinate.
+
+**Auto-routing behaviour:**
+
+- This intent's definition carries `autoRouteToReview: true`.
+- Publishes live to the feed AND lands in the reviewer queue.
+- Reviewer's job: confirm "this is real / this is fair framing /
+  this isn't libel" and mark reviewed. Not gatekeeping — the post
+  is already public.
+
+**Demo scope (the focus):**
+
+The demo-feasible cut needs only:
+
+1. The renamed tile in the FAB picker ("Call out a problem"). Tile
+   exists in D062's picker today under the old name — rename plus
+   composer wiring.
+2. Composer fields above (hero media via demo-stub upload, title
+   with optional emoji palette, body with bullet rendering on the
+   render side, two-slot actions, optional location text).
+3. Card rendering with hero media + bullet-list body + urgent-
+   marker top rule.
+4. `autoRouteToReview` plumbing — on publish, post enters reviewer
+   queue. Reviewer-pending pill on the card.
+
+Out of demo scope (parked elsewhere):
+
+- Multi-CTA `Action[]` — still two-slot for demo.
+- Member flagging primitive — separate, parked.
+- Hashtag nav — display-only, no slicing.
+- Real S3 upload pipeline — demo uses seeded image set.
+- Reactions reveal-on-hover — separate parking entry.
+
+**BU shape:**
+
+- Likely **`BU-callout`** (or rolled into a wider "media-rich post"
+  BU). Depends on:
+  - `BU-flag` (or Path A combined slice) for the reviewer queue
+    infrastructure.
+  - Direct-image-upload demo path landing first or alongside.
+  - The bullet-list renderer can ship inline.
+
+- Sequencing options:
+  - **B1:** `BU-flag` → image upload (demo path) → `BU-callout`
+    layered on top.
+  - **B2:** combined media-rich-post BU that bundles image upload
+    - bullet renderer + the renamed tile + autoRouteToReview
+      wiring. Wider session.
+
+Lean: B1, mirroring the BU-flag path-B preference — small slices,
+clean deps.
+
+**Schema sketch:**
+
+- Post gains `heroImageUrl` (nullable) — survives the demo-stub
+  upload swap to real S3 later.
+- Post gains `intentKind` — already presumed present per D062 if
+  the picker is wired through to the post (verify before brief).
+- No new `Action` table yet — two-slot stays.
+
+**Schema changes require an ADR** per project rules.
+
+**Effort:** B1 sequence is roughly 3 sessions (`BU-flag` ~1,
+image-upload-demo ~0.5, `BU-callout` ~1.5). B2 is roughly 2
+sessions but each is denser.
+
+**Owner:** Paul. Promote to a session brief once BU-flag path is
+decided.
