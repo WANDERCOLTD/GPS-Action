@@ -711,6 +711,24 @@ async function main(): Promise<void> {
         randomInt(0, 2),
       );
 
+      // BU-post-hero-demo (D064): assign a hero image to ~half of seeded
+      // posts, distributed across all 8 seeded URLs so every image is
+      // visually testable in the feed without cramming them in.
+      const SEED_HERO_IMAGE_URLS = [
+        '/seed-images/01.svg',
+        '/seed-images/02.svg',
+        '/seed-images/03.svg',
+        '/seed-images/04.svg',
+        '/seed-images/05.svg',
+        '/seed-images/06.svg',
+        '/seed-images/07.svg',
+        '/seed-images/08.svg',
+      ];
+      const heroImageUrl =
+        !isCultural && fixtureFaker.number.float({ min: 0, max: 1 }) < 0.5
+          ? (SEED_HERO_IMAGE_URLS[i % SEED_HERO_IMAGE_URLS.length] ?? null)
+          : null;
+
       const createdAt = recentDate(90);
 
       const before = await prisma.post.findUnique({ where: { id } });
@@ -722,6 +740,7 @@ async function main(): Promise<void> {
           body,
           visibility,
           activistMailerUrl,
+          heroImageUrl,
           groupTags,
         },
         create: {
@@ -731,6 +750,7 @@ async function main(): Promise<void> {
           body,
           visibility,
           activistMailerUrl,
+          heroImageUrl,
           groupTags,
           createdAt,
         },

@@ -1,15 +1,18 @@
 /**
- * @build-unit BU-composer BU-link-share BU-fab-intent-picker
+ * @build-unit BU-composer BU-link-share BU-fab-intent-picker BU-post-hero-demo
  * @spec product/post-creation-flow.md
- * @spec architecture/decision-log.md (D045, D048, D060, D062)
+ * @spec architecture/decision-log.md (D045, D048, D060, D062, D064)
  *
  * Zod validation schemas for post creation. AM URL domain allowlist
  * is env-configurable via ACTIVIST_MAILER_ALLOWED_DOMAINS. Link-share
  * fields (D060) are optional; URL fields enforce http(s) protocols.
  * kind (D062) is a free-form string label written by the intent picker.
+ * heroImageUrl (D064) is constrained to the seeded demo bucket.
  */
 
 import { z } from 'zod';
+
+import { isAllowedHeroImageUrl } from '../seed-images';
 
 const ALLOWED_DOMAINS = (process.env.ACTIVIST_MAILER_ALLOWED_DOMAINS ?? 'activistmailer.com')
   .split(',')
@@ -70,6 +73,16 @@ export const postCreateSchema = z.object({
   // true when the selected PostKind has isAlertEligible=true; the
   // service double-checks at write time.
   urgency: z.boolean().optional(),
+  // Hero image (BU-post-hero-demo / D064). Demo path: must be one of
+  // the seeded URLs in `shared/seed-images.ts`. Phase 2 BU-image
+  // replaces this allow-list with real upload validation.
+  heroImageUrl: z
+    .string()
+    .nullable()
+    .optional()
+    .refine((val) => val == null || val === '' || isAllowedHeroImageUrl(val), {
+      message: 'heroImageUrl must be one of the seeded demo images',
+    }),
 });
 
 export type PostCreateInput = z.infer<typeof postCreateSchema>;

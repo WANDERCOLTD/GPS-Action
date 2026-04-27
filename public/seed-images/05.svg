@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g5bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#34495e"/>
+      <stop offset="100%" stop-color="#566f88"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#g5bg)"/>
+  <g transform="translate(360, 80)">
+    <rect x="0" y="0" width="880" height="780" rx="6" fill="#fafaf6"/>
+    <rect x="0" y="0" width="880" height="780" rx="6" fill="none" stroke="#2c3e50" stroke-width="2" opacity="0.3"/>
+    <rect x="40" y="40" width="800" height="60" fill="#2c3e50" opacity="0.85"/>
+    <text x="440" y="84" font-family="system-ui, sans-serif" font-size="38" font-weight="800"
+          text-anchor="middle" fill="#fafaf6" letter-spacing="4">PETITION</text>
+    <g fill="#34495e" opacity="0.55" font-family="serif">
+      <text x="40" y="160" font-size="22">We, the undersigned, call upon the council to:</text>
+    </g>
+    <g stroke="#34495e" stroke-width="3" opacity="0.45">
+      <line x1="40" y1="200" x2="840" y2="200"/>
+      <line x1="40" y1="240" x2="840" y2="240"/>
+      <line x1="40" y1="280" x2="780" y2="280"/>
+    </g>
+    <g font-family="cursive">
+      <text x="60" y="370" font-size="34" fill="#1a3654" font-style="italic">Sarah Cohen</text>
+      <text x="500" y="370" font-size="28" fill="#1a3654" font-style="italic" transform="rotate(-2 500 370)">D. Levy</text>
+      <text x="60" y="450" font-size="36" fill="#1a3654" font-style="italic" transform="rotate(2 60 450)">A. Rosenberg</text>
+      <text x="500" y="450" font-size="30" fill="#1a3654" font-style="italic">Mike Brown</text>
+      <text x="60" y="530" font-size="34" fill="#1a3654" font-style="italic" transform="rotate(-1 60 530)">Hannah K.</text>
+      <text x="500" y="530" font-size="32" fill="#1a3654" font-style="italic">P. Stein</text>
+      <text x="60" y="610" font-size="32" fill="#1a3654" font-style="italic">R. Goldman</text>
+      <text x="500" y="610" font-size="30" fill="#1a3654" font-style="italic" transform="rotate(2 500 610)">Tom W.</text>
+      <text x="60" y="690" font-size="34" fill="#1a3654" font-style="italic">L. Chen</text>
+      <text x="500" y="690" font-size="36" fill="#1a3654" font-style="italic" transform="rotate(-1 500 690)">Yael Shaw</text>
+    </g>
+    <g stroke="#566f88" stroke-width="2" opacity="0.6">
+      <line x1="40" y1="400" x2="380" y2="400"/>
+      <line x1="500" y1="400" x2="840" y2="400"/>
+      <line x1="40" y1="480" x2="380" y2="480"/>
+      <line x1="500" y1="480" x2="840" y2="480"/>
+      <line x1="40" y1="560" x2="380" y2="560"/>
+      <line x1="500" y1="560" x2="840" y2="560"/>
+      <line x1="40" y1="640" x2="380" y2="640"/>
+      <line x1="500" y1="640" x2="840" y2="640"/>
+      <line x1="40" y1="720" x2="380" y2="720"/>
+      <line x1="500" y1="720" x2="840" y2="720"/>
+    </g>
+  </g>
+  <g transform="translate(1200, 700) rotate(20)">
+    <rect x="0" y="-10" width="220" height="20" rx="4" fill="#3d2817"/>
+    <rect x="-8" y="-14" width="20" height="28" rx="4" fill="#f1c40f"/>
+    <polygon points="220,-10 250,0 220,10" fill="#1c0808"/>
+  </g>
+</svg>

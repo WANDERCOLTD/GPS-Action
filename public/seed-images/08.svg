@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g8bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c0392b"/>
+      <stop offset="100%" stop-color="#7b1f15"/>
+    </linearGradient>
+    <radialGradient id="g8shine" cx="35%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#g8bg)"/>
+  <g fill="#fff" opacity="0.16" stroke="#fff" stroke-width="3">
+    <line x1="200" y1="220" x2="120" y2="170"/>
+    <line x1="220" y1="280" x2="100" y2="280"/>
+    <line x1="200" y1="340" x2="120" y2="380"/>
+    <line x1="1380" y1="220" x2="1480" y2="170"/>
+    <line x1="1380" y1="280" x2="1500" y2="280"/>
+    <line x1="1380" y1="340" x2="1480" y2="380"/>
+    <line x1="780" y1="120" x2="780" y2="60"/>
+    <line x1="700" y1="140" x2="660" y2="80"/>
+    <line x1="900" y1="140" x2="940" y2="80"/>
+  </g>
+  <g transform="translate(420, 280) rotate(-15)">
+    <path d="M0 60 L240 0 L240 200 L0 140 Z" fill="#1c0808"/>
+    <rect x="240" y="0" width="60" height="200" rx="6" fill="#1c0808"/>
+    <rect x="300" y="20" width="80" height="160" rx="10" fill="#3d1414"/>
+    <rect x="300" y="20" width="80" height="160" rx="10" fill="url(#g8shine)"/>
+    <circle cx="340" cy="100" r="40" fill="#1c0808"/>
+    <circle cx="340" cy="100" r="28" fill="#7b1f15"/>
+    <circle cx="340" cy="100" r="14" fill="#1c0808"/>
+    <rect x="380" y="80" width="120" height="40" rx="20" fill="#1c0808"/>
+  </g>
+  <g fill="#fff">
+    <text x="800" y="700" font-family="system-ui, sans-serif" font-size="120"
+          font-weight="900" text-anchor="middle" letter-spacing="6">ACT NOW</text>
+  </g>
+  <g fill="none" stroke="#fff" stroke-width="6" opacity="0.8">
+    <path d="M380 730 Q800 760 1220 730" stroke-linecap="round"/>
+  </g>
+  <g fill="#f1c40f" opacity="0.85">
+    <polygon points="160,440 200,440 220,400 240,440 280,440 250,470 270,510 220,485 170,510 190,470"/>
+    <polygon points="1320,440 1360,440 1380,400 1400,440 1440,440 1410,470 1430,510 1380,485 1330,510 1350,470"/>
+  </g>
+</svg>

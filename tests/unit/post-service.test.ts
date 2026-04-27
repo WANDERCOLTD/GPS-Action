@@ -50,6 +50,7 @@ function makePost(overrides: Record<string, unknown> = {}) {
     linkSiteName: null,
     kindId: null,
     urgency: false,
+    heroImageUrl: null,
     groupTags: [],
     createdAt: now,
     updatedAt: now,
@@ -93,6 +94,7 @@ describe('listPosts', () => {
       kindDisplayName: null,
       isAlertEligibleKind: false,
       urgency: false,
+      heroImageUrl: null,
       groupTags: [],
       createdAt: post.createdAt,
       author: {
