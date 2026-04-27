@@ -1,13 +1,18 @@
 /**
- * @build-unit BU-001-lite
+ * @build-unit BU-001-lite BU-sticky-nav
  * @spec product/design-philosophy.md
+ * @spec architecture/decision-log.md (D065)
  *
- * Header component showing the current dev user. Server component —
+ * Dev-only identity strip showing the current user. Server component —
  * reads from props passed by the root layout (which resolves the user
  * via createTRPCContext).
  *
  * Shows "Not logged in" with a link to /dev/login when no user,
  * or "Logged in as X" with a "Switch user" link when authenticated.
+ *
+ * Per D065 the strip lives inside the sticky `<header>` in the root
+ * layout — it no longer owns its own border (header wrapper does).
+ * Production renders nothing (NODE_ENV guard).
  */
 
 import type { FC } from 'react';
@@ -32,7 +37,6 @@ export const LoggedInAs: FC<LoggedInAsProps> = ({ user }) => {
         fontSize: 'var(--text-xs)',
         fontFamily: 'var(--font-mono)',
         color: 'var(--colour-text-tertiary)',
-        borderBottom: '1px solid var(--colour-border-subtle)',
       }}
     >
       {user ? (
