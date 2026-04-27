@@ -84,6 +84,9 @@ Violations are errors, not warnings. Don't bypass.
 - Don't commit to main directly (always branch + PR)
 - Don't change `prisma/schema.prisma` without an ADR (it's contract-locked)
 - Don't add new features that aren't in the brief
+- Don't open a PR without bumping `package.json` `version` — every PR
+  bumps PATCH at minimum (CI blocks merge otherwise). See
+  `docs/process/versioning.md` for the scheme.
 
 ## Open questions to surface
 

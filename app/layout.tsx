@@ -1,13 +1,15 @@
 /**
- * @build-unit BU-000-scaffold BU-001-lite BU-error-boundary
+ * @build-unit BU-000-scaffold BU-001-lite BU-error-boundary BU-versioning
  * @spec architecture/decision-log.md (D003)
  * @spec docs/build/phase-0-foundations.md
+ * @spec docs/process/versioning.md
  *
  * Next.js root layout — PWA shell. Renders on every page.
  * BU-001-lite adds the LoggedInAs header for dev user switching.
  * BU-error-boundary (F11) wraps `children` so a single component crash
  * does not take the whole shell down. <LoggedInAs /> sits OUTSIDE the
  * boundary so the dev header stays live during a crash.
+ * BU-versioning renders the <VersionBadge /> on every page.
  */
 import type { ReactNode } from 'react';
 import '@/styles/tokens.css';
@@ -15,6 +17,7 @@ import '@/styles/components.css';
 import { LoggedInAs } from '@/components/auth/LoggedInAs';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { IntentFab } from '@/components/IntentFab';
+import { VersionBadge } from '@/components/VersionBadge';
 import { createTRPCContext } from '@/server/routers/context';
 
 export const metadata = {
@@ -73,6 +76,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           {children}
         </ErrorBoundary>
         {ctx.user && <IntentFab />}
+        <VersionBadge />
       </body>
     </html>
   );

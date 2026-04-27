@@ -1,0 +1,40 @@
+name: version-check
+
+# BU-versioning. Fails the PR if package.json `version` is unchanged
+# vs the base branch. Pairs with the in-app <VersionBadge /> + the
+# scheme documented in docs/process/versioning.md (Rolling PATCH —
+# every PR bumps the PATCH segment by at least 1).
+#
+# This is a lightweight string-equality check: it confirms the version
+# changed, not that it semantically increased. That's deliberate —
+# semver-strict comparison adds dependencies (a `semver` CLI step)
+# without catching anything we'd plausibly do by accident.
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify package.json version was bumped
+        run: |
+          set -euo pipefail
+          BASE_REF="${{ github.event.pull_request.base.sha }}"
+          BASE_VERSION="$(git show "${BASE_REF}:package.json" | jq -r .version)"
+          HEAD_VERSION="$(jq -r .version package.json)"
+
+          echo "Base (target branch): ${BASE_VERSION}"
+          echo "Head (this PR):       ${HEAD_VERSION}"
+
+          if [ "${BASE_VERSION}" = "${HEAD_VERSION}" ]; then
+            echo "::error file=package.json,line=3::package.json version was not bumped (still ${HEAD_VERSION}). Per docs/process/versioning.md, every PR must bump the PATCH segment by at least 1."
+            exit 1
+          fi
+
+          echo "::notice::Version bumped: ${BASE_VERSION} → ${HEAD_VERSION}"
