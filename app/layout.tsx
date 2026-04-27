@@ -26,9 +26,11 @@ import { HeaderRefreshButton } from '@/components/HeaderRefreshButton';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { IntentFab } from '@/components/IntentFab';
 import { VersionBadge } from '@/components/VersionBadge';
+import { DemoBanner } from '@/components/DemoBanner';
 import { createTRPCContext } from '@/server/routers/context';
 import { countUnreadForUser } from '@/server/services/notification';
 import { scopeToRequestType } from '@/server/services/request';
+import { isDemoMode } from '@/shared/demo-mode';
 import type { RequestType } from '@prisma/client';
 
 export const metadata = {
@@ -94,11 +96,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   // nothing to render in it — production with no user (LoggedInAs is a
   // dev-only no-op there). In dev there is always at least the
   // "Logged in as / Not logged in" strip, so the header is always shown.
-  const showHeader = !!ctx.user || process.env.NODE_ENV !== 'production';
+  const showHeader = !!ctx.user || process.env.NODE_ENV !== 'production' || isDemoMode();
 
   return (
     <html lang="en" data-theme="light">
       <body>
+        <DemoBanner />
         {showHeader && (
           <header
             data-testid="nav-header-shell"

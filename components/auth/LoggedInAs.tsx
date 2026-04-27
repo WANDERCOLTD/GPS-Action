@@ -16,13 +16,14 @@
  */
 
 import type { FC } from 'react';
+import { isDemoMode } from '@/shared/demo-mode';
 
 interface LoggedInAsProps {
   user: { displayName: string } | null;
 }
 
 export const LoggedInAs: FC<LoggedInAsProps> = ({ user }) => {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' && !isDemoMode()) {
     return null;
   }
 

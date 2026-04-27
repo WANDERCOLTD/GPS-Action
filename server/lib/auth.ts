@@ -9,11 +9,12 @@
  */
 
 import { cookies } from 'next/headers';
+import { isDemoMode } from '@/shared/demo-mode';
 
 export const DEV_COOKIE_NAME = 'gps_dev_user_id';
 
 function assertNotProduction(label: string): void {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' && !isDemoMode()) {
     throw new Error(`[auth] ${label} invoked in production. Real auth (BU-002) is required.`);
   }
 }

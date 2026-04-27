@@ -9,9 +9,10 @@
 
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { isDemoMode } from '@/shared/demo-mode';
 
 export default function DevLayout({ children }: { children: ReactNode }) {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' && !isDemoMode()) {
     notFound();
   }
 

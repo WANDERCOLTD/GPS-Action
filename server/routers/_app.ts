@@ -14,10 +14,12 @@ import { reactionRouter } from '@/server/routers/reaction';
 import { commentRouter } from '@/server/routers/comment';
 import { requestRouter } from '@/server/routers/request';
 import { adminRouter } from '@/server/routers/admin';
+import { isDemoMode } from '@/shared/demo-mode';
 
 export const appRouter = router({
-  // Dev-only router: user picker, login helpers. Unreachable in production.
-  ...(process.env.NODE_ENV !== 'production' ? { dev: devRouter } : {}),
+  // Dev-only router: user picker, login helpers. Unreachable in production
+  // unless DEMO_MODE is enabled (BU-demo-mode).
+  ...(process.env.NODE_ENV !== 'production' || isDemoMode() ? { dev: devRouter } : {}),
   // Feature routers
   post: postRouter,
   postKind: postKindRouter,
