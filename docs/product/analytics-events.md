@@ -142,8 +142,9 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 
 **When:** User completes a 1-click share (not just tapping share, but the share actually dispatching).
 **Properties:** `destination` (enum: whatsapp, x, email, copy_link, other), `post_type`, `post_id_hash`
-**Fired from:** `app/components/ShareMenu.tsx` (client, after OS confirms handoff)
-**Build Unit:** BU-share-out (Sharing)
+**Fired from:** `components/WhatsAppShareButton.tsx` (BU-whatsapp-share, demo slice — fires intent on click; `post_type` not yet populated, see D065) → `app/components/ShareMenu.tsx` (BU-share-out, future — fires on confirmed handoff with full property set)
+**Server endpoint:** `app/api/analytics/share-intent/route.ts` (BU-whatsapp-share — stub sink that logs to stdout; replaced by the real sink in BU-share-out)
+**Build Unit:** BU-share-out (Sharing) · BU-whatsapp-share (demo slice)
 **Answers:** Q3, Q6
 
 ### Moderation (3)
