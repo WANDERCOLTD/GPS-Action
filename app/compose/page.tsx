@@ -9,6 +9,10 @@
  * the URL (set by IntentFab tiles) to pre-fill type-specific defaults
  * and fetches the active PostKind set so the form can resolve
  * intent slug → kindId at submit time.
+ *
+ * The page H1 is a stable "Create a post" — per-intent labelling
+ * lives in the IntentBanner inside <PostForm /> to avoid the page
+ * title duplicating the banner heading.
  */
 
 import { redirect } from 'next/navigation';
@@ -18,7 +22,7 @@ import { PostForm, type KindMapEntry } from '@/components/PostForm';
 import { createPostAction } from '@/app/compose/actions';
 
 export const metadata = {
-  title: 'New post — GPS Action',
+  title: 'Create a post — GPS Action',
 };
 
 const KNOWN_INTENTS = new Set([
@@ -33,18 +37,6 @@ const KNOWN_INTENTS = new Set([
   'undecided',
 ]);
 
-const INTENT_HEADINGS: Record<string, string> = {
-  happening_now: 'Urgent — happening now',
-  link_share: 'Share a link',
-  call_to_action: 'Call to action',
-  cultural: 'Cultural moment',
-  outcome: 'Outcome — what happened',
-  thought: 'Just a thought',
-  event: 'Event',
-  meeting: 'Meeting',
-  undecided: 'New post',
-};
-
 interface PageProps {
   searchParams: Promise<{ intent?: string }>;
 }
@@ -58,7 +50,6 @@ export default async function ComposePage({ searchParams }: PageProps) {
 
   const params = await searchParams;
   const intent = params.intent && KNOWN_INTENTS.has(params.intent) ? params.intent : null;
-  const heading = (intent && INTENT_HEADINGS[intent]) ?? 'New post';
 
   const caller = createCaller(ctx);
   const kinds = await caller.postKind.listActive();
@@ -74,7 +65,7 @@ export default async function ComposePage({ searchParams }: PageProps) {
         style={{ marginBottom: 'var(--space-6)' }}
         data-testid="compose-page-title"
       >
-        {heading}
+        Create a post
       </h1>
       <PostForm onSubmit={createPostAction} intent={intent} kindMap={kindMap} />
     </main>

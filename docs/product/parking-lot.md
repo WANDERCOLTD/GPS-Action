@@ -1187,3 +1187,29 @@ existing composers with `postId` query param.
 
 **Owner:** Paul, surfaced during BU-requests-vetting design
 (2026-04-26).
+
+---
+
+## "Send for review" surfaces in composer (D063 wiring)
+
+**Status:** PARKED — D063 (Send-for-Review pattern) was scaffolded
+during BU-requests-vetting Phase 1; the schema landed but the
+composer-side button + reviewer Publish/Archive UI were explicitly
+deferred.
+
+**Decision:** when this work picks up, "Send for review" lives as a
+**second submit button next to Post**, not as a separate FAB tile.
+Every kind can be sent for review, so a tile would duplicate.
+
+Composer renders two submits side-by-side:
+
+- **Post** — primary, publishes immediately as today
+- **Send for review** — secondary, creates a Request with the
+  draft post in `context.draftPost` (per D063), routes to reviewer
+  queue, no publish
+
+Reviewer side: existing /requests workspace gains Publish + Archive
+verdict actions for `kind: 'post_review'` Requests.
+
+**Owner:** Paul, surfaced during BU-fab-intent-picker UX session
+(2026-04-26 — undecided chip-grid).

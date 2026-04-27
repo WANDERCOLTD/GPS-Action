@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import type { CreatePostResult } from '@/app/compose/actions';
 import { HeroImagePicker } from './HeroImagePicker';
-import { KindPickerSheet } from './KindPickerSheet';
+import { KindPickerSheet, TILES, type Tile } from './KindPickerSheet';
 
 export interface KindMapEntry {
   id: string;
@@ -55,16 +55,6 @@ interface PostFormProps {
   /** Active PostKind set keyed by slug (server-resolved at page render time). */
   kindMap: Record<string, KindMapEntry>;
 }
-
-const KIND_OPTIONS = [
-  { value: 'thought', label: 'Just a thought' },
-  { value: 'cultural', label: 'Cultural moment' },
-  { value: 'outcome', label: 'Outcome — what happened' },
-  { value: 'call_to_action', label: 'Call to action' },
-  { value: 'link_share', label: 'Share a link' },
-  { value: 'event', label: 'Event' },
-  { value: 'meeting', label: 'Meeting' },
-];
 
 interface IntentMeta {
   icon: ReactNode;
@@ -274,39 +264,9 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
         </p>
       )}
 
-      {/* Kind selector — visible when intent=undecided (BU-fab-intent-picker / D062) */}
-      {isUndecided && (
-        <div>
-          <label
-            htmlFor="post-kind"
-            data-testid="intent-selector-label"
-            style={{
-              display: 'block',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 500,
-              marginBottom: 'var(--space-1)',
-              fontFamily: 'var(--font-ui)',
-            }}
-          >
-            What kind of post is this?
-          </label>
-          <select
-            id="post-kind"
-            name="kind"
-            value={selectedKind}
-            onChange={(e) => setSelectedKind(e.target.value)}
-            data-testid="intent-selector-select"
-            className="gps-input"
-            style={{ width: '100%' }}
-          >
-            {KIND_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      {/* Kind chip grid — visible when intent=undecided. Tap a chip to
+          commit the form to that kind (banner + fields update; grid hides). */}
+      {isUndecided && <KindChipGrid onPick={handleIntentSwitch} />}
 
       {/* Inline hint banner for event / meeting (date/time fields coming) */}
       {meta.hint && (
@@ -810,4 +770,102 @@ function IntentBanner({ meta, testIdSuffix, onClick }: IntentBannerProps) {
       />
     </button>
   );
+}
+
+interface KindChipGridProps {
+  onPick: (slug: string) => void;
+}
+
+const CHIP_EXCLUDE = new Set(['undecided', 'flag', 'edit_request']);
+
+function KindChipGrid({ onPick }: KindChipGridProps) {
+  const tiles = TILES.filter((t) => !CHIP_EXCLUDE.has(t.key) && !t.disabled);
+  return (
+    <div data-testid="compose-kind-chip-grid">
+      <p
+        style={{
+          margin: 0,
+          marginBottom: 'var(--space-2)',
+          fontFamily: 'var(--font-ui)',
+          fontSize: 'var(--text-sm)',
+          fontWeight: 500,
+          color: 'var(--colour-text-primary)',
+        }}
+      >
+        What kind of post is this?
+      </p>
+      <ul
+        style={{
+          listStyle: 'none',
+          margin: 0,
+          padding: 0,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+          gap: 'var(--space-3)',
+        }}
+      >
+        {tiles.map((tile) => (
+          <li key={tile.key}>
+            <button
+              type="button"
+              onClick={() => onPick(tile.key)}
+              data-testid="compose-kind-chip"
+              data-intent-key={tile.key}
+              style={chipStyle(tile)}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  color: tile.accent,
+                }}
+              >
+                {tile.icon}
+                <strong
+                  style={{
+                    fontFamily: 'var(--font-ui)',
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--colour-text-primary)',
+                  }}
+                >
+                  {tile.label}
+                </strong>
+              </div>
+              <p
+                style={{
+                  margin: 0,
+                  fontFamily: 'var(--font-ui)',
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--colour-text-secondary)',
+                }}
+              >
+                {tile.hint}
+              </p>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function chipStyle(tile: Tile): CSSProperties {
+  return {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 'var(--space-2)',
+    padding: 'var(--space-3) var(--space-4)',
+    borderRadius: 'var(--radius-md)',
+    background: 'var(--colour-surface-raised)',
+    borderTop: '1px solid var(--colour-border-subtle)',
+    borderRight: '1px solid var(--colour-border-subtle)',
+    borderBottom: '1px solid var(--colour-border-subtle)',
+    borderLeft: `4px solid ${tile.accent}`,
+    textAlign: 'left',
+    cursor: 'pointer',
+    width: '100%',
+    fontFamily: 'inherit',
+    color: 'inherit',
+  };
 }
