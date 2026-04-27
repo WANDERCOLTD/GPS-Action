@@ -59,9 +59,10 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-requests-vetting | 7 | SCN-20, SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061 |
 | BU-secondary-cta-placeholders | 1 | — | DNaN |
 | BU-seed | 1 | — | D038 |
-| BU-share-rail-on-detail | 4 | — | — |
+| BU-share-rail-on-detail | 4 | — | D067 |
 | BU-sticky-nav | 4 | — | D003, D054, D061, D065 |
 | BU-versioning | 3 | — | D003, D065 |
+| BU-whatsapp-share | 2 | — | D065, D067 |
 
 ## ADRs (referenced by code)
 
@@ -86,5 +87,6 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D061 | Global tap interaction pattern | 6 |
 | D062 | PostKind table + alert orthogonality | 7 |
 | D064 | Post.heroImageUrl optional field; demo-stub picker on top of D046's phased plan | 4 |
-| D065 | Sticky app header + soft refresh button (BU-sticky-nav) | 4 |
+| D065 | Sticky app header + soft refresh button (BU-sticky-nav) | 5 |
+| D067 | WhatsApp share analytics: stub ping completes the catalogued event | 1 |
 
