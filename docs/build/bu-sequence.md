@@ -105,6 +105,7 @@ Briefs in `planned` or `in_progress` status (auto-generated; do not edit
 by hand — run `npm run trackers`):
 
 <!-- AUTOGEN:planned:start -->
+- **bu-hydration-fixes** _[high]_ — BU-hydration-fixes
 - **bu-tick-or-cross** _[high]_ — BU-tick-or-cross
 - **bu-search-surface** _[medium]_ — BU-search-surface
 - **bu-composer-link-first** _[low]_ — BU-composer-link-first
