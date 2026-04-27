@@ -1,3 +1,8 @@
+---
+slug: f15-require-design-tokens
+status: shipped
+phase: 0
+---
 # SESSION BRIEF · F15 — Enforce design token usage
 
 *Brief version: 1.0 · Author: Paul · Date: April 2026*

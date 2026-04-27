@@ -1,3 +1,9 @@
+---
+slug: bu-sticky-nav
+status: shipped
+shipped_in: "#106"
+phase: 2
+---
 # SESSION BRIEF · BU-sticky-nav — Sticky app header + soft-refresh button
 
 _Brief version: 1.0 · Author: Paul + Claude · Date: 2026-04-27_

@@ -52,48 +52,62 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **F15** (Design token enforcement + retrofit) | ✅ Merged | Components use `var(--…)` tokens |
 | **Session hygiene discipline** | ✅ Committed | Context management process |
 
-**Phase 2 shipped (April 2026 onwards):**
+**All shipped briefs (auto-generated from front-matter; do not edit by hand — run `npm run trackers`):**
 
-| Item | Status | PR |
+<!-- AUTOGEN:shipped:start -->
+| Brief | Status | PR |
 |---|---|---|
-| **F14** (Require `data-testid` on interactive elements) | ✅ Merged | #43 |
-| **BU-reactions** (Quiet 8-emoji multi-select on posts) | ✅ Merged | #46 |
-| **BU-comments** (Post detail page + flat thread) | ✅ Merged | #52 |
-| **BU-trace** (Traceability matrix + scripts) | ✅ Merged | #54 |
-| **Reactions on comments** (D052 schema-ready UI) | ✅ Merged | #56 |
-| **CI hardening** (BU-coverage + BU-migrate-ci, F07+F08) | ✅ Merged | #60 |
-| **BU-seed** (Deterministic Prisma seed script, F10) | ✅ Merged | #62 |
-| **Shell foundations** (BU-error-boundary + BU-healthcheck, F11+F12) | ✅ Merged | #63 |
-| **Random Thought log** (RT capture-and-investigate stream) | ✅ Merged | #66 |
-| **BU-link-share** (Schema + LinkPreviewCard + composer) | ✅ Merged | #70 |
-| **BU-requests-foundation** (Schema rename + scope middleware + /requests + /data + /settings) | ✅ Merged | #74 |
-| **BU-requests-urgent** (Alerts + claim/resolve + FAB tile, SCN-23) | ✅ Merged | #75 |
-| **BU-fab-intent-picker** (Single FAB + orthogonal alert + Send-for-Review, D062 revised + D063) | ✅ Merged | #78 |
-| **BU-admin-crud** (Generic CRUD UI for admin /data routes) | ✅ Merged | #79 |
-| **BU-requests-vetting Phase 1** (Comments + audience + @mentions + Notification) | ✅ Merged | #81 |
-| **BU-admin-audit-integration** (Wire AuditLog into mutations) | ✅ Merged | #84 |
-| **Composer polish** (Per-intent banner, reorder, IntentBanner reopens picker, undecided chips, stable H1) | ✅ Merged | #85, #91, #93, #94 |
-| **BU-admin-bulk-ops** (Checkbox selection + bulk mutations) | ✅ Merged | #86 |
-| **BU-am-link-collapse** (Fold AM into linkUrl + auto-detect) | ✅ Merged | #89 |
-| **BU-post-hero-demo** (Hero images on Post — schema + picker + render, D064) | ✅ Merged | #95 |
-| **BU-versioning** (App version badge + CI bump check + healthz metadata) | ✅ Merged | #101 |
-| **PostToolUse hook** (Surface current branch after every Bash) | ✅ Merged | #102 |
+| **bu-composer** — BU-composer | ✅ Merged | — |
+| **f15-require-design-tokens** — F15 | ✅ Merged | — |
+| **erd-slice-1** — ERD Slice 1 | ✅ Merged | #1 |
+| **f06-eslint-rules** — F06 | ✅ Merged | #2 |
+| **erd-slice-1-5** — ERD Slice 1.5 | ✅ Merged | #4 |
+| **f03-husky-commitlint** — F03 | ✅ Merged | #5 |
+| **erd-slice-2-minimal** — ERD Slice 2 (minimal) | ✅ Merged | #6 |
+| **bu-001-lite** — BU-001-lite | ✅ Merged | #10 |
+| **bu-feed** — BU-feed | ✅ Merged | #13 |
+| **f13-require-spec-tag** — F13 | ✅ Merged | #18 |
+| **f14-require-testid** — F14 | ✅ Merged | #43 |
+| **bu-reactions** — BU-reactions | ✅ Merged | #46 |
+| **bu-comments** — BU-comments | ✅ Merged | #52 |
+| **bu-trace** — BU-trace | ✅ Merged | #54 |
+| **f07-coverage-floor** — F07 | ✅ Merged | #60 |
+| **f08-migration-validation** — F08 | ✅ Merged | #60 |
+| **f10-seed-data** — F10 | ✅ Merged | #62 |
+| **f11-error-boundaries** — F11 | ✅ Merged | #63 |
+| **f12-health-checks** — F12 | ✅ Merged | #63 |
+| **bu-link-share** — BU-link-share | ✅ Merged | #70 |
+| **bu-requests-urgent** — BU-requests-urgent | ✅ Merged | #75 |
+| **bu-fab-intent-picker** — BU-fab-intent-picker | ✅ Merged | #78 |
+| **bu-admin-crud** — BU-admin-crud | ✅ Merged | #79 |
+| **bu-requests-vetting** — BU-requests-vetting | ✅ Merged | #81 |
+| **bu-admin-audit-integration** — BU-admin-audit-integration | ✅ Merged | #84 |
+| **bu-admin-bulk-ops** — BU-admin-bulk-ops | ✅ Merged | #86 |
+| **bu-am-link-collapse** — BU-am-link-collapse | ✅ Merged | #89 |
+| **bu-post-hero-demo** — BU-post-hero-demo | ✅ Merged | #95 |
+| **bu-sticky-nav** — BU-sticky-nav | ✅ Merged | #106 |
+| **bu-brief-status-mechanism** — BU-brief-status-mechanism | ✅ Merged | #116 |
+| **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
+| **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
+| **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |
+<!-- AUTOGEN:shipped:end -->
 
-**Outstanding from Phase 0 / foundations:** none (F14 shipped #43).
+PRs without a dedicated brief (chores, fixes, polish) live in `git log` —
+this table tracks brief lifecycle, not all merged work.
+
+**Outstanding from Phase 0 / foundations:** none.
 
 ---
 
 ## Next BU — undecided
 
-Phase 2 is well advanced. From today's unshipped briefs:
+Briefs in `planned` or `in_progress` status (auto-generated; do not edit
+by hand — run `npm run trackers`):
 
-- **BU-whatsapp-share** — one-tap WhatsApp forward from every PostCard.
-  Brief dated 2026-04-27, single-component scope, low risk. Tagged
-  CRITICAL (1-click sharing) in CLAUDE.md mandatory-reading section.
-  Strong demo amplifier — converts "look at this post" into "watch me
-  forward it to my group in one tap."
-
-In flight: **BU-sticky-nav** (`feat/bu-sticky-nav`).
+<!-- AUTOGEN:planned:start -->
+- **bu-search-surface** _[medium]_ — BU-search-surface
+- **bu-composer-link-first** _[low]_ — BU-composer-link-first
+<!-- AUTOGEN:planned:end -->
 
 For BUs not yet briefed, the Phase 2/3/4 schedule further down lays
 out the queue. Decision belongs to Paul.

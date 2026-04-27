@@ -1,3 +1,9 @@
+---
+slug: bu-reactions
+status: shipped
+shipped_in: "#46"
+phase: 2
+---
 # SESSION BRIEF · BU-reactions — Quiet, multi-select reactions on posts
 
 _Brief version: 1.0 · Author: Paul + Claude · Date: April 2026_

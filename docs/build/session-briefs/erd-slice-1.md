@@ -1,3 +1,9 @@
+---
+slug: erd-slice-1
+status: shipped
+shipped_in: "#1"
+phase: 1
+---
 # SESSION BRIEF · ERD Slice 1 — Foundation entities
 
 *Brief version: 1.0 · Author: Paul · Date: April 2026*

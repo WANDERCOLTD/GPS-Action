@@ -4356,3 +4356,110 @@ deferred, not forgotten.
 - BU-share-out (future) — reconciles every divergence recorded above
 - Memory: `project_share_taxonomy` — WhatsApp + socials rail both
   fire the same event with different `destination` values
+
+# D068 — Brief lifecycle status as typed front-matter; generator + CI gate
+
+_Status: accepted (2026-04-27). Authored by Paul + Claude._
+
+## Context
+
+PRs #105, #108, #110 surfaced a real drift class: prose status sections
+in `CLAUDE.md` and `docs/build/bu-sequence.md` had fallen weeks behind
+the actual ship state of multiple Build Units (Reactions, Comments,
+FAB intent picker, Requests/Urgent, Vetting, Admin CRUD + audit +
+bulk-ops, Link share, AM-link collapse, Hero images, Versioning, F14).
+The gap was severe enough that a session-mid-conversation
+recommendation was based on stale information. PR #108 reset the prose;
+this ADR records the decision to install the mechanism that prevents
+recurrence.
+
+## Decision
+
+Brief lifecycle status moves from prose narrative (hand-edited in
+multiple files) to typed YAML front-matter on each brief. A generator
+script reads the front-matter and emits managed AUTOGEN regions in
+`bu-sequence.md`. A CI gate plus a pre-commit hook block stale or
+unflipped state from reaching main.
+
+**Front-matter schema** (every `docs/build/session-briefs/*.md`):
+
+```yaml
+---
+slug: <kebab-case> # filename without .md
+status: planned | in_progress | shipped | abandoned
+shipped_in: '#NNN' # optional unless status=shipped
+phase: 0 | 1 | 2 | 3 | 4 # optional grouping
+priority: high | medium | low # only meaningful when status=planned
+superseded_by: <slug> # optional, status=abandoned
+note: '<free text>' # optional, anything that doesn't fit
+---
+```
+
+**Generator** (`scripts/generate-trackers.ts`):
+
+- Default mode: regenerate `<!-- AUTOGEN:shipped:start -->` and
+  `<!-- AUTOGEN:planned:start -->` regions in `bu-sequence.md`
+- `--check` mode: exit non-zero if regenerating would change the
+  file (used by CI and pre-commit)
+- Idempotent. Marker-region preservation lets hand-edited prose
+  surround the managed tables without conflict.
+
+**CI gate** (`.github/workflows/brief-status-check.yml`):
+
+1. `npm run trackers:check` — fails if AUTOGEN regions are stale.
+2. `scripts/check-brief-flip.ts` — if PR title/body references
+   `BU-<slug>` matching an existing brief, the PR diff must add
+   `status: shipped` to that brief. Mirrors the version-bump gate.
+
+**Pre-commit hook** (`.husky/pre-commit`): runs
+`npm run trackers:check` so staleness is caught before push, not at
+PR-open time.
+
+## Consequences
+
+- Single source of truth for brief lifecycle. Prose narrative tables
+  in `bu-sequence.md` are now generated artefacts; their hand-edit
+  surface is the front-matter.
+- BU PRs cannot merge without flipping their brief's `status:` to
+  `shipped`. The discipline becomes mechanical, not ceremonial.
+- `CLAUDE.md` "Current focus" stays human-written — it is loaded
+  into every Claude Code session's context, and stability beats
+  auto-currency. It references `bu-sequence.md` for canonical
+  ship-state.
+- Existing briefs (35 at adoption time) gain front-matter via a
+  one-shot retrofit tied to the bu-sequence.md #108 snapshot. PRs
+  #106 and #111 (sticky-nav, whatsapp-share) are reflected by the
+  retrofit.
+- `bu-composer-link-first` is flagged `status: planned` with a note
+  that its actual state is uncertain — surface for verification on
+  next pass.
+
+## Alternatives considered
+
+- **Hand-edited prose (status quo).** Rejected — that's the failure
+  mode this ADR exists to fix.
+- **Status table in a single docs file** (instead of front-matter
+  per brief). Rejected — colocating status with the brief means a
+  PR that ships the BU naturally edits the brief, no separate file
+  to remember.
+- **Generated CLAUDE.md "Current focus".** Rejected — see consequences
+  above; CLAUDE.md stability matters more than auto-currency, and the
+  generated table in `bu-sequence.md` already gives Claude a stable
+  reference point.
+- **GitHub API auto-flip on branch creation.** Rejected for v1 —
+  manual flip in the same PR is sufficient and avoids API-token
+  plumbing. Reconsider if "in_progress" tracking proves useful.
+- **Database / Notion as source of truth.** Rejected — markdown stays
+  the canonical artefact for everything else in this repo (decisions,
+  scenarios, parking lot); briefs follow the same convention.
+
+## Related
+
+- PR #108 — prose-status reset (the bleed)
+- PR #110 — brief draft for this mechanism
+- `docs/build/session-briefs/bu-brief-status-mechanism.md`
+- `scripts/generate-trackers.ts`
+- `scripts/check-brief-flip.ts`
+- `.github/workflows/brief-status-check.yml`
+- `docs/process/versioning.md` (the version-bump gate this mirrors)
+- `docs/process/reviewer-checklist.md` (manual backstop row)

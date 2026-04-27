@@ -1,3 +1,9 @@
+---
+slug: bu-001-lite
+status: shipped
+shipped_in: "#10"
+phase: 1
+---
 # SESSION BRIEF · BU-001-lite — Dev auth stub + audit service
 
 *Brief version: 1.0 · Author: Paul · Date: April 2026*

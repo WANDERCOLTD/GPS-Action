@@ -1,3 +1,9 @@
+---
+slug: f14-require-testid
+status: shipped
+shipped_in: "#43"
+phase: 0
+---
 # SESSION BRIEF · F14 — Enforce `data-testid` on interactive UI
 
 _Brief version: 1.0 · Author: Paul · Date: April 2026_

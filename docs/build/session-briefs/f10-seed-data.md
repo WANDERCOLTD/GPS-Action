@@ -1,3 +1,9 @@
+---
+slug: f10-seed-data
+status: shipped
+shipped_in: "#62"
+phase: 0
+---
 # SESSION BRIEF · F10 — Seed data script (realistic fixtures)
 
 _Brief version: 1.0 · Author: Paul (drafted by Claude Code) · Date: 2026-04-26_

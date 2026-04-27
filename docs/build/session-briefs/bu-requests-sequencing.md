@@ -1,3 +1,10 @@
+---
+slug: bu-requests-sequencing
+status: shipped
+shipped_in: "#74, #75, #81"
+phase: 2
+note: "Meta-brief decomposed into bu-requests-foundation/urgent/vetting"
+---
 # Sequencing brief — Requests workspace BUs
 
 _Companion to D054–D058 + SCN-21/22/23. Lays out how to slice the work into shippable Build Units with effort estimates and demo-value ranking._

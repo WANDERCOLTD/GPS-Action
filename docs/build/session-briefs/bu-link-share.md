@@ -1,3 +1,9 @@
+---
+slug: bu-link-share
+status: shipped
+shipped_in: "#70"
+phase: 2
+---
 # SESSION BRIEF · BU-link-share — Link-share preview cards + clipboard detection + OG scraper
 
 _Brief version: 1.0 · Author: Paul (via Claude) · Date: 2026-04-26_

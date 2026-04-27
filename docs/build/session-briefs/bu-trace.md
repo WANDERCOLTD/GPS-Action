@@ -1,3 +1,9 @@
+---
+slug: bu-trace
+status: shipped
+shipped_in: "#54"
+phase: 2
+---
 # SESSION BRIEF · BU-trace — Materialised traceability matrix
 
 _Brief version: 1.0 · Author: Paul + Claude · Date: 2026-04-26_

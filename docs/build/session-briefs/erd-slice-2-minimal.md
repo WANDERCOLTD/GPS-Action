@@ -1,3 +1,9 @@
+---
+slug: erd-slice-2-minimal
+status: shipped
+shipped_in: "#6"
+phase: 1
+---
 # SESSION BRIEF · ERD Slice 2 (minimal) — Post schema
 
 *Brief version: 1.0 · Author: Paul · Date: April 2026*

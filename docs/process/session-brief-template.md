@@ -2,7 +2,28 @@
 
 _The reusable prompt structure for every Claude Code session. Copy this template, fill it in, paste it to Claude Code. Session is a one-shot build against the brief._
 
-_Version: 0.1 · April 2026_
+_Version: 0.2 · April 2026_
+
+---
+
+## Front-matter (required, per D067)
+
+Every brief file in `docs/build/session-briefs/` opens with YAML
+front-matter. The generator (`npm run trackers`) reads this to emit
+the lifecycle tables in `bu-sequence.md`. CI blocks merge if a BU PR
+ships without flipping status to `shipped`.
+
+```yaml
+---
+slug: bu-<short-noun> # filename without .md
+status: planned # planned | in_progress | shipped | abandoned
+phase: 2 # 0 | 1 | 2 | 3 | 4 — matches bu-sequence.md
+priority: high # high | medium | low (only meaningful if planned)
+# shipped_in: "#NNN"            # add when flipping to shipped, in the same PR
+# superseded_by: <slug>         # add when flipping to abandoned, if relevant
+# note: "<free text>"           # anything that doesn't fit the schema
+---
+```
 
 ---
 

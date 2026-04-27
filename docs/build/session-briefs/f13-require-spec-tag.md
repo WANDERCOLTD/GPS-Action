@@ -1,3 +1,9 @@
+---
+slug: f13-require-spec-tag
+status: shipped
+shipped_in: "#18"
+phase: 0
+---
 # SESSION BRIEF · F13 — Enforce @spec traceability tag
 
 *Brief version: 1.0 · Author: Paul · Date: April 2026*

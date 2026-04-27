@@ -1,3 +1,9 @@
+---
+slug: bu-composer-bespoke-per-intent
+status: abandoned
+superseded_by: bu-composer-intent-polish
+note: "Direction superseded by per-intent banner approach"
+---
 # Brief: BU-composer-bespoke-per-intent (the B build)
 
 **Status:** drafted, not started

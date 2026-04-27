@@ -1,3 +1,9 @@
+---
+slug: f12-health-checks
+status: shipped
+shipped_in: "#63"
+phase: 0
+---
 # SESSION BRIEF · F12 — Health-check endpoints (`/healthz`, `/readyz`)
 
 _Brief version: 1.0 · Author: Paul · Date: April 2026_

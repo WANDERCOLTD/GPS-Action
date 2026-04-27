@@ -1,3 +1,9 @@
+---
+slug: f08-migration-validation
+status: shipped
+shipped_in: "#60"
+phase: 0
+---
 # SESSION BRIEF · F08 — Prisma migration validation in CI (BU-migrate-ci)
 
 *Brief version: 1.0 · Author: Paul · Date: April 2026*

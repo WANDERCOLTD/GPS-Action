@@ -1,3 +1,10 @@
+---
+slug: bu-whatsapp-share
+status: shipped
+shipped_in: "#111, #114"
+phase: 2
+note: "Affordance landed in #111; analytics ping completed in #114"
+---
 # SESSION BRIEF · BU-whatsapp-share — analytics slice + reconciliation note
 
 _Brief version: 1.0 · Author: Paul (via Claude) · Date: 2026-04-27_

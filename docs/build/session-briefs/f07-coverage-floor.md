@@ -1,3 +1,9 @@
+---
+slug: f07-coverage-floor
+status: shipped
+shipped_in: "#60"
+phase: 0
+---
 # SESSION BRIEF · F07 — Coverage floor on new code (BU-coverage)
 
 *Brief version: 1.0 · Author: Paul · Date: April 2026*

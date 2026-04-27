@@ -1,3 +1,9 @@
+---
+slug: bu-feed
+status: shipped
+shipped_in: "#13"
+phase: 1
+---
 # SESSION BRIEF · BU-feed — Feed page + Post router + realistic seed
 
 *Brief version: 1.0 · Author: Paul · Date: April 2026*

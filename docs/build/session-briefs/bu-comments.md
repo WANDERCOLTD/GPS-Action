@@ -1,3 +1,9 @@
+---
+slug: bu-comments
+status: shipped
+shipped_in: "#52"
+phase: 2
+---
 # SESSION BRIEF · BU-comments — Post detail page + flat comment thread
 
 _Brief version: 1.0 · Author: Paul + Claude · Date: 2026-04-26_
