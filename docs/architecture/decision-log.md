@@ -4463,3 +4463,121 @@ PR-open time.
 - `.github/workflows/brief-status-check.yml`
 - `docs/process/versioning.md` (the version-bump gate this mirrors)
 - `docs/process/reviewer-checklist.md` (manual backstop row)
+
+# D069 — `tick_or_cross` PostKind + `Post.signal` + post-publish handoff to GPS Network channel (BU-tick-or-cross)
+
+_Status: accepted (2026-04-27). Authored by Paul + Claude._
+
+## Context
+
+Demo scenario: third-party allies monitor the GPS Network WhatsApp
+channel for posts prefixed `✅` (amplify) or `❌` (flag/report). Today
+this is hand-curated in WhatsApp. The demo needs to show a member
+creating one of these posts inside GPS Action and the post landing in
+the channel as part of the publish action — visibly marked in-app so
+members understand what just happened.
+
+Several adjacent decisions already exist:
+
+- **D017** anticipated a `verdict: 'boost' | 'remove'` field on Post,
+  paired with multi-channel routing.
+- **D016** specified a future WhatsApp Business API integration that
+  would auto-post on the user's behalf.
+- **D015** scoped a `boost_remove_team` flag for who may issue
+  verdicts.
+
+This BU is a deliberately narrow demo slice on top of those. It is
+**not** the full D016/D017 system — it is a single-channel,
+self-dispatch handoff with a confirm step.
+
+## Decision
+
+1. **Add `Signal` enum + `Post.signal Signal?` column.** Same shape as
+   D017's `verdict`, deliberately renamed. The internal data label is
+   `signal`; member-facing copy uses `✅` / `❌` glyphs and the words
+   "amplify" / "flag" — never "promote" / "remove" / "verdict".
+   Service-layer invariant: `signal` is required when
+   `kind.slug === 'tick_or_cross'`, forbidden otherwise.
+2. **Add `Post.sharedToNetworkAt DateTime?` column.** Null until the
+   author explicitly confirms the WhatsApp paste landed in the
+   channel. Idempotent setter via a new
+   `post.markSharedToNetwork({ postId })` tRPC procedure.
+3. **Add `tick_or_cross` PostKind row.** `displayName: '✅ or ❌'`,
+   `icon: 'check-square'`, `sortOrder: 5`, `isAlertEligible: false`.
+   Prominent slot in the FAB picker but never #1 — the alert-eligible
+   `happening_now` keeps the top.
+4. **Publish flow.** On submit of a `tick_or_cross` post, the post
+   saves first (post visible in feed regardless of share outcome).
+   Then a confirm modal shows the formatted message
+   (`✅ {title}\n{body}\n{postUrl}` or `❌ …`), writes it to the
+   clipboard via `navigator.clipboard.writeText`, and offers a single
+   primary CTA "Open GPS Network channel" that launches
+   `WHATSAPP_NETWORK_CHANNEL_URL` in a new tab. On return, "I sent it"
+   flips `sharedToNetworkAt`; "Not yet" leaves it null and the card
+   surfaces a retry CTA.
+5. **WhatsApp channel deep-link constraint.** `chat.whatsapp.com/`
+   group-invite URLs and `wa.me/` individual-chat URLs accept
+   `?text=` prefill; **WhatsApp Channel URLs do not**. Accepted for
+   demo. Mitigation is the clipboard write + honest copy in the modal
+   ("Message copied — open the channel and paste"). When D016 wires
+   the Business API, the clipboard step disappears.
+6. **Permission gate.** Anyone authenticated may create a
+   `tick_or_cross` post and trigger the handoff. D015's
+   `boost_remove_team` is deferred to post-demo.
+7. **Tone.** `❌` posts get the same calm visual treatment as `✅`.
+   No red, no alarm styling, no anxiety amplification — the glyph
+   alone carries the meaning, per design-philosophy.md.
+
+## Consequences
+
+- The post is published regardless of whether the share confirms — by
+  design. The "Sent to GPS Network" pill is gated on
+  `sharedToNetworkAt`; the post itself is not.
+- `signal` is internal vocabulary. Any member-facing string that needs
+  to mention it uses ✅ / ❌. Reviewers should reject UI copy that
+  leaks the enum names.
+- `post_shared_out` analytics event is reused (no new event); the
+  publish-triggered auto-handoff is an additional firer of the same
+  event with `destination='whatsapp'`.
+- iOS standalone (no URL bar, no native share sheet) handles the
+  channel deep-link via universal link; the "did you send it?" flow
+  uses focus / visibility events rather than tab-close detection.
+- Future D016 work removes the clipboard step but keeps the schema
+  unchanged. `signal` stays; `sharedToNetworkAt` becomes server-set
+  on confirmed delivery rather than self-reported.
+
+## Alternatives considered
+
+- **Reuse D017's `verdict` name.** Rejected — D017's intent was
+  multi-channel routing with a vetting flow attached. The demo is a
+  single-channel self-dispatch with a self-report confirm. Reusing
+  the name would make the future D016/D017 migration ambiguous.
+- **Save the post only on confirmed share.** Rejected — pre-brief
+  decision #5. Loss of the post on a cancelled share would be a
+  worse UX surprise than a post visible without the "sent" pill.
+- **No confirm step (assume tap = sent).** Rejected — silent lying
+  about delivery violates the honest-copy principle. The "Did you
+  send it?" friction is small; the trust gain is large.
+- **Encode the signal in the body text instead of as a column.**
+  Rejected — defeats the point of structured data. Feed filters,
+  analytics, and the future D016 routing all need to read it
+  directly.
+- **Ship with the WhatsApp Business API now.** Rejected — D016 scope
+  is multi-week (rate limits, message templates, deliverability
+  monitoring). Demo deadline does not allow.
+
+## Related
+
+- D015 — `boost_remove_team` flag (deferred for demo)
+- D016 — WhatsApp Business API for Channels (Phase 2; this BU's
+  successor)
+- D017 — Boost/Remove as a verdict on Post (this BU narrows it)
+- D044 — Intent-first post creation / FAB cards model
+- D058 — Urgent flag on Post (orthogonal to kind)
+- D062 — PostKind as managed table; orthogonal urgency
+- D064 — Post.heroImageUrl (recent additive Post column for reference)
+- D067 — WhatsApp share analytics catalogue (event reused, not extended)
+- BU-fab-intent-picker — adds the `tick_or_cross` tile
+- BU-whatsapp-share / PR #111 — the share machinery this BU does
+  **not** reuse for the publish flow (auto-handoff is distinct from
+  user-initiated card share); the modal pattern is new code.

@@ -1,8 +1,8 @@
 /**
- * @build-unit BU-composer BU-fab-intent-picker
+ * @build-unit BU-composer BU-fab-intent-picker BU-tick-or-cross
  * @spec product/design-philosophy.md
  * @spec product/scenarios.md (SCN-18)
- * @spec architecture/decision-log.md (D044, D062)
+ * @spec architecture/decision-log.md (D044, D062, D069)
  *
  * Compose page — server component that renders the post form shell.
  * Redirects unauthenticated users to /dev/login. Reads ?intent= from
@@ -13,6 +13,10 @@
  * The page H1 is a stable "Create a post" — per-intent labelling
  * lives in the IntentBanner inside <PostForm /> to avoid the page
  * title duplicating the banner heading.
+ *
+ * BU-tick-or-cross: reads `WHATSAPP_NETWORK_CHANNEL_URL` server-side
+ * and passes it to <PostForm /> so the post-publish handoff modal
+ * has the channel deep-link without re-validating in the client.
  */
 
 import { redirect } from 'next/navigation';
@@ -20,6 +24,8 @@ import { createTRPCContext } from '@/server/routers/context';
 import { createCaller } from '@/server/routers/_app';
 import { PostForm, type KindMapEntry } from '@/components/PostForm';
 import { createPostAction } from '@/app/compose/actions';
+import { whatsappNetworkChannelUrlOrNull } from '@/shared/env/whatsapp-network-channel';
+import { getSiteOrigin } from '@/shared/site-origin';
 
 export const metadata = {
   title: 'Create a post — GPS Action',
@@ -34,6 +40,7 @@ const KNOWN_INTENTS = new Set([
   'thought',
   'event',
   'meeting',
+  'tick_or_cross',
   'undecided',
 ]);
 
@@ -58,6 +65,9 @@ export default async function ComposePage({ searchParams }: PageProps) {
     kindMap[k.slug] = { id: k.id, isAlertEligible: k.isAlertEligible, displayName: k.displayName };
   }
 
+  const networkChannelUrl = whatsappNetworkChannelUrlOrNull();
+  const siteOrigin = getSiteOrigin();
+
   return (
     <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
       <h1
@@ -67,7 +77,13 @@ export default async function ComposePage({ searchParams }: PageProps) {
       >
         Create a post
       </h1>
-      <PostForm onSubmit={createPostAction} intent={intent} kindMap={kindMap} />
+      <PostForm
+        onSubmit={createPostAction}
+        intent={intent}
+        kindMap={kindMap}
+        networkChannelUrl={networkChannelUrl}
+        siteOrigin={siteOrigin}
+      />
     </main>
   );
 }

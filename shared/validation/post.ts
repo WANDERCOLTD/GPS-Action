@@ -1,13 +1,15 @@
 /**
- * @build-unit BU-composer BU-link-share BU-fab-intent-picker BU-post-hero-demo
+ * @build-unit BU-composer BU-link-share BU-fab-intent-picker BU-post-hero-demo BU-tick-or-cross
  * @spec product/post-creation-flow.md
- * @spec architecture/decision-log.md (D045, D048, D060, D062, D064)
+ * @spec architecture/decision-log.md (D045, D048, D060, D062, D064, D069)
  *
  * Zod validation schemas for post creation. AM URL domain allowlist
  * is env-configurable via ACTIVIST_MAILER_ALLOWED_DOMAINS. Link-share
  * fields (D060) are optional; URL fields enforce http(s) protocols.
  * kind (D062) is a free-form string label written by the intent picker.
  * heroImageUrl (D064) is constrained to the seeded demo bucket.
+ * signal (D069) carries the author's amplify/flag choice for the
+ * `tick_or_cross` kind; the service enforces the kind-coupling invariant.
  */
 
 import { z } from 'zod';
@@ -83,6 +85,11 @@ export const postCreateSchema = z.object({
     .refine((val) => val == null || val === '' || isAllowedHeroImageUrl(val), {
       message: 'heroImageUrl must be one of the seeded demo images',
     }),
+  // Amplify (✅) / flag (❌) choice for the `tick_or_cross` PostKind
+  // (BU-tick-or-cross / D069). Required iff the resolved kind slug is
+  // `tick_or_cross`, forbidden otherwise. The service enforces the
+  // coupling at write time after resolving kindId → slug.
+  signal: z.enum(['promote', 'remove']).optional(),
 });
 
 export type PostCreateInput = z.infer<typeof postCreateSchema>;

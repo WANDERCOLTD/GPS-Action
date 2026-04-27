@@ -58,6 +58,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | Brief | Status | PR |
 |---|---|---|
 | **bu-composer** — BU-composer | ✅ Merged | — |
+| **bu-tick-or-cross** — BU-tick-or-cross | ✅ Merged | #TBD |
 | **f15-require-design-tokens** — F15 | ✅ Merged | — |
 | **erd-slice-1** — ERD Slice 1 | ✅ Merged | #1 |
 | **f06-eslint-rules** — F06 | ✅ Merged | #2 |
@@ -107,7 +108,6 @@ by hand — run `npm run trackers`):
 
 <!-- AUTOGEN:planned:start -->
 - **bu-hydration-fixes** _[high]_ — BU-hydration-fixes
-- **bu-tick-or-cross** _[high]_ — BU-tick-or-cross
 - **bu-search-surface** _[medium]_ — BU-search-surface
 - **bu-composer-link-first** _[low]_ — BU-composer-link-first
 <!-- AUTOGEN:planned:end -->

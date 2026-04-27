@@ -142,9 +142,9 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 
 **When:** User completes a 1-click share (not just tapping share, but the share actually dispatching).
 **Properties:** `destination` (enum: whatsapp, x, email, copy_link, other), `post_type`, `post_id_hash`
-**Fired from:** `components/WhatsAppShareButton.tsx` (BU-whatsapp-share, demo slice — fires intent on click; `post_type` not yet populated, see D067) → `app/components/ShareMenu.tsx` (BU-share-out, future — fires on confirmed handoff with full property set)
+**Fired from:** `components/WhatsAppShareButton.tsx` (BU-whatsapp-share, demo slice — fires intent on click; `post_type` not yet populated, see D067) → `components/SendToNetworkConfirm.tsx` (BU-tick-or-cross / D069 — fires `destination='whatsapp'` when the author confirms the post-publish handoff to the GPS Network channel; same event, no new event) → `app/components/ShareMenu.tsx` (BU-share-out, future — fires on confirmed handoff with full property set)
 **Server endpoint:** `app/api/analytics/share-intent/route.ts` (BU-whatsapp-share — stub sink that logs to stdout; replaced by the real sink in BU-share-out)
-**Build Unit:** BU-share-out (Sharing) · BU-whatsapp-share (demo slice)
+**Build Unit:** BU-share-out (Sharing) · BU-whatsapp-share (demo slice) · BU-tick-or-cross (post-publish auto-handoff)
 **Answers:** Q3, Q6
 
 ### Moderation (3)

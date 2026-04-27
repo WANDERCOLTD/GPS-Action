@@ -1,7 +1,7 @@
 /**
- * @build-unit BU-feed BU-composer BU-link-share BU-post-hero-demo
+ * @build-unit BU-feed BU-composer BU-link-share BU-post-hero-demo BU-tick-or-cross
  * @spec product/post-creation-flow.md
- * @spec architecture/decision-log.md (D045, D048, D060, D064)
+ * @spec architecture/decision-log.md (D045, D048, D060, D064, D069)
  *
  * Post service — business logic for listing and creating posts.
  * Handles visibility filtering, soft-delete exclusion, cursor
@@ -9,7 +9,7 @@
  * Layer boundary: services → db + shared only.
  */
 
-import type { PostVisibility, SystemRole } from '@prisma/client';
+import type { PostVisibility, Signal, SystemRole } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import type { PostCreateInput } from '@/shared/validation/post';
 import { isAllowedHeroImageUrl } from '@/shared/seed-images';
@@ -52,6 +52,10 @@ export interface PostListItem {
   urgency: boolean;
   /** Member-picked hero image URL (BU-post-hero-demo / D064). */
   heroImageUrl: string | null;
+  /** Amplify (✅) / flag (❌) choice (BU-tick-or-cross / D069). */
+  signal: Signal | null;
+  /** Timestamp set when the author confirms the WhatsApp paste landed. */
+  sharedToNetworkAt: Date | null;
   groupTags: string[];
   createdAt: Date;
   author: PostAuthor;
@@ -172,6 +176,8 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
     isAlertEligibleKind: post.kind?.isAlertEligible ?? false,
     urgency: post.urgency,
     heroImageUrl: post.heroImageUrl,
+    signal: post.signal,
+    sharedToNetworkAt: post.sharedToNetworkAt,
     groupTags: post.groupTags,
     createdAt: post.createdAt,
     author: {
@@ -215,6 +221,24 @@ export async function createPost(
     throw new Error('heroImageUrl must be one of the seeded demo images');
   }
 
+  // D069: signal is required iff kind.slug === 'tick_or_cross', forbidden
+  // otherwise. Resolve the kind's slug once so the invariant runs against
+  // the same row the create will reference.
+  const kindSlug = input.kindId
+    ? (
+        await prisma.postKind.findUnique({
+          where: { id: input.kindId },
+          select: { slug: true },
+        })
+      )?.slug ?? null
+    : null;
+  if (kindSlug === 'tick_or_cross' && !input.signal) {
+    throw new Error('signal is required for tick_or_cross posts');
+  }
+  if (kindSlug !== 'tick_or_cross' && input.signal) {
+    throw new Error('signal is only valid for tick_or_cross posts');
+  }
+
   const post = await prisma.post.create({
     data: {
       title: input.title,
@@ -228,6 +252,7 @@ export async function createPost(
       kindId: input.kindId?.trim() || null,
       urgency,
       heroImageUrl,
+      signal: input.signal ?? null,
       visibility: input.visibility,
       authorId,
     },
@@ -247,10 +272,55 @@ export async function createPost(
       hasLinkUrl: Boolean(input.linkUrl),
       hasHeroImageUrl: Boolean(heroImageUrl),
       kindId: input.kindId ?? null,
+      kindSlug,
+      signal: input.signal ?? null,
       urgency,
     },
     context: { source: 'composer' },
   });
 
   return post;
+}
+
+// ── markSharedToNetwork ─────────────────────────────────────────────────
+//
+// BU-tick-or-cross / D069. Idempotent setter: stamps `sharedToNetworkAt`
+// to now() if the post exists and the column is currently null. Second
+// and subsequent calls are no-ops. Returns `{ alreadyShared }` so the
+// caller can distinguish the two states for analytics / UI feedback.
+//
+// Open to anyone authenticated per pre-brief decision #3 — the demo
+// trusts the self-report. Server-side delivery verification is out of
+// scope until D016 lands.
+export async function markSharedToNetwork(
+  postId: string,
+  callerId: string,
+): Promise<{ alreadyShared: boolean; sharedToNetworkAt: Date }> {
+  const existing = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { id: true, sharedToNetworkAt: true, deletedAt: true },
+  });
+  if (!existing || existing.deletedAt) {
+    throw new Error('post not found');
+  }
+  if (existing.sharedToNetworkAt) {
+    return { alreadyShared: true, sharedToNetworkAt: existing.sharedToNetworkAt };
+  }
+
+  const now = new Date();
+  await prisma.post.update({
+    where: { id: postId },
+    data: { sharedToNetworkAt: now },
+  });
+
+  await auditLog({
+    action: 'post_shared_to_network',
+    entityType: 'post',
+    entityId: postId,
+    userId: callerId,
+    changes: { sharedToNetworkAt: now.toISOString() },
+    context: { source: 'send-to-network-confirm' },
+  });
+
+  return { alreadyShared: false, sharedToNetworkAt: now };
 }

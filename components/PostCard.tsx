@@ -61,6 +61,10 @@ export interface FeedPost {
   /** Member-picked hero image URL (BU-post-hero-demo / D064). Hero
    * wins over linkImageUrl for the top-of-card slot when both exist. */
   heroImageUrl: string | null;
+  /** Amplify (✅) / flag (❌) choice for tick_or_cross posts (BU-tick-or-cross / D069). */
+  signal: 'promote' | 'remove' | null;
+  /** ISO timestamp set when the author confirmed the WhatsApp paste landed. */
+  sharedToNetworkAt: string | null;
   createdAt: string; // ISO 8601
   author: {
     displayName: string;
@@ -148,6 +152,71 @@ const KIND_CHIPS: Record<string, { label: string; bg: string; fg: string }> = {
     fg: 'var(--colour-info)',
   },
 };
+
+// BU-tick-or-cross / D069. Calm badge — the glyph alone carries the
+// meaning. Both ✅ and ❌ get the same visual treatment per the brief's
+// tone rules: no red on the flag side, no anxiety amplification. When
+// the author has confirmed the WhatsApp paste, a "Sent to GPS Network"
+// pill renders next to the glyph. Both children are inline-flex so they
+// sit on a single line without overflowing narrow cards.
+function SignalBadgeRow({
+  signal,
+  sharedToNetworkAt,
+}: {
+  signal: 'promote' | 'remove';
+  sharedToNetworkAt: string | null;
+}) {
+  const glyph = signal === 'promote' ? '✅' : '❌';
+  return (
+    <div
+      data-testid="post-card-signal-row"
+      data-signal={signal}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-2)',
+        marginBottom: 'var(--space-2)',
+        flexWrap: 'wrap',
+      }}
+    >
+      <span
+        data-testid="post-card-signal-badge"
+        aria-label={signal === 'promote' ? 'Amplify' : 'Flag'}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: '2px var(--space-2)',
+          borderRadius: 'var(--radius-pill)',
+          background: 'var(--colour-surface-sunken)',
+          color: 'var(--colour-text-primary)',
+          fontSize: 'var(--text-sm)',
+          fontWeight: 600,
+          border: '1px solid var(--colour-border-subtle)',
+        }}
+      >
+        {glyph}
+      </span>
+      {sharedToNetworkAt && (
+        <span
+          data-testid="post-card-sent-pill"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '2px var(--space-2)',
+            borderRadius: 'var(--radius-pill)',
+            background: 'var(--colour-info-subtle)',
+            color: 'var(--colour-text-primary)',
+            fontSize: 'var(--text-2xs)',
+            fontWeight: 600,
+            letterSpacing: '0.04em',
+          }}
+        >
+          Sent to GPS Network
+        </span>
+      )}
+    </div>
+  );
+}
 
 function KindChip({ kindSlug, urgency }: { kindSlug: string | null; urgency: boolean }) {
   // Alert flag chip (D062 revised — orthogonal). Renders ahead of the kind
@@ -329,6 +398,14 @@ export const PostCard: FC<PostCardProps> = ({
 
           {/* Kind chip (BU-fab-intent-picker / D062) — only for kinds that warrant a visual badge */}
           <KindChip kindSlug={post.kindSlug} urgency={post.urgency} />
+
+          {/* BU-tick-or-cross / D069 — amplify/flag glyph + sent-pill row */}
+          {post.signal && (
+            <SignalBadgeRow
+              signal={post.signal}
+              sharedToNetworkAt={post.sharedToNetworkAt}
+            />
+          )}
 
           {/* Hero image (BU-post-hero-demo / D064). Hero wins over linkImageUrl
           for top-of-card; the link card retains its own thumbnail below. */}
