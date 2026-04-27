@@ -23,6 +23,7 @@ import { isFeatureEnabled } from '@/server/services/flags';
 import { CommentList } from '@/components/CommentList';
 import { ReactionPill } from '@/components/ReactionPill';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
+import { SecondaryCtaRail } from '@/components/SecondaryCtaRail';
 import {
   addCommentAction,
   addReactionToCommentAction,
@@ -92,6 +93,40 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
   const paragraphs = post.body.split('\n\n');
   const relativeTime = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
 
+  // Primary CTA = AM URL when present, else linkUrl. Mirrors PostCard.
+  const primaryCta = post.activistMailerUrl ? (
+    <LinkPreviewCard
+      linkUrl={post.activistMailerUrl}
+      linkTitle={null}
+      linkDescription={null}
+      linkImageUrl={null}
+      linkSiteName={null}
+      size="large"
+      isAmAction={true}
+    />
+  ) : post.linkUrl ? (
+    <LinkPreviewCard
+      linkUrl={post.linkUrl}
+      linkTitle={post.linkTitle}
+      linkDescription={post.linkDescription}
+      linkImageUrl={post.linkImageUrl}
+      linkSiteName={post.linkSiteName}
+      size="large"
+    />
+  ) : null;
+
+  const secondaryCta =
+    post.activistMailerUrl && post.linkUrl ? (
+      <LinkPreviewCard
+        linkUrl={post.linkUrl}
+        linkTitle={post.linkTitle}
+        linkDescription={post.linkDescription}
+        linkImageUrl={post.linkImageUrl}
+        linkSiteName={post.linkSiteName}
+        size="large"
+      />
+    ) : null;
+
   // Serialise for the client component boundary
   const serialisedComments: CommentForView[] = comments.map((c) => ({
     id: c.id,
@@ -126,84 +161,78 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
 
       {/* Post — anchored near the top per SCN-20 */}
       <article className="gps-card">
-        <div className="gps-card__header">
+        <div
+          style={{
+            display: 'flex',
+            gap: 'var(--space-4)',
+            alignItems: 'flex-start',
+          }}
+        >
           <div style={{ flex: 1, minWidth: 0 }}>
-            <strong style={{ fontSize: 'var(--text-sm)' }}>{post.author.displayName}</strong>
-            <time
-              className="gps-meta"
-              dateTime={new Date(post.createdAt).toISOString()}
-              suppressHydrationWarning
-              style={{ display: 'block' }}
-            >
-              {relativeTime}
-            </time>
-          </div>
-        </div>
+            <div className="gps-card__header">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <strong style={{ fontSize: 'var(--text-sm)' }}>{post.author.displayName}</strong>
+                <time
+                  className="gps-meta"
+                  dateTime={new Date(post.createdAt).toISOString()}
+                  suppressHydrationWarning
+                  style={{ display: 'block' }}
+                >
+                  {relativeTime}
+                </time>
+              </div>
+            </div>
 
-        {/* Hero image (BU-post-hero-demo / D064). Larger than card; hero
+            {/* Primary CTA — moved to top of content (D060 §3a / D065-proposed). */}
+            {primaryCta}
+
+            {/* Hero image (BU-post-hero-demo / D064). Larger than card; hero
             wins over linkImageUrl for the top-of-detail slot. */}
-        {post.heroImageUrl && (
-          <img
-            src={post.heroImageUrl}
-            alt=""
-            loading="lazy"
-            data-testid="post-detail-hero-image"
-            style={{
-              display: 'block',
-              width: '100%',
-              maxHeight: '480px',
-              objectFit: 'cover',
-              borderRadius: 'var(--radius-md)',
-              marginBottom: 'var(--space-4)',
-            }}
-          />
-        )}
+            {post.heroImageUrl && (
+              <img
+                src={post.heroImageUrl}
+                alt=""
+                loading="lazy"
+                data-testid="post-detail-hero-image"
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  maxHeight: '480px',
+                  objectFit: 'cover',
+                  borderRadius: 'var(--radius-md)',
+                  marginBottom: 'var(--space-4)',
+                }}
+              />
+            )}
 
-        <h1 className="gps-title" style={{ marginBottom: 'var(--space-3)' }}>
-          {post.title}
-        </h1>
+            <h1 className="gps-title" style={{ marginBottom: 'var(--space-3)' }}>
+              {post.title}
+            </h1>
 
-        <div className="gps-card__body">
-          {paragraphs.map((paragraph, i) => (
-            <p key={i} style={i > 0 ? { marginTop: 'var(--space-3)' } : undefined}>
-              {paragraph}
-            </p>
-          ))}
+            <div className="gps-card__body">
+              {paragraphs.map((paragraph, i) => (
+                <p key={i} style={i > 0 ? { marginTop: 'var(--space-3)' } : undefined}>
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+
+            {reactionsEnabled && (
+              <ReactionPill
+                reactions={post.reactions}
+                onAdd={addReactionAction.bind(null, post.id)}
+                onRemove={removeReactionAction.bind(null, post.id)}
+                canReact={canReact}
+              />
+            )}
+
+            {/* Secondary linkUrl card (legacy edge case: both AM + link populated). */}
+            {secondaryCta}
+          </div>
+
+          {/* Right rail of social CTA placeholders (D065-proposed; placeholders only). */}
+          <SecondaryCtaRail size="detail" />
         </div>
-
-        {reactionsEnabled && (
-          <ReactionPill
-            reactions={post.reactions}
-            onAdd={addReactionAction.bind(null, post.id)}
-            onRemove={removeReactionAction.bind(null, post.id)}
-            canReact={canReact}
-          />
-        )}
-
-        {/* AM URL preview card (D060 §3 — same primitive, AM brand mark on, large size on detail) */}
-        {post.activistMailerUrl && (
-          <LinkPreviewCard
-            linkUrl={post.activistMailerUrl}
-            linkTitle={null}
-            linkDescription={null}
-            linkImageUrl={null}
-            linkSiteName={null}
-            size="large"
-            isAmAction={true}
-          />
-        )}
-
-        {/* Link-share preview card (D060 — supporting context) */}
-        {post.linkUrl && (
-          <LinkPreviewCard
-            linkUrl={post.linkUrl}
-            linkTitle={post.linkTitle}
-            linkDescription={post.linkDescription}
-            linkImageUrl={post.linkImageUrl}
-            linkSiteName={post.linkSiteName}
-            size="large"
-          />
-        )}
       </article>
 
       {/* Discussion thread */}
