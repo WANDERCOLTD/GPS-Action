@@ -3864,3 +3864,125 @@ of it as a **demo enhancement** that becomes obsolete (its
   from image-handling phased plan" (the originating signal)
 - Parking-lot entry: "Call out a problem — content post intent"
   (downstream consumer; hero is part of its composer field shape)
+
+# D065 — Sticky app header + soft refresh button (BU-sticky-nav)
+
+**Date:** 2026-04-27
+**Tier:** UX / Layout
+**Status:** Accepted
+**Build Unit:** BU-sticky-nav
+
+## Context
+
+The `LoggedInAs` dev strip and the `AppNav` link strip currently render
+as two separate horizontal strips: `LoggedInAs` lives in the root
+layout, and `AppNav` is rendered per-page (8 pages each import it and
+pass an `active` prop). Neither is sticky, so they scroll away with the
+content.
+
+Two pressures converged on 2026-04-27:
+
+1. Members on long feeds lose access to the nav as they scroll. On
+   mobile especially, having to scroll back up to reach Requests / Data
+   / Settings is friction. Sticky-header is the conventional answer.
+2. iPhone users who add the site to their home screen launch it in
+   iOS Safari's standalone-ish mode — no URL bar, no native reload.
+   Confirmed by Paul's own home-screen bookmark on 2026-04-27. The
+   codebase has no PWA manifest and no `apple-mobile-web-app-capable`
+   meta — this is iOS default behaviour, not opt-in. Without a
+   browser-chrome reload, the user has no way to refresh.
+
+"Stay as native as possible" is the stated preference for refresh
+behaviour but doesn't apply on iOS standalone — there is no native to
+fall back to. An in-app refresh affordance is required.
+
+## Decision
+
+Consolidate `LoggedInAs` and `AppNav` into a single sticky `<header>`
+rendered once in `app/layout.tsx`. Page content scrolls underneath.
+`AppNav` becomes a client component and derives the active link from
+`usePathname()` rather than receiving an `active` prop per page.
+Reviewer-access and unread-notification-count resolution lifts into the
+layout (already adjacent to the existing `createTRPCContext()` call) so
+those signals surface globally, not only on `/requests`.
+
+A `<HeaderRefreshButton>` sits inside the header, right-justified after
+the AppNav links. On tap it calls `router.refresh()` — Next.js' soft
+refresh that re-runs server components for the current route, refreshes
+their data, and preserves scroll position and client component state.
+This is the entire answer to "how does the user refresh on iPhone
+standalone." No custom pull-to-refresh, no PWA manifest work, no
+`window.location.reload()`.
+
+## Consequences
+
+### Wins
+
+- One sticky header instead of two scrolling strips. Nav remains
+  reachable on long feeds.
+- 9 pages each drop their `<AppNav active="..." />` boilerplate. The
+  `active` prop is gone — `usePathname()` is the single source of truth
+  for which link is highlighted.
+- Reviewer-access label and unread-notification dot surface on every
+  page (not just `/requests`), because they're resolved once in the
+  layout. A reviewer scrolling the feed now sees their queue's unread
+  count without having to navigate to `/requests` first.
+- Refresh affordance solves the iOS standalone reload gap with one
+  button — no pull-to-refresh gesture code, no PWA opt-in, no extra
+  meta tags. `router.refresh()` is the soft-refresh primitive Next.js
+  already exposes; we're just surfacing it.
+- Forward-compatible with BU-user-menu, which lands the
+  avatar / Sign out affordance into the same sticky header.
+
+### Costs
+
+- `AppNav` becomes a client component. It was previously a server
+  component receiving an `active` prop; the switch trades one render
+  boundary for the per-page boilerplate removal. Net win, but worth
+  noting: the file gains `'use client'` and `usePathname()`.
+- Layout now resolves nav data (reviewer scope, unread count) on
+  every page render, not only on `/requests`. One additional service
+  call per render. The count query is cheap (single indexed read) and
+  the demo audience is small; if this becomes hot, cache it.
+- Z-index discipline matters slightly more — the sticky header
+  introduces a stacking context that must layer correctly against the
+  fixed-position `<IntentFab>`. A `--z-sticky-header` token formalises
+  the layer.
+
+### Open questions deferred
+
+- Whether to add a "scrolled" elevation style (subtle shadow when the
+  page has scrolled under the header). Deferred — nice-to-have, not
+  blocking. Add when the demo audience asks.
+- Whether to add a Compose link to the AppNav for desktop users
+  (where there's no FAB). Deferred — the FAB is the design intent;
+  desktop-only Compose entry is a separate decision.
+
+## Alternatives considered
+
+- **Keep current structure, add `position: sticky` to both strips
+  with `top` offsets.** Rejected — the `top` offset for `AppNav` would
+  have to match `LoggedInAs`'s rendered height, which varies (font
+  scaling, line wrap, returns null in production). Brittle.
+- **Custom pull-to-refresh on `/feed`.** Rejected for now — gesture
+  handling on iOS WebKit is fiddly (detecting "scroll is at top",
+  swallowing the gesture only then, not breaking native rubber-band).
+  A header button is robust, accessible, and works in every mode. We
+  can revisit if the demo audience asks for the gesture.
+- **Add a PWA manifest with `display: browser` to force the URL bar
+  to appear in home-screen-launched mode.** Rejected — opting into a
+  manifest opens unrelated decisions (icons, theme colour, name) we
+  shouldn't make as a side-effect of a header BU. The button gives us
+  the same outcome with less surface.
+- **Hard refresh via `window.location.reload()`.** Rejected — flashes
+  the page, loses scroll, regresses the demo's perceived smoothness.
+  `router.refresh()` is strictly better.
+
+## Related
+
+- D054, D061 — original `AppNav` scope (this decision consolidates)
+- D051 — BU naming convention (`BU-sticky-nav`)
+- BU-user-menu (next BU) — the avatar / Sign-out affordance lands
+  into the same sticky header
+- Memory: `project_ios_standalone_constraint` — the iPhone home-screen
+  bookmark constraint that motivates the refresh button
