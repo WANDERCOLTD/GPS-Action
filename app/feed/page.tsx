@@ -12,15 +12,27 @@ import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { FeedList } from '@/components/FeedList';
+import { FeedFilterChips } from '@/components/FeedFilterChips';
 import { loadMorePosts, addReactionAction, removeReactionAction } from '@/app/feed/actions';
 import type { FeedPost, FeedCursor, FeedReactionEmoji } from '@/components/PostCard';
+import { isFeedFilter, type FeedFilter } from '@/shared/feed-filters';
 
 export const metadata = {
   title: 'Feed — GPS Action',
 };
 
-export default async function FeedPage() {
+interface FeedPageProps {
+  searchParams: Promise<{ filter?: string | string[] }>;
+}
+
+function pickFilter(raw: string | string[] | undefined): FeedFilter {
+  const candidate = Array.isArray(raw) ? raw[0] : raw;
+  return isFeedFilter(candidate) ? candidate : 'all';
+}
+
+export default async function FeedPage({ searchParams }: FeedPageProps) {
   const ctx = await createTRPCContext();
+  const filter = pickFilter((await searchParams).filter);
 
   if (!ctx.user) {
     return (
@@ -45,7 +57,7 @@ export default async function FeedPage() {
 
   const caller = createCaller(ctx);
   const [result, reactionsEnabled] = await Promise.all([
-    caller.post.list(),
+    caller.post.list({ filter }),
     isFeatureEnabled('ff_reactions'),
   ]);
 
@@ -88,13 +100,11 @@ export default async function FeedPage() {
 
   return (
     <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
-      <h1 className="gps-title" style={{ marginBottom: 'var(--space-6)' }}>
-        Feed
-      </h1>
+      <FeedFilterChips active={filter} />
       <FeedList
         initialPosts={posts}
         initialCursor={cursor}
-        loadMore={loadMorePosts}
+        loadMore={loadMorePosts.bind(null, filter)}
         onAddReaction={addReactionAction}
         onRemoveReaction={removeReactionAction}
         canReact={reactionsEnabled}

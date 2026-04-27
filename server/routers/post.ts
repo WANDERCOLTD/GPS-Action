@@ -11,11 +11,14 @@ import { z } from 'zod';
 import { router, publicProcedure, authedProcedure } from '@/server/lib/trpc';
 import { listPosts, createPost } from '@/server/services/post';
 import { postCreateSchema } from '@/shared/validation/post';
+import { FEED_FILTERS, type FeedFilter } from '@/shared/feed-filters';
 
 const cursorSchema = z.object({
   createdAt: z.date(),
   id: z.string(),
 });
+
+const feedFilterSchema = z.enum([...FEED_FILTERS] as [FeedFilter, ...FeedFilter[]]);
 
 export const postRouter = router({
   list: publicProcedure
@@ -24,6 +27,7 @@ export const postRouter = router({
         .object({
           cursor: cursorSchema.optional(),
           limit: z.number().int().min(1).max(50).optional(),
+          filter: feedFilterSchema.optional(),
         })
         .optional(),
     )
@@ -32,6 +36,7 @@ export const postRouter = router({
         cursor: input?.cursor,
         limit: input?.limit,
         callerId: ctx.user?.id ?? null,
+        filter: input?.filter,
       });
     }),
 

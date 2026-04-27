@@ -226,4 +226,34 @@ describe('listPosts', () => {
     const call = mockFindMany.mock.calls[0]!;
     expect(call[0]?.orderBy).toEqual([{ createdAt: 'desc' }, { id: 'desc' }]);
   });
+
+  describe('filter', () => {
+    it('adds no filter clause when filter is undefined or "all"', async () => {
+      mockFindMany.mockResolvedValueOnce([] as Awaited<ReturnType<typeof prisma.post.findMany>>);
+      await listPosts({ callerId: 'user-1', filter: 'all' });
+
+      const where = mockFindMany.mock.calls[0]![0]?.where as Record<string, unknown>;
+      expect(where).not.toHaveProperty('urgency');
+      expect(where).not.toHaveProperty('kind');
+    });
+
+    it('filters by urgency=true when filter is "urgent"', async () => {
+      mockFindMany.mockResolvedValueOnce([] as Awaited<ReturnType<typeof prisma.post.findMany>>);
+      await listPosts({ callerId: 'user-1', filter: 'urgent' });
+
+      const where = mockFindMany.mock.calls[0]![0]?.where;
+      expect(where).toMatchObject({ urgency: true });
+    });
+
+    it.each(['happening_now', 'meeting', 'event'] as const)(
+      'filters by kind.slug=%s when filter matches',
+      async (slug) => {
+        mockFindMany.mockResolvedValueOnce([] as Awaited<ReturnType<typeof prisma.post.findMany>>);
+        await listPosts({ callerId: 'user-1', filter: slug });
+
+        const where = mockFindMany.mock.calls[0]![0]?.where;
+        expect(where).toMatchObject({ kind: { slug } });
+      },
+    );
+  });
 });
