@@ -204,9 +204,56 @@ _Origin: operational need for power-users._
 
 ### PARKED · Cross-platform amplification beyond WhatsApp
 
-Similar flow for Telegram, Signal, X/Twitter. Routes registry extensible, but each platform has different mechanics.
+Outbound to non-WhatsApp socials. Two questions: (a) which platforms allow real server-side automation on a member's behalf, and (b) what's the lowest-click pattern when automation isn't available. The companion entry below covers WhatsApp specifically (where the constraints are tighter); this entry covers everything else.
 
-_Origin: long-term reach thinking._
+**The hard constraint:** Meta removed `publish_actions` in 2018. Personal Facebook timelines and personal Instagram accounts cannot be posted to programmatically by third parties — full stop. The only Meta surfaces still automatable are Facebook **Pages** the member admins, and Instagram **Business/Creator** accounts (image-first, no native link-in-post). For everyone else on FB/IG, "share" is a prefilled web-intent the member confirms — not automation.
+
+**The option space, per platform:**
+
+| Platform                       | Automatable on behalf?                 | Mechanism                                       | Clicks per share (post-OAuth) | Cost / gotcha                                                                |
+| ------------------------------ | -------------------------------------- | ----------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------- |
+| **Bluesky**                    | ✅ Yes (easiest)                       | AT Protocol app password / OAuth                | 0                             | Free, no review, automation-friendly — **first OAuth target if we ship one** |
+| **Mastodon**                   | ✅ Yes                                 | Per-instance OAuth                              | 0                             | Free; one auth flow per instance the member belongs to                       |
+| **X (Twitter)**                | ✅ Yes                                 | OAuth 2.0 PKCE, `tweet.write` scope             | 0                             | API Basic ~$200/mo, 3,000 posts/mo/app cap                                   |
+| **LinkedIn**                   | ✅ Yes                                 | OAuth, `w_member_social` scope                  | 0                             | Marketing Developer Platform review for production                           |
+| **Threads**                    | ✅ Yes                                 | Meta Threads API (2024+), OAuth                 | 0                             | Newer API, fewer guarantees, same Meta review surface                        |
+| **Facebook Page**              | ✅ Yes (member must admin a Page)      | Graph API `pages_manage_posts`                  | 0                             | App review; relevant to partner-org pages, not personal members              |
+| **Instagram Business/Creator** | ✅ Limited                             | Graph API, image-first                          | 0                             | Image required; no native link-in-post; 25 posts/day cap                     |
+| **Telegram**                   | ✅ Channels only (member must admin)   | Bot API                                         | 0                             | Cannot touch personal feed; Channels not groups                              |
+| **Facebook (personal)**        | ❌ No (`publish_actions` removed 2018) | `facebook.com/sharer/sharer.php?u=…` web intent | 2 (open → post)               | Prefill only                                                                 |
+| **Instagram (personal)**       | ❌ No                                  | None — no web intent either                     | n/a                           | Out of reach; ship image to camera roll, member drops in Story manually      |
+| **WhatsApp**                   | ❌ No (groups closed)                  | OS share sheet OR `wa.me/?text=…`               | 2                             | Free; full WhatsApp option space catalogued in the entry below               |
+
+**Lowest-click pattern when automation is off the table:** the OS share sheet. `navigator.share({ url, text })` is one tap to open, one tap to send, works in iOS Safari + Android Chrome, handles every installed app uniformly, and avoids per-platform code paths. Desktop / non-supporting browsers fall back to per-platform web-intent buttons (X, FB sharer, LinkedIn share URL, `wa.me`). This is the right MVP answer regardless of whether we ever ship OAuth automation.
+
+**Aggregator option:** services like Ayrshare, Buffer, Postiz wrap X / FB / IG / LI / Bluesky / Threads behind a single server-side API. Useful if we ship multi-platform fan-out for a small number of org accounts (e.g. GPS Action's own X / Bluesky / LinkedIn). **Do not** treat them as a shortcut for the per-member problem — they require the same OAuth grants per platform and inherit every platform's restrictions (no WhatsApp groups, no personal FB/IG).
+
+**Recommended ship order if member-on-behalf automation is ever built:**
+
+1. **Bluesky first.** Free, no review, friendliest API. Validates the "Connect a social account" UX with low operational cost.
+2. **X second.** Pay the $200/mo if pilot data justifies the reach.
+3. **LinkedIn third.** Worth the review process for partner orgs and credibility-anchored shares (comms professionals, legal, journalism).
+4. Mastodon, Threads, FB Pages on demand.
+5. Personal FB / personal IG: never. Web intents only.
+
+**Honest copy is non-negotiable** (per CLAUDE.md voice rules): "Posted to Bluesky ✓" only when the server-side API actually returned 200. For web-intent shares the copy is "Opening X composer…" — never "Posted to X". Mixing the two in a single share rail erodes trust.
+
+**Open questions before this can promote out of PARKED:**
+
+1. Do we want member-on-behalf automation at all, or is the principled answer "GPS Action posts stay on GPS Action; share is member-driven via the OS share sheet"? The latter aligns with the no-anxiety-amplification principle and skips OAuth overhead entirely.
+2. Org-account automation (GPS Action's own Bluesky / X) is a separate, smaller question — server-side fan-out of Verified posts to org channels. Worth scoping independently of the per-member question.
+3. UTM tagging interaction (see entry in post-MVP outbound section) — if we automate, do we tag? Affects analytics shape.
+
+**Trigger to revisit:** (a) ≥20% of members request "auto-post to my X / LinkedIn / Bluesky", (b) a partner org wants their feed driven from GPS Action posts they author, or (c) we need verifiable cross-platform reach data for funder reporting and aggregators are the path of least resistance.
+
+**Related entries:**
+
+- `PARKED · Automated WhatsApp cross-posting (beyond wa.me share intent)` (below) — same question viewed at WhatsApp specifically, where the constraint is even tighter (groups closed entirely).
+- `PARKED · LinkedIn / Telegram / WhatsApp Channels (Business API)` (in post-MVP outbound section) — the legacy one-liner this entry largely subsumes.
+- `PARKED · UTM tagging on outbound URLs` (in post-MVP outbound section) — interacts with automation choice.
+- `PARKED · Instagram Stories share` — the Instagram answer for personal accounts (image card, manual drop).
+
+_Origin: long-term reach thinking; expanded 2026-04-27 by Paul's question about a single low-click share table covering all socials with automation options. Sister entry to the WhatsApp-specific analysis below._
 
 ### PARKED · Partner-specific amplification pathways
 
@@ -295,6 +342,52 @@ The paths content comes _into_ GPS Action from the outside world. Member sees so
 **Copy keys:** ten new keys added to copy library (share.clipboard._, share.bookmarklet._, share.android._, share.endpoint._)
 
 _Origin: D018 first noted the inbound-share endpoint as a concept; Paul's 23 April 2026 question about "use the phone share feature to post from social app TO OUR app" surfaced the platform constraint analysis and the Path A decision._
+
+### PARKED · Inbound posts from WhatsApp via Business API
+
+A second inbound path that's WhatsApp-native: a member messages a GPS Action WhatsApp number and the message body becomes a draft post in their account. Distinct from the PWA share-sheet path above, which routes content _through the OS_; this routes _through WhatsApp itself_, which is where many members already live. Pairs with the outbound `wa.me` pattern as the symmetric inbound side.
+
+**The mechanics:** Meta Cloud API (or a BSP wrapper — Twilio, 360dialog, MessageBird) gives us a webhook on inbound messages. Body, attachments, sender phone number arrive server-side; we identify the member by phone (or prompt a one-time link if unknown), build a draft post, and reply with a deep link to confirm and publish. The 24-hour session window is plenty for the confirmation roundtrip.
+
+**The option space:**
+
+| Path                                  | Member action                                                     | Friction                      | Infra                                                     | Verdict                                           |
+| ------------------------------------- | ----------------------------------------------------------------- | ----------------------------- | --------------------------------------------------------- | ------------------------------------------------- |
+| **WABA + webhook (direct send)**      | Message the GPS Action number with text/link/image                | Lowest                        | Cloud API + verified Business + dedicated number + parser | ★ Best long-term WhatsApp-native path             |
+| **`wa.me/<number>?text=…` deeplink**  | One-tap link from a poster, prefilled, opens chat with our number | One tap to open + one to send | Same WABA infra; deeplink is just the discovery layer     | Pair with WABA — the entry point, not the engine  |
+| **Forward-to-bot**                    | Forward any existing WhatsApp message to our number               | One forward                   | Same WABA infra; parser handles forwarded-from headers    | Adds the "I just saw this in another group" loop  |
+| **Email-to-post fallback** (`post@…`) | Forward WA chat → email → parser                                  | Many taps                     | SES inbound + parser                                      | Cheap fallback; not WA-native; useful for desktop |
+
+**What this unlocks beyond the PWA path:**
+
+- Members never have to leave WhatsApp to start a post. The mental model "I tell GPS Action by messaging them, just like any other group" is what the platform ultimately replaces — getting there via WhatsApp itself is the most familiar on-ramp.
+- The forward-to-bot loop is uniquely WhatsApp-shaped: members already forward content between groups constantly. "Forward to GPS Action" slots into existing behaviour with zero new gestures.
+- Image and voice-note inbound work natively (WABA handles media). The PWA share path on iOS struggles with images.
+- Discovery: print a card with `wa.me/<number>` and a QR code at events; first message from a new number triggers an onboarding flow.
+
+**What this cannot deliver:**
+
+- Reading messages from existing activist groups. Same closed-surface constraint as the outbound case — Cloud API receives only messages addressed to our number.
+- Posting on the member's behalf without their explicit message. Inbound is always member-initiated, by definition.
+- Support without verification cost. Same WABA verified-business + dedicated-number burden as the outbound entry.
+
+**Open questions before this can promote out of PARKED:**
+
+1. Identity binding. How does a member's WhatsApp phone number get associated with their GPS Action account? Self-serve in profile settings (member adds their number, we verify with a code) is the obvious path, but it adds an onboarding step. Should it be optional or pushed during signup?
+2. Draft-confirmation UX. Reply with a deep link ("Tap to review and publish: /compose/draft/<id>") and require an in-app confirm? Or auto-publish after a 60-second "edit window" if the member doesn't reply STOP? The latter is one fewer tap but riskier for trust.
+3. Vetting interaction. Inbound from WhatsApp goes through the same vetting pipeline as `/compose` posts, presumably — but does the Sharon-warmth posture mean we should auto-flag for review anything that arrives via WABA, or treat it as identical to PWA-routed content?
+4. Cost ceiling shared with outbound (Cloud API limits apply across both directions).
+5. Verification overhead shared with outbound (same verified-business setup, same template-approval lead time for any cold replies).
+
+**Trigger to revisit:** (a) pilot data shows the PWA share-sheet path is converting <40% of share intents on iOS (where it's weakest), (b) ≥25% of members request "I want to send things to GPS Action from inside WhatsApp", or (c) the WABA outbound entry promotes — at which point the verified-business infrastructure is already in place and inbound is incremental.
+
+**Related entries:**
+
+- `ABSORBING · Inbound sharing (PWA-first, native later)` (above) — the OS share-sheet path; this entry is the WhatsApp-native sibling.
+- `PARKED · Automated WhatsApp cross-posting (beyond wa.me share intent)` (in Dispatch & amplification section) — outbound counterpart; shares the same WABA infra, so promoting either pulls the other closer.
+- `D018` self-dispatch + inbound-share endpoint — the foundational concept.
+
+_Origin: Paul's 2026-04-27 question — "what options do we have to create our posts directly from within WhatsApp?" — surfaced this as a distinct path from the PWA share-target work that's already absorbing._
 
 ---
 
