@@ -227,6 +227,54 @@ production credentials. Full 2FA. Full session management.
 
 ---
 
+## Demo deployments (BU-demo-mode)
+
+**What it is:** a Vercel-hosted snapshot used to share the WIP product with
+people who can't run it locally. Distinct from staging — staging is
+production-shaped (real auth, captured email, the full release pipeline).
+Demo deployments piggy-back on the dev-auth stub so viewers can switch
+between seeded users without a real auth backend.
+
+**When it matters:** ad-hoc shares — "look at this on your phone" — before
+staging exists. Once staging lands (BU-auth + F09), demos route through
+staging instead.
+
+### How it's gated
+
+The `DEMO_MODE` environment variable. When set to `1`/`true`/`yes`/`on`,
+the dev-auth surfaces stay reachable even though `NODE_ENV=production`:
+
+- `/dev/login` resolves (otherwise: 404)
+- The `dev` tRPC router is registered
+- `<LoggedInAs />` renders the identity strip
+- The `<DemoBanner />` mounts above the sticky header so screenshots can't
+  be mistaken for real production state
+
+The flag is read by `isDemoMode()` in `shared/demo-mode.ts`. It has no
+`NEXT_PUBLIC_` prefix, so it's never bundled to the client; consumers run
+in server-rendered code.
+
+### Safety rail
+
+`DEMO_MODE=1` together with `VERCEL_ENV=production` throws at module load.
+Demo deployments must run on a Vercel project distinct from any future
+real-prod project — preview env, or a project whose `VERCEL_ENV` is not
+`production`. This stops the demo flag from accidentally leaking to a
+real-prod deployment and exposing the dev-auth stub there.
+
+### Data
+
+A separate Postgres (Neon, free tier, eu-west-2) seeded with the same
+synthetic data as dev. Cheap, throwaway, isolable.
+
+### When to retire
+
+When BU-auth lands and staging exists, `DEMO_MODE` becomes redundant:
+staging is the canonical "share with someone remote" surface. At that
+point, delete the flag and the demo Vercel project.
+
+---
+
 ## Bootstrap — "how does the first admin exist?"
 
 A surprisingly important question. The system starts empty. There are
