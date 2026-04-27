@@ -1213,3 +1213,64 @@ verdict actions for `kind: 'post_review'` Requests.
 
 **Owner:** Paul, surfaced during BU-fab-intent-picker UX session
 (2026-04-26 — undecided chip-grid).
+
+---
+
+## Image management & gallery — member-facing
+
+**Status:** PARKED — outstanding action for Paul/IRL. Bundles the
+member-facing surface that several already-parked engineering items
+will eventually feed into.
+
+**Origin:** 2026-04-27, raised after BU-post-hero-demo shipped its
+demo path (D064). The seeded SVG bucket gets us through demo, but
+the real-world need is broader: members should be able to manage
+their own images across posts, not just pick from a fixed bucket.
+
+**The shape (member-facing):**
+
+- **Upload** — pick an image from device, drag and drop on web,
+  camera roll on mobile. Sane size limits, EXIF stripped.
+- **Gallery** — a member's own image library: re-use a photo across
+  multiple posts without re-uploading; see what's been used where.
+- **Post composer** — pick from gallery or upload new, in the same
+  flow. Carousel (multiple images per post) becomes natural here.
+- **Moderation** — coordinator/admin can hide an image (cascade to
+  every post that uses it) without nuking the post body.
+- **Provenance** — caption / credit / "where I got this" capture at
+  upload time, surfaced on the post.
+
+**How this maps to existing parked engineering items:**
+
+- "Direct image upload on Post" — the upload primitive. Phase 2
+  BU-image scope. Replaces the seeded-SVG demo path from D064.
+- "Multimedia composer" — multiple images per post, carousel,
+  video. Same family.
+- "Image handling phased — D046" — the phasing plan that BU-image
+  delivers against.
+
+**Why park as a single user-facing entry instead of relying on the
+engineering items alone:** the engineering items are scoped to what
+the _system_ needs (upload, storage, moderation). The user-facing
+"gallery" experience pulls them together with reuse, library, and
+provenance — which the engineering items don't articulate as a
+unified surface. This entry is the IRL/product-side outstanding
+action; the engineering items remain the build-side pointers.
+
+**Trigger to promote:**
+
+- Phase 2 starts (post-demo) AND a real member needs the gallery
+  experience for a recurring use case (e.g. a coordinator who
+  re-uses the same banner photo across multiple regional posts).
+- OR the seeded-SVG bucket from D064 starts visibly limiting demo
+  storytelling (members ask "can I use my own photo?").
+
+**Out of scope here (separate parking entries cover them):**
+
+- Reactions on images, image-only posts, image albums as a Post
+  variant — different shapes, separate decisions.
+- Video — under "Multimedia composer".
+- Group/coordinator avatar uploads — under image-handling.md.
+
+**Owner:** Paul. Outstanding action for IRL, not a Claude Code
+session task.
