@@ -58,11 +58,17 @@ export const CommentList: FC<CommentListProps> = ({
   }
 
   function handleCommit(optimisticId: string, realId: string): void {
-    setOptimistic((prev) => prev.filter((c) => c.id !== optimisticId));
-    setCommitted((prev) => {
-      const placeholder = optimistic.find((c) => c.id === optimisticId);
-      if (!placeholder) return prev;
-      return [...prev, { ...placeholder, id: realId }];
+    // Look up the placeholder inside the functional updater so we read the
+    // LATEST optimistic state, not the closure value captured at the render
+    // that produced this handleCommit. handleCommit is invoked after an
+    // `await` in CommentComposer, so the closure variable `optimistic` may
+    // be stale (it was [] at the render where the handler was created).
+    setOptimistic((prev) => {
+      const placeholder = prev.find((c) => c.id === optimisticId);
+      if (placeholder) {
+        setCommitted((c) => [...c, { ...placeholder, id: realId }]);
+      }
+      return prev.filter((c) => c.id !== optimisticId);
     });
   }
 
