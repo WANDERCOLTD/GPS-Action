@@ -491,6 +491,41 @@ discussing how the admin surface stays current as schemas evolve.
 
 ---
 
+### B15 · Brief lifecycle status mechanism (D068) **[ADOPTED 2026-04-27]**
+
+Front-matter status on every brief + generator + CI ship-flip gate +
+pre-commit `trackers:check`. Eliminates the prose-drift class hit on
+2026-04-27 (`CLAUDE.md` "Current focus" + `bu-sequence.md` "Next BU
+undecided" had fallen weeks behind reality). Mechanism's first user
+is itself: PR #116 flipped `bu-brief-status-mechanism` to `shipped`,
+the CI gate enforced the flip before merge.
+
+**Files shipped:**
+
+- `scripts/generate-trackers.ts`, `scripts/check-brief-flip.ts`
+- `.github/workflows/brief-status-check.yml`
+- `.husky/pre-commit` (added `trackers:check`)
+- Front-matter on 37 existing briefs
+- AUTOGEN regions in `docs/build/bu-sequence.md`
+- D068 ADR
+- Reviewer-checklist row 7, CLAUDE.md per-session step 8,
+  session-brief-template front-matter spec
+
+**Follow-ups:**
+
+- **Verify `bu-composer-link-first` actual ship state.** Flagged
+  `status: planned` with `note: "Status uncertain — verify on next
+  pass"` at retrofit time because git log didn't disambiguate. 5-min
+  audit, flip to the correct status, run `npm run trackers`.
+- **Unit tests for `generate-trackers.ts` and `check-brief-flip.ts`.**
+  Manually validated end-to-end against 37 briefs round-tripping
+  cleanly + a rebase conflict scenario (D067 collision). Tests are
+  nice-to-have, not blocking. Coverage targets: idempotence, AUTOGEN
+  region preservation, `--check` exit code, BU-ref regex, ship-flip
+  detection in a sample diff.
+
+---
+
 ## Tier C — Nice to have, adopt when value is clear
 
 These aren't wrong — they're just not earning their cost at MVP scale. Each
