@@ -23,7 +23,7 @@ import { isFeatureEnabled } from '@/server/services/flags';
 import { CommentList } from '@/components/CommentList';
 import { ReactionPill } from '@/components/ReactionPill';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
-import { SecondaryCtaRail } from '@/components/SecondaryCtaRail';
+import { PostShareGroup } from '@/components/PostShareGroup';
 import {
   addCommentAction,
   addReactionToCommentAction,
@@ -161,78 +161,79 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
 
       {/* Post — anchored near the top per SCN-20 */}
       <article className="gps-card">
-        <div
-          style={{
-            display: 'flex',
-            gap: 'var(--space-4)',
-            alignItems: 'flex-start',
-          }}
-        >
+        <div className="gps-card__header">
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="gps-card__header">
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <strong style={{ fontSize: 'var(--text-sm)' }}>{post.author.displayName}</strong>
-                <time
-                  className="gps-meta"
-                  dateTime={new Date(post.createdAt).toISOString()}
-                  suppressHydrationWarning
-                  style={{ display: 'block' }}
-                >
-                  {relativeTime}
-                </time>
-              </div>
-            </div>
-
-            {/* Primary CTA — moved to top of content (D060 §3a / D065-proposed). */}
-            {primaryCta}
-
-            {/* Hero image (BU-post-hero-demo / D064). Larger than card; hero
-            wins over linkImageUrl for the top-of-detail slot. */}
-            {post.heroImageUrl && (
-              <img
-                src={post.heroImageUrl}
-                alt=""
-                loading="lazy"
-                data-testid="post-detail-hero-image"
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  maxHeight: '480px',
-                  objectFit: 'cover',
-                  borderRadius: 'var(--radius-md)',
-                  marginBottom: 'var(--space-4)',
-                }}
-              />
-            )}
-
-            <h1 className="gps-title" style={{ marginBottom: 'var(--space-3)' }}>
-              {post.title}
-            </h1>
-
-            <div className="gps-card__body">
-              {paragraphs.map((paragraph, i) => (
-                <p key={i} style={i > 0 ? { marginTop: 'var(--space-3)' } : undefined}>
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-
-            {reactionsEnabled && (
-              <ReactionPill
-                reactions={post.reactions}
-                onAdd={addReactionAction.bind(null, post.id)}
-                onRemove={removeReactionAction.bind(null, post.id)}
-                canReact={canReact}
-              />
-            )}
-
-            {/* Secondary linkUrl card (legacy edge case: both AM + link populated). */}
-            {secondaryCta}
+            <strong style={{ fontSize: 'var(--text-sm)' }}>{post.author.displayName}</strong>
+            <time
+              className="gps-meta"
+              dateTime={new Date(post.createdAt).toISOString()}
+              suppressHydrationWarning
+              style={{ display: 'block' }}
+            >
+              {relativeTime}
+            </time>
           </div>
-
-          {/* Right rail of social CTA placeholders (D065-proposed; placeholders only). */}
-          <SecondaryCtaRail size="detail" />
         </div>
+
+        {/* Horizontal share-bar — WhatsApp lead pill + X/IG/FB socials.
+        Placed prominently between the author row and the primary CTA so
+        every visitor sees the share affordances above the fold. Mirrors
+        the share group on the PostCard (which renders the same set
+        vertically in the right rail). */}
+        <div style={{ marginBottom: 'var(--space-4)' }}>
+          <PostShareGroup
+            postId={post.id}
+            postTitle={post.title}
+            postBody={post.body}
+            variant="detail-bar"
+          />
+        </div>
+
+        {/* Primary CTA — top of content (D060 §3a / D065-proposed). */}
+        {primaryCta}
+
+        {/* Hero image (BU-post-hero-demo / D064). Larger than card; hero
+        wins over linkImageUrl for the top-of-detail slot. */}
+        {post.heroImageUrl && (
+          <img
+            src={post.heroImageUrl}
+            alt=""
+            loading="lazy"
+            data-testid="post-detail-hero-image"
+            style={{
+              display: 'block',
+              width: '100%',
+              maxHeight: '480px',
+              objectFit: 'cover',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: 'var(--space-4)',
+            }}
+          />
+        )}
+
+        <h1 className="gps-title" style={{ marginBottom: 'var(--space-3)' }}>
+          {post.title}
+        </h1>
+
+        <div className="gps-card__body">
+          {paragraphs.map((paragraph, i) => (
+            <p key={i} style={i > 0 ? { marginTop: 'var(--space-3)' } : undefined}>
+              {paragraph}
+            </p>
+          ))}
+        </div>
+
+        {reactionsEnabled && (
+          <ReactionPill
+            reactions={post.reactions}
+            onAdd={addReactionAction.bind(null, post.id)}
+            onRemove={removeReactionAction.bind(null, post.id)}
+            canReact={canReact}
+          />
+        )}
+
+        {/* Secondary linkUrl card (legacy edge case: both AM + link populated). */}
+        {secondaryCta}
       </article>
 
       {/* Discussion thread */}

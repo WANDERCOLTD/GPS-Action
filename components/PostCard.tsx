@@ -22,7 +22,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { MessageSquare } from 'lucide-react';
 import { ReactionPill } from '@/components/ReactionPill';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
-import { SecondaryCtaRail } from '@/components/SecondaryCtaRail';
+import { PostShareGroup } from '@/components/PostShareGroup';
 
 // ── Types (shared with FeedList and feed page) ──────────────────────────
 
@@ -399,8 +399,14 @@ export const PostCard: FC<PostCardProps> = ({
           {secondaryCta}
         </div>
 
-        {/* Right rail of social CTA placeholders (D065-proposed; placeholders only). */}
-        <SecondaryCtaRail size="card" />
+        {/* Right rail of share affordances — WhatsApp (lead) + socials.
+        Mirrors the detail page's horizontal share-bar but in vertical card form. */}
+        <PostShareGroup
+          postId={post.id}
+          postTitle={post.title}
+          postBody={post.body}
+          variant="card-rail"
+        />
       </div>
     </article>
   );

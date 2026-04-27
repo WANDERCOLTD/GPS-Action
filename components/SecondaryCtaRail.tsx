@@ -2,8 +2,9 @@
  * @build-unit BU-secondary-cta-placeholders
  * @spec architecture/decision-log.md (D065 — proposed)
  *
- * Vertical rail of secondary social CTAs (placeholders for now). Sits on the
- * right edge of the post card and detail view alongside the primary CTA.
+ * Rail of secondary social CTAs (placeholders for now). Renders either as
+ * a vertical column (right-rail on the post card) or a horizontal row
+ * (top share-bar on the post detail page) per the `layout` prop.
  *
  * Ships before D065's Action[] schema lands — every post gets the same three
  * placeholder icons (X, Instagram, Facebook). Each icon is an <a> to the
@@ -93,18 +94,24 @@ const PLATFORMS: PlatformLink[] = [
 interface SecondaryCtaRailProps {
   /** Visual size — `card` for the feed, `detail` slightly larger. */
   size?: 'card' | 'detail';
+  /** Stack direction. `vertical` for the right-rail; `horizontal` for a top-bar. */
+  layout?: 'vertical' | 'horizontal';
 }
 
-export const SecondaryCtaRail: FC<SecondaryCtaRailProps> = ({ size = 'card' }) => {
+export const SecondaryCtaRail: FC<SecondaryCtaRailProps> = ({
+  size = 'card',
+  layout = 'vertical',
+}) => {
   const buttonSize = size === 'detail' ? 36 : 28;
 
   return (
     <nav
       data-testid="post-secondary-cta-rail"
-      aria-label="Share this post"
+      aria-label="Share this post on social"
+      data-layout={layout}
       style={{
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: layout === 'horizontal' ? 'row' : 'column',
         gap: 'var(--space-2)',
         alignItems: 'center',
         flexShrink: 0,

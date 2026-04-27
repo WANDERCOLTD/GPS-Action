@@ -69,6 +69,14 @@
   --colour-cultural-subtle: #f3e8ec;
   --colour-cultural-contrast: #ffffff;
 
+  /* ─── COLOURS · THIRD-PARTY BRANDS ────────────────────────────────── */
+  /* Trademarked brand colours that cannot be substituted with semantic
+     tokens. Reserved for platform-identity affordances like the
+     WhatsApp share button. Do not use for app-internal UI. */
+
+  --colour-brand-whatsapp: #25d366; /* WhatsApp green — trademark */
+  --colour-brand-whatsapp-contrast: #ffffff;
+
   /* ─── COLOURS · SURFACES ──────────────────────────────────────────── */
 
   --colour-surface-canvas: #f4f1ea; /* page background — warm cream */
