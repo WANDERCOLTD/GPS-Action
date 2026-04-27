@@ -18,12 +18,17 @@ import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import type { FeedPost, FeedCursor, FeedReactionEmoji } from '@/components/PostCard';
 import type { LoadMoreResult } from '@/components/FeedList';
+import type { FeedFilter } from '@/shared/feed-filters';
 
-export async function loadMorePosts(cursor: FeedCursor): Promise<LoadMoreResult> {
+export async function loadMorePosts(
+  filter: FeedFilter,
+  cursor: FeedCursor,
+): Promise<LoadMoreResult> {
   const ctx = await createTRPCContext();
   const caller = createCaller(ctx);
 
   const result = await caller.post.list({
+    filter,
     cursor: {
       createdAt: new Date(cursor.createdAt),
       id: cursor.id,

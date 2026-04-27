@@ -130,16 +130,20 @@ BU reference in any doc, consult D051 to translate it.
 steadily through April 2026 — Reactions, Comments, Reactions-on-
 comments, Link share, Requests foundation + Urgent, FAB intent picker,
 Admin CRUD + audit + bulk-ops, Vetting Phase 1, AM-link collapse,
-Hero images, Versioning. F14 testid rule is now enforced. See
-`docs/build/bu-sequence.md` for the canonical ship list.
+Hero images, Versioning, Sticky nav, WhatsApp share. F14 testid rule
+is now enforced. See `docs/build/bu-sequence.md` for the canonical
+ship list.
 
-**In flight:** BU-sticky-nav (`feat/bu-sticky-nav`).
+**In flight:** BU-feed-filter (`feat/feed-filter-and-search`) — chip
+strip replaces the `<h1>Feed</h1>` on `/feed`. URL-driven, single-
+active. Five chips: All · ⚡ Urgent · Happening now · Meetings · Events.
 
 **Next BU candidates (unshipped briefs):**
 
-- BU-whatsapp-share — one-tap WhatsApp forward from PostCard. Tagged
-  CRITICAL (1-click sharing) elsewhere in this file. Brief at
-  `docs/build/session-briefs/bu-whatsapp-share.md`.
+- BU-search-surface — app-wide member search overlay (magnifier in
+  `AppNav` → full-screen `/search`). Pre-build decisions still open.
+  Research at `docs/product/research/search-surfaces.md`. Brief stub
+  at `docs/build/session-briefs/bu-search-surface.md`.
 
 User decision needed before starting any new BU. The wider Phase 2/3
 queue lives in `bu-sequence.md`; parking-lot has product candidates

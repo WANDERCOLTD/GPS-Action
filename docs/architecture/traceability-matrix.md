@@ -50,6 +50,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-error-boundary | 2 | — | D003, D037, D065 |
 | BU-fab-intent-picker | 7 | SCN-18, SCN-19 | D044, D045, D048, D060, D061, D062, D064 |
 | BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060, D064 |
+| BU-feed-filter | 2 | — | — |
 | BU-healthcheck | 3 | — | D037 |
 | BU-link-share | 5 | SCN-19 | D045, D048, D060, D061, D062, D064 |
 | BU-post-hero-demo | 6 | SCN-19 | D045, D048, D060, D062, D064 |

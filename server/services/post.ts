@@ -16,6 +16,7 @@ import { isAllowedHeroImageUrl } from '@/shared/seed-images';
 import { auditLog } from '@/server/services/audit';
 import { listReactionsForPosts, type ReactionAggregate } from '@/server/services/reaction';
 import { listCommentCountsForPosts } from '@/server/services/comment';
+import type { FeedFilter } from '@/shared/feed-filters';
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -70,12 +71,27 @@ interface ListPostsInput {
   limit?: number;
   /** Null when the caller is unauthenticated. */
   callerId: string | null;
+  filter?: FeedFilter;
 }
 
 // ── Service ──────────────────────────────────────────────────────────────
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
+
+function filterToWhere(filter: FeedFilter | undefined): Record<string, unknown> {
+  switch (filter) {
+    case undefined:
+    case 'all':
+      return {};
+    case 'urgent':
+      return { urgency: true };
+    case 'happening_now':
+    case 'meeting':
+    case 'event':
+      return { kind: { slug: filter } };
+  }
+}
 
 export async function listPosts(input: ListPostsInput): Promise<ListPostsResult> {
   const limit = Math.min(input.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
@@ -97,10 +113,13 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
       }
     : {};
 
+  const filterWhere = filterToWhere(input.filter);
+
   const posts = await prisma.post.findMany({
     where: {
       deletedAt: null,
       visibility: { in: visibilityFilter },
+      ...filterWhere,
       ...cursorWhere,
     },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
