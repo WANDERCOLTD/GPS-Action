@@ -52,25 +52,51 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **F15** (Design token enforcement + retrofit) | ✅ Merged | Components use `var(--…)` tokens |
 | **Session hygiene discipline** | ✅ Committed | Context management process |
 
-**Outstanding from Phase 0 / foundations:**
+**Phase 2 shipped (April 2026 onwards):**
 
-| Item | Status | Notes |
+| Item | Status | PR |
 |---|---|---|
-| **F14** (Require `data-testid` on interactive elements) | ⚠️ Partial | Brief written (`session-briefs/f14-require-testid.md`); lint rule not yet enforced |
+| **F14** (Require `data-testid` on interactive elements) | ✅ Merged | #43 |
+| **BU-reactions** (Quiet 8-emoji multi-select on posts) | ✅ Merged | #46 |
+| **BU-comments** (Post detail page + flat thread) | ✅ Merged | #52 |
+| **BU-trace** (Traceability matrix + scripts) | ✅ Merged | #54 |
+| **Reactions on comments** (D052 schema-ready UI) | ✅ Merged | #56 |
+| **CI hardening** (BU-coverage + BU-migrate-ci, F07+F08) | ✅ Merged | #60 |
+| **BU-seed** (Deterministic Prisma seed script, F10) | ✅ Merged | #62 |
+| **Shell foundations** (BU-error-boundary + BU-healthcheck, F11+F12) | ✅ Merged | #63 |
+| **Random Thought log** (RT capture-and-investigate stream) | ✅ Merged | #66 |
+| **BU-link-share** (Schema + LinkPreviewCard + composer) | ✅ Merged | #70 |
+| **BU-requests-foundation** (Schema rename + scope middleware + /requests + /data + /settings) | ✅ Merged | #74 |
+| **BU-requests-urgent** (Alerts + claim/resolve + FAB tile, SCN-23) | ✅ Merged | #75 |
+| **BU-fab-intent-picker** (Single FAB + orthogonal alert + Send-for-Review, D062 revised + D063) | ✅ Merged | #78 |
+| **BU-admin-crud** (Generic CRUD UI for admin /data routes) | ✅ Merged | #79 |
+| **BU-requests-vetting Phase 1** (Comments + audience + @mentions + Notification) | ✅ Merged | #81 |
+| **BU-admin-audit-integration** (Wire AuditLog into mutations) | ✅ Merged | #84 |
+| **Composer polish** (Per-intent banner, reorder, IntentBanner reopens picker, undecided chips, stable H1) | ✅ Merged | #85, #91, #93, #94 |
+| **BU-admin-bulk-ops** (Checkbox selection + bulk mutations) | ✅ Merged | #86 |
+| **BU-am-link-collapse** (Fold AM into linkUrl + auto-detect) | ✅ Merged | #89 |
+| **BU-post-hero-demo** (Hero images on Post — schema + picker + render, D064) | ✅ Merged | #95 |
+| **BU-versioning** (App version badge + CI bump check + healthz metadata) | ✅ Merged | #101 |
+| **PostToolUse hook** (Surface current branch after every Bash) | ✅ Merged | #102 |
+
+**Outstanding from Phase 0 / foundations:** none (F14 shipped #43).
 
 ---
 
 ## Next BU — undecided
 
-Demo path is done. Next BU should be picked before more work starts.
-Highest demo-leverage candidates:
+Phase 2 is well advanced. From today's unshipped briefs:
 
-- **Reactions** — unblocks Scenarios 1, 3 in `docs/product/scenarios.md`.
-  Schema is part of ERD Slice 2 full (BU-comments + BU-reactions + BU-attachments below). Smaller scope.
-- **FAB composer + urgent-action templates** (per D044) — unblocks
-  Scenarios 7–9. Larger scope; replaces the current `/compose` form.
+- **BU-whatsapp-share** — one-tap WhatsApp forward from every PostCard.
+  Brief dated 2026-04-27, single-component scope, low risk. Tagged
+  CRITICAL (1-click sharing) in CLAUDE.md mandatory-reading section.
+  Strong demo amplifier — converts "look at this post" into "watch me
+  forward it to my group in one tap."
 
-Either is a legitimate next step. Decision belongs to Paul.
+In flight: **BU-sticky-nav** (`feat/bu-sticky-nav`).
+
+For BUs not yet briefed, the Phase 2/3/4 schedule further down lays
+out the queue. Decision belongs to Paul.
 
 ---
 
