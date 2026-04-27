@@ -22,8 +22,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 interface AppNavProps {
-  /** True when the caller has any reviewer scope (queue_manager role/scope). */
-  hasReviewerAccess?: boolean;
   /** Unread Notification count (BU-requests-vetting / D057). Renders a red dot when > 0. */
   unreadNotificationCount?: number;
 }
@@ -47,6 +45,8 @@ const linkStyle: CSSProperties = {
   fontSize: 'var(--text-sm)',
   fontFamily: 'var(--font-ui)',
   borderRadius: 'var(--radius-sm)',
+  flexShrink: 0,
+  whiteSpace: 'nowrap',
 };
 
 const activeStyle: CSSProperties = {
@@ -55,7 +55,7 @@ const activeStyle: CSSProperties = {
   fontWeight: 600,
 };
 
-export function AppNav({ hasReviewerAccess = false, unreadNotificationCount = 0 }: AppNavProps) {
+export function AppNav({ unreadNotificationCount = 0 }: AppNavProps) {
   const active = deriveActive(usePathname());
 
   return (
@@ -65,9 +65,11 @@ export function AppNav({ hasReviewerAccess = false, unreadNotificationCount = 0 
         display: 'flex',
         gap: 'var(--space-2)',
         padding: 'var(--space-2) var(--space-4)',
-        flexWrap: 'wrap',
+        flexWrap: 'nowrap',
+        overflowX: 'auto',
         alignItems: 'center',
         flex: 1,
+        minWidth: 0,
       }}
     >
       <Link
@@ -87,7 +89,7 @@ export function AppNav({ hasReviewerAccess = false, unreadNotificationCount = 0 
           gap: 'var(--space-1)',
         }}
       >
-        Requests{hasReviewerAccess ? ' (reviewer)' : ''}
+        Requests
         {unreadNotificationCount > 0 && (
           <span
             data-testid="nav-requests-unread-dot"
