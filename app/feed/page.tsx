@@ -102,6 +102,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
     <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
       <FeedFilterChips active={filter} />
       <FeedList
+        key={filter}
         initialPosts={posts}
         initialCursor={cursor}
         loadMore={loadMorePosts.bind(null, filter)}
