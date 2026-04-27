@@ -214,6 +214,55 @@ A post attributed to Action on Antisemitism might route to their networks too (i
 
 _Origin: partner-organisation feature absorbed this week._
 
+### PARKED · Automated WhatsApp cross-posting (beyond wa.me share intent)
+
+The current outbound-to-WhatsApp pattern is `wa.me/?text=…` — a one-tap share intent that opens the user's WhatsApp client with prefilled text and lets them pick a group. It's honest, ToS-clean, and zero-cost, but every send still costs the member one tap and one decision. This entry catalogues the server-side paths for going further, what each can and can't do, and the constraints that shape the choice.
+
+**The hard constraint:** WhatsApp's official APIs **cannot post into groups**. Groups remain a closed surface — only the WhatsApp client can write to them. Any "automated post into the activist groups" feature has to either (a) be a one-tap share intent the member triggers, or (b) violate ToS. There is no third option in 2026.
+
+**The option space:**
+
+| Path                                                            | Server-driven?      | Surface                                                                                                               | Free tier                                                     | Fit for GPS Action                                                                                                             |
+| --------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Meta Cloud API** (official Business Platform)                 | Yes                 | 1:1 conversations only — user must opt in via tap-to-chat or template, then 24h session window for free-form messages | 1,000 conversations/month free, then per-conversation pricing | Good fit for transactional 1:1s ("your post was approved", "urgent action in your region") — _not_ a group-dispatch substitute |
+| **WhatsApp Channels (via Cloud API)**                           | Yes                 | One-way broadcast channel, members subscribe, no replies                                                              | Free for the org running the channel                          | Suits org-level announcements (`GPS Action National Channel`); does not replace coordination groups, which need 2-way          |
+| **Twilio / MessageBird / Vonage wrappers**                      | Yes                 | Same upstream as Cloud API — same constraints                                                                         | Trial credits only; per-message pricing after                 | Easier DX for templated 1:1s, but no extra capability vs Cloud API direct                                                      |
+| **Unofficial libs** (Baileys, whatsapp-web.js)                  | Yes                 | Can write to groups by impersonating a real client                                                                    | Free (self-host)                                              | **DECLINED** — see existing entry below. Ban risk + ToS breach + trust erosion if a coordinator's number gets nuked            |
+| **Click-to-chat share intent** (`wa.me/…`, `whatsapp://send?…`) | No — needs user tap | Any chat the user can reach (groups included)                                                                         | Free                                                          | **Current MVP pattern.** One tap is the price of group reach being closed                                                      |
+
+**What automated cross-posting could realistically deliver:**
+
+1. **Org-level announcement channel.** GPS Action runs an official WhatsApp Channel; a "publish to org channel" toggle on Verified posts auto-broadcasts the title + link via Cloud API. Server-side, no human in the loop after the verdict. Reach is read-only subscribers, not coordination groups — so this _supplements_ wa.me, doesn't replace it.
+2. **Opt-in 1:1 nudges.** Members opt in to "WhatsApp me when an Urgent post lands in my region." Cloud API sends a templated message ("Urgent in NW London — open in app: <link>"). Honest copy required: it's a notification, not the act of dispatching.
+3. **Coordinator dispatch assist.** Coordinator hits "send to all my groups" — server still doesn't post into groups, but it can prefill _per-group_ wa.me intents in a stacked rail (one tap each), or pre-stage the message text + image in clipboard so the coordinator pastes once per group. Cuts dispatch from N taps × M groups to roughly M+1 taps.
+4. **Template library + analytics.** Cloud API requires pre-approved message templates for cold sends. Building a small library (urgent, weekly digest, vetting outcome, etc.) lets us measure delivery + read rates that wa.me doesn't expose.
+
+**What it cannot deliver (and why we should stop pretending it can):**
+
+- Posting into existing activist WhatsApp groups without a human tap. Closed surface. The only way is unofficial libs, which we've declined.
+- Replacing the coordination loops that currently happen in groups. Cloud API is point-to-point or broadcast-out — neither models group dynamics. Native group chat inside GPS Action (the entry at line ~543) is a separate question.
+- A single "share to all socials including WhatsApp groups" button. Aggregators like Ayrshare and Buffer cover X / FB / IG / LI / Bluesky / Threads at server level, but **none of them post to WhatsApp groups either** — same upstream constraint.
+
+**Open questions before this can promote out of PARKED:**
+
+1. Do we want Channels at all? It's a different shape from groups — broadcast, not coordination — and may dilute the "GPS Action replaces the WhatsApp loop" message rather than reinforce it.
+2. What's the opt-in flow for 1:1 nudges? Cloud API requires explicit opt-in per the platform's policy; capturing that during onboarding adds friction for a feature most members may never use.
+3. Cost ceiling. Cloud API is free up to 1,000 conversations/month; beyond that it's pay-per-conversation in tiers (~£0.03–£0.07 per marketing-template conversation in the UK, mid-2026 pricing). Pilot scale fits free tier; scale-up needs a budget call.
+4. Verification overhead. Cloud API needs a verified Meta Business account, a dedicated phone number not used elsewhere on WhatsApp, and template approval lead time (24–72h per template). Real ops cost, not just code.
+5. Do we trust members to opt-in honestly? If "WhatsApp me on urgent" gets toggled by default and silently floods, we erode the Sharon-warmth posture and the "permission to close the app" principle. Notification design matters as much as the API choice.
+
+**Trigger to revisit:** pilot data shows either (a) coordinators dispatching to >5 groups per Verified post (multi-tap fatigue measurable), (b) ≥30% of members request "tell me on WhatsApp when urgent", or (c) a partner org wants a Channel-style broadcast surface.
+
+**Related entries:**
+
+- `DECLINED · Auto-posting to WhatsApp groups via unofficial APIs` (below) — the bright line.
+- `DEFERRED (Phase 2) · WhatsApp Business API for Channel routes` (below) — the narrow Channels case, subsumed here.
+- `PARKED · LinkedIn / Telegram / WhatsApp Channels (Business API)` (below, in the post-MVP outbound section) — same Channels question viewed from the share-out-mechanics side.
+- `PARKED · Cross-platform amplification beyond WhatsApp` (above) — the multi-platform aggregator question (Ayrshare / Buffer / Postiz).
+- `D013` self-dispatch default and `D017` boost-as-post-plus-verdict — the dispatch posture this fits inside.
+
+_Origin: Paul's 2026-04-27 question — "what options do we have to create automated posts to WhatsApp if selected by the user? How could we achieve automated posting from the server to avoid the user having to click Post?" Answer: for groups, we can't (and shouldn't try); for Channels and 1:1, we can, with caveats above._
+
 ---
 
 ## Inbound sharing — share INTO GPS Action
@@ -538,6 +587,8 @@ Copy-link.
 **Trigger:** Members request a specific platform AND that platform has
 a usable share intent.
 
+_See also: `PARKED · Automated WhatsApp cross-posting (beyond wa.me share intent)` in the Dispatch & amplification section — covers the WhatsApp Channels case in depth._
+
 _Origin: share-out-mechanics.md, 23 April 2026._
 
 ### PARKED · Native group chat / group-private feeds
@@ -683,6 +734,8 @@ _Origin: original SRS §4.3._
 ### DEFERRED (Phase 2) · WhatsApp Business API for Channel routes
 
 Routes that are Channels (not groups) can automate. Needs Business verification, cost planning.
+
+_Subsumed by: `PARKED · Automated WhatsApp cross-posting (beyond wa.me share intent)` in the Dispatch & amplification section, which catalogues the full option space (Cloud API, Channels, 1:1 nudges, aggregator wrappers) and the open questions before this can promote._
 
 _Origin: §3.13 spec._
 
