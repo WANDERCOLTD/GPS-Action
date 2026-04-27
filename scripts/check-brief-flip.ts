@@ -33,16 +33,18 @@ function discoverSlugs(): Set<string> {
 }
 
 function extractBuRefs(text: string, knownSlugs: Set<string>): string[] {
-  // Strict: only match `BU-<kebab>` with explicit `BU-` prefix.
-  // Case-insensitive on the prefix but the captured slug is lowercased.
-  // Casual prose like "we should verify bu-foo's state" still matches because
-  // `\bbu-foo\b` is also legal — but we only call this on PR title + commit
-  // messages, where commit-style intent dominates and casual prose is rare.
+  // Strict: only match `BU-<kebab>` with literal uppercase `BU-` prefix.
+  // Convention in this repo: BU PR titles + commit subjects always use
+  // uppercase `BU-` for shipping intent; lowercase `bu-` is reserved
+  // for descriptive prose (commit-message bodies, parking-lot, RT log,
+  // etc). Case-sensitive matching enforces that convention as the
+  // signal-to-noise filter — without it, prose mentions in commit
+  // bodies trip the gate (B15 follow-up #3, surfaced by PRs #118-#120).
   const matches = new Set<string>();
-  const buRe = /\bBU-([a-z0-9][a-z0-9-]*)\b/gi;
+  const buRe = /\bBU-([a-z0-9][a-z0-9-]*)\b/g;
   for (const m of text.matchAll(buRe)) {
     if (!m[1]) continue;
-    const slug = `bu-${m[1].toLowerCase()}`;
+    const slug = `bu-${m[1]}`;
     if (knownSlugs.has(slug)) matches.add(slug);
   }
   return [...matches];
