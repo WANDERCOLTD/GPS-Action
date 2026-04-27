@@ -57,6 +57,9 @@ export interface FeedPost {
   kindDisplayName: string | null;
   /** Alert flag (D062 revised, orthogonal to kind). */
   urgency: boolean;
+  /** Member-picked hero image URL (BU-post-hero-demo / D064). Hero
+   * wins over linkImageUrl for the top-of-card slot when both exist. */
+  heroImageUrl: string | null;
   createdAt: string; // ISO 8601
   author: {
     displayName: string;
@@ -275,6 +278,25 @@ export const PostCard: FC<PostCardProps> = ({
 
       {/* Kind chip (BU-fab-intent-picker / D062) — only for kinds that warrant a visual badge */}
       <KindChip kindSlug={post.kindSlug} urgency={post.urgency} />
+
+      {/* Hero image (BU-post-hero-demo / D064). Hero wins over linkImageUrl
+          for top-of-card; the link card retains its own thumbnail below. */}
+      {post.heroImageUrl && (
+        <img
+          src={post.heroImageUrl}
+          alt=""
+          loading="lazy"
+          data-testid="post-card-hero-image"
+          style={{
+            display: 'block',
+            width: '100%',
+            aspectRatio: '16 / 9',
+            objectFit: 'cover',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: 'var(--space-3)',
+          }}
+        />
+      )}
 
       {/* Title */}
       <h2 className="gps-subtitle" style={{ marginBottom: 'var(--space-2)' }}>

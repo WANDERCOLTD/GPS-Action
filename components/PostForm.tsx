@@ -1,12 +1,13 @@
 'use client';
 
 /**
- * @build-unit BU-composer BU-link-share BU-fab-intent-picker BU-am-link-collapse
+ * @build-unit BU-composer BU-link-share BU-fab-intent-picker BU-am-link-collapse BU-post-hero-demo
  * @spec product/design-philosophy.md
  * @spec architecture/api-contract.md
- * @spec architecture/decision-log.md (D060, D062)
+ * @spec architecture/decision-log.md (D060, D062, D064)
  * @spec product/scenarios.md (SCN-19)
  * @spec build/session-briefs/bu-am-link-collapse.md
+ * @spec build/session-briefs/bu-post-hero-demo.md
  *
  * Post creation form. Client component — manages form state, calls
  * the createPostAction server action on submit.
@@ -19,6 +20,9 @@
  * BU-am-link-collapse: the dedicated <ActivistMailerField /> is gone.
  * Activist-Mailer URLs paste into the regular link-share field; the
  * preview card auto-detects AM domains at render time.
+ *
+ * BU-post-hero-demo: optional hero image picker between the body and
+ * the link-share section, populated from the seeded set per D064.
  */
 
 import { useState, useTransition, type CSSProperties, type ReactNode } from 'react';
@@ -35,6 +39,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import type { CreatePostResult } from '@/app/compose/actions';
+import { HeroImagePicker } from './HeroImagePicker';
 import { KindPickerSheet, TILES, type Tile } from './KindPickerSheet';
 
 export interface KindMapEntry {
@@ -188,6 +193,9 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
   const [shareLinkOpen, setShareLinkOpen] = useState(
     currentIntent === 'link_share' || currentIntent === 'call_to_action',
   );
+  // BU-post-hero-demo (D064): optional member-picked hero from the
+  // seeded set. null = no hero. Submitted via a hidden input below.
+  const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
 
   const resolvedKindId = selectedKind ? kindMap[selectedKind]?.id : undefined;
 
@@ -368,6 +376,16 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
           </p>
         )}
       </div>
+
+      {/* Hero image picker (BU-post-hero-demo / D064) — demo-only path,
+          seeded URLs only. Hidden input passes the value to FormData. */}
+      <HeroImagePicker value={heroImageUrl} onChange={setHeroImageUrl} disabled={isPending} />
+      <input
+        type="hidden"
+        name="heroImageUrl"
+        value={heroImageUrl ?? ''}
+        data-testid="compose-hero-image-input"
+      />
 
       {/* Share a link? (BU-link-share / D060 / SCN-19) */}
       {!meta.hideLinkToggle && (

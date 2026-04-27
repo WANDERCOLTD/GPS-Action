@@ -690,6 +690,15 @@ model Post {
   linkImageUrl    String?
   linkSiteName    String?
 
+  // Member-picked hero image (BU-post-hero-demo — D064). Distinct from
+  // linkImageUrl: linkImageUrl is fetched from the linked URL's og:image
+  // and refreshes when linkUrl changes; heroImageUrl is explicitly chosen
+  // by the member from the seeded demo set and is fixed once set. When
+  // both are present, hero wins for the top-of-card slot. Demo path uses
+  // a fixed allow-list (SEED_HERO_IMAGES); Phase 2 BU-image swaps that
+  // for real upload + S3 + moderation without changing the field shape.
+  heroImageUrl String?
+
   // Intent kind (BU-fab-intent-picker — D062). FK to managed PostKind table.
   // Code defines slugs; admin manages policy (isAlertEligible, displayName,
   // sortOrder) per row. See D062 for the orthogonality model.

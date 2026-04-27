@@ -140,6 +140,25 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
           </div>
         </div>
 
+        {/* Hero image (BU-post-hero-demo / D064). Larger than card; hero
+            wins over linkImageUrl for the top-of-detail slot. */}
+        {post.heroImageUrl && (
+          <img
+            src={post.heroImageUrl}
+            alt=""
+            loading="lazy"
+            data-testid="post-detail-hero-image"
+            style={{
+              display: 'block',
+              width: '100%',
+              maxHeight: '480px',
+              objectFit: 'cover',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: 'var(--space-4)',
+            }}
+          />
+        )}
+
         <h1 className="gps-title" style={{ marginBottom: 'var(--space-3)' }}>
           {post.title}
         </h1>

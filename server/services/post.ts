@@ -1,7 +1,7 @@
 /**
- * @build-unit BU-feed BU-composer BU-link-share
+ * @build-unit BU-feed BU-composer BU-link-share BU-post-hero-demo
  * @spec product/post-creation-flow.md
- * @spec architecture/decision-log.md (D045, D048, D060)
+ * @spec architecture/decision-log.md (D045, D048, D060, D064)
  *
  * Post service — business logic for listing and creating posts.
  * Handles visibility filtering, soft-delete exclusion, cursor
@@ -12,6 +12,7 @@
 import type { PostVisibility, SystemRole } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import type { PostCreateInput } from '@/shared/validation/post';
+import { isAllowedHeroImageUrl } from '@/shared/seed-images';
 import { auditLog } from '@/server/services/audit';
 import { listReactionsForPosts, type ReactionAggregate } from '@/server/services/reaction';
 import { listCommentCountsForPosts } from '@/server/services/comment';
@@ -48,6 +49,8 @@ export interface PostListItem {
   isAlertEligibleKind: boolean;
   /** Alert flag (D062 revised, orthogonal to kind). */
   urgency: boolean;
+  /** Member-picked hero image URL (BU-post-hero-demo / D064). */
+  heroImageUrl: string | null;
   groupTags: string[];
   createdAt: Date;
   author: PostAuthor;
@@ -149,6 +152,7 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
     kindDisplayName: post.kind?.displayName ?? null,
     isAlertEligibleKind: post.kind?.isAlertEligible ?? false,
     urgency: post.urgency,
+    heroImageUrl: post.heroImageUrl,
     groupTags: post.groupTags,
     createdAt: post.createdAt,
     author: {
@@ -183,6 +187,15 @@ export async function createPost(
     urgency = false;
   }
 
+  // D064: defence-in-depth — schema validator already enforces the
+  // allow-list, but verify here too in case the service is called from
+  // a path that bypasses Zod (e.g. seed scripts using the raw input
+  // shape). Empty/undefined → null.
+  const heroImageUrl = input.heroImageUrl?.trim() || null;
+  if (heroImageUrl !== null && !isAllowedHeroImageUrl(heroImageUrl)) {
+    throw new Error('heroImageUrl must be one of the seeded demo images');
+  }
+
   const post = await prisma.post.create({
     data: {
       title: input.title,
@@ -195,6 +208,7 @@ export async function createPost(
       linkSiteName: input.linkSiteName?.trim() || null,
       kindId: input.kindId?.trim() || null,
       urgency,
+      heroImageUrl,
       visibility: input.visibility,
       authorId,
     },
@@ -212,6 +226,7 @@ export async function createPost(
       visibility: input.visibility,
       hasActivistMailerUrl: Boolean(input.activistMailerUrl),
       hasLinkUrl: Boolean(input.linkUrl),
+      hasHeroImageUrl: Boolean(heroImageUrl),
       kindId: input.kindId ?? null,
       urgency,
     },
