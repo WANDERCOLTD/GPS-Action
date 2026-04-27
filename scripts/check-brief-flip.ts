@@ -5,12 +5,18 @@
  * @build-unit BU-brief-status-mechanism
  * @spec architecture/decision-log.md (D068)
  *
- * CI gate. If the PR title or body references `BU-<slug>` matching an
- * existing brief, verify the brief's `status:` flipped to `shipped` in
- * this PR's diff. Fails otherwise. Mirrors version-check.yml's
- * enforcement model.
+ * CI gate. If the PR title or any commit message on the branch contains a
+ * literal `BU-<slug>` reference matching an existing brief, verify the
+ * brief's `status:` flipped to `shipped` in this PR's diff. Fails otherwise.
+ * Mirrors version-check.yml's enforcement model.
  *
- * Reads env: PR_TITLE, PR_BODY, BASE_SHA, HEAD_SHA.
+ * Detection scope: PR title + commit messages (`git log base..head`).
+ * **Not** the PR body — descriptive prose there often mentions slugs
+ * without intending to ship them (B15 follow-up surfaced this in PR #118
+ * / #119). The signal we want is commit-style intent, not free-text
+ * references.
+ *
+ * Reads env: PR_TITLE, BASE_SHA, HEAD_SHA. (PR_BODY no longer consulted.)
  */
 
 import { execSync } from 'child_process';
@@ -27,21 +33,27 @@ function discoverSlugs(): Set<string> {
 }
 
 function extractBuRefs(text: string, knownSlugs: Set<string>): string[] {
+  // Strict: only match `BU-<kebab>` with explicit `BU-` prefix.
+  // Case-insensitive on the prefix but the captured slug is lowercased.
+  // Casual prose like "we should verify bu-foo's state" still matches because
+  // `\bbu-foo\b` is also legal — but we only call this on PR title + commit
+  // messages, where commit-style intent dominates and casual prose is rare.
   const matches = new Set<string>();
-  // Match BU-<slug>, F<NN>, or erd-slice-<n>(-<n>)? — anything that maps to a brief slug.
-  const re = /\b(?:BU-|F)?[a-z0-9-]+(?:-[a-z0-9-]+)*\b/gi;
-  for (const raw of text.match(re) ?? []) {
-    const lower = raw.toLowerCase();
-    // Try as-is, with bu- prefix, and as f-rule prefix
-    const candidates = [lower, `bu-${lower}`, `bu-${lower.replace(/^bu-/, '')}`];
-    for (const c of candidates) {
-      if (knownSlugs.has(c)) {
-        matches.add(c);
-        break;
-      }
-    }
+  const buRe = /\bBU-([a-z0-9][a-z0-9-]*)\b/gi;
+  for (const m of text.matchAll(buRe)) {
+    if (!m[1]) continue;
+    const slug = `bu-${m[1].toLowerCase()}`;
+    if (knownSlugs.has(slug)) matches.add(slug);
   }
   return [...matches];
+}
+
+function commitMessages(base: string, head: string): string {
+  try {
+    return execSync(`git log ${base}..${head} --format=%B`, { encoding: 'utf8' });
+  } catch {
+    return '';
+  }
 }
 
 function diffContainsFlip(slug: string, base: string, head: string): boolean {
@@ -70,7 +82,6 @@ function alreadyShippedOnBase(slug: string, base: string): boolean {
 
 function main(): void {
   const title = process.env.PR_TITLE ?? '';
-  const body = process.env.PR_BODY ?? '';
   const base = process.env.BASE_SHA;
   const head = process.env.HEAD_SHA;
   if (!base || !head) {
@@ -79,10 +90,11 @@ function main(): void {
   }
 
   const knownSlugs = discoverSlugs();
-  const refs = extractBuRefs(`${title}\n${body}`, knownSlugs);
+  const haystack = `${title}\n${commitMessages(base, head)}`;
+  const refs = extractBuRefs(haystack, knownSlugs);
 
   if (refs.length === 0) {
-    console.log('No BU-* refs in PR title/body. Skipping ship-flip check.');
+    console.log('No BU-* refs in PR title or commit messages. Skipping ship-flip check.');
     return;
   }
 

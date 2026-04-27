@@ -6,9 +6,12 @@ name: brief-status-check
 #      AUTOGEN regions in docs/build/bu-sequence.md must reflect
 #      current front-matter on every brief.
 #
-#   2. Ship-flip enforcement — if the PR title or body references
-#      `BU-<slug>`, the matching brief must have status flipped to
-#      `shipped` in this PR's diff. Mirrors the version-bump gate.
+#   2. Ship-flip enforcement — if the PR title or any commit message
+#      on the branch contains a literal `BU-<slug>` reference, the
+#      matching brief must have status flipped to `shipped` in this
+#      PR's diff. Mirrors the version-bump gate. The PR body is
+#      deliberately not consulted (B15 follow-up: free-text body
+#      mentions caused false positives in PR #118 / #119).
 #
 # Why both: trackers:check catches any front-matter change that wasn't
 # regenerated; the ship-flip script catches BU PRs that forgot to flip
@@ -39,7 +42,6 @@ jobs:
       - name: Brief ship-flip enforcement
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BODY: ${{ github.event.pull_request.body }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: npx tsx scripts/check-brief-flip.ts
