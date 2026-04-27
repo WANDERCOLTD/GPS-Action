@@ -523,6 +523,21 @@ the CI gate enforced the flip before merge.
   nice-to-have, not blocking. Coverage targets: idempotence, AUTOGEN
   region preservation, `--check` exit code, BU-ref regex, ship-flip
   detection in a sample diff.
+- **Tighten the ship-flip detector regex (PR #118 surfaced false
+  positive).** The detector in `scripts/check-brief-flip.ts` matches
+  any brief slug that appears anywhere in PR title or body. PR #118
+  mentioned `bu-composer-link-first` as a follow-up *to verify* and
+  the gate demanded the brief be flipped to shipped. Fix: require a
+  stronger positional signal — e.g. only match in commit-style header
+  positions (`feat(...): ... BU-<slug>`) or in the conventional-commit
+  prefix of the PR title, not free-text body mentions. Add a
+  regression test against PR #118's body text.
+- **Add `brief-status` to repo branch-protection required checks.**
+  PR #118 merged despite the gate's red ✗ — the workflow ran but
+  isn't in the required-checks list, so it's advisory only. Until
+  added, the gate cannot block merge. (GitHub repo settings →
+  Branches → branch protection rule for `main` → require these
+  status checks.)
 
 ---
 
