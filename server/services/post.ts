@@ -225,12 +225,12 @@ export async function createPost(
   // otherwise. Resolve the kind's slug once so the invariant runs against
   // the same row the create will reference.
   const kindSlug = input.kindId
-    ? (
+    ? ((
         await prisma.postKind.findUnique({
           where: { id: input.kindId },
           select: { slug: true },
         })
-      )?.slug ?? null
+      )?.slug ?? null)
     : null;
   if (kindSlug === 'tick_or_cross' && !input.signal) {
     throw new Error('signal is required for tick_or_cross posts');

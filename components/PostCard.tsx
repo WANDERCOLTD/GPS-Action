@@ -401,10 +401,7 @@ export const PostCard: FC<PostCardProps> = ({
 
           {/* BU-tick-or-cross / D069 — amplify/flag glyph + sent-pill row */}
           {post.signal && (
-            <SignalBadgeRow
-              signal={post.signal}
-              sharedToNetworkAt={post.sharedToNetworkAt}
-            />
+            <SignalBadgeRow signal={post.signal} sharedToNetworkAt={post.sharedToNetworkAt} />
           )}
 
           {/* Hero image (BU-post-hero-demo / D064). Hero wins over linkImageUrl

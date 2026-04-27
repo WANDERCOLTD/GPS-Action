@@ -120,12 +120,16 @@ describe('post.markSharedToNetwork (D069)', () => {
     mockPostUpdate.mockResolvedValue({} as never);
 
     const caller = createCaller(callerCtx);
-    const result = await caller.post.markSharedToNetwork({ postId: '11111111-1111-4111-8111-111111111111' });
+    const result = await caller.post.markSharedToNetwork({
+      postId: '11111111-1111-4111-8111-111111111111',
+    });
 
     expect(result.alreadyShared).toBe(false);
     expect(result.sharedToNetworkAt).toBeInstanceOf(Date);
     expect(mockPostUpdate).toHaveBeenCalledTimes(1);
-    expect(mockPostUpdate.mock.calls[0]?.[0]?.where.id).toBe('11111111-1111-4111-8111-111111111111');
+    expect(mockPostUpdate.mock.calls[0]?.[0]?.where.id).toBe(
+      '11111111-1111-4111-8111-111111111111',
+    );
   });
 
   it('is a no-op on second call (returns alreadyShared=true)', async () => {
@@ -137,7 +141,9 @@ describe('post.markSharedToNetwork (D069)', () => {
     } as never);
 
     const caller = createCaller(callerCtx);
-    const result = await caller.post.markSharedToNetwork({ postId: '11111111-1111-4111-8111-111111111111' });
+    const result = await caller.post.markSharedToNetwork({
+      postId: '11111111-1111-4111-8111-111111111111',
+    });
 
     expect(result.alreadyShared).toBe(true);
     expect(result.sharedToNetworkAt).toEqual(firstStamp);
@@ -147,9 +153,9 @@ describe('post.markSharedToNetwork (D069)', () => {
   it('throws when the post does not exist', async () => {
     mockPostFindUnique.mockResolvedValue(null);
     const caller = createCaller(callerCtx);
-    await expect(caller.post.markSharedToNetwork({ postId: '22222222-2222-4222-8222-222222222222' })).rejects.toThrow(
-      'post not found',
-    );
+    await expect(
+      caller.post.markSharedToNetwork({ postId: '22222222-2222-4222-8222-222222222222' }),
+    ).rejects.toThrow('post not found');
   });
 
   it('throws when the post is soft-deleted', async () => {
@@ -159,8 +165,8 @@ describe('post.markSharedToNetwork (D069)', () => {
       deletedAt: new Date(),
     } as never);
     const caller = createCaller(callerCtx);
-    await expect(caller.post.markSharedToNetwork({ postId: '11111111-1111-4111-8111-111111111111' })).rejects.toThrow(
-      'post not found',
-    );
+    await expect(
+      caller.post.markSharedToNetwork({ postId: '11111111-1111-4111-8111-111111111111' }),
+    ).rejects.toThrow('post not found');
   });
 });

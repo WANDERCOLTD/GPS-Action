@@ -760,7 +760,11 @@ export function PostForm({
         />
       )}
       {handoff && !networkChannelUrl && (
-        <div role="alert" data-testid="compose-send-to-network-missing-config" style={{ display: 'none' }}>
+        <div
+          role="alert"
+          data-testid="compose-send-to-network-missing-config"
+          style={{ display: 'none' }}
+        >
           {/* Channel URL not configured — modal cannot open. The post is still
               saved; the card-side retry CTA can drive the handoff once the
               env var is set. Hidden node retained for tests. */}

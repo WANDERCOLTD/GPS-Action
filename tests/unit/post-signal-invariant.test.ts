@@ -53,10 +53,7 @@ describe('createPost — signal/kind invariant (D069)', () => {
   it('rejects signal=promote without a tick_or_cross kind', async () => {
     mockKindFindUnique.mockResolvedValue({ slug: 'thought' } as never);
     await expect(
-      createPost(
-        { ...baseInput, kindId: 'kind-thought', signal: 'promote' },
-        'user-1',
-      ),
+      createPost({ ...baseInput, kindId: 'kind-thought', signal: 'promote' }, 'user-1'),
     ).rejects.toThrow('signal is only valid for tick_or_cross posts');
     expect(mockPostCreate).not.toHaveBeenCalled();
   });
@@ -64,28 +61,22 @@ describe('createPost — signal/kind invariant (D069)', () => {
   it('rejects signal=remove without a tick_or_cross kind', async () => {
     mockKindFindUnique.mockResolvedValue({ slug: 'happening_now' } as never);
     await expect(
-      createPost(
-        { ...baseInput, kindId: 'kind-happening', signal: 'remove' },
-        'user-1',
-      ),
+      createPost({ ...baseInput, kindId: 'kind-happening', signal: 'remove' }, 'user-1'),
     ).rejects.toThrow('signal is only valid for tick_or_cross posts');
     expect(mockPostCreate).not.toHaveBeenCalled();
   });
 
   it('rejects signal absent on a tick_or_cross kind', async () => {
     mockKindFindUnique.mockResolvedValue({ slug: 'tick_or_cross' } as never);
-    await expect(
-      createPost({ ...baseInput, kindId: 'kind-tc' }, 'user-1'),
-    ).rejects.toThrow('signal is required for tick_or_cross posts');
+    await expect(createPost({ ...baseInput, kindId: 'kind-tc' }, 'user-1')).rejects.toThrow(
+      'signal is required for tick_or_cross posts',
+    );
     expect(mockPostCreate).not.toHaveBeenCalled();
   });
 
   it('accepts signal=promote on a tick_or_cross kind', async () => {
     mockKindFindUnique.mockResolvedValue({ slug: 'tick_or_cross' } as never);
-    await createPost(
-      { ...baseInput, kindId: 'kind-tc', signal: 'promote' },
-      'user-1',
-    );
+    await createPost({ ...baseInput, kindId: 'kind-tc', signal: 'promote' }, 'user-1');
     expect(mockPostCreate).toHaveBeenCalledTimes(1);
     const call = mockPostCreate.mock.calls[0]?.[0];
     expect(call?.data.signal).toBe('promote');
@@ -94,18 +85,15 @@ describe('createPost — signal/kind invariant (D069)', () => {
 
   it('accepts signal=remove on a tick_or_cross kind', async () => {
     mockKindFindUnique.mockResolvedValue({ slug: 'tick_or_cross' } as never);
-    await createPost(
-      { ...baseInput, kindId: 'kind-tc', signal: 'remove' },
-      'user-1',
-    );
+    await createPost({ ...baseInput, kindId: 'kind-tc', signal: 'remove' }, 'user-1');
     expect(mockPostCreate).toHaveBeenCalledTimes(1);
     expect(mockPostCreate.mock.calls[0]?.[0]?.data.signal).toBe('remove');
   });
 
   it('rejects signal when no kindId is supplied at all', async () => {
-    await expect(
-      createPost({ ...baseInput, signal: 'promote' }, 'user-1'),
-    ).rejects.toThrow('signal is only valid for tick_or_cross posts');
+    await expect(createPost({ ...baseInput, signal: 'promote' }, 'user-1')).rejects.toThrow(
+      'signal is only valid for tick_or_cross posts',
+    );
     expect(mockPostCreate).not.toHaveBeenCalled();
   });
 
