@@ -54,7 +54,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-link-share | 5 | SCN-19 | D045, D048, D060, D061, D062, D064 |
 | BU-post-hero-demo | 6 | SCN-19 | D045, D048, D060, D062, D064 |
 | BU-reactions | 9 | SCN-3, SCN-20 | D036, D050, D052 |
-| BU-requests-foundation | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061, D065 |
+| BU-requests-foundation | 6 | SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D065 |
 | BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061 |
 | BU-requests-vetting | 7 | SCN-20, SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061 |
 | BU-secondary-cta-placeholders | 1 | — | DNaN |
@@ -77,8 +77,8 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D045 | Public-by-default post visibility with author override | 4 |
 | D048 | Post axes taxonomy + deferred PostType | 2 |
 | D050 | Reaction schema, fixed 8-emoji set, polymorphic target | 7 |
-| D052 | Comment schema + polymorphic reuse of ReactionTargetType | 13 |
-| D054 | Request entity (the unified "things needing decision/discussion" surface) | 6 |
+| D052 | Comment schema + polymorphic reuse of ReactionTargetType | 14 |
+| D054 | Request entity (the unified "things needing decision/discussion" surface) | 7 |
 | D055 | Per-type role scopes (granular reviewer permissions) | 3 |
 | D056 | Comment audience model (reviewer-internal vs all-participant) | 5 |
 | D057 | Notifications entity + in-app delivery | 7 |
