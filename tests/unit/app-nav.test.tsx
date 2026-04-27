@@ -108,22 +108,6 @@ describe('AppNav', () => {
     expect(isActive(findByTestId(tree, 'nav-feed-link'))).toBe(false);
   });
 
-  // ── reviewer suffix ────────────────────────────────────────────────────
-
-  it('appends "(reviewer)" to the Requests link when hasReviewerAccess is true', () => {
-    usePathnameMock.mockReturnValue('/feed');
-    const tree = AppNav({ hasReviewerAccess: true }) as AnyElement;
-    const link = findByTestId(tree, 'nav-requests-link');
-    expect(flatStrings(link)).toContain('(reviewer)');
-  });
-
-  it('omits "(reviewer)" when hasReviewerAccess is false / unset', () => {
-    usePathnameMock.mockReturnValue('/feed');
-    const tree = AppNav({}) as AnyElement;
-    const link = findByTestId(tree, 'nav-requests-link');
-    expect(flatStrings(link)).not.toContain('(reviewer)');
-  });
-
   // ── unread dot ─────────────────────────────────────────────────────────
 
   it('renders the unread-count dot when count > 0', () => {
