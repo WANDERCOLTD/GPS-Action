@@ -1,21 +1,21 @@
 /**
  * @build-unit BU-secondary-cta-placeholders
- * @spec architecture/decision-log.md (D065 — proposed)
+ * @spec architecture/decision-log.md (D066 — proposed)
  *
  * Rail of secondary social CTAs (placeholders for now). Renders either as
  * a vertical column (right-rail on the post card) or a horizontal row
  * (top share-bar on the post detail page) per the `layout` prop.
  *
- * Ships before D065's Action[] schema lands — every post gets the same three
+ * Ships before D066's Action[] schema lands — every post gets the same three
  * placeholder icons (X, Instagram, Facebook). Each icon is an <a> to the
  * platform homepage, which on mobile deep-links into the installed app.
  *
  * TODO: replace the hand-rolled SVGs with a proper icon set (e.g. simple-icons
- * via react-icons/si) once D065 picks a per-action `kind` enum and we know
+ * via react-icons/si) once D066 picks a per-action `kind` enum and we know
  * which platforms / icon variants we actually need. Hand-rolled now to avoid
  * pulling a dep we'd just rip out.
  *
- * TODO: when D065 lands, drive this rail from `post.secondaryActions[]`
+ * TODO: when D066 lands, drive this rail from `post.secondaryActions[]`
  * rather than a static placeholder list — and decide how the per-icon URL
  * is composed (share intent vs. open-platform vs. author's own profile).
  */

@@ -9,7 +9,6 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createTRPCContext } from '@/server/routers/context';
-import { AppNav } from '@/components/AppNav';
 import { entityMetadata } from '@/server/admin/entity-metadata';
 import type { EntityKey } from '@/server/admin/entity-metadata';
 import { EntityForm } from '@/components/admin/EntityForm';
@@ -49,47 +48,44 @@ export default async function DataEntityNewPage({ params }: PageProps) {
   const action = adminCreateAction.bind(null, entity);
 
   return (
-    <>
-      <AppNav active="data" />
-      <main
+    <main
+      style={{
+        padding: 'var(--space-6) var(--space-4)',
+        maxWidth: 720,
+        margin: '0 auto',
+      }}
+    >
+      <Link
+        href={`/data/${entity}`}
+        data-testid="admin-new-back-link"
         style={{
-          padding: 'var(--space-6) var(--space-4)',
-          maxWidth: 720,
-          margin: '0 auto',
+          display: 'inline-block',
+          marginBottom: 'var(--space-2)',
+          color: 'var(--colour-text-link)',
+          fontSize: 'var(--text-sm)',
+          textDecoration: 'none',
         }}
       >
-        <Link
-          href={`/data/${entity}`}
-          data-testid="admin-new-back-link"
-          style={{
-            display: 'inline-block',
-            marginBottom: 'var(--space-2)',
-            color: 'var(--colour-text-link)',
-            fontSize: 'var(--text-sm)',
-            textDecoration: 'none',
-          }}
-        >
-          ← Back to {entity}
-        </Link>
-        <h1 className="gps-title" data-testid="admin-new-title" style={{ margin: 0 }}>
-          New {entity}
-        </h1>
-        <p
-          style={{
-            margin: 'var(--space-1) 0 var(--space-6)',
-            fontSize: 'var(--text-sm)',
-            color: 'var(--colour-text-secondary)',
-          }}
-        >
-          Fields validate server-side. Required fields are marked with *.
-        </p>
-        <EntityForm
-          descriptors={descriptors}
-          action={action}
-          submitLabel={`Create ${entity}`}
-          cancelHref={`/data/${entity}`}
-        />
-      </main>
-    </>
+        ← Back to {entity}
+      </Link>
+      <h1 className="gps-title" data-testid="admin-new-title" style={{ margin: 0 }}>
+        New {entity}
+      </h1>
+      <p
+        style={{
+          margin: 'var(--space-1) 0 var(--space-6)',
+          fontSize: 'var(--text-sm)',
+          color: 'var(--colour-text-secondary)',
+        }}
+      >
+        Fields validate server-side. Required fields are marked with *.
+      </p>
+      <EntityForm
+        descriptors={descriptors}
+        action={action}
+        submitLabel={`Create ${entity}`}
+        cancelHref={`/data/${entity}`}
+      />
+    </main>
   );
 }

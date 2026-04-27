@@ -229,7 +229,7 @@ export const PostCard: FC<PostCardProps> = ({
 
   // Primary CTA = the AM URL when present, else the linkUrl. Renders as the
   // top-of-card visual, just below the header (D060 §3 puts AM first when both
-  // are set; D065 generalises this to a primary/secondary Action[] model).
+  // are set; D066 generalises this to a primary/secondary Action[] model).
   // Secondary CTA = the linkUrl, but only when an AM URL is also set; the
   // legacy "both populated" path keeps its supporting-context slot at the bottom.
   const primaryCta = post.activistMailerUrl ? (
@@ -324,7 +324,7 @@ export const PostCard: FC<PostCardProps> = ({
           </div>
 
           {/* Primary CTA — moved to top of content (just under header) so the
-          action sits above the title. D060 §3a / D065-proposed direction. */}
+          action sits above the title. D060 §3a / D066-proposed direction. */}
           {primaryCta}
 
           {/* Kind chip (BU-fab-intent-picker / D062) — only for kinds that warrant a visual badge */}

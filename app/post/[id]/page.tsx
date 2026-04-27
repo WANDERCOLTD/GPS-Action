@@ -189,7 +189,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
           />
         </div>
 
-        {/* Primary CTA — top of content (D060 §3a / D065-proposed). */}
+        {/* Primary CTA — top of content (D060 §3a / D066-proposed). */}
         {primaryCta}
 
         {/* Hero image (BU-post-hero-demo / D064). Larger than card; hero

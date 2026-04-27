@@ -2,8 +2,8 @@
 
 _Brief version: 0.1 (draft, awaiting user sign-off) · Author: Paul + Claude · Date: 2026-04-27_
 _Priority: post-demo composer UX overhaul. Sequenced after the placeholder
-secondary-CTA rail (shipped) and the D065 ADR (proposed)._
-_Pairs with: D060 (link-share schema), D065 (multi-CTA Action model — proposed),
+secondary-CTA rail (shipped) and the D066 ADR (proposed)._
+_Pairs with: D060 (link-share schema), D066 (multi-CTA Action model — proposed),
 `docs/product/post-creation-flow.md` (the link-first FAB card vision), and the
 "Auto-fetch Open Graph metadata" parking-lot row._
 
@@ -50,7 +50,7 @@ hardest piece (server-side OG fetch). Each phase is reviewable on its own.
 
 - Clipboard detection (Phase B).
 - Server-side OG fetch / pre-fill (Phase C).
-- Multi-CTA composer UI — that lands with D065's schema migration in a
+- Multi-CTA composer UI — that lands with D066's schema migration in a
   separate BU.
 
 **Tests:**
@@ -84,7 +84,7 @@ hardest piece (server-side OG fetch). Each phase is reviewable on its own.
 
 ### Phase C — Server-side OG fetch and pre-fill
 
-**Build (gated on D065 ADR being accepted; treat as BU-link-fetch):**
+**Build (gated on D066 ADR being accepted; treat as BU-link-fetch):**
 
 - `server/services/link-preview.ts` (new) — SSRF-hardened fetcher.
   - `https?://` only, redirect cap of 3, 3-second hard timeout, public-IP
@@ -115,8 +115,8 @@ hardest piece (server-side OG fetch). Each phase is reviewable on its own.
 
 ## Out of scope (explicitly)
 
-- **Multi-CTA composer.** D065's schema migration plus the secondary-CTA
-  picker UI is its own BU (BU-multi-cta, blocked on D065 acceptance).
+- **Multi-CTA composer.** D066's schema migration plus the secondary-CTA
+  picker UI is its own BU (BU-multi-cta, blocked on D066 acceptance).
 - **Image upload as part of OG fetch.** Today's hero image picker
   (D064 / fixed bucket) stays. Bringing in `og:image` as a hero source is
   a Phase D conversation.
@@ -161,7 +161,7 @@ implementation:
 
 ## Open questions surfaced (for user)
 
-- Phases A and B are unblocked; Phase C is blocked on D065 acceptance and
+- Phases A and B are unblocked; Phase C is blocked on D066 acceptance and
   the OG-fetcher build (which itself is a non-trivial BU). Confirm Phase
   A first, then we sequence B and C.
 - Today the composer requires a title. The link-first vision implies title

@@ -3865,12 +3865,137 @@ of it as a **demo enhancement** that becomes obsolete (its
 - Parking-lot entry: "Call out a problem — content post intent"
   (downstream consumer; hero is part of its composer field shape)
 
-# D065 — Multi-CTA Action model for Post (primary + secondary CTAs)
+# D065 — Sticky app header + soft refresh button (BU-sticky-nav)
+
+**Date:** 2026-04-27
+**Tier:** UX / Layout
+**Status:** Accepted
+**Build Unit:** BU-sticky-nav
+
+## Context
+
+The `LoggedInAs` dev strip and the `AppNav` link strip currently render
+as two separate horizontal strips: `LoggedInAs` lives in the root
+layout, and `AppNav` is rendered per-page (8 pages each import it and
+pass an `active` prop). Neither is sticky, so they scroll away with the
+content.
+
+Two pressures converged on 2026-04-27:
+
+1. Members on long feeds lose access to the nav as they scroll. On
+   mobile especially, having to scroll back up to reach Requests / Data
+   / Settings is friction. Sticky-header is the conventional answer.
+2. iPhone users who add the site to their home screen launch it in
+   iOS Safari's standalone-ish mode — no URL bar, no native reload.
+   Confirmed by Paul's own home-screen bookmark on 2026-04-27. The
+   codebase has no PWA manifest and no `apple-mobile-web-app-capable`
+   meta — this is iOS default behaviour, not opt-in. Without a
+   browser-chrome reload, the user has no way to refresh.
+
+"Stay as native as possible" is the stated preference for refresh
+behaviour but doesn't apply on iOS standalone — there is no native to
+fall back to. An in-app refresh affordance is required.
+
+## Decision
+
+Consolidate `LoggedInAs` and `AppNav` into a single sticky `<header>`
+rendered once in `app/layout.tsx`. Page content scrolls underneath.
+`AppNav` becomes a client component and derives the active link from
+`usePathname()` rather than receiving an `active` prop per page.
+Reviewer-access and unread-notification-count resolution lifts into the
+layout (already adjacent to the existing `createTRPCContext()` call) so
+those signals surface globally, not only on `/requests`.
+
+A `<HeaderRefreshButton>` sits inside the header, right-justified after
+the AppNav links. On tap it calls `router.refresh()` — Next.js' soft
+refresh that re-runs server components for the current route, refreshes
+their data, and preserves scroll position and client component state.
+This is the entire answer to "how does the user refresh on iPhone
+standalone." No custom pull-to-refresh, no PWA manifest work, no
+`window.location.reload()`.
+
+## Consequences
+
+### Wins
+
+- One sticky header instead of two scrolling strips. Nav remains
+  reachable on long feeds.
+- 9 pages each drop their `<AppNav active="..." />` boilerplate. The
+  `active` prop is gone — `usePathname()` is the single source of truth
+  for which link is highlighted.
+- Reviewer-access label and unread-notification dot surface on every
+  page (not just `/requests`), because they're resolved once in the
+  layout. A reviewer scrolling the feed now sees their queue's unread
+  count without having to navigate to `/requests` first.
+- Refresh affordance solves the iOS standalone reload gap with one
+  button — no pull-to-refresh gesture code, no PWA opt-in, no extra
+  meta tags. `router.refresh()` is the soft-refresh primitive Next.js
+  already exposes; we're just surfacing it.
+- Forward-compatible with BU-user-menu, which lands the
+  avatar / Sign out affordance into the same sticky header.
+
+### Costs
+
+- `AppNav` becomes a client component. It was previously a server
+  component receiving an `active` prop; the switch trades one render
+  boundary for the per-page boilerplate removal. Net win, but worth
+  noting: the file gains `'use client'` and `usePathname()`.
+- Layout now resolves nav data (reviewer scope, unread count) on
+  every page render, not only on `/requests`. One additional service
+  call per render. The count query is cheap (single indexed read) and
+  the demo audience is small; if this becomes hot, cache it.
+- Z-index discipline matters slightly more — the sticky header
+  introduces a stacking context that must layer correctly against the
+  fixed-position `<IntentFab>`. A `--z-sticky-header` token formalises
+  the layer.
+
+### Open questions deferred
+
+- Whether to add a "scrolled" elevation style (subtle shadow when the
+  page has scrolled under the header). Deferred — nice-to-have, not
+  blocking. Add when the demo audience asks.
+- Whether to add a Compose link to the AppNav for desktop users
+  (where there's no FAB). Deferred — the FAB is the design intent;
+  desktop-only Compose entry is a separate decision.
+
+## Alternatives considered
+
+- **Keep current structure, add `position: sticky` to both strips
+  with `top` offsets.** Rejected — the `top` offset for `AppNav` would
+  have to match `LoggedInAs`'s rendered height, which varies (font
+  scaling, line wrap, returns null in production). Brittle.
+- **Custom pull-to-refresh on `/feed`.** Rejected for now — gesture
+  handling on iOS WebKit is fiddly (detecting "scroll is at top",
+  swallowing the gesture only then, not breaking native rubber-band).
+  A header button is robust, accessible, and works in every mode. We
+  can revisit if the demo audience asks for the gesture.
+- **Add a PWA manifest with `display: browser` to force the URL bar
+  to appear in home-screen-launched mode.** Rejected — opting into a
+  manifest opens unrelated decisions (icons, theme colour, name) we
+  shouldn't make as a side-effect of a header BU. The button gives us
+  the same outcome with less surface.
+- **Hard refresh via `window.location.reload()`.** Rejected — flashes
+  the page, loses scroll, regresses the demo's perceived smoothness.
+  `router.refresh()` is strictly better.
+
+## Related
+
+- D054, D061 — original `AppNav` scope (this decision consolidates)
+- D051 — BU naming convention (`BU-sticky-nav`)
+- BU-user-menu (next BU) — the avatar / Sign-out affordance lands
+  into the same sticky header
+- Memory: `project_ios_standalone_constraint` — the iPhone home-screen
+  bookmark constraint that motivates the refresh button
+
+# D066 — Multi-CTA Action model for Post (primary + secondary CTAs)
 
 **Date:** 2026-04-27
 **Tier:** Foundation
 **Status:** Proposed (UI placeholders shipped first; schema migration deferred until composer link-first work begins)
 **Build Unit:** BU-multi-cta (proposed)
+
+_Originally drafted as D065; renumbered to D066 after merge collision
+with the BU-sticky-nav ADR that landed first on `main`._
 
 ## Context
 
@@ -3973,7 +4098,7 @@ Two-phase, expand-then-contract (per F08 / B05):
    - one `Action(kind=am_action, isPrimary=true, orderIndex=0, url=activistMailerUrl)` if `activistMailerUrl IS NOT NULL`
    - one `Action(kind=external_link, isPrimary={NOT activistMailerUrl}, orderIndex=0|1, url=linkUrl, label=linkTitle, ...)` if `linkUrl IS NOT NULL`
 3. Keep `activistMailerUrl` and `linkUrl` columns nullable on `Post` for the duration of Phase 1 — read paths consult both, write paths begin writing to `Action`.
-4. Move existing link-preview metadata (`linkTitle`, `linkDescription`, `linkImageUrl`, `linkSiteName`) onto a separate concern (parking-lot already proposes a `LinkPreview` cache table keyed by URL; that work is independent of D065).
+4. Move existing link-preview metadata (`linkTitle`, `linkDescription`, `linkImageUrl`, `linkSiteName`) onto a separate concern (parking-lot already proposes a `LinkPreview` cache table keyed by URL; that work is independent of D066).
 
 **Phase 2 — drop legacy columns:**
 
@@ -3982,10 +4107,10 @@ Two-phase, expand-then-contract (per F08 / B05):
 ### What ships before the schema migration
 
 The visible UI for secondary CTAs (right-rail X / Instagram / Facebook
-placeholders on every post card and detail) lands ahead of D065's
+placeholders on every post card and detail) lands ahead of D066's
 schema work. The placeholders aren't backed by `Action` rows yet —
 they're a static rail in `<SecondaryCtaRail>` linking to platform
-homepages. When D065 lands, the rail's `PLATFORMS` array becomes
+homepages. When D066 lands, the rail's `PLATFORMS` array becomes
 `post.actions.filter(a => !a.isPrimary)` and the per-icon URL is
 composed from the action's `url` and `kind`.
 
@@ -4051,16 +4176,16 @@ composed from the action's `url` and `kind`.
 ## Related
 
 - D060 — Post schema additions for link-share preview cards
-  (D065 supersedes §3 and §3a; the link-preview metadata fields are
+  (D066 supersedes §3 and §3a; the link-preview metadata fields are
   a separate refactor onto a `LinkPreview` cache table per the parking lot)
 - D050 — Reaction polymorphic schema (a model for typed-target relations
   if `Action` ever needs to attach to non-Post entities)
 - Parking-lot entry: "Multi-CTA model — primary action + multiple
   secondary actions per post" (this ADR fulfils that parking-lot row)
-- Parking-lot entry: "Auto-fetch Open Graph metadata" (D065-adjacent —
+- Parking-lot entry: "Auto-fetch Open Graph metadata" (D066-adjacent —
   the URL-first composer that drives `Action` creation depends on
   OG fetch landing or being parked-explicit)
 - `docs/product/post-creation-flow.md` (the link-first composer vision
-  D065 unblocks)
+  D066 unblocks)
 - `components/SecondaryCtaRail.tsx` (the placeholder UI shipped
   ahead of this ADR's schema migration)

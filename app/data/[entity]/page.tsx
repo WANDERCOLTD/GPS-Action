@@ -14,7 +14,6 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createTRPCContext } from '@/server/routers/context';
-import { AppNav } from '@/components/AppNav';
 import { entityMetadata } from '@/server/admin/entity-metadata';
 import type { EntityKey } from '@/server/admin/entity-metadata';
 import { EntityListPage } from '@/components/admin/EntityListPage';
@@ -57,35 +56,32 @@ export default async function DataEntityPage({ params, searchParams }: PageProps
   if (!canAccessEntity(ctx, entity as EntityKey, 'view')) notFound();
 
   return (
-    <>
-      <AppNav active="data" />
-      <main
+    <main
+      style={{
+        padding: 'var(--space-6) var(--space-4)',
+        maxWidth: 1100,
+        margin: '0 auto',
+      }}
+    >
+      <Link
+        href="/data"
+        data-testid="admin-list-back-index-link"
         style={{
-          padding: 'var(--space-6) var(--space-4)',
-          maxWidth: 1100,
-          margin: '0 auto',
+          display: 'inline-block',
+          marginBottom: 'var(--space-4)',
+          color: 'var(--colour-text-link)',
+          fontSize: 'var(--text-sm)',
+          textDecoration: 'none',
         }}
       >
-        <Link
-          href="/data"
-          data-testid="admin-list-back-index-link"
-          style={{
-            display: 'inline-block',
-            marginBottom: 'var(--space-4)',
-            color: 'var(--colour-text-link)',
-            fontSize: 'var(--text-sm)',
-            textDecoration: 'none',
-          }}
-        >
-          ← Back to data
-        </Link>
-        <EntityListPage
-          entity={entity as EntityKey}
-          ctx={ctx}
-          search={search}
-          bulkAction={adminBulkAction.bind(null, entity)}
-        />
-      </main>
-    </>
+        ← Back to data
+      </Link>
+      <EntityListPage
+        entity={entity as EntityKey}
+        ctx={ctx}
+        search={search}
+        bulkAction={adminBulkAction.bind(null, entity)}
+      />
+    </main>
   );
 }

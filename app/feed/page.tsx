@@ -12,8 +12,6 @@ import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { FeedList } from '@/components/FeedList';
-import { AppNav } from '@/components/AppNav';
-import { countUnreadForUser } from '@/server/services/notification';
 import { loadMorePosts, addReactionAction, removeReactionAction } from '@/app/feed/actions';
 import type { FeedPost, FeedCursor, FeedReactionEmoji } from '@/components/PostCard';
 
@@ -88,34 +86,20 @@ export default async function FeedPage() {
       }
     : null;
 
-  const hasReviewerAccess =
-    ctx.activeRoles.includes('admin') ||
-    ctx.activeRoles.includes('queue_manager') ||
-    ctx.activeScopes.length > 0;
-
-  const unreadCount = ctx.user ? await countUnreadForUser(ctx.user.id) : 0;
-
   return (
-    <>
-      <AppNav
-        active="feed"
-        hasReviewerAccess={hasReviewerAccess}
-        unreadNotificationCount={unreadCount}
+    <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
+      <h1 className="gps-title" style={{ marginBottom: 'var(--space-6)' }}>
+        Feed
+      </h1>
+      <FeedList
+        initialPosts={posts}
+        initialCursor={cursor}
+        loadMore={loadMorePosts}
+        onAddReaction={addReactionAction}
+        onRemoveReaction={removeReactionAction}
+        canReact={reactionsEnabled}
+        reactionsEnabled={reactionsEnabled}
       />
-      <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
-        <h1 className="gps-title" style={{ marginBottom: 'var(--space-6)' }}>
-          Feed
-        </h1>
-        <FeedList
-          initialPosts={posts}
-          initialCursor={cursor}
-          loadMore={loadMorePosts}
-          onAddReaction={addReactionAction}
-          onRemoveReaction={removeReactionAction}
-          canReact={reactionsEnabled}
-          reactionsEnabled={reactionsEnabled}
-        />
-      </main>
-    </>
+    </main>
   );
 }

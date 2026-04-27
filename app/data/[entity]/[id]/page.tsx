@@ -9,7 +9,6 @@
 
 import { notFound, redirect } from 'next/navigation';
 import { createTRPCContext } from '@/server/routers/context';
-import { AppNav } from '@/components/AppNav';
 import { entityMetadata } from '@/server/admin/entity-metadata';
 import type { EntityKey } from '@/server/admin/entity-metadata';
 import { EntityDetailPage } from '@/components/admin/EntityDetailPage';
@@ -39,17 +38,14 @@ export default async function DataEntityDetailPage({ params }: PageProps) {
   if (!canAccessEntity(ctx, entity as EntityKey, 'view')) notFound();
 
   return (
-    <>
-      <AppNav active="data" />
-      <main
-        style={{
-          padding: 'var(--space-6) var(--space-4)',
-          maxWidth: 1100,
-          margin: '0 auto',
-        }}
-      >
-        <EntityDetailPage entity={entity as EntityKey} id={id} ctx={ctx} />
-      </main>
-    </>
+    <main
+      style={{
+        padding: 'var(--space-6) var(--space-4)',
+        maxWidth: 1100,
+        margin: '0 auto',
+      }}
+    >
+      <EntityDetailPage entity={entity as EntityKey} id={id} ctx={ctx} />
+    </main>
   );
 }
