@@ -1,6 +1,6 @@
 {
   "name": "gps-action",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "GPS Action — purpose-built platform for coordinated activism",
   "scripts": {
@@ -54,7 +54,7 @@
     "@typescript-eslint/parser": "^8.15.0",
     "@vitest/coverage-v8": "^2.1.5",
     "eslint": "^9.15.0",
-    "eslint-config-next": "^15.0.0",
+    "eslint-config-next": "^16.2.4",
     "eslint-plugin-boundaries": "^6.0.2",
     "globals": "^17.5.0",
     "husky": "^9.1.7",
