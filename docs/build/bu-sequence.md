@@ -91,11 +91,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-tick-or-cross** — BU-tick-or-cross | ✅ Merged | #129 |
 | **bu-link-first-composer** — bu-link-first-composer | ✅ Merged | #135 |
 | **bu-feed-card-clamp** — bu-feed-card-clamp | ✅ Merged | #141 |
-| **bu-publish-router** — bu-publish-router | ✅ Merged | #142 |
-| **bu-event-time** — BU-event-time | ✅ Merged | #150 |
-| **bu-calendar-view** — BU-calendar-view | ✅ Merged | #151 |
-| **bu-icon-nav** — BU-icon-nav | ✅ Merged | #152 |
-| **bu-month-nav** — BU-month-nav | ✅ Merged | #153 |
+| **bu-publish-router** — bu-publish-router | ✅ Merged | #146 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |

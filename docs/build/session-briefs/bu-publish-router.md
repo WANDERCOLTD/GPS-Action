@@ -1,10 +1,10 @@
 ---
 slug: bu-publish-router
 status: shipped
-shipped_in: '#142'
+shipped_in: '#146'
 phase: 2
 priority: high
-note: 'Brief landed in #142 (D072). Implementation lives in feat/bu-publish-router-20260428 (Phase 1 build, separate PR). Phases 2 (drafts inbox) and 3 (reviewer kind-review queue) are separate BUs that build on this foundation.'
+note: 'Brief landed in #142 (D072). Phase 1 implementation shipped in #146. Phases 2 (bu-drafts-inbox — bundles autosave + /drafts page) and 3 (bu-reviewer-kind-review-queue) are separate BUs that build on this foundation.'
 ---
 
 # SESSION BRIEF · bu-publish-router — universal pre-publish modal + post lifecycle
