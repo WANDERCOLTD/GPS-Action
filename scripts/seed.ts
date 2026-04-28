@@ -109,6 +109,18 @@ interface SeedPost {
   groupTags: string[];
   /** Days ago from seed run time */
   daysAgo: number;
+  // ── Optional fields for the new post-card layout demo ───────────────
+  // BU-link-share / D060: link preview card data.
+  linkUrl?: string;
+  linkTitle?: string;
+  linkDescription?: string;
+  linkImageUrl?: string;
+  linkSiteName?: string;
+  // BU-fab-intent-picker / D062: intent kind slug (resolved → kindId).
+  kindSlug?: string;
+  urgency?: boolean;
+  // BU-post-hero-demo / D064: hero image, must be a SEED_HERO_IMAGES URL.
+  heroImageUrl?: string;
 }
 
 const SEED_POSTS: SeedPost[] = [
@@ -302,6 +314,106 @@ const SEED_POSTS: SeedPost[] = [
     activistMailerUrl: null,
     groupTags: [],
     daysAgo: 1,
+  },
+
+  // ── CTA-layout demo posts (PR #100 right-rail + top-CTA layout) ──────
+  // These exercise the new post-card layout: primary CTA at the top of
+  // the card with the social-CTA placeholder rail to its right. Spread
+  // across kinds + urgency flags + visual variations (linkUrl with full
+  // OG metadata, AM URLs, hero images, hero+link layered).
+  {
+    seedKey: 'demo-guardian-oped-link',
+    authorKey: 'ingrid',
+    title: 'Guardian op-ed on diaspora identity — worth your 5 minutes',
+    body: `David Baddiel's piece in the Guardian this morning is the most thoughtful long-read on British Jewish identity I've seen in months.\n\nIt's not a polemic. It's reflective, honest, and useful for anyone navigating these conversations with friends and colleagues. Worth reading even if you don't agree with all of it.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['writers'],
+    daysAgo: 1,
+    kindSlug: 'link_share',
+    urgency: false,
+    linkUrl:
+      'https://www.theguardian.com/commentisfree/2026/apr/24/british-jewish-identity-diaspora-baddiel',
+    linkTitle: 'What it means to be visibly Jewish in Britain in 2026',
+    linkDescription:
+      'A reflective long-read on identity, generational change, and the questions younger British Jews are asking that their parents never had to.',
+    linkImageUrl: 'https://i.guim.co.uk/img/media/article-share-2026.jpg',
+    linkSiteName: 'The Guardian',
+  },
+  {
+    seedKey: 'demo-bbc-investigation',
+    authorKey: 'cary',
+    title: 'BBC investigation into far-right organising on encrypted platforms',
+    body: `BBC News published a six-month investigation into far-right organising networks operating on encrypted platforms. Names sources, includes documented evidence, names specific platforms.\n\nReally good journalism. Sharing because it's the kind of context that helps when people ask "where is this coming from".`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['rapid-response'],
+    daysAgo: 2,
+    kindSlug: 'link_share',
+    urgency: false,
+    linkUrl: 'https://www.bbc.co.uk/news/uk-66789012',
+    linkTitle: 'Inside the encrypted networks coordinating far-right activity in the UK',
+    linkDescription:
+      'A six-month BBC News investigation maps the platforms, personalities, and money flows behind a growing far-right organising ecosystem.',
+    linkImageUrl: 'https://ichef.bbci.co.uk/news/social/uk-66789012.jpg',
+    linkSiteName: 'BBC News',
+    heroImageUrl: '/seed-images/02.svg',
+  },
+  {
+    seedKey: 'demo-cst-campaign-page',
+    authorKey: 'bette',
+    title: 'CST has launched a public donation campaign — share with your networks',
+    body: `The Community Security Trust opened public donations this morning to fund expanded school-gate security through the autumn term.\n\nIf you can spare even £5 it goes a long way. The link below is the canonical campaign page — please share it widely rather than reposting screenshots.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['writers'],
+    daysAgo: 3,
+    kindSlug: 'call_to_action',
+    urgency: false,
+    linkUrl: 'https://cst.org.uk/campaigns/autumn-2026-schools',
+    linkTitle: 'Autumn 2026 schools campaign — Community Security Trust',
+    linkDescription:
+      'Help fund expanded security at Jewish schools through the autumn term. Every £5 contributes to staffing, training, and equipment.',
+    linkImageUrl: 'https://cst.org.uk/images/campaigns/autumn-2026-share.png',
+    linkSiteName: 'Community Security Trust',
+  },
+  {
+    seedKey: 'demo-am-mp-housing',
+    authorKey: 'eddie',
+    title: 'Write to your MP — housing allocation criteria amendments',
+    body: `The amendments to the Housing Allocation Bill go to committee next Wednesday. Cross-party support is real but soft — MPs need to hear from constituents that this is a priority.\n\nThe template letter explains the four amendments we are backing. Personalises automatically to your constituency. Takes about 90 seconds.`,
+    visibility: 'public',
+    activistMailerUrl: 'https://activistmailer.com/campaign/mp-housing-allocation-2026',
+    groupTags: ['manchester'],
+    daysAgo: 1,
+    kindSlug: 'call_to_action',
+    urgency: false,
+    heroImageUrl: '/seed-images/03.svg',
+  },
+  {
+    seedKey: 'demo-am-urgent-school-gate',
+    authorKey: 'maya',
+    title: 'URGENT — school gate incident, Bristol — write to local police commissioner now',
+    body: `Confirmed antisemitic leaflets distributed at a Bristol school gate this morning. Local police commissioner is already aware but is publicly minimising it.\n\nWe need a wave of constituent letters before the weekend press cycle. The template references the specific public order legislation that applies. 60 seconds to send.`,
+    visibility: 'public',
+    activistMailerUrl: 'https://activistmailer.com/campaign/bristol-school-gate-2026',
+    groupTags: ['rapid-response'],
+    daysAgo: 0,
+    kindSlug: 'happening_now',
+    urgency: true,
+  },
+  {
+    seedKey: 'demo-meeting-manchester-may',
+    authorKey: 'eddie',
+    title: 'Manchester regional meeting — Sunday 12 May, 11am',
+    body: `Regional gathering for Manchester members. We will agree priorities for the summer letter campaigns, hear an update on the council motion outcome, and there will be coffee and pastries.\n\nVenue is step-free, on-street parking free on Sundays. Come if you can — bring someone if you would like to.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['manchester'],
+    daysAgo: 4,
+    kindSlug: 'meeting',
+    urgency: false,
+    heroImageUrl: '/seed-images/04.svg',
   },
 ];
 
@@ -643,6 +755,14 @@ async function main(): Promise<void> {
 
   // ── Seed posts ───────────────────────────────────────────────────────
 
+  // Resolve PostKind slugs → ids once so per-post lookup is O(1) and
+  // missing slugs surface immediately rather than at the first post that
+  // references them.
+  const postKindRows = await prisma.postKind.findMany({ select: { id: true, slug: true } });
+  const kindIdsBySlug: Record<string, string> = Object.fromEntries(
+    postKindRows.map((k) => [k.slug, k.id]),
+  );
+
   let postsCreated = 0;
 
   for (const post of SEED_POSTS) {
@@ -653,6 +773,10 @@ async function main(): Promise<void> {
     // Verify groupTags reference seeded groups; use empty array if group
     // doesn't exist (per Q6 — defensive).
     const validGroupTags = post.groupTags.filter((slug) => slug in groupIds);
+
+    // Resolve optional kind slug → id. Unknown slug = no kind (defensive,
+    // mirrors the groupTags pattern).
+    const kindId = post.kindSlug ? (kindIdsBySlug[post.kindSlug] ?? null) : null;
 
     const existing = await prisma.post.findUnique({ where: { id: postId } });
     if (!existing) {
@@ -666,6 +790,17 @@ async function main(): Promise<void> {
           activistMailerUrl: post.activistMailerUrl,
           groupTags: validGroupTags,
           createdAt,
+          // Optional CTA-layout fields — only set when the seed defines
+          // them, so the existing posts continue to render exactly as
+          // before.
+          linkUrl: post.linkUrl ?? null,
+          linkTitle: post.linkTitle ?? null,
+          linkDescription: post.linkDescription ?? null,
+          linkImageUrl: post.linkImageUrl ?? null,
+          linkSiteName: post.linkSiteName ?? null,
+          heroImageUrl: post.heroImageUrl ?? null,
+          kindId,
+          urgency: post.urgency ?? false,
         },
       });
       postsCreated++;
