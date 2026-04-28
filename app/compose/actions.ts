@@ -84,6 +84,7 @@ export async function createPostAction(formData: FormData): Promise<CreatePostRe
     if (err instanceof TRPCError && err.code === 'UNAUTHORIZED') {
       redirect('/dev/login?returnTo=/compose');
     }
+    console.error('[compose/actions] post.create failed:', err);
     return {
       errors: { _form: ['Could not create post. Try again.'] },
     };

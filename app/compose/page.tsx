@@ -26,6 +26,7 @@ import { PostForm, type KindMapEntry } from '@/components/PostForm';
 import { createPostAction } from '@/app/compose/actions';
 import { whatsappNetworkChannelUrlOrNull } from '@/shared/env/whatsapp-network-channel';
 import { getSiteOrigin } from '@/shared/site-origin';
+import { REQUIRED_POST_KIND_SLUGS } from '@/shared/post-kinds';
 
 export const metadata = {
   title: 'Create a post — GPS Action',
@@ -63,6 +64,19 @@ export default async function ComposePage({ searchParams }: PageProps) {
   const kindMap: Record<string, KindMapEntry> = {};
   for (const k of kinds) {
     kindMap[k.slug] = { id: k.id, isAlertEligible: k.isAlertEligible, displayName: k.displayName };
+  }
+
+  // D070: surface missing reference data with a specific error rather
+  // than letting it fall through as a generic "Could not create post"
+  // at the service layer. The CI reference-data gate is the real merge
+  // blocker; this is the dev-experience improvement.
+  const missingKinds = REQUIRED_POST_KIND_SLUGS.filter((slug) => !kindMap[slug]);
+  if (missingKinds.length > 0) {
+    throw new Error(
+      `Required PostKind rows missing: ${missingKinds.join(
+        ', ',
+      )}. Apply pending migrations (npx prisma migrate deploy) or run npm run db:seed.`,
+    );
   }
 
   const networkChannelUrl = whatsappNetworkChannelUrlOrNull();
