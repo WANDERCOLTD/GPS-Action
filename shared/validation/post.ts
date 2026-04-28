@@ -1,7 +1,8 @@
 /**
- * @build-unit BU-composer BU-link-share BU-fab-intent-picker BU-post-hero-demo BU-tick-or-cross
+ * @build-unit BU-composer BU-link-share BU-fab-intent-picker BU-post-hero-demo BU-tick-or-cross BU-link-first-composer
  * @spec product/post-creation-flow.md
  * @spec architecture/decision-log.md (D045, D048, D060, D062, D064, D069)
+ * @spec build/session-briefs/bu-link-first-composer.md
  *
  * Zod validation schemas for post creation. AM URL domain allowlist
  * is env-configurable via ACTIVIST_MAILER_ALLOWED_DOMAINS. Link-share
@@ -10,52 +11,74 @@
  * heroImageUrl (D064) is constrained to the seeded demo bucket.
  * signal (D069) carries the author's amplify/flag choice for the
  * `tick_or_cross` kind; the service enforces the kind-coupling invariant.
+ *
+ * BU-link-first-composer: URL fields run inputs through normalizeUrl()
+ * as a preprocessor so members can type `www.example.com` or
+ * `example.co.uk` and the schema treats them as valid https URLs.
+ * Inputs that fail URL detection (free-form text) pass through
+ * unchanged — the existing refinement still rejects them with the
+ * pre-existing "URL must be a valid http(s) URL" message.
  */
 
 import { z } from 'zod';
 
 import { isAllowedHeroImageUrl } from '../seed-images';
+import { normalizeUrl } from '../url-detect';
+
+function preprocessOptionalUrl(val: unknown): unknown {
+  if (typeof val !== 'string') return val;
+  const trimmed = val.trim();
+  if (!trimmed) return val;
+  const result = normalizeUrl(trimmed);
+  return result.kind === 'url' ? result.url : val;
+}
 
 const ALLOWED_DOMAINS = (process.env.ACTIVIST_MAILER_ALLOWED_DOMAINS ?? 'activistmailer.com')
   .split(',')
   .map((d) => d.trim().toLowerCase())
   .filter(Boolean);
 
-const activistMailerUrlSchema = z
-  .string()
-  .optional()
-  .refine(
-    (val) => {
-      if (!val || val.trim() === '') return true;
-      try {
-        const url = new URL(val);
-        if (url.protocol !== 'https:') return false;
-        const host = url.hostname.toLowerCase();
-        return ALLOWED_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));
-      } catch {
-        return false;
-      }
-    },
-    {
-      message: 'Activist Mailer URL must be https and from an allowed domain',
-    },
-  );
+const activistMailerUrlSchema = z.preprocess(
+  preprocessOptionalUrl,
+  z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val || val.trim() === '') return true;
+        try {
+          const url = new URL(val);
+          if (url.protocol !== 'https:') return false;
+          const host = url.hostname.toLowerCase();
+          return ALLOWED_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));
+        } catch {
+          return false;
+        }
+      },
+      {
+        message: 'Activist Mailer URL must be https and from an allowed domain',
+      },
+    ),
+);
 
-const httpUrlSchema = z
-  .string()
-  .optional()
-  .refine(
-    (val) => {
-      if (!val || val.trim() === '') return true;
-      try {
-        const url = new URL(val);
-        return url.protocol === 'https:' || url.protocol === 'http:';
-      } catch {
-        return false;
-      }
-    },
-    { message: 'URL must be a valid http or https URL' },
-  );
+const httpUrlSchema = z.preprocess(
+  preprocessOptionalUrl,
+  z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val || val.trim() === '') return true;
+        try {
+          const url = new URL(val);
+          return url.protocol === 'https:' || url.protocol === 'http:';
+        } catch {
+          return false;
+        }
+      },
+      { message: 'URL must be a valid http or https URL' },
+    ),
+);
 
 export const postCreateSchema = z.object({
   title: z.string().trim().min(3).max(200),
