@@ -136,6 +136,10 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
   const posts = await prisma.post.findMany({
     where: {
       deletedAt: null,
+      // D072 — drafts never appear in the feed; only `published` posts.
+      // Send-for-review posts that also chose "Also post to feed" land
+      // as `published` immediately and surface here as expected.
+      status: 'published',
       visibility: { in: visibilityFilter },
       ...filterWhere,
       ...cursorWhere,

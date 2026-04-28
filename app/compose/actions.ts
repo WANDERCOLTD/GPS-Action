@@ -10,36 +10,26 @@
  * @spec build/session-briefs/bu-publish-router.md
  * @spec docs/adrs/0001-post-event-time-fields.md
  *
- * Server action wrapping post.create for client-side form submit.
- * Mirrors app/feed/actions.ts pattern: createTRPCContext → createCaller.
- * Link-share fields are optional (D060). Hero image (D064) is optional;
- * its allow-list is enforced by the validator.
+ * Server actions for the compose flow.
  *
- * BU-am-link-collapse: the composer no longer submits
- * `activistMailerUrl`. Activist-Mailer URLs paste into the regular
- * `linkUrl` field; the preview card auto-detects the AM domain at
- * render time. The schema validator still accepts
- * `activistMailerUrl` for backwards-compat (legacy seed + service-
- * layer writes); the composer just stops sending it.
- *
- * BU-tick-or-cross: when `signal` is set (kind === tick_or_cross),
- * the action does NOT redirect on success. It returns
- * `{ handoff: { postId, signal } }` so the client can open the
- * SendToNetworkConfirm modal. All other kinds keep the redirect-to-feed
- * behaviour. (Slated for removal in a later commit when the
- * PostPublishModal owns this flow.)
+ * `createPostAction` (BU-publish-router refactor): always creates the
+ * post as a `draft` and returns the post id + a snapshot the client
+ * needs to dispatch follow-on lifecycle verbs through
+ * `<PostPublishModal>`. It does NOT redirect on success — the modal
+ * owns publish / save-as-draft / send-for-review / discard from there.
+ * Validation errors are returned in `{ errors }`; an unauthenticated
+ * caller redirects to `/dev/login?returnTo=/compose`.
  *
  * BU-event-time / D073: the form submits eventAtDate / eventAtTime /
  * eventEndsAtDate / eventEndsAtTime in Europe/London wall-clock; this
  * action converts them to UTC via shared/format-event-time before
  * passing to postCreateSchema. Empty inputs round-trip as undefined.
  *
- * BU-publish-router: the lifecycle verb actions (publishPostAction,
- * sendPostForReviewAction, saveDraftAction, discardPostAction,
- * restorePostAction, autosaveDraftAction) are added below; they're
- * called from `<PostPublishModal>` once it lands. createPostAction is
- * left untouched in this commit — the modal integration that strips
- * its handoff payload is a later commit per the brief sequence.
+ * Lifecycle verb actions (`publishPostAction`,
+ * `sendPostForReviewAction`, `saveDraftAction`, `discardPostAction`,
+ * `restorePostAction`, `autosaveDraftAction`) wrap the matching tRPC
+ * mutations and unwrap typed errors into `{ ok, reason }` so the
+ * modal never has to interpret a `TRPCError` directly.
  */
 
 import { redirect } from 'next/navigation';
@@ -53,20 +43,23 @@ import type { Signal } from '@prisma/client';
 
 export interface CreatePostResult {
   errors?: Record<string, string[]>;
-  handoff?: {
+  /** Set on success — the modal needs the id + body/title/signal to dispatch verbs. */
+  draft?: {
     postId: string;
-    signal: Signal;
     title: string;
     body: string;
+    signal: Signal | null;
+    kindSlug: string | null;
   };
 }
 
 const VALID_SIGNALS: ReadonlySet<string> = new Set(['promote', 'remove']);
 
-export async function createPostAction(formData: FormData): Promise<CreatePostResult | void> {
+export async function createPostAction(formData: FormData): Promise<CreatePostResult> {
   const rawSignal = formData.get('signal')?.toString();
   const signal: Signal | undefined =
     rawSignal && VALID_SIGNALS.has(rawSignal) ? (rawSignal as Signal) : undefined;
+  const kindSlug = formData.get('kindSlug')?.toString() || null;
 
   // BU-event-time / D073. Composer submits date+time as
   // Europe/London wall-clock; the action converts to UTC here before
@@ -99,43 +92,29 @@ export async function createPostAction(formData: FormData): Promise<CreatePostRe
 
   const parsed = postCreateSchema.safeParse(raw);
   if (!parsed.success) {
-    return {
-      errors: parsed.error.flatten().fieldErrors,
-    };
+    return { errors: parsed.error.flatten().fieldErrors };
   }
 
-  let createdPostId: string | null = null;
   try {
     const ctx = await createTRPCContext();
     const caller = createCaller(ctx);
     const created = await caller.post.create(parsed.data);
-    createdPostId = created.id;
+    return {
+      draft: {
+        postId: created.id,
+        title: parsed.data.title,
+        body: parsed.data.body,
+        signal: signal ?? null,
+        kindSlug,
+      },
+    };
   } catch (err) {
     if (err instanceof TRPCError && err.code === 'UNAUTHORIZED') {
       redirect('/dev/login?returnTo=/compose');
     }
     console.error('[compose/actions] post.create failed:', err);
-    return {
-      errors: { _form: ['Could not create post. Try again.'] },
-    };
+    return { errors: { _form: ['Could not create post. Try again.'] } };
   }
-
-  revalidatePath('/feed');
-
-  // BU-tick-or-cross: signal is set → return handoff payload so the
-  // client opens the SendToNetworkConfirm modal instead of redirecting.
-  if (signal && createdPostId) {
-    return {
-      handoff: {
-        postId: createdPostId,
-        signal,
-        title: parsed.data.title,
-        body: parsed.data.body,
-      },
-    };
-  }
-
-  redirect('/feed');
 }
 
 // ── Lifecycle verbs (BU-publish-router / D072) ───────────────────────────

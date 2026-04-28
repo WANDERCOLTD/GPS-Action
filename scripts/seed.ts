@@ -1030,6 +1030,10 @@ async function main(): Promise<void> {
           eventAt,
           eventEndsAt,
           locationText,
+          // D072 — demo posts ship as published-and-live. Drafts are
+          // an authenticated-author state; seed has no need for them.
+          status: 'published',
+          publishedAt: createdAt,
         },
       });
       postsCreated++;

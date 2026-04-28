@@ -26,14 +26,14 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-15 | Jeremy investigates a voucher's lineage | 0 | — | — | parked |
 | SCN-16 | Coordinator dispatches a Boost/Remove post to WhatsApp | 0 | — | — | parked |
 | SCN-17 | System auto-comments on a closing campaign | 0 | — | — | parked |
-| SCN-18 | Eddie writes his first post (the demo flow) | 2 | BU-composer, BU-fab-intent-picker, BU-feed, BU-link-first-composer, BU-tick-or-cross | D044, D062, D069 | ✓ shipped |
-| SCN-19 | Sharon shares a Guardian article with a preview card | 2 | BU-am-link-collapse, BU-composer, BU-fab-intent-picker, BU-link-share, BU-post-hero-demo, BU-tick-or-cross | D060, D061, D062, D064, D069 | ✓ shipped |
+| SCN-18 | Eddie writes his first post (the demo flow) | 2 | BU-composer, BU-fab-intent-picker, BU-feed, BU-link-first-composer, BU-publish-router, BU-tick-or-cross | D044, D062, D069, D072 | ✓ shipped |
+| SCN-19 | Sharon shares a Guardian article with a preview card | 2 | BU-am-link-collapse, BU-composer, BU-fab-intent-picker, BU-link-share, BU-post-hero-demo, BU-publish-router, BU-tick-or-cross | D060, D061, D062, D064, D069, D072 | ✓ shipped |
 | SCN-20 | Eddie reads the Sky News post and writes his first comment | 11 | BU-comments, BU-publish-router, BU-reactions, BU-requests-vetting, BU-tick-or-cross | D045, D050, D052, D056, D057, D069, D072 | ✓ shipped |
 | SCN-21 | Eddie tracks his vetting application from submission to outcome | 6 | BU-comments, BU-publish-router, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D052, D054, D055, D056, D057, D058, D061, D072 | ✓ shipped |
 | SCN-22 | Sharon picks up and resolves Eddie's vetting application | 6 | BU-comments, BU-publish-router, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D052, D054, D055, D056, D057, D058, D061, D072 | ✓ shipped |
 | SCN-23 | Maya raises an urgent alert at the school gate | 3 | BU-publish-router, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D054, D055, D056, D057, D058, D072 | ✓ shipped |
-| SCN-24 | Sharon pastes a Guardian link straight into the FAB | 2 | BU-composer, BU-fab-intent-picker, BU-link-first-composer, BU-tick-or-cross | D044, D062, D069 | ✓ shipped |
-| SCN-25 | Eddie types a thought straight into the FAB | 2 | BU-composer, BU-fab-intent-picker, BU-link-first-composer, BU-tick-or-cross | D044, D062, D069 | ✓ shipped |
+| SCN-24 | Sharon pastes a Guardian link straight into the FAB | 2 | BU-composer, BU-fab-intent-picker, BU-link-first-composer, BU-publish-router, BU-tick-or-cross | D044, D062, D069, D072 | ✓ shipped |
+| SCN-25 | Eddie types a thought straight into the FAB | 2 | BU-composer, BU-fab-intent-picker, BU-link-first-composer, BU-publish-router, BU-tick-or-cross | D044, D062, D069, D072 | ✓ shipped |
 
 ## Build Units
 
@@ -51,15 +51,15 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-composer | 8 | SCN-18, SCN-19, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D072 |
 | BU-demo-mode | 2 | — | — |
 | BU-error-boundary | 2 | — | D003, D037, D065 |
-| BU-fab-intent-picker | 8 | SCN-18, SCN-19, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D070 |
+| BU-fab-intent-picker | 8 | SCN-18, SCN-19, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D070, D072 |
 | BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060, D061, D064, D069, D072 |
 | BU-feed-card-clamp | 1 | — | D052, D061, D064 |
 | BU-feed-filter | 2 | — | — |
 | BU-healthcheck | 3 | — | D037 |
-| BU-link-first-composer | 7 | SCN-18, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069 |
+| BU-link-first-composer | 7 | SCN-18, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D072 |
 | BU-link-share | 5 | SCN-19 | D045, D048, D060, D061, D062, D064, D069, D072 |
 | BU-post-hero-demo | 6 | SCN-19 | D045, D048, D060, D062, D064, D069, D072 |
-| BU-publish-router | 14 | SCN-20, SCN-21, SCN-22, SCN-23 | D045, D048, D052, D054, D055, D056, D057, D058, D060, D064, D069, D072 |
+| BU-publish-router | 17 | SCN-18, SCN-19, SCN-20, SCN-21, SCN-22, SCN-23, SCN-24, SCN-25 | D044, D045, D048, D052, D054, D055, D056, D057, D058, D060, D062, D064, D069, D072 |
 | BU-reactions | 9 | SCN-3, SCN-20 | D036, D050, D052, D069 |
 | BU-requests-foundation | 6 | SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D065, D072 |
 | BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061, D072 |
@@ -68,7 +68,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-seed | 1 | — | D038 |
 | BU-share-rail-on-detail | 4 | — | D067 |
 | BU-sticky-nav | 5 | — | D003, D054, D061, D065 |
-| BU-tick-or-cross | 12 | SCN-18, SCN-19, SCN-20, SCN-24, SCN-25 | D044, D045, D048, D052, D060, D062, D064, D069, D070, D072 |
+| BU-tick-or-cross | 11 | SCN-18, SCN-19, SCN-20, SCN-24, SCN-25 | D044, D045, D048, D052, D060, D062, D064, D069, D070, D072 |
 | BU-versioning | 3 | — | D003, D065 |
 | BU-whatsapp-share | 2 | — | D065, D067 |
 
@@ -97,7 +97,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D064 | Post.heroImageUrl optional field; demo-stub picker on top of D046's phased plan | 5 |
 | D065 | Sticky app header + soft refresh button (BU-sticky-nav) | 6 |
 | D067 | WhatsApp share analytics: stub ping completes the catalogued event | 1 |
-| D069 | `tick_or_cross` PostKind + `Post.signal` + post-publish handoff to GPS Network channel (BU-tick-or-cross) | 11 |
+| D069 | `tick_or_cross` PostKind + `Post.signal` + post-publish handoff to GPS Network channel (BU-tick-or-cross) | 10 |
 | D070 | Reference data ships in migrations, not seeds; CI gate fails the merge if a code-referenced row is missing | 2 |
-| D072 | Post lifecycle, publish router, and per-kind action registry | 14 |
+| D072 | Post lifecycle, publish router, and per-kind action registry | 17 |
 
