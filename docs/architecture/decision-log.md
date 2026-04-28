@@ -4633,3 +4633,48 @@ Branch 1 (`fix/tick-or-cross-postkind-data-migration`, this ADR's home) ships pa
 - D069 — `tick_or_cross` PostKind (the BU whose miss surfaced this gap)
 - BU-tick-or-cross — the originating bug
 - PR #129 — the merge that introduced the gap
+
+
+# D071 — Prisma 5 → 7 upgrade: connection URL out of schema, runtime via @prisma/adapter-pg
+
+**Date:** 2026-04-28
+**Status:** Accepted
+**Trigger:** Dependabot's bump of `prisma` from 5.22.0 to 7.8.0 (PR #97, closed) failed CI on `Prisma schema validation: The datasource property url is no longer supported in schema files`. Prisma 7 enforces a hard split between **migrate-time** configuration (CLI) and **runtime** configuration (the client). Without an upgrade plan, our schema is contract-locked-broken: we can't merge a Prisma bump without changing both files.
+
+## Decision
+
+1. **Move the connection URL out of `prisma/schema.prisma`.** The `datasource db { url = env("DATABASE_URL") }` line is removed. The block keeps only `provider = "postgresql"`. Schema files now describe the data model only — connection plumbing is environment concern.
+
+2. **Migrate-time URL lives in `prisma.config.ts`.** A new top-level `prisma.config.ts` exports `defineConfig({ datasource: { url: process.env.DATABASE_URL! } })`. This is what the Prisma CLI (`migrate`, `db push`, `studio`, `generate`) reads. Loaded via `prisma/config`'s `defineConfig`; uses `dotenv/config` so local `.env` still works.
+
+3. **Runtime URL lives in `server/db/client.ts` via `@prisma/adapter-pg`.** The PrismaClient constructor now receives `{ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) }`. Driver-adapter is the right path for our deployment (AWS RDS Postgres, no Accelerate), and is the Prisma-blessed direction post-7.
+
+4. **Skipping Prisma 6 directly to 7 is supported.** Prisma's 5→7 path passes through 6's deprecations transparently for our usage (no Pulse, no Accelerate, no rejected-on-6 features). All 552 tests + typecheck + lint pass on the upgrade.
+
+## Why this rule, not the alternatives
+
+| Alternative | Why rejected |
+| --- | --- |
+| **Stay on Prisma 5.** | Stale runtime, security patches lagging, ecosystem moving. Dependabot will keep proposing the bump. Fixing it once is cheaper than declining indefinitely. |
+| **Migrate URL via `accelerateUrl` instead of an adapter.** | Accelerate is a paid Prisma cloud product (connection pooler + edge cache). We use AWS RDS directly; Accelerate would add cost and a vendor dependency for zero benefit. |
+| **Keep `url` in schema with a Prisma 5 escape hatch.** | Doesn't exist on Prisma 7 — the validation error is hard, not advisory. |
+| **Two-step: 5 → 6 → 7.** | The intermediate step buys nothing for our codebase. We don't depend on any 6-deprecated APIs. |
+
+## What changed
+
+- `package.json`: `prisma` and `@prisma/client` to `^7.8.0`. New deps: `@prisma/adapter-pg ^7.8.0`, `pg ^8.20.0`, `@types/pg ^8.20.0` (dev).
+- `prisma/schema.prisma`: removed `url = env("DATABASE_URL")` from the datasource block.
+- `prisma.config.ts`: new file at project root. Provides the URL to the Migrate CLI.
+- `server/db/client.ts`: instantiates `PrismaPg` adapter and passes it to the `PrismaClient` constructor.
+
+## Consequences
+
+- **`.env` plumbing unchanged.** `DATABASE_URL` is still the single env var that holds the connection string. Both `prisma.config.ts` and the client read from it.
+- **CI's Prisma steps unchanged.** `prisma generate`, `prisma migrate deploy`, `prisma migrate dev` all read `prisma.config.ts` automatically — no workflow edits needed.
+- **One adapter dep added at runtime.** `@prisma/adapter-pg` + `pg` ship to production. ~80 KB unminified — acceptable.
+- **No data migration.** The schema's data model is unchanged; this is a config-shape upgrade, not a data shape change.
+
+## Related
+
+- D070 — Reference data ships in migrations (the previous prisma-tooling decision)
+- PR #97 — Dependabot's failed solo bump (closed; replaced by this PR)

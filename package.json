@@ -30,7 +30,8 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "@tanstack/react-query": "^5.100.5",
     "@trpc/client": "^11.0.0",
     "@trpc/next": "^11.0.0",
@@ -39,6 +40,7 @@
     "date-fns": "^4.1.0",
     "lucide-react": "^1.11.0",
     "next": "^16.2.4",
+    "pg": "^8.20.0",
     "psl": "^1.15.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -51,6 +53,7 @@
     "@faker-js/faker": "^10.4.0",
     "@tailwindcss/postcss": "^4.2.4",
     "@types/node": "^25.6.0",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
@@ -64,7 +67,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.3.3",
-    "prisma": "^5.22.0",
+    "prisma": "^7.8.0",
     "tsx": "^4.19.2",
     "typescript": "^6.0.3",
     "vitest": "^4.1.5"
