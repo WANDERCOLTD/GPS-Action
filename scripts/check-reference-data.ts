@@ -7,6 +7,12 @@
  * the merge.
  */
 
+// Prisma 7 (D071): the runtime adapter reads DATABASE_URL at module
+// init; tsx doesn't auto-load .env, so we import it here before the
+// prisma client is constructed. Companion to #143 which patched
+// scripts/seed.ts the same way.
+import 'dotenv/config';
+
 import { assertReferenceData, MissingReferenceDataError } from '@/server/lib/assert-reference-data';
 
 async function main(): Promise<void> {
