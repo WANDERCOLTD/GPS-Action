@@ -47,12 +47,13 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-admin-bulk-ops | 8 | — | — |
 | BU-admin-crud | 21 | — | — |
 | BU-am-link-collapse | 4 | SCN-19 | D060, D061, D062, D064, D069 |
-| BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057, D069 |
+| BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057, D061, D064, D069 |
 | BU-composer | 8 | SCN-18, SCN-19, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069 |
 | BU-demo-mode | 2 | — | — |
 | BU-error-boundary | 2 | — | D003, D037, D065 |
 | BU-fab-intent-picker | 8 | SCN-18, SCN-19, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D070 |
-| BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060, D064, D069 |
+| BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060, D061, D064, D069 |
+| BU-feed-card-clamp | 1 | — | D052, D061, D064 |
 | BU-feed-filter | 2 | — | — |
 | BU-healthcheck | 3 | — | D037 |
 | BU-link-first-composer | 7 | SCN-18, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069 |
@@ -90,9 +91,9 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D057 | Notifications entity + in-app delivery | 7 |
 | D058 | Urgent flag, AlertCategory, admin-configurable TTL, polling | 5 |
 | D060 | Post schema additions for link-share preview cards | 6 |
-| D061 | Global tap interaction pattern | 6 |
+| D061 | Global tap interaction pattern | 7 |
 | D062 | PostKind table + alert orthogonality | 8 |
-| D064 | Post.heroImageUrl optional field; demo-stub picker on top of D046's phased plan | 4 |
+| D064 | Post.heroImageUrl optional field; demo-stub picker on top of D046's phased plan | 5 |
 | D065 | Sticky app header + soft refresh button (BU-sticky-nav) | 6 |
 | D067 | WhatsApp share analytics: stub ping completes the catalogued event | 1 |
 | D069 | `tick_or_cross` PostKind + `Post.signal` + post-publish handoff to GPS Network channel (BU-tick-or-cross) | 11 |
