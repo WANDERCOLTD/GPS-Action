@@ -1,6 +1,6 @@
 {
   "name": "gps-action",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "description": "GPS Action — purpose-built platform for coordinated activism",
   "scripts": {
@@ -36,7 +36,7 @@
     "@trpc/server": "^11.0.0",
     "date-fns": "^4.1.0",
     "lucide-react": "^1.11.0",
-    "next": "^15.0.0",
+    "next": "^16.2.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "superjson": "^2.2.1",
