@@ -4581,3 +4581,55 @@ self-dispatch handoff with a confirm step.
 - BU-whatsapp-share / PR #111 — the share machinery this BU does
   **not** reuse for the publish flow (auto-handoff is distinct from
   user-initiated card share); the modal pattern is new code.
+
+# D070 — Reference data ships in migrations, not seeds; CI gate fails the merge if a code-referenced row is missing
+
+**Date:** 2026-04-28
+**Status:** Accepted
+**Trigger:** BU-tick-or-cross (PR #129) shipped a code path that references the `tick_or_cross` PostKind slug, but the migration only added the `Signal` enum and two columns — no `INSERT INTO "PostKind"`. The row existed only in `scripts/seed.ts`. Tests passed because tests run the seed; preview/prod did not, so the live composer threw `signal is only valid for tick_or_cross posts` for every tick-or-cross submission. Surfaced in dev as a generic `Could not create post. Try again.`
+
+## Decision
+
+1. **Reference data ships with idempotent migrations.** Any row the application code references by static slug or id (e.g. `PostKind.slug === 'tick_or_cross'`, future taxonomy tables, lookup enums migrated to tables) MUST be inserted by a Prisma migration with `ON CONFLICT … DO NOTHING`. `scripts/seed.ts` and `prisma/seed.ts` are reserved for **demo content** (synthetic users, posts, comments) — never reference data.
+2. **Single source of truth for required slugs.** The set of code-referenced PostKind slugs lives in `shared/post-kinds.ts` as `REQUIRED_POST_KIND_SLUGS`. The composer page derives its known-intent set from this constant; the assertion below reads the same constant. Adding a slug in two places (or forgetting to add it in one) is now impossible.
+3. **Boot-time invariant + CI gate.** `server/lib/assert-reference-data.ts` exports `assertReferenceData()` which throws `MissingReferenceDataError` listing every required slug missing or soft-deleted. The CI `deploy-check` job runs `npm run check:reference-data` after `prisma migrate deploy` (no seeds applied) — non-zero exit fails the merge. The compose page also calls the assertion logic against its already-loaded `kindMap` so dev-time failures surface as a specific error, not a generic "post failed".
+
+## Why this rule, not the alternatives
+
+| Alternative                                             | Why rejected                                                                                                                                                                                                                                      |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Run `db:seed` during build/deploy.**                  | `scripts/seed.ts` inserts demo users, demo posts, fake comments. Running it in production would corrupt the dataset. Reference data and demo content have different shelf lives and different audiences; conflating them is the bug we're fixing. |
+| **Catch at the service layer with a friendlier error.** | Doesn't fix the missing row. User still can't post. CI still merges broken code.                                                                                                                                                                  |
+| **Trust authors to remember.**                          | The BU-tick-or-cross author had a thorough brief, a test suite, code review, and a CI pipeline. The gap landed anyway. Process > discipline.                                                                                                      |
+| **Static analysis (lint rule).**                        | Possible but fragile — slugs can be constructed dynamically, imported from constants, etc. A runtime gate against a real migrated database has zero false negatives.                                                                              |
+
+## How it works
+
+```
+PR opened
+  → CI job runs:
+      npm ci
+      npm run db:generate
+      npx prisma migrate deploy           # applies all pending migrations
+      npm run check:reference-data        # boot-time assertion against the migrated DB
+        ↑ fails if any REQUIRED_POST_KIND_SLUGS row is missing
+  → red CI = merge blocked
+```
+
+Branch 1 (`fix/tick-or-cross-postkind-data-migration`, this ADR's home) ships parts 1-2 + the assertion. Branch 2 (`chore/ci-reference-data-gate`) wires `check:reference-data` into `.github/workflows/ci.yml` — the merge-blocking step.
+
+## Consequences
+
+- **One-line cost per new PostKind.** Add the slug to `shared/post-kinds.ts`, write a one-line `INSERT INTO "PostKind" … ON CONFLICT DO NOTHING` migration. Forget either → CI red.
+- **Migrations now contain data, not just schema.** Prisma supports this fine, but reviewers should expect to see `INSERT` statements alongside `CREATE TABLE` / `ALTER TABLE`. Idempotency (`ON CONFLICT DO NOTHING`) is mandatory.
+- **`scripts/seed.ts` shrinks over time.** PostKind upserts in seed are now redundant (migrations seed them). Removing them is a clean follow-up; the upserts are idempotent so leaving them is harmless until then.
+- **Pattern generalises.** The same approach should apply if SystemSetting, future taxonomy tables, or any other "code references this row by static identifier" tables emerge. `REQUIRED_POST_KIND_SLUGS` is the first instance — others get parallel constants and parallel assertion lines.
+- **CLAUDE.md gains a "Don't" rule.** "Don't add code that depends on a slug/id without a corresponding migration insert."
+
+## Related
+
+- D062 — PostKind as managed table (the table this rule first applies to)
+- D068 — Brief lifecycle status as front-matter (the previous CI gate added for similar reasons — process > discipline)
+- D069 — `tick_or_cross` PostKind (the BU whose miss surfaced this gap)
+- BU-tick-or-cross — the originating bug
+- PR #129 — the merge that introduced the gap
