@@ -62,7 +62,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-secondary-cta-placeholders | 1 | — | DNaN |
 | BU-seed | 1 | — | D038 |
 | BU-share-rail-on-detail | 4 | — | D067 |
-| BU-sticky-nav | 4 | — | D003, D054, D061, D065 |
+| BU-sticky-nav | 5 | — | D003, D054, D061, D065 |
 | BU-tick-or-cross | 12 | SCN-18, SCN-19, SCN-20 | D044, D045, D048, D052, D060, D062, D064, D069, D070 |
 | BU-versioning | 3 | — | D003, D065 |
 | BU-whatsapp-share | 2 | — | D065, D067 |
@@ -90,7 +90,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D061 | Global tap interaction pattern | 6 |
 | D062 | PostKind table + alert orthogonality | 8 |
 | D064 | Post.heroImageUrl optional field; demo-stub picker on top of D046's phased plan | 4 |
-| D065 | Sticky app header + soft refresh button (BU-sticky-nav) | 5 |
+| D065 | Sticky app header + soft refresh button (BU-sticky-nav) | 6 |
 | D067 | WhatsApp share analytics: stub ping completes the catalogued event | 1 |
 | D069 | `tick_or_cross` PostKind + `Post.signal` + post-publish handoff to GPS Network channel (BU-tick-or-cross) | 11 |
 | D070 | Reference data ships in migrations, not seeds; CI gate fails the merge if a code-referenced row is missing | 2 |
