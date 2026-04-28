@@ -177,18 +177,34 @@ operations, no breaking changes to existing readers.
 
 **Compose form changes:**
 
-- `components/PostForm.tsx` — refactor:
-  - Remove inline handoff handling (`handoff` state, `<SendToNetworkConfirm />`)
-  - On submit: call `createPostAction` to get the postId, then open
-    `<PostPublishModal>` with kind config loaded from props
-  - Add autosave hook: `useAutosaveDraft(postId, fields)` — IndexedDB-
-    first per D071 §8
-  - Add saved-indicator: `<DraftSavedIndicator state={'editing' | 'saved' | 'failed'} lastSavedAt={Date} />` 
+- `components/PostForm.tsx` — refactor (the form is currently ~1066
+  lines after BU-link-first-composer / PR #135 landed; this BU
+  preserves all of that BU's work):
+  - **Preserve** the `prefilledLinkUrl` / `prefilledTitle` props
+    and their initialisation paths — the FAB starter card (#135)
+    feeds these via `?linkUrl=` / `?title=` query params on
+    `/compose`
+  - **Preserve** the IntentBanner / KindPickerSheet / kind-chip
+    flow that `PostForm` already runs (intent switching, kind
+    rail, etc.)
+  - **Remove** inline handoff handling (`handoff` state,
+    `<SendToNetworkConfirm />` mount, the `result?.handoff` branch
+    in `handleSubmit`)
+  - **Replace** `handleSubmit`: persist the form state as a draft
+    (autosave already handles this once content exists), then open
+    `<PostPublishModal>` with kind config loaded from props. The
+    modal owns the publish/save/review/discard verbs from there.
+  - **Add** the autosave hook: `useAutosaveDraft(postId, fields)`
+    — IndexedDB-first per D071 §8. Initial server-promote happens
+    at publish-tap if it hasn't already, so the modal always has a
+    real `postId` to act on.
+  - **Add** saved-indicator: `<DraftSavedIndicator state={'editing' | 'saved' | 'failed'} lastSavedAt={Date} />`
     in the form header
-  - Tap-to-reveal menu on the indicator: View all drafts (Phase 2 link
-    placeholder for now — disabled but visible) + Discard draft (opens
-    confirm sheet, on confirm fires discardPostAction + shows undo
-    snackbar for 10s via `discard_undo_window_seconds` setting)
+  - **Add** tap-to-reveal menu on the indicator: View all drafts
+    (Phase 2 link placeholder for now — disabled but visible) +
+    Discard draft (opens confirm sheet, on confirm fires
+    `discardPostAction` + shows undo snackbar for 10s via
+    `discard_undo_window_seconds` setting)
 - `components/DraftSavedIndicator.tsx` (new) — three states +
   reveal-menu. Plain copy: `Editing…` / `Saved` / `Couldn't save · Retry`
 - `components/DiscardConfirmSheet.tsx` (new) — 2-step confirm
@@ -382,6 +398,12 @@ operations, no breaking changes to existing readers.
   is part of the testid. Tests reference by the slug they care about.
 - **Brief-status gate** — keep brief filename lowercase `bu-publish-
   router.md` until the PR opens, then flip status: shipped on merge.
+- **#135 integration.** BU-link-first-composer (PR #135) shipped
+  before this brief was written. The FAB starter, query-param
+  prefill, and `psl`-aware URL normalisation it added stay
+  untouched; this BU only refactors PostForm's submit/handoff
+  layer. Manual smoke-test that the FAB → starter → prefill →
+  PostPublishModal path still works end-to-end as part of DoD.
 
 ---
 
