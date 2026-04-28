@@ -49,6 +49,7 @@ function authedContext(): TRPCContext {
       id: 'user-1',
       email: 'test@test.com',
       displayName: 'Test User',
+      avatarUrl: null,
       phoneNumber: null,
       verifiedAt: new Date(),
       lastSeenAt: null,

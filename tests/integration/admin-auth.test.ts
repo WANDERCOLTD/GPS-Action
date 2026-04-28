@@ -39,6 +39,7 @@ function fakeUser(id = 'u-1'): TRPCContext['user'] {
     id,
     email: `${id}@test.com`,
     displayName: id,
+    avatarUrl: null,
     phoneNumber: null,
     verifiedAt: new Date(),
     lastSeenAt: null,

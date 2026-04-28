@@ -56,6 +56,7 @@ const callerCtx: TRPCContext = {
     id: 'user-1',
     email: 'eddie@example.test',
     displayName: 'Eddie Test',
+    avatarUrl: null,
     phoneNumber: null,
     verifiedAt: new Date(),
     lastSeenAt: null,

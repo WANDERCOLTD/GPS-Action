@@ -62,6 +62,9 @@ enum RequestType {
   incident
   content_submission
   link_submission
+  // D071 — post review request. Distinct from `vetting` (member admission).
+  // Subject is a post artefact; verdict applies to Post.status + reviewedByUserId.
+  kind_review
 }
 
 enum RequestStatus {
@@ -103,6 +106,26 @@ enum Signal {
   remove
 }
 
+// D071 — post lifecycle. Two values; discard remains soft-delete via
+// Post.deletedAt; review state is the orthogonal Post.reviewRequestId
+// flag (a post can be `draft` + reviewing or `published` + reviewing).
+enum PostStatus {
+  draft
+  published
+}
+
+// D071 — drives the publish router's modal default per PostKind.
+// review_first: Send-for-review is the only path
+// review_after_publish: always publish, also send for review
+// either_with_default_review_first: both available, "Send for review" preselected
+// either_with_default_publish: both available, "Post to feed" preselected
+enum ReviewMode {
+  review_first
+  review_after_publish
+  either_with_default_review_first
+  either_with_default_publish
+}
+
 // ─── User ────────────────────────────────────────────────────────────────────
 //
 // Identity for any human in the system. Per D041 — no location fields
@@ -119,6 +142,9 @@ model User {
   id          String    @id @default(uuid())
   email       String    @unique
   displayName String
+  // D071 — optional avatar URL. Phase 1 ships with initials fallback when
+  // null; upload UI is a future BU. Initial demo data may set this via seed.
+  avatarUrl   String?
   phoneNumber String?
   verifiedAt  DateTime?
   lastSeenAt  DateTime?
@@ -154,6 +180,10 @@ model User {
 
   // Posts (Slice 2 minimal — D045)
   posts Post[] @relation("authorPosts")
+
+  // D071 — posts this user has reviewed (kind_review verdict). Reverse of
+  // Post.reviewedByUserId.
+  postsReviewed Post[] @relation("PostReviewer")
 
   // Reactions authored (BU-reactions — D050)
   reactions Reaction[] @relation("authorReactions")
@@ -296,6 +326,11 @@ model Request {
   comments      Comment[]      @relation("requestComments")
   notifications Notification[]
 
+  // D071 — back-reference for `kind_review` requests linked from a Post.
+  // 0..1 because Post.reviewRequestId is @unique. SetNull on delete via
+  // the FK declared on Post.
+  postReview Post? @relation("PostReviewRequest")
+
   @@index([status, priority, createdAt])
   @@index([claimedByUserId, status])
   @@index([type, status])
@@ -325,6 +360,19 @@ model PostKind {
   isAlertEligible Boolean   @default(false)
   createdAt       DateTime  @default(now())
   deletedAt       DateTime?
+
+  // D071 — publish-router config. Drives what the modal renders for this kind.
+  // actionSlugs: which kind-specific actions render (resolved against the code
+  //   registry at shared/post-kind-actions.ts; unknown slugs are inert).
+  // reviewMode: drives the modal's preselected default + whether self-publish
+  //   is even offered.
+  // canSelfPublish: false hides the "Post to feed" base action.
+  // reviewPriority: priority assigned to a kind_review Request created from
+  //   this kind — high-stakes kinds bubble up the reviewer queue.
+  actionSlugs    String[]        @default([])
+  reviewMode     ReviewMode      @default(either_with_default_publish)
+  canSelfPublish Boolean         @default(true)
+  reviewPriority RequestPriority @default(normal)
 
   posts    Post[]
   requests Request[]
@@ -730,6 +778,20 @@ model Post {
   // confirmed; idempotent via `post.markSharedToNetwork`.
   sharedToNetworkAt DateTime?
 
+  // D071 — post lifecycle (orthogonal to deletedAt and reviewRequestId).
+  // status: draft = saved but not in feed; published = live in feed.
+  // publishedAt: when the post became live (null while draft).
+  status      PostStatus @default(draft)
+  publishedAt DateTime?
+
+  // D071 — review state (orthogonal to status). reviewRequestId set ⇒ post
+  // has an open or closed kind_review Request; reviewedByUserId set ⇒ a
+  // verdict has been applied (drives the three-tier attribution UI).
+  reviewRequestId  String?  @unique
+  reviewRequest    Request? @relation("PostReviewRequest", fields: [reviewRequestId], references: [id], onDelete: SetNull)
+  reviewedByUserId String?
+  reviewedBy       User?    @relation("PostReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
   // Group tags — array of Group slugs (mirrors WorkItem pattern; informational only in MVP)
   groupTags String[] @default([])
 
@@ -763,6 +825,8 @@ model Post {
   // Plain B-tree is fine at MVP scale; promote to a partial index
   // (WHERE eventAt IS NOT NULL) later when the table grows.
   @@index([eventAt])
+  // D071 — feed query: published posts ordered by publishedAt
+  @@index([status, publishedAt(sort: Desc)])
 }
 
 // ─── Reaction ────────────────────────────────────────────────────────────────
@@ -870,6 +934,12 @@ model Comment {
   // Default 'all' so existing post comments behave unchanged.
   audience CommentAudience @default(all)
 
+  // D071 — when set, this is a system-authored comment with special
+  // rendering. Currently used for `post_review_attribution` (auto-comment
+  // posted when a reviewer publishes a post via the kind_review flow).
+  // null = regular member comment, no special styling.
+  systemKind CommentSystemKind?
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -886,6 +956,13 @@ model Comment {
 enum CommentAudience {
   all
   reviewers
+}
+
+// D071 — discriminates system-authored comments. Phase 1 ships one value;
+// future system-comment kinds (e.g. `post_kind_changed`, `post_merged`)
+// can be added without churn. null on the column = regular member comment.
+enum CommentSystemKind {
+  post_review_attribution
 }
 
 // ─── Notification ────────────────────────────────────────────────────────────

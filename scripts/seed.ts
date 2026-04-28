@@ -729,6 +729,10 @@ async function main(): Promise<void> {
   // Code defines the 8 slugs; admin manages per-row policy. Seed marks
   // happening_now and meeting as alert-eligible.
 
+  // D071 — per-kind config columns added in addition to the existing
+  // basics. Values mirror the migration (D071 §2). Migration is the
+  // source of truth; this exists for fresh-DB seed flows that bypass
+  // the migration data inserts (rare, but defensive).
   const POST_KINDS = [
     {
       slug: 'happening_now',
@@ -736,16 +740,21 @@ async function main(): Promise<void> {
       icon: 'alert-triangle',
       sortOrder: 0,
       isAlertEligible: true,
+      actionSlugs: [],
+      reviewMode: 'review_after_publish' as const,
+      canSelfPublish: true,
+      reviewPriority: 'urgent' as const,
     },
-    // BU-tick-or-cross (D069): "✅ or ❌" — author picks promote/remove,
-    // post is auto-handed-off to the GPS Network WhatsApp channel.
-    // Prominent slot but never #1 (alert-eligible kind keeps top).
     {
       slug: 'tick_or_cross',
       displayName: '✅ or ❌',
       icon: 'check-square',
       sortOrder: 5,
       isAlertEligible: false,
+      actionSlugs: ['share_to_gps_whatsapp'],
+      reviewMode: 'either_with_default_review_first' as const,
+      canSelfPublish: true,
+      reviewPriority: 'high' as const,
     },
     {
       slug: 'meeting',
@@ -753,6 +762,10 @@ async function main(): Promise<void> {
       icon: 'users',
       sortOrder: 10,
       isAlertEligible: true,
+      actionSlugs: ['open_join_link'],
+      reviewMode: 'either_with_default_publish' as const,
+      canSelfPublish: true,
+      reviewPriority: 'normal' as const,
     },
     {
       slug: 'cultural',
@@ -760,6 +773,10 @@ async function main(): Promise<void> {
       icon: 'feather',
       sortOrder: 20,
       isAlertEligible: false,
+      actionSlugs: ['schedule_for_sundown'],
+      reviewMode: 'review_first' as const,
+      canSelfPublish: false,
+      reviewPriority: 'high' as const,
     },
     {
       slug: 'call_to_action',
@@ -767,14 +784,32 @@ async function main(): Promise<void> {
       icon: 'megaphone',
       sortOrder: 30,
       isAlertEligible: false,
+      actionSlugs: ['open_activist_mailer'],
+      reviewMode: 'either_with_default_review_first' as const,
+      canSelfPublish: true,
+      reviewPriority: 'normal' as const,
     },
-    { slug: 'outcome', displayName: 'Outcome', icon: 'pin', sortOrder: 40, isAlertEligible: false },
+    {
+      slug: 'outcome',
+      displayName: 'Outcome',
+      icon: 'pin',
+      sortOrder: 40,
+      isAlertEligible: false,
+      actionSlugs: [],
+      reviewMode: 'either_with_default_publish' as const,
+      canSelfPublish: true,
+      reviewPriority: 'low' as const,
+    },
     {
       slug: 'thought',
       displayName: 'Just a thought',
       icon: 'message-circle',
       sortOrder: 50,
       isAlertEligible: false,
+      actionSlugs: [],
+      reviewMode: 'either_with_default_publish' as const,
+      canSelfPublish: true,
+      reviewPriority: 'low' as const,
     },
     {
       slug: 'link_share',
@@ -782,6 +817,10 @@ async function main(): Promise<void> {
       icon: 'link',
       sortOrder: 60,
       isAlertEligible: false,
+      actionSlugs: ['share_to_socials'],
+      reviewMode: 'either_with_default_publish' as const,
+      canSelfPublish: true,
+      reviewPriority: 'normal' as const,
     },
     {
       slug: 'event',
@@ -789,6 +828,10 @@ async function main(): Promise<void> {
       icon: 'calendar-days',
       sortOrder: 70,
       isAlertEligible: false,
+      actionSlugs: ['add_to_calendar'],
+      reviewMode: 'either_with_default_publish' as const,
+      canSelfPublish: true,
+      reviewPriority: 'normal' as const,
     },
   ];
 
@@ -801,6 +844,10 @@ async function main(): Promise<void> {
         icon: def.icon,
         sortOrder: def.sortOrder,
         isAlertEligible: def.isAlertEligible,
+        actionSlugs: def.actionSlugs,
+        reviewMode: def.reviewMode,
+        canSelfPublish: def.canSelfPublish,
+        reviewPriority: def.reviewPriority,
       },
     });
   }
