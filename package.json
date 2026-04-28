@@ -1,9 +1,10 @@
 {
   "name": "gps-action",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "private": true,
   "description": "GPS Action — purpose-built platform for coordinated activism",
   "scripts": {
+    "predev": "prisma migrate deploy && prisma generate",
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
