@@ -19,13 +19,13 @@ If the path doesn't end in `.claude/worktrees/<slug>/`, surface that and stop â€
 
 ### 2. Derive handoff slug from the branch name
 
-| Branch pattern | Slug |
-| --- | --- |
-| `feat/bu-<name>-YYYYMMDD` | `bu-<name>` |
-| `fix/<name>` | `<name>` (drop date suffix if present) |
-| `chore/<name>-YYYYMMDD` | `<name>` |
-| `docs/<name>` | `<name>` |
-| Anything else | Ask the user for the slug |
+| Branch pattern            | Slug                                   |
+| ------------------------- | -------------------------------------- |
+| `feat/bu-<name>-YYYYMMDD` | `bu-<name>`                            |
+| `fix/<name>`              | `<name>` (drop date suffix if present) |
+| `chore/<name>-YYYYMMDD`   | `<name>`                               |
+| `docs/<name>`             | `<name>`                               |
+| Anything else             | Ask the user for the slug              |
 
 ### 3. Determine the target file
 
@@ -35,15 +35,15 @@ If the file already exists, you're appending a second handoff for the same day â
 
 ### 4. Gather context (run in parallel where possible)
 
-| Source | Why |
-| --- | --- |
-| `git log --oneline ^origin/main` (this branch only) | Commits made on this branch |
-| `git status --short` | Anything dirty / uncommitted |
-| `git fetch origin main && git log origin/main..HEAD --oneline -1; git log HEAD..origin/main --oneline -3` | How far ahead/behind main |
-| `gh pr list --state open --author "@me" --limit 10` | Current PR landscape |
-| `docs/build/session-briefs/<slug>.md` (if exists) | Brief scope, "Build in this session" list, "Risks / known gotchas", "Files this BU touches" |
-| Last gate run (`npm run typecheck && npm run lint && npm test && npm run trace:check && npm run check:reference-data`) | If not run in this session, or working tree is dirty, run it |
-| `git stash list` | Any preserved state worth flagging |
+| Source                                                                                                                 | Why                                                                                         |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `git log --oneline ^origin/main` (this branch only)                                                                    | Commits made on this branch                                                                 |
+| `git status --short`                                                                                                   | Anything dirty / uncommitted                                                                |
+| `git fetch origin main && git log origin/main..HEAD --oneline -1; git log HEAD..origin/main --oneline -3`              | How far ahead/behind main                                                                   |
+| `gh pr list --state open --author "@me" --limit 10`                                                                    | Current PR landscape                                                                        |
+| `docs/build/session-briefs/<slug>.md` (if exists)                                                                      | Brief scope, "Build in this session" list, "Risks / known gotchas", "Files this BU touches" |
+| Last gate run (`npm run typecheck && npm run lint && npm test && npm run trace:check && npm run check:reference-data`) | If not run in this session, or working tree is dirty, run it                                |
+| `git stash list`                                                                                                       | Any preserved state worth flagging                                                          |
 
 ### 5. Write the handoff doc
 
@@ -66,9 +66,9 @@ The next session reads this handoff **and** the brief at
 
 ### What's shipped on this branch
 
-| File | Status |
-|---|---|
-| ... | âœ… summary |
+| File | Status     |
+| ---- | ---------- |
+| ...  | âœ… summary |
 
 ### What's NOT yet built
 
@@ -108,9 +108,9 @@ Each step a separate commit per CLAUDE.md "commit per logical chunk".
 
 ## Open PRs at handoff time
 
-| PR | Status | Notes |
-|---|---|---|
-| #NNN | ... | ... |
+| PR   | Status | Notes |
+| ---- | ------ | ----- |
+| #NNN | ...    | ...   |
 
 ---
 
@@ -137,13 +137,13 @@ Push the branch (no `--force`).
 
 Brief one-screen summary:
 
-| | |
-|---|---|
-| Handoff doc | `docs/build/session-handoffs/<slug>-<date>.md` |
-| Commit | `<sha>` (pushed) |
-| Branch | `<branch>` |
-| % complete (rough) | ... |
-| Next-session pre-step | rebase / nothing / other |
+|                       |                                                |
+| --------------------- | ---------------------------------------------- |
+| Handoff doc           | `docs/build/session-handoffs/<slug>-<date>.md` |
+| Commit                | `<sha>` (pushed)                               |
+| Branch                | `<branch>`                                     |
+| % complete (rough)    | ...                                            |
+| Next-session pre-step | rebase / nothing / other                       |
 
 End with **restart needed?** (yes/no with reason) per the post-merge protocol.
 
