@@ -1,13 +1,24 @@
 'use client';
 
 /**
- * @build-unit BU-feed BU-comments
+ * @build-unit BU-feed BU-comments BU-feed-card-clamp
  * @spec product/design-philosophy.md
- * @spec architecture/decision-log.md (D052)
+ * @spec architecture/decision-log.md (D052, D061, D064)
+ * @spec build/session-briefs/bu-feed-card-clamp.md
  *
  * Single post card for the feed. Renders author, timestamp, title,
  * body paragraphs, the reaction pill, comment-count link, and an
  * optional Activist Mailer button.
+ *
+ * Two layouts:
+ *  - `full`    — original render: full-width 16:9 hero above title,
+ *                body paragraphs unclamped. Used on the detail page
+ *                and anywhere a long-form read is the goal.
+ *  - `compact` — `/feed` default. Body clamped to 3 lines via
+ *                `-webkit-line-clamp`; hero shrinks to a 96×96 right
+ *                thumbnail next to the body (Reddit-card / Medium
+ *                pattern). Honours D061: tap-anywhere navs to detail
+ *                where the full body is shown — no inline expand.
  *
  * Tap-card-to-detail navigates to /post/[id] (BU-comments / D052).
  * The article's onClick checks `event.target.closest('a, button')`
@@ -272,6 +283,8 @@ function KindChip({ kindSlug, urgency }: { kindSlug: string | null; urgency: boo
 
 // ── Component ────────────────────────────────────────────────────────────
 
+export type PostCardVariant = 'full' | 'compact';
+
 interface PostCardProps {
   post: FeedPost;
   /** Server actions injected by the page (server component). */
@@ -281,6 +294,13 @@ interface PostCardProps {
   canReact: boolean;
   /** True when ff_reactions is on (whether or not caller is authed). */
   reactionsEnabled: boolean;
+  /**
+   * BU-feed-card-clamp / RT-001. `compact` (the feed default) clamps the
+   * body to 3 lines and shrinks the hero to a 96×96 right thumbnail.
+   * `full` keeps the unclamped, hero-on-top layout — used by detail
+   * pages and previews that need the long read.
+   */
+  variant?: PostCardVariant;
 }
 
 export const PostCard: FC<PostCardProps> = ({
@@ -289,6 +309,7 @@ export const PostCard: FC<PostCardProps> = ({
   onRemoveReaction,
   canReact,
   reactionsEnabled,
+  variant = 'compact',
 }) => {
   const router = useRouter();
   const paragraphs = post.body.split('\n\n');
@@ -404,9 +425,10 @@ export const PostCard: FC<PostCardProps> = ({
             <SignalBadgeRow signal={post.signal} sharedToNetworkAt={post.sharedToNetworkAt} />
           )}
 
-          {/* Hero image (BU-post-hero-demo / D064). Hero wins over linkImageUrl
-          for top-of-card; the link card retains its own thumbnail below. */}
-          {post.heroImageUrl && (
+          {/* Hero image — `full` only (BU-post-hero-demo / D064). In `compact`
+          the hero shrinks to a 96×96 right thumbnail rendered next to the
+          body, below. */}
+          {variant === 'full' && post.heroImageUrl && (
             <img
               src={post.heroImageUrl}
               alt=""
@@ -428,14 +450,59 @@ export const PostCard: FC<PostCardProps> = ({
             {post.title}
           </h2>
 
-          {/* Body — \n\n split into <p> tags */}
-          <div className="gps-card__body">
-            {paragraphs.map((paragraph, i) => (
-              <p key={i} style={i > 0 ? { marginTop: 'var(--space-3)' } : undefined}>
-                {paragraph}
-              </p>
-            ))}
-          </div>
+          {/* Body — `full` keeps the \n\n paragraph split; `compact` collapses
+          paragraphs into a single string so `-webkit-line-clamp` can span
+          the whole body and renders the optional 96×96 hero thumbnail to
+          the right of the clamped text. */}
+          {variant === 'compact' ? (
+            <div
+              data-testid="post-card-body"
+              data-variant="compact"
+              style={{
+                display: 'flex',
+                gap: 'var(--space-3)',
+                alignItems: 'flex-start',
+                marginBottom: 'var(--space-2)',
+              }}
+            >
+              <div
+                className="gps-card__body"
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
+              >
+                {post.body.replace(/\n\n+/g, ' ')}
+              </div>
+              {post.heroImageUrl && (
+                <img
+                  src={post.heroImageUrl}
+                  alt=""
+                  loading="lazy"
+                  data-testid="post-card-thumb"
+                  style={{
+                    flex: '0 0 96px',
+                    width: 96,
+                    height: 96,
+                    objectFit: 'cover',
+                    borderRadius: 'var(--radius-md)',
+                  }}
+                />
+              )}
+            </div>
+          ) : (
+            <div className="gps-card__body" data-testid="post-card-body" data-variant="full">
+              {paragraphs.map((paragraph, i) => (
+                <p key={i} style={i > 0 ? { marginTop: 'var(--space-3)' } : undefined}>
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          )}
 
           {/* Reaction pill (BU-reactions / D050) */}
           {reactionsEnabled && (
