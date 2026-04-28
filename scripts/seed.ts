@@ -466,6 +466,16 @@ async function main(): Promise<void> {
       sortOrder: 0,
       isAlertEligible: true,
     },
+    // BU-tick-or-cross (D069): "✅ or ❌" — author picks promote/remove,
+    // post is auto-handed-off to the GPS Network WhatsApp channel.
+    // Prominent slot but never #1 (alert-eligible kind keeps top).
+    {
+      slug: 'tick_or_cross',
+      displayName: '✅ or ❌',
+      icon: 'check-square',
+      sortOrder: 5,
+      isAlertEligible: false,
+    },
     {
       slug: 'meeting',
       displayName: 'Meeting',

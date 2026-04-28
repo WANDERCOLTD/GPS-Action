@@ -77,6 +77,8 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       kindDisplayName: p.kindDisplayName,
       urgency: p.urgency,
       heroImageUrl: p.heroImageUrl,
+      signal: p.signal,
+      sharedToNetworkAt: p.sharedToNetworkAt ? p.sharedToNetworkAt.toISOString() : null,
       createdAt: p.createdAt.toISOString(),
       author: {
         displayName: p.author.displayName,

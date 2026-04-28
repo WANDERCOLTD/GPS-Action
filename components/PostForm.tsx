@@ -1,13 +1,14 @@
 'use client';
 
 /**
- * @build-unit BU-composer BU-link-share BU-fab-intent-picker BU-am-link-collapse BU-post-hero-demo
+ * @build-unit BU-composer BU-link-share BU-fab-intent-picker BU-am-link-collapse BU-post-hero-demo BU-tick-or-cross
  * @spec product/design-philosophy.md
  * @spec architecture/api-contract.md
- * @spec architecture/decision-log.md (D060, D062, D064)
+ * @spec architecture/decision-log.md (D060, D062, D064, D069)
  * @spec product/scenarios.md (SCN-19)
  * @spec build/session-briefs/bu-am-link-collapse.md
  * @spec build/session-briefs/bu-post-hero-demo.md
+ * @spec build/session-briefs/bu-tick-or-cross.md
  *
  * Post creation form. Client component — manages form state, calls
  * the createPostAction server action on submit.
@@ -23,6 +24,12 @@
  *
  * BU-post-hero-demo: optional hero image picker between the body and
  * the link-share section, populated from the seeded set per D064.
+ *
+ * BU-tick-or-cross: when kind === 'tick_or_cross', a required ✅/❌
+ * segmented toggle renders above the title and Publish stays disabled
+ * until a choice is made. Submit appends `signal` to FormData. The
+ * post-publish handoff modal is mounted by the page on success
+ * (compose/page.tsx), not by this form.
  */
 
 import { useState, useTransition, type CSSProperties, type ReactNode } from 'react';
@@ -37,10 +44,13 @@ import {
   Users,
   HelpCircle,
   ChevronDown,
+  CheckSquare,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import type { CreatePostResult } from '@/app/compose/actions';
 import { HeroImagePicker } from './HeroImagePicker';
 import { KindPickerSheet, TILES, type Tile } from './KindPickerSheet';
+import { SendToNetworkConfirm } from './SendToNetworkConfirm';
 
 export interface KindMapEntry {
   id: string;
@@ -54,6 +64,10 @@ interface PostFormProps {
   intent?: string | null;
   /** Active PostKind set keyed by slug (server-resolved at page render time). */
   kindMap: Record<string, KindMapEntry>;
+  /** GPS Network channel URL (BU-tick-or-cross / D069). Null when unset. */
+  networkChannelUrl?: string | null;
+  /** Canonical origin for the post URL embedded in the handoff message. */
+  siteOrigin?: string;
 }
 
 interface IntentMeta {
@@ -153,6 +167,20 @@ const INTENT_META: Record<string, IntentMeta> = {
     titlePlaceholder: 'e.g. Writers group — Sunday 19:00',
     bodyPlaceholder: 'Who, when, what we will cover.',
   },
+  // BU-tick-or-cross (D069). Author picks ✅ amplify or ❌ flag; on
+  // publish the post saves and a confirm modal copies the formatted
+  // message to the clipboard before opening the GPS Network channel.
+  tick_or_cross: {
+    icon: <CheckSquare size={20} />,
+    accent: 'var(--colour-primary)',
+    bannerHeading: '✅ or ❌',
+    bannerBody:
+      'Amplify or flag a target. On publish we copy the message and open the GPS Network channel — paste in WhatsApp, return, confirm.',
+    submitLabel: 'Publish',
+    hideLinkToggle: true,
+    titlePlaceholder: 'e.g. Sky News bias — front-page hit piece',
+    bodyPlaceholder: 'A line or two on what to amplify or flag, and why.',
+  },
   undecided: {
     icon: <HelpCircle size={20} />,
     accent: 'var(--colour-text-secondary)',
@@ -174,9 +202,17 @@ function getMeta(intent: string | null | undefined): IntentMeta {
   return INTENT_META[intent ?? 'undecided'] ?? FALLBACK_META;
 }
 
-export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
+export function PostForm({
+  onSubmit,
+  intent = null,
+  kindMap,
+  networkChannelUrl = null,
+  siteOrigin = '',
+}: PostFormProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [handoff, setHandoff] = useState<CreatePostResult['handoff'] | null>(null);
   // currentIntent is initialised from the prop but mutable — tapping the
   // banner opens KindPickerSheet which calls setCurrentIntent.
   const [currentIntent, setCurrentIntent] = useState<string | null>(intent);
@@ -196,8 +232,14 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
   // BU-post-hero-demo (D064): optional member-picked hero from the
   // seeded set. null = no hero. Submitted via a hidden input below.
   const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
+  // BU-tick-or-cross (D069): author's ✅/❌ choice. Required iff the
+  // active kind is `tick_or_cross`; cleared on intent switch.
+  const [signal, setSignal] = useState<'promote' | 'remove' | null>(null);
 
   const resolvedKindId = selectedKind ? kindMap[selectedKind]?.id : undefined;
+  const activeKindSlug = isUndecided ? selectedKind : currentIntent;
+  const isTickOrCross = activeKindSlug === 'tick_or_cross';
+  const submitDisabled = isPending || (isTickOrCross && signal === null);
 
   function handleIntentSwitch(slug: string): void {
     setCurrentIntent(slug);
@@ -207,7 +249,8 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
       setSelectedKind(slug);
     }
     if (slug === 'link_share' || slug === 'call_to_action') setShareLinkOpen(true);
-    if (slug === 'cultural') setShareLinkOpen(false);
+    if (slug === 'cultural' || slug === 'tick_or_cross') setShareLinkOpen(false);
+    if (slug !== 'tick_or_cross') setSignal(null);
   }
 
   function handleSubmit(formData: FormData): void {
@@ -215,13 +258,26 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
     if (meta.urgent && resolvedKindId && kindMap[selectedKind]?.isAlertEligible) {
       formData.set('urgency', 'true');
     }
+    if (isTickOrCross && signal) formData.set('signal', signal);
     startTransition(async () => {
       const result = await onSubmit(formData);
       if (result?.errors) {
         setErrors(result.errors);
+        return;
       }
-      // On success the server action redirects — no client handling needed
+      if (result?.handoff) {
+        // BU-tick-or-cross: open the GPS Network handoff modal in place
+        // of the redirect. Modal closes → router push to /feed.
+        setHandoff(result.handoff);
+        return;
+      }
+      // Other kinds: server action already redirected; no-op here.
     });
+  }
+
+  function handleHandoffClose() {
+    setHandoff(null);
+    router.push('/feed');
   }
 
   return (
@@ -285,6 +341,11 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
           {meta.hint}
         </p>
       )}
+
+      {/* BU-tick-or-cross (D069): required ✅/❌ segmented toggle. Renders
+          above the title so the choice is the first thing the author makes;
+          Publish stays disabled until one is picked. */}
+      {isTickOrCross && <SignalToggle value={signal} onChange={setSignal} />}
 
       {/* Title */}
       <div>
@@ -662,7 +723,7 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
       <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
         <button
           type="submit"
-          disabled={isPending}
+          disabled={submitDisabled}
           data-testid="compose-newpost-submit"
           className="gps-btn gps-btn--primary"
           style={
@@ -686,6 +747,29 @@ export function PostForm({ onSubmit, intent = null, kindMap }: PostFormProps) {
           Cancel
         </a>
       </div>
+
+      {handoff && networkChannelUrl && (
+        <SendToNetworkConfirm
+          postId={handoff.postId}
+          signal={handoff.signal}
+          title={handoff.title}
+          body={handoff.body}
+          channelUrl={networkChannelUrl}
+          originUrl={siteOrigin}
+          onClose={handleHandoffClose}
+        />
+      )}
+      {handoff && !networkChannelUrl && (
+        <div
+          role="alert"
+          data-testid="compose-send-to-network-missing-config"
+          style={{ display: 'none' }}
+        >
+          {/* Channel URL not configured — modal cannot open. The post is still
+              saved; the card-side retry CTA can drive the handoff once the
+              env var is set. Hidden node retained for tests. */}
+        </div>
+      )}
     </form>
   );
 }
@@ -868,4 +952,97 @@ function chipStyle(tile: Tile): CSSProperties {
     fontFamily: 'inherit',
     color: 'inherit',
   };
+}
+
+interface SignalToggleProps {
+  value: 'promote' | 'remove' | null;
+  onChange: (next: 'promote' | 'remove') => void;
+}
+
+function SignalToggle({ value, onChange }: SignalToggleProps) {
+  return (
+    <fieldset
+      data-testid="compose-signal-toggle"
+      style={{
+        border: '1px solid var(--colour-border-subtle)',
+        borderRadius: 'var(--radius-md)',
+        padding: 'var(--space-3) var(--space-4)',
+        margin: 0,
+        background: 'var(--colour-surface-sunken)',
+      }}
+    >
+      <legend
+        style={{
+          padding: '0 var(--space-2)',
+          fontSize: 'var(--text-sm)',
+          fontWeight: 500,
+          fontFamily: 'var(--font-ui)',
+          color: 'var(--colour-text-primary)',
+        }}
+      >
+        Amplify or flag?
+      </legend>
+      <div style={{ display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-2)' }}>
+        <SignalChoiceButton
+          choice="promote"
+          glyph="✅"
+          label="Amplify"
+          selected={value === 'promote'}
+          onClick={() => onChange('promote')}
+        />
+        <SignalChoiceButton
+          choice="remove"
+          glyph="❌"
+          label="Flag"
+          selected={value === 'remove'}
+          onClick={() => onChange('remove')}
+        />
+      </div>
+    </fieldset>
+  );
+}
+
+interface SignalChoiceButtonProps {
+  choice: 'promote' | 'remove';
+  glyph: string;
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}
+
+function SignalChoiceButton({ choice, glyph, label, selected, onClick }: SignalChoiceButtonProps) {
+  // Static testid per F14 rule; choice surfaces via data-signal-choice
+  // for tests / playwright that need to target a specific button.
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      aria-label={label}
+      data-testid="compose-signal-choice"
+      data-signal-choice={choice}
+      style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 'var(--space-1)',
+        padding: 'var(--space-3) var(--space-4)',
+        background: selected ? 'var(--colour-surface-raised)' : 'transparent',
+        border: selected
+          ? '2px solid var(--colour-primary)'
+          : '1px solid var(--colour-border-subtle)',
+        borderRadius: 'var(--radius-md)',
+        cursor: 'pointer',
+        fontFamily: 'var(--font-ui)',
+        fontSize: 'var(--text-sm)',
+        color: 'var(--colour-text-primary)',
+      }}
+    >
+      <span style={{ fontSize: 'var(--text-2xl)' }} aria-hidden="true">
+        {glyph}
+      </span>
+      <span style={{ fontWeight: selected ? 600 : 500 }}>{label}</span>
+    </button>
+  );
 }

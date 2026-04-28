@@ -30,6 +30,7 @@ import {
   Flag,
   Pencil,
   HelpCircle,
+  CheckSquare,
 } from 'lucide-react';
 
 export interface Tile {
@@ -50,6 +51,16 @@ export const TILES: Tile[] = [
     href: '/compose?intent=happening_now',
     icon: <AlertTriangle size={24} />,
     accent: 'var(--colour-urgent)',
+  },
+  // BU-tick-or-cross (D069): publishes to the GPS Network channel as
+  // part of submit. Sortable above general kinds, below the alert tile.
+  {
+    key: 'tick_or_cross',
+    label: '✅ or ❌',
+    hint: 'Amplify or flag — sends to the GPS Network channel',
+    href: '/compose?intent=tick_or_cross',
+    icon: <CheckSquare size={24} />,
+    accent: 'var(--colour-primary)',
   },
   {
     key: 'link_share',

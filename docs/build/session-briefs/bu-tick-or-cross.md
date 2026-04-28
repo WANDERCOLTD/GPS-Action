@@ -1,9 +1,10 @@
 ---
 slug: bu-tick-or-cross
-status: planned
+status: shipped
+shipped_in: "#129"
 phase: 2
 priority: high
-note: "Demo slice — ready to assign. Channel deep-link cannot prefill; flow uses copy-to-clipboard + open channel."
+note: "Demo slice — shipped. Channel deep-link cannot prefill; flow uses copy-to-clipboard + open channel."
 ---
 # SESSION BRIEF · BU-tick-or-cross — "✅ or ❌" PostKind + send-on-publish to GPS Network
 

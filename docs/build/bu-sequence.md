@@ -88,6 +88,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-sticky-nav** — BU-sticky-nav | ✅ Merged | #106 |
 | **bu-brief-status-mechanism** — BU-brief-status-mechanism | ✅ Merged | #116 |
 | **bu-demo-mode** — Brief: BU-demo-mode | ✅ Merged | #124 |
+| **bu-tick-or-cross** — BU-tick-or-cross | ✅ Merged | #129 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |
@@ -107,7 +108,6 @@ by hand — run `npm run trackers`):
 
 <!-- AUTOGEN:planned:start -->
 - **bu-hydration-fixes** _[high]_ — BU-hydration-fixes
-- **bu-tick-or-cross** _[high]_ — BU-tick-or-cross
 - **bu-search-surface** _[medium]_ — BU-search-surface
 - **bu-composer-link-first** _[low]_ — BU-composer-link-first
 <!-- AUTOGEN:planned:end -->

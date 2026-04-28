@@ -1,15 +1,16 @@
 /**
- * @build-unit BU-feed BU-composer
+ * @build-unit BU-feed BU-composer BU-tick-or-cross
  * @spec architecture/api-contract.md
- * @spec architecture/decision-log.md (D045)
+ * @spec architecture/decision-log.md (D045, D069)
  *
- * Post tRPC router. Exposes post.list for the feed and
- * post.create for composing new posts.
+ * Post tRPC router. Exposes post.list for the feed,
+ * post.create for composing new posts, and
+ * post.markSharedToNetwork for the BU-tick-or-cross handoff confirm.
  */
 
 import { z } from 'zod';
 import { router, publicProcedure, authedProcedure } from '@/server/lib/trpc';
-import { listPosts, createPost } from '@/server/services/post';
+import { listPosts, createPost, markSharedToNetwork } from '@/server/services/post';
 import { postCreateSchema } from '@/shared/validation/post';
 import { FEED_FILTERS, type FeedFilter } from '@/shared/feed-filters';
 
@@ -43,4 +44,14 @@ export const postRouter = router({
   create: authedProcedure.input(postCreateSchema).mutation(async ({ ctx, input }) => {
     return createPost(input, ctx.user.id);
   }),
+
+  // BU-tick-or-cross / D069. Idempotent confirm: stamps sharedToNetworkAt
+  // on the first call, no-op afterwards. Anyone authenticated may call —
+  // the demo trusts the self-report. Service-side audit log captures the
+  // identity of the caller.
+  markSharedToNetwork: authedProcedure
+    .input(z.object({ postId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      return markSharedToNetwork(input.postId, ctx.user.id);
+    }),
 });

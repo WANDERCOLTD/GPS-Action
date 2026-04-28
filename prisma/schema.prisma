@@ -96,6 +96,14 @@ enum FeatureFlagPurpose {
   pilot_gate
 }
 
+// BU-tick-or-cross / D069. The author's amplify-or-flag choice on a
+// `tick_or_cross` PostKind. Internal data only — member-facing copy
+// uses ✅ / ❌ glyphs and never the words "promote" / "remove".
+enum Signal {
+  promote
+  remove
+}
+
 // ─── User ────────────────────────────────────────────────────────────────────
 //
 // Identity for any human in the system. Per D041 — no location fields
@@ -709,6 +717,19 @@ model Post {
   // that urgency=true is only allowed when the selected kind is
   // alert-eligible.
   urgency Boolean @default(false)
+
+  // BU-tick-or-cross / D069. Author's amplify-or-flag choice for the
+  // `tick_or_cross` kind. Required iff `kind.slug === 'tick_or_cross'`,
+  // forbidden otherwise (service-layer invariant). Same shape D017
+  // specified for `verdict`; deliberately renamed to `signal` because
+  // the demo flow is post-publish handoff to a single channel, not the
+  // multi-channel verdict routing D017 anticipated.
+  signal Signal?
+
+  // Timestamp of the explicit "I sent it" confirmation after the
+  // post-publish WhatsApp handoff (BU-tick-or-cross / D069). Null until
+  // confirmed; idempotent via `post.markSharedToNetwork`.
+  sharedToNetworkAt DateTime?
 
   // Group tags — array of Group slugs (mirrors WorkItem pattern; informational only in MVP)
   groupTags String[] @default([])
