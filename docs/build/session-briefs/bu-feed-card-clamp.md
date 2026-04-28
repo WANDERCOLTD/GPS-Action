@@ -1,6 +1,7 @@
 ---
 slug: bu-feed-card-clamp
-status: planned
+status: shipped
+shipped_in: "#141"
 phase: 2
 priority: medium
 note: "Slice 1 of the feed-card density redesign. Slice 2 (chip variant + user-selected density toggle) is bu-feed-density-variants."
