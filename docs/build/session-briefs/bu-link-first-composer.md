@@ -1,6 +1,7 @@
 ---
 slug: bu-link-first-composer
-status: planned
+status: shipped
+shipped_in: "#135"
 phase: 2
 priority: high
 note: "Slice 1 of the link-first composer redesign. Slice 2 (server-side og: scraper) and Slice 3 (kind inference) are separate BUs."
