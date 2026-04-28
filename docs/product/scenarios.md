@@ -1309,3 +1309,167 @@ Tap **Publish**. The feed gets a new post. Status flips `in_discussion → done`
 - D058 (Urgent flag, AlertCategory, polling, FAB alert tile, TTL — primary specification)
 - SCN-2 (Emma's leafleting concern — slower form of similar incident, pre-D058)
 - SCN-21, SCN-22 (the canonical submitter + reviewer flows for non-urgent cases)
+
+---
+
+### Scenario 24 — Sharon pastes a Guardian link straight into the FAB
+
+<!-- @no-code-yet -->
+
+_Sharon, member, writers group lead. Tuesday evening, on the train
+home from work. Phone in hand, holding the rail with the other._
+
+Sharon has been reading a Guardian piece on her commute — a clear
+explainer of a Lords amendment that's coming up next week. She wants
+it in front of her network before tomorrow morning so the writers
+team can decide whether to draft a response. She doesn't have time to
+write much; the train is in three minutes from her stop.
+
+She copies the Guardian URL from her browser. Switches to GPS Action.
+The home feed loads. Bottom-right, the **+ / 📋** split FAB. She taps
+the **📋** half — the paste-and-go shortcut.
+
+Behind the scenes the app reads her clipboard, runs URL detection,
+and routes her straight to the composer with the Guardian URL
+prefilled in the link field. The kind chip near the top shows
+"Share a link" already selected. Total taps from copy: one.
+
+She types a single line in the body — "Worth reading before
+tomorrow's committee" — leaves the title to default ("Shared from
+theguardian.com" — auto-derived from the URL host), confirms
+visibility public, and taps Publish. Total elapsed from copy to
+published: maybe 25 seconds. The train pulls in.
+
+Later, on the platform, she checks the feed. Her post is at the top
+with the link preview card showing the article URL and host name
+("theguardian.com"). It's enough — her writers team will see it,
+they'll click through if interested.
+
+**What the scenario surfaces:**
+
+- The split FAB makes the paste-and-go path one tap. For Sharon's
+  commute use case (link already in clipboard, short window), that's
+  the difference between posting and not posting.
+- Auto-default kind to `link_share` for URL paste means the chip
+  rail is set correctly without her doing anything.
+- The post is publishable in seconds without filling all the link-
+  card fields — the auto-fetch (later BU) would make the card
+  richer, but the bare URL post still works.
+- Sharon never had to think "what kind of post is this" before
+  starting — the URL itself answered that.
+
+**Friction found:**
+
+- The default title "Shared from theguardian.com" is honest but a bit
+  flat. Sharon let it through this time because she was rushed; she
+  might overwrite it normally. Worth tracking how often the auto-
+  default title gets accepted vs edited.
+- Reading the clipboard via `navigator.clipboard.readText()` may
+  pop a permission prompt the first time. iOS Safari is the most
+  restrictive — if the read silently returns empty, the paste
+  shortcut falls through to opening the starter card with a "we
+  couldn't read your clipboard — paste below" hint. Sharon would
+  see one extra tap on iOS the first time only.
+- If Sharon's clipboard contained sensitive content (a copied
+  password, an OTP), the paste-and-go path would silently send
+  that to the composer's link field. The link field is visible
+  before she taps Publish, so she sees what got pasted before
+  it goes anywhere. Acceptable for Slice 1; consider stronger
+  privacy guardrails (clipboard content preview prompt) if pilot
+  surfaces concerns.
+
+**Related:**
+
+- SCN-19 (Sharon shares a Guardian article — pre-link-first flow,
+  same person, same publication, more steps)
+- D060 (link-share fields on Post)
+- BU-am-link-collapse (the same paste-detection-at-render pattern,
+  applied to AM URLs)
+- BU-link-first-composer (the BU implementing this scenario)
+
+---
+
+### Scenario 25 — Eddie types a thought straight into the FAB
+
+<!-- @no-code-yet -->
+
+_Eddie Morales, member, 2 months in. Wednesday evening at home, kids
+in bed. Phone on the sofa next to him._
+
+Eddie's been thinking about something all day — a small thing he saw
+in the playground that morning, that's stayed with him. He's not
+ready to draft an action call. He just wants to put a thought down
+where his network might see it.
+
+He opens GPS Action. Taps the **+** half of the FAB (the primary
+side, not the paste shortcut — he doesn't have anything in his
+clipboard worth sharing). The starter panel slides up — single
+input, "Paste a link or start typing…", a "📋 Paste" button below
+the input, a Continue button, and a small "Pick a kind instead →"
+link.
+
+He starts typing into the input itself: "Saw something in the
+playground this morning that's been on my mind. Small but worth
+saying." The text wraps to a second line as he types. No URL detected
+— a small line below the input now says: "We'll start a post with
+this as the title."
+
+He taps **Continue**. The composer opens. The title field is
+populated with what he typed. The kind chip shows "Just a thought" —
+the default for non-URL paste. The body field is empty, cursor
+ready.
+
+He writes three short paragraphs in the body. About the kid wearing
+a kippah getting stared at. About not knowing whether to say
+something. About the quiet weight of small moments.
+
+He taps Publish. Visibility public — he's confident enough about
+this one. The page redirects to /feed; his post is at the top
+wearing the "Just a thought" kind label and his title.
+
+Later that night Sharon (writers lead) leaves a reaction (🤗) and
+two members from his region leave short replies — one shares a
+similar moment, one thanks him for putting it into words. Eddie
+closes the app. Permission to close, post made, no urgency.
+
+**What the scenario surfaces:**
+
+- The same FAB starter handles both URL paste and free-form text
+  — one input, two paths. Eddie didn't think about which mode he
+  was in; he just typed.
+- Auto-default kind to `thought` for non-URL text is safe — it's the
+  least-action-bearing kind. If the post were really a `call_to_
+action`, Eddie can change the chip in the composer.
+- The title input cap (200 chars) is enough for an opening sentence.
+  Longer pastes would truncate with a banner; for a thought-style
+  entry he's not going to hit it.
+- Kind defaults are _suggestions, not assignments_ — Eddie didn't
+  notice the chip set itself, but the principle of "we suggest, you
+  can override" is the trust foundation for later kind-inference
+  (Slice 3).
+
+**Friction found:**
+
+- Eddie's first line landed in the title verbatim. Some members
+  might prefer "first line is body, title is empty for me to write
+  later." Tradeoff: forcing them to write a title feels like a
+  speed-bump; auto-titling lets them publish fast but produces
+  flatter card-titles in the feed. Pilot will reveal which way
+  members actually use it.
+- If Eddie had typed something _very_ long (a draft body in
+  paragraphs) before tapping Continue, the title would be the
+  first 200 characters with a "we kept the first 200" banner. He'd
+  then need to manually move the rest into the body. Acceptable
+  but clunky for the long-form-thought case. Slice 2 could detect
+  paragraph breaks and auto-split.
+- No "save this as a draft" path from the FAB starter — if Eddie
+  changes his mind before tapping Continue, his typed text is lost
+  on close. Slice 2 candidate: auto-save the starter input to local
+  storage, restore on next FAB tap if not yet published.
+
+**Related:**
+
+- SCN-1 through SCN-6 (member scenarios — Eddie's pattern is closest
+  to David's quiet-Friday-night reaction in SCN-3)
+- D062 (PostKind taxonomy — `thought` is one of the 9 seeded kinds)
+- BU-link-first-composer (the BU implementing this scenario)

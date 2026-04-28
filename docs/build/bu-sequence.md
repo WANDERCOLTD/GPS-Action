@@ -108,6 +108,7 @@ by hand — run `npm run trackers`):
 
 <!-- AUTOGEN:planned:start -->
 - **bu-hydration-fixes** _[high]_ — BU-hydration-fixes
+- **bu-link-first-composer** _[high]_ — bu-link-first-composer
 - **bu-search-surface** _[medium]_ — BU-search-surface
 - **bu-composer-link-first** _[low]_ — BU-composer-link-first
 <!-- AUTOGEN:planned:end -->
