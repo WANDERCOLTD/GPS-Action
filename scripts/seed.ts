@@ -10,6 +10,11 @@
  * BU-feed: 3 groups + 18 posts across 5 users.
  */
 
+// Prisma 7 (D071): the runtime adapter reads DATABASE_URL at module
+// init; tsx doesn't auto-load .env, so we import it here before the
+// prisma client is constructed.
+import 'dotenv/config';
+
 import { createHash } from 'crypto';
 import type { PostVisibility } from '@prisma/client';
 import { prisma } from '@/server/db/client';
