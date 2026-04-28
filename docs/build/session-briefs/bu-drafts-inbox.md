@@ -3,7 +3,7 @@ slug: bu-drafts-inbox
 status: planned
 phase: 2
 priority: medium
-note: 'Phase 2 of D071. Depends on bu-publish-router (Phase 1) — needs Post.status, autosave plumbing, and the publish modal already shipped. The brief shape will be filled out closer to start.'
+note: 'Phase 2 of D072. Depends on bu-publish-router (Phase 1) — needs Post.status, autosave plumbing, and the publish modal already shipped. The brief shape will be filled out closer to start.'
 ---
 
 # SESSION BRIEF · bu-drafts-inbox — author's drafts list
@@ -11,7 +11,7 @@ note: 'Phase 2 of D071. Depends on bu-publish-router (Phase 1) — needs Post.st
 _Brief version: 0.1 (stub) · Author: Paul (via Claude) · Date: 2026-04-28_
 
 This is a **planned-status stub** for Phase 2 of the publish-router
-work designed in D071. The brief will be fleshed out when the BU is
+work designed in D072. The brief will be fleshed out when the BU is
 about to start; until then this records the agreed shape.
 
 ---
@@ -62,7 +62,7 @@ publish via the universal modal.
 
 ### Out of scope
 
-- Cross-device sync (still IndexedDB-first per D071)
+- Cross-device sync (still IndexedDB-first per D072)
 - Reviewer-side draft visibility (their queue is BU-reviewer-kind-
   review-queue)
 - Bulk operations on drafts (single-row only)

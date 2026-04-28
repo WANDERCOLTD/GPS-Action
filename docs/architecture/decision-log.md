@@ -4678,7 +4678,7 @@ Branch 1 (`fix/tick-or-cross-postkind-data-migration`, this ADR's home) ships pa
 - D070 — Reference data ships in migrations (the previous prisma-tooling decision)
 - PR #97 — Dependabot's failed solo bump (closed; replaced by this PR)
 
-# D071 — Post lifecycle, publish router, and per-kind action registry
+# D072 — Post lifecycle, publish router, and per-kind action registry
 
 **Date:** 2026-04-28
 **Status:** Accepted

@@ -3,7 +3,7 @@ slug: bu-publish-router
 status: planned
 phase: 2
 priority: high
-note: 'Phase 1 of the post lifecycle / publish router work (D071). Phases 2 (drafts inbox) and 3 (reviewer kind-review queue) are separate BUs that build on this foundation.'
+note: 'Phase 1 of the post lifecycle / publish router work (D072). Phases 2 (drafts inbox) and 3 (reviewer kind-review queue) are separate BUs that build on this foundation.'
 ---
 
 # SESSION BRIEF · bu-publish-router — universal pre-publish modal + post lifecycle
@@ -11,7 +11,7 @@ note: 'Phase 1 of the post lifecycle / publish router work (D071). Phases 2 (dra
 _Brief version: 0.1 · Author: Paul (via Claude) · Date: 2026-04-28_
 
 This brief is **Phase 1 of three** for the publish-router work designed in
-D071. Phase 1 ships the schema, the universal modal, autosave, the
+D072. Phase 1 ships the schema, the universal modal, autosave, the
 three-tier review attribution surfaces, and reroutes the existing
 `tick_or_cross` flow through the new system. Phase 2 (`bu-drafts-inbox`)
 and Phase 3 (`bu-reviewer-kind-review-queue`) are separate BUs.
@@ -25,7 +25,7 @@ to one PostKind. Five other kinds want non-trivial publish-time actions
 of their own. Authors also need draft-saving, send-for-review, and
 discard at publish time — across **every** kind, not just one.
 
-D071 picked the architecture: orthogonal `Post.status + reviewRequestId`
+D072 picked the architecture: orthogonal `Post.status + reviewRequestId`
 flags, four config columns on `PostKind`, a single generic
 `RequestType: 'kind_review'` with priority inherited from the kind, a
 code-side action registry, Pattern A modal layout, three-tier review
@@ -51,7 +51,7 @@ through the new modal. Render the three-tier review attribution
 `Post.reviewedByUserId` set.
 
 Success looks like: tap Publish on any compose form → universal modal
-opens with cards in the order D071 §5 specifies → tap any card →
+opens with cards in the order D072 §5 specifies → tap any card →
 correct action fires (publish / publish-with-kind-action / send-for-
 review with optional also-publish / save-as-draft / discard-with-undo).
 Tick_or_cross's existing 80%-path (auto-clipboard + open WhatsApp +
@@ -82,14 +82,14 @@ the feed, sub-byline on detail, and pinned auto-comment in the thread.
   - `PostKind.reviewMode` enum default `either_with_default_publish`
   - `PostKind.canSelfPublish Boolean` default `true`
   - `PostKind.reviewPriority` (uses existing `RequestPriority`) default `normal`
-  - Idempotent UPDATE statements seeding the values from D071 §2 table
+  - Idempotent UPDATE statements seeding the values from D072 §2 table
     (`ON CONFLICT (slug)`-equivalent — match by slug, set the four columns)
 - `prisma/migrations/<TS+2>_add_request_type_kind_review/` — adds value
   `kind_review` to the `RequestType` enum
 - `prisma/migrations/<TS+3>_add_comment_system_kind/` — adds:
   - `Comment.systemKind` enum (`null | post_review_attribution`), nullable
 - `prisma/migrations/<TS+4>_add_publish_router_system_settings/` —
-  idempotent INSERT for the four `SystemSetting` rows from D071 §8
+  idempotent INSERT for the four `SystemSetting` rows from D072 §8
 
 **Schema discipline:** all migrations are additive, idempotent
 (ON CONFLICT DO NOTHING for new rows; UPDATE … WHERE for column
@@ -109,7 +109,7 @@ operations, no breaking changes to existing readers.
 
 **Universal modal:**
 
-- `components/PostPublishModal.tsx` (new) — Pattern A layout per D071 §5.
+- `components/PostPublishModal.tsx` (new) — Pattern A layout per D072 §5.
   Props: `{ post, kindConfig, onPublish, onSendForReview, onSaveDraft,
   onDiscard, onClose }`. Reads `post.kindSlug`, looks up its config in
   `kindConfig`, resolves `actionSlugs` against the registry, renders:
@@ -195,7 +195,7 @@ operations, no breaking changes to existing readers.
     `<PostPublishModal>` with kind config loaded from props. The
     modal owns the publish/save/review/discard verbs from there.
   - **Add** the autosave hook: `useAutosaveDraft(postId, fields)`
-    — IndexedDB-first per D071 §8. Initial server-promote happens
+    — IndexedDB-first per D072 §8. Initial server-promote happens
     at publish-tap if it hasn't already, so the modal always has a
     real `postId` to act on.
   - **Add** saved-indicator: `<DraftSavedIndicator state={'editing' | 'saved' | 'failed'} lastSavedAt={Date} />`
@@ -272,10 +272,10 @@ operations, no breaking changes to existing readers.
   socials`, etc.) when its kind needs it.
 - **Cross-device draft sync** — IndexedDB-first means Sharon's draft
   on her phone isn't visible on her laptop until first server-promote.
-  Acceptable per D071 §8.
+  Acceptable per D072 §8.
 - **Real-time review-status notifications** — the existing notification
   infrastructure is reused; no new channel work.
-- **Per-region action overrides** — the join-table option (D071 §4) is
+- **Per-region action overrides** — the join-table option (D072 §4) is
   reserved for a future migration. Phase 1 uses the array column
   approach exclusively.
 - **`<SendToNetworkConfirm />` deprecation shim** — it's deleted
@@ -306,8 +306,8 @@ operations, no breaking changes to existing readers.
   not "Approved". `Discard` is destructive — confirm + undo.
 - **Per-PR PATCH version bump** — main is currently 0.2.7 (or higher);
   bump to next patch.
-- **Schema is contract-locked** — schema changes require ADR (D071 is
-  that ADR). Any deviation from D071's column shape must update D071.
+- **Schema is contract-locked** — schema changes require ADR (D072 is
+  that ADR). Any deviation from D072's column shape must update D072.
 
 ---
 
@@ -332,7 +332,7 @@ operations, no breaking changes to existing readers.
 
 - `tests/integration/post-lifecycle.test.ts` — full state machine:
   draft created → autosaved → published → discarded → restored. Plus
-  the four (status × reviewRequestId) cells from D071 §1 each verified
+  the four (status × reviewRequestId) cells from D072 §1 each verified
   reachable.
 - `tests/integration/post-publish-modal-actions.test.ts` — each modal
   action fires the right server action with the right payload
@@ -422,7 +422,7 @@ operations, no breaking changes to existing readers.
   reviewed post.
 - `<UserAvatar />` renders correctly for users with and without
   `avatarUrl`.
-- D071 referenced from every new file's `@spec` comment header.
+- D072 referenced from every new file's `@spec` comment header.
 - Brief flipped to `status: shipped` and `shipped_in: "#NNN"` set on PR
   open per D068. `npm run trackers` re-run to refresh `bu-sequence.md`.
 - Two new scenarios filed in `docs/product/scenarios.md`:

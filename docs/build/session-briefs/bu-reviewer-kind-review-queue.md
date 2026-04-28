@@ -3,7 +3,7 @@ slug: bu-reviewer-kind-review-queue
 status: planned
 phase: 2
 priority: medium
-note: 'Phase 3 of D071. Depends on bu-publish-router (Phase 1) — needs the kind_review RequestType, Post.reviewRequestId, and the action registry already shipped. The brief shape will be filled out closer to start.'
+note: 'Phase 3 of D072. Depends on bu-publish-router (Phase 1) — needs the kind_review RequestType, Post.reviewRequestId, and the action registry already shipped. The brief shape will be filled out closer to start.'
 ---
 
 # SESSION BRIEF · bu-reviewer-kind-review-queue — reviewer-side queue for kind_review requests
@@ -11,7 +11,7 @@ note: 'Phase 3 of D071. Depends on bu-publish-router (Phase 1) — needs the kin
 _Brief version: 0.1 (stub) · Author: Paul (via Claude) · Date: 2026-04-28_
 
 This is a **planned-status stub** for Phase 3 of the publish-router
-work designed in D071. The brief will be fleshed out when the BU is
+work designed in D072. The brief will be fleshed out when the BU is
 about to start; until then this records the agreed shape.
 
 ---
@@ -68,7 +68,7 @@ message ready to paste.
 - `components/VerdictActionsBar.tsx` — verdict buttons + reject reason
   textarea + keep-in-review state
 - `server/services/request.ts` — extend with reviewer-side query +
-  verdict-application functions (the verdict closure logic from D071
+  verdict-application functions (the verdict closure logic from D072
   §7 already lives in Phase 1's `closeKindReviewRequest`; this BU
   surfaces the action buttons)
 - Permission gates per the reviewer scope `queue_manager:kind_review`
@@ -102,7 +102,7 @@ request.ts) needs `kind_review` added to its known list.
   three-tier attribution surfaces (auto-comment, sets reviewedByUserId)
 - Reject path notifies originator with reason
 - Publish + kind-action correctly invokes the registered handler from
-  D071 §4
+  D072 §4
 - Vetting queue and kind-review queue are visibly distinct
 - All checks green
 - D068: brief flipped to `status: shipped` on PR merge
