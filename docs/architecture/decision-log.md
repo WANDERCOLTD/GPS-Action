@@ -4677,3 +4677,218 @@ Branch 1 (`fix/tick-or-cross-postkind-data-migration`, this ADR's home) ships pa
 
 - D070 — Reference data ships in migrations (the previous prisma-tooling decision)
 - PR #97 — Dependabot's failed solo bump (closed; replaced by this PR)
+
+# D071 — Post lifecycle, publish router, and per-kind action registry
+
+**Date:** 2026-04-28
+**Status:** Accepted
+**Trigger:** BU-tick-or-cross (D069) shipped a single-purpose post-publish modal (`<SendToNetworkConfirm />`) with one CTA — "Open GPS Network channel" — bolted onto the only PostKind that needed it. Reviewing the live UX surfaced three needs at once: (a) authors need more options at publish-time than just "share to WhatsApp" — saving as draft, sending for review, discarding; (b) those options apply to **every** PostKind, not just `tick_or_cross`, so the modal needs to generalise; (c) different PostKinds want different kind-specific actions alongside the universal ones (cultural → "Schedule for sundown", link_share → "Share on socials", call_to_action → "Open Activist Mailer", etc.).
+
+The choice was: keep bolting per-kind modals on, or build a single publish router that scales.
+
+## Decision
+
+### 1. Post lifecycle as orthogonal flags, not a 4-value enum
+
+`Post.status` is a **2-value enum** — `draft | published`. Discard remains the existing `Post.deletedAt` soft-delete pattern. Review state is a **separate, orthogonal flag** — `Post.reviewRequestId` (nullable FK to `Request`).
+
+This gives four meaningful cells:
+
+| `status`    | `reviewRequestId` | Meaning                                               |
+| ----------- | ----------------- | ----------------------------------------------------- |
+| `draft`     | `null`            | Private draft, just the author                        |
+| `draft`     | set               | Sent to reviewers (review-first), not in feed yet     |
+| `published` | `null`            | Live in feed, no review                               |
+| `published` | set               | Live in feed AND being reviewed (post-publish review) |
+
+Why two states + flag instead of a 4-value enum (`draft | published | pending_review | archived`):
+
+- Combining "draft + reviewing" and "published + reviewing" into one `pending_review` enum value loses the distinction.
+- Adding "scheduled" later is one new enum value (`scheduled`), not a rewrite.
+- Reviewer queue queries are simple: `WHERE reviewRequestId IS NOT NULL` — same query whether the post is also live or not.
+- "Archived" is admin terminology that doesn't map cleanly here; soft-delete via `deletedAt` is the pattern already used elsewhere in the schema.
+
+Adds: `Post.publishedAt DateTime?` for clean "saved at" vs "published at" timestamps.
+
+### 2. Per-kind config columns on `PostKind`
+
+Four new columns drive what the publish router renders for each kind:
+
+| Column           | Type                                                                                                                    | Effect                                                                                                                                                                                        |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `actionSlugs`    | `String[]`                                                                                                              | Which kind-specific actions render in the modal — slug references resolved in code via the action registry (item 4 below)                                                                     |
+| `reviewMode`     | `enum ReviewMode { review_first, review_after_publish, either_with_default_review_first, either_with_default_publish }` | Drives the modal's preselected default and whether self-publish is even offered                                                                                                               |
+| `canSelfPublish` | `Boolean`                                                                                                               | If `false`, the "Post to feed" base action is hidden — author must go through review                                                                                                          |
+| `reviewPriority` | `RequestPriority` (existing enum: `urgent / high / normal / low`)                                                       | When a `kind_review` Request is created from a post of this kind, it inherits this priority — high-stakes kinds bubble up the reviewer queue without needing a separate request type per kind |
+
+Initial seed values:
+
+| PostKind         | `actionSlugs`               | `reviewMode`                       | `canSelfPublish` | `reviewPriority` |
+| ---------------- | --------------------------- | ---------------------------------- | ---------------- | ---------------- |
+| `happening_now`  | `[]`                        | `review_after_publish`             | `true`           | `urgent`         |
+| `tick_or_cross`  | `['share_to_gps_whatsapp']` | `either_with_default_review_first` | `true`           | `high`           |
+| `cultural`       | `['schedule_for_sundown']`  | `review_first`                     | `false`          | `high`           |
+| `call_to_action` | `['open_activist_mailer']`  | `either_with_default_review_first` | `true`           | `normal`         |
+| `link_share`     | `['share_to_socials']`      | `either_with_default_publish`      | `true`           | `normal`         |
+| `event`          | `['add_to_calendar']`       | `either_with_default_publish`      | `true`           | `normal`         |
+| `meeting`        | `['open_join_link']`        | `either_with_default_publish`      | `true`           | `normal`         |
+| `outcome`        | `[]`                        | `either_with_default_publish`      | `true`           | `low`            |
+| `thought`        | `[]`                        | `either_with_default_publish`      | `true`           | `low`            |
+
+Phase 1 only **wires** `share_to_gps_whatsapp` (it's the existing `tick_or_cross` behaviour); the other slugs are reserved names — the modal treats unknown slugs as inert until a future BU registers a handler.
+
+### 3. Single generic `RequestType: 'kind_review'`, not granular per-kind types
+
+Adds one value to `RequestType`: `'kind_review'`. **Not** `'tick_or_cross_review' / 'cultural_review' / ...` — those would proliferate without buying anything. Reviewers filter by `post.kind` in the queue UI; queue ordering uses `Request.priority` (inherited from `PostKind.reviewPriority`) so high-stakes reviews bubble naturally.
+
+Critically: `'kind_review'` is **distinct from** the existing `'vetting'` type. Vetting is for member admission to the network (a person is the subject); kind-review is for post review (a post artefact is the subject). They never share a queue. Reviewer scopes can grant access to one without the other.
+
+### 4. Code-side action registry, schema-side toggle
+
+The action registry lives at `shared/post-kind-actions.ts`:
+
+```ts
+export interface PostKindAction {
+  slug: string;
+  label: (post: { signal?: Signal }) => string;
+  icon: LucideIcon;
+  primary?: boolean;
+  handler: (post: PostId, ctx: ActionContext) => Promise<void>;
+}
+
+export const POST_KIND_ACTION_REGISTRY: Record<string, PostKindAction> = {
+  share_to_gps_whatsapp: {
+    /* tick_or_cross's existing handoff */
+  },
+  // future: schedule_for_sundown, share_to_socials, etc.
+};
+```
+
+Why this split:
+
+- **Handlers are TypeScript** — they call server actions, dispatch URLs, render component children. They can't live in the database.
+- **Slug list lives in `PostKind.actionSlugs`** — admin can toggle/reorder per kind without code change. The registry is the contract; the DB is the configuration.
+- **Unknown slugs are inert.** If admin enables a slug whose handler hasn't shipped yet, the modal renders a disabled card with a "Coming soon" hint rather than crashing — graceful forward-compat.
+
+**Not** a full join table (`PostKindAction(kindId, actionSlug, sortOrder, isPrimary)`). Reserved as a future migration if per-region overrides or fine-grained sort/primary ordering becomes a need; the array column is sufficient for everything Phase 1 demands.
+
+### 5. Universal `<PostPublishModal>` — Pattern A (verb-first cards, grouped)
+
+One modal component used by every PostKind. Renders cards in this order:
+
+1. **Kind-specific primary action** if one exists (e.g. tick_or_cross's `Post & share to ✅ on GPS WhatsApp` — the 80% path)
+2. **`Post to feed only`** — base action, hidden when `canSelfPublish: false`
+3. **`Send to reviewers`** with inline checkbox `Also post to feed` (default unchecked when `reviewMode = either_with_default_review_first`, default checked when `review_after_publish`)
+4. **`Save as draft`** — base action
+5. **`Discard`** — small, separate, requires confirm sheet, recoverable for 10s via undo snackbar
+
+Pattern A was picked because:
+
+- Every action is one tap (no two-step "pick + confirm" friction)
+- No hidden options — new authors see "Send to reviewers" exists and learn the workflow
+- Visual hierarchy follows the 80/20 — big primary card, smaller secondaries, tiny destructive
+- Inline `Also post to feed` checkbox handles the publish-AND-review combo without a 5th card
+
+Rejected layouts:
+
+- **Pattern B (radio + checkbox form):** forms read formal, two-clicks-to-publish, against Sharon-warmth.
+- **Pattern C (primary + "More options ▾"):** new authors miss "Send to reviewers" exists. Discoverability tradeoff loses.
+
+### 6. Three-tier review attribution
+
+When a post is published via the review path (i.e. on the verdict, `Post.reviewedByUserId` is set), three coordinated UI surfaces render to attribute the review:
+
+| Surface                      | Treatment                                                                                                                                                                        | Where                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| **Badge** (compact)          | Small ~18px **circle with the reviewer's avatar inside**, 1.5px ring `var(--colour-text-secondary) 50%` to distinguish from regular avatars; optional 6px ✓ overlay bottom-right | PostCard byline row (next to kind-chip / signal badge) |
+| **Sub-byline** (detail)      | Same avatar circle ~22px + text "Reviewed by Sharon" (clickable to scroll to the auto-comment)                                                                                   | Post detail page byline                                |
+| **Auto-comment** (narrative) | "Sharon helped review and shape this post" — pinned at top of comments thread, system-author styling. The reviewer's avatar IS the comment avatar — closing the loop             | Comments thread                                        |
+
+Tap the badge anywhere → scrolls to the auto-comment. One conceptual link across all three surfaces.
+
+The **avatar-not-icon** choice is deliberate. An abstract shield icon says "this was vetted"; the reviewer's face says "Sharon vouched for this." Warmer, more personal, matches Sharon-warmth; reinforces social trust by surfacing identity at a glance.
+
+Rule: **the badge appears whenever `Post.reviewedByUserId IS NOT NULL`, regardless of PostKind.** State-driven, not kind-driven.
+
+Implementation note: this is the first Phase-1 surface that needs avatar rendering. A small `<UserAvatar size={…} userId={…} />` component lands as a Phase-1 sub-deliverable, with initials fallback when `avatarUrl` is null. It will be reused everywhere avatars appear (comments, member lists, request claimants, etc.).
+
+### 7. Reviewer permissions and audit story
+
+When a reviewer claims a `kind_review` request:
+
+- Reviewer can **edit every field** — title, body, link metadata, hero image, signal. Audit log captures every edit with `userId = reviewer`.
+- Originator authorship is preserved — `Post.authorId` does not change. Bylines render the originator's name first.
+- Reviewer is recorded in `Post.reviewedByUserId` and surfaced via the three-tier attribution above. The auto-comment on publish is non-deletable by the originator (UI-side rule); admin can delete.
+- Reviewer verdict options: `publish`, `publish_with_kind_action` (publish + execute a kind-specific action — e.g. `share_to_gps_whatsapp`), `reject` (post stays `draft`, originator notified with reviewer's free-text reason — reviewer's edits are preserved), `keep_in_review` (rare — used when reviewer wants another reviewer's eyes; queue updates).
+- If the originator withdraws while in review: soft-delete; reviewer queue updates and the `kind_review` request closes with `verdict: withdrawn`.
+- Author visibility: own draft posts with open review render an "In review" pill in the drafts inbox (Phase 2). Notification on verdict via existing notification infrastructure.
+
+### 8. Auto-save drafts
+
+Three-stage gradient:
+
+1. **Client-only first** (IndexedDB), debounced 500ms per keystroke. Zero server cost, instant feel, works offline.
+2. **Server promote** when the user opens the publish modal, navigates away, or 60s of inactivity with content. Creates a `Post.status='draft'` row.
+3. **Server-only autosave** thereafter — on blur + every 30s of edits, debounced.
+
+Exposed admin tunables via `SystemSetting`:
+
+| Key                                         | Default | Purpose                                                |
+| ------------------------------------------- | ------- | ------------------------------------------------------ |
+| `autosave_interval_seconds`                 | `30`    | Server-side autosave cadence after promote             |
+| `autosave_promote_after_inactivity_seconds` | `60`    | When client-only state escalates to a server row       |
+| `discard_undo_window_seconds`               | `10`    | How long the discard snackbar's "Undo" stays available |
+| `review_published_creates_comment`          | `true`  | Auto-comment toggle (admin can disable per env)        |
+
+Visible UI surface: a single calm "Saved · 2s" indicator in the form header, three states (`Editing…` / `Saved` / `Couldn't save · Retry`). Tap reveals tiny menu with "View all drafts" (Phase 2 link) and "Discard draft" (2-step with 10s undo). Honest copy throughout — never claim "Saved" until a save actually succeeded.
+
+## Why this rule, not the alternatives
+
+| Alternative                                                                           | Why rejected                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Keep bolting per-kind modals on**                                                   | Five kinds already want non-trivial publish-time actions (tick_or_cross, cultural, call_to_action, link_share, event). Five bespoke modals is five places to fix when the base UX shifts. The publish router is paid for after kind 3.                 |
+| **Granular `RequestType` per kind**                                                   | Proliferates without buying anything reviewers' filters can't do. Priority field on `PostKind` handles the "some matter more" concern more cleanly than a typed-by-kind queue.                                                                         |
+| **`Post.status` as a 4-value enum** (`draft / published / pending_review / archived`) | Combines "draft + reviewing" and "published + reviewing" into one value, losing a real distinction. And conflates discard/archive with status — soft-delete via `deletedAt` is the existing pattern.                                                   |
+| **Action handlers stored in DB**                                                      | Handlers call server actions, dispatch URLs, render component children. They can't live as data. Slug list in DB + handler in code is the right split.                                                                                                 |
+| **Static abstract icon** (shield, checkmark) for the review badge                     | Says "this was vetted" abstractly. Reviewer-avatar-circle says "Sharon vouched for this" — warmer, personal, matches design philosophy. The shield approach was an interim proposal; the avatar approach is the final design.                          |
+| **Reuse `'vetting'` RequestType for post review**                                     | Vetting is a person seeking admission; kind-review is a post artefact. Different audiences, different scopes, different verdicts. Conflating them would muddy reviewer queue ergonomics and the existing `RequestType: 'vetting'` semantics.           |
+| **Pre-publish modal that includes Discard**                                           | Adopted: the modal is pre-publish in the new design. The current D069 modal was post-publish (post saved before modal opened) which made "Cancel" mean "close, leave saved" — confusing. Pre-publish + Discard is honest and matches user expectation. |
+
+## Consequences
+
+- **One universal modal, every PostKind.** D069's `<SendToNetworkConfirm />` becomes a kind-specific action handler called from inside the universal modal. Same end behaviour for tick_or_cross authors; cleaner code path.
+- **Drafts feature becomes real.** "Save as draft" stores rows that need a return-path. The drafts inbox (Phase 2 / `BU-drafts-inbox`) is now load-bearing.
+- **Reviewer queue surface needed.** "Send to reviewers" creates `kind_review` requests that need a queue UI to act on. Phase 3 / `BU-reviewer-kind-review-queue`.
+- **Avatar rendering arrives.** First place avatars surface on member-facing UI. The `<UserAvatar />` component will spread quickly to comments, member lists, etc.
+- **Schema is contract-locked** — adds 4 columns to `PostKind`, 4 columns to `Post`, 1 enum value to `RequestType`, 1 nullable enum to `Comment`, 4 `SystemSetting` rows. All idempotent additive migrations per D070.
+- **`scripts/seed.ts` PostKind upserts will need to set the new columns** with the table values above. Migration seeds the same values via idempotent INSERT/UPDATE so post-D070 environments don't drift.
+- **`<SendToNetworkConfirm />` is deleted.** Its message-formatting + clipboard + confirm-back-from-WhatsApp logic moves into the `share_to_gps_whatsapp` handler.
+- **Existing `Post.signal` and `Post.sharedToNetworkAt` columns stay** — they're tick_or_cross-specific data, orthogonal to the publish router.
+- **Honest UX language throughout.** "Saved" only when actually saved; "Send to reviewers" not "Submit for moderation"; "Reviewed by Sharon" not "Approved by reviewer #3". Every member-facing string is plain English per CLAUDE.md.
+
+## Phasing
+
+The work splits into three independently shippable BUs. Phase 1 is the foundation; 2 and 3 deliver the surfaces 1 builds for.
+
+| BU                                | Brief                                                        | Status  | What ships                                                                                                                                                                                                                                                                | Depends on        |
+| --------------------------------- | ------------------------------------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| **BU-publish-router**             | `docs/build/session-briefs/bu-publish-router.md`             | planned | Schema diff above + `<PostPublishModal>` + autosave + drafts-saved indicator + discard-with-undo + tick_or_cross routed through the new modal + `share_to_gps_whatsapp` registered as the first kind-specific action + `<UserAvatar />` + three-tier attribution surfaces | —                 |
+| **BU-drafts-inbox**               | `docs/build/session-briefs/bu-drafts-inbox.md`               | planned | `/drafts` page (author's own drafts list with "In review" pills, "Continue editing", "Discard"); the saved-indicator's "View all drafts" link starts working                                                                                                              | BU-publish-router |
+| **BU-reviewer-kind-review-queue** | `docs/build/session-briefs/bu-reviewer-kind-review-queue.md` | planned | Reviewer-side queue UI showing pending `kind_review` requests, priority-ordered; click-through opens the post in the existing compose form (reviewer-mode); verdict actions (Publish / Publish + kind-action / Reject with reason / Edit and keep in review)              | BU-publish-router |
+
+Phase 1 is the lift. Phases 2 and 3 are smaller, build on the same primitives.
+
+## Related
+
+- D013 — Self-dispatch is the default (publish router preserves; "Send to reviewers" is opt-in)
+- D017 — Boost/Remove as verdict on Post (kind-review verdicts are the long-form generalisation)
+- D041 — Group identity badges on bylines (the same calm-pill aesthetic the review badge follows)
+- D044 — Intent-first post creation / FAB cards model (composer's entry side; this BU is the exit side)
+- D050 — Reactions (the existing pill aesthetic)
+- D058 — Urgent flag on Post (orthogonal to status; preserved)
+- D062 — PostKind as managed table (the table this ADR extends)
+- D068 — Brief lifecycle status (the discipline this ADR's three briefs follow)
+- D069 — `tick_or_cross` PostKind + post-publish handoff (the design this ADR generalises and supersedes)
+- D070 — Reference data ships in migrations (the seed values for the new columns ride this rule)
+- BU-tick-or-cross — the originating BU whose UX prompted the generalisation
+- BU-vetting — the existing RequestType this BU explicitly does not conflate with
