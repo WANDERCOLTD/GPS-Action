@@ -56,10 +56,16 @@ After rejection, **Status** flips to `rejected · YYYY-MM-DD — <reason>`.
 
 _Most recent first. Populated as entries are added._
 
-(none yet)
+- RT-001 — feed-card UX pattern: best modern practice for expand/collapse, with PRIMARY CTA + title/small image as the anchor (2-column chips on the table).
 
 ---
 
 ## Entries
 
-_(none yet — first `RT:` message will land here)_
+## RT-001 — 2026-04-28
+
+**Thought:** do thinking of best UX modern practices. Remeber: key thing it the PRIMARY CTA (and title/small image). we could even have 2 columns of post 'chips' - anyway: find me best pattern.
+
+**Context:** triggered by the prior conversation thread — feed cards in `components/PostCard.tsx` currently render the full body of every post with no clamp / chevron / expand-collapse, and there's no plan for it anywhere (checked decision-log, parking-lot, scenarios, engineering-roadmap, briefs). This RT is the capture for that gap, with Paul's framing: the primary CTA + title + small image are the anchors, body is secondary, and a denser 2-column chip layout is on the table.
+
+**Status:** new (awaiting agent investigation)
