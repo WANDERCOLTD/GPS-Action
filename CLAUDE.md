@@ -77,7 +77,9 @@ discipline is:
   work in a tired session is worse than the first hour in a fresh one.
 - **Hand off via written doc** — if a session ends mid-brief, write a
   handoff doc in `docs/build/session-handoffs/` so the next session can
-  continue. The next session reads the brief AND the handoff.
+  continue. The next session reads the brief AND the handoff. Type
+  **`/handoff`** to scaffold one — see `.claude/commands/handoff.md`
+  for what it captures.
 - **Surface, don't assume** — when context is unclear, ask. Better one
   surfaced question than ten silent assumptions.
 - **Verify branch after every git op** — run `git branch --show-current`
