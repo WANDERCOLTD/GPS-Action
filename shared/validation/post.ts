@@ -25,8 +25,7 @@ import { z } from 'zod';
 import { isAllowedHeroImageUrl } from '../seed-images';
 import { normalizeUrl } from '../url-detect';
 
-function preprocessOptionalUrl(val: unknown): unknown {
-  if (typeof val !== 'string') return val;
+function normalizeIfUrl(val: string): string {
   const trimmed = val.trim();
   if (!trimmed) return val;
   const result = normalizeUrl(trimmed);
@@ -38,47 +37,43 @@ const ALLOWED_DOMAINS = (process.env.ACTIVIST_MAILER_ALLOWED_DOMAINS ?? 'activis
   .map((d) => d.trim().toLowerCase())
   .filter(Boolean);
 
-const activistMailerUrlSchema = z.preprocess(
-  preprocessOptionalUrl,
-  z
-    .string()
-    .optional()
-    .refine(
-      (val) => {
-        if (!val || val.trim() === '') return true;
-        try {
-          const url = new URL(val);
-          if (url.protocol !== 'https:') return false;
-          const host = url.hostname.toLowerCase();
-          return ALLOWED_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));
-        } catch {
-          return false;
-        }
-      },
-      {
-        message: 'Activist Mailer URL must be https and from an allowed domain',
-      },
-    ),
-);
+const activistMailerUrlSchema = z
+  .string()
+  .transform(normalizeIfUrl)
+  .refine(
+    (val) => {
+      if (!val || val.trim() === '') return true;
+      try {
+        const url = new URL(val);
+        if (url.protocol !== 'https:') return false;
+        const host = url.hostname.toLowerCase();
+        return ALLOWED_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));
+      } catch {
+        return false;
+      }
+    },
+    {
+      message: 'Activist Mailer URL must be https and from an allowed domain',
+    },
+  )
+  .optional();
 
-const httpUrlSchema = z.preprocess(
-  preprocessOptionalUrl,
-  z
-    .string()
-    .optional()
-    .refine(
-      (val) => {
-        if (!val || val.trim() === '') return true;
-        try {
-          const url = new URL(val);
-          return url.protocol === 'https:' || url.protocol === 'http:';
-        } catch {
-          return false;
-        }
-      },
-      { message: 'URL must be a valid http or https URL' },
-    ),
-);
+const httpUrlSchema = z
+  .string()
+  .transform(normalizeIfUrl)
+  .refine(
+    (val) => {
+      if (!val || val.trim() === '') return true;
+      try {
+        const url = new URL(val);
+        return url.protocol === 'https:' || url.protocol === 'http:';
+      } catch {
+        return false;
+      }
+    },
+    { message: 'URL must be a valid http or https URL' },
+  )
+  .optional();
 
 export const postCreateSchema = z.object({
   title: z.string().trim().min(3).max(200),
