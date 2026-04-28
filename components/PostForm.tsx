@@ -68,6 +68,18 @@ interface PostFormProps {
   networkChannelUrl?: string | null;
   /** Canonical origin for the post URL embedded in the handoff message. */
   siteOrigin?: string;
+  /**
+   * BU-link-first-composer: optional prefill from the FAB starter card or
+   * a paste-and-go link. When set, the title input opens populated and the
+   * caller picks the right intent (typically `thought` for text prefill).
+   */
+  prefilledTitle?: string;
+  /**
+   * BU-link-first-composer: optional prefill from the FAB starter card or
+   * a paste-and-go link. When set, the link-share field opens by default
+   * with linkUrl populated. Caller normalizes the URL before passing.
+   */
+  prefilledLinkUrl?: string;
 }
 
 interface IntentMeta {
@@ -208,6 +220,8 @@ export function PostForm({
   kindMap,
   networkChannelUrl = null,
   siteOrigin = '',
+  prefilledTitle = '',
+  prefilledLinkUrl = '',
 }: PostFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -227,7 +241,9 @@ export function PostForm({
   // asked for an Activist Mailer URL above-the-fold (call_to_action) or
   // explicitly share-a-link.
   const [shareLinkOpen, setShareLinkOpen] = useState(
-    currentIntent === 'link_share' || currentIntent === 'call_to_action',
+    currentIntent === 'link_share' ||
+      currentIntent === 'call_to_action' ||
+      Boolean(prefilledLinkUrl),
   );
   // BU-post-hero-demo (D064): optional member-picked hero from the
   // seeded set. null = no hero. Submitted via a hidden input below.
@@ -371,6 +387,7 @@ export function PostForm({
           minLength={3}
           maxLength={200}
           placeholder={meta.titlePlaceholder || undefined}
+          defaultValue={prefilledTitle || undefined}
           className="gps-input"
           style={{
             width: '100%',
@@ -507,6 +524,7 @@ export function PostForm({
                   type="url"
                   inputMode="url"
                   placeholder="https://..."
+                  defaultValue={prefilledLinkUrl || undefined}
                   data-testid="compose-link-url-input"
                   className="gps-input"
                   style={{

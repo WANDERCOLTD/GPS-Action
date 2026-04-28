@@ -1,8 +1,9 @@
 /**
- * @build-unit BU-composer BU-fab-intent-picker BU-tick-or-cross
+ * @build-unit BU-composer BU-fab-intent-picker BU-tick-or-cross BU-link-first-composer
  * @spec product/design-philosophy.md
- * @spec product/scenarios.md (SCN-18)
+ * @spec product/scenarios.md (SCN-18, SCN-24, SCN-25)
  * @spec architecture/decision-log.md (D044, D062, D069)
+ * @spec build/session-briefs/bu-link-first-composer.md
  *
  * Compose page — server component that renders the post form shell.
  * Redirects unauthenticated users to /dev/login. Reads ?intent= from
@@ -17,6 +18,14 @@
  * BU-tick-or-cross: reads `WHATSAPP_NETWORK_CHANNEL_URL` server-side
  * and passes it to <PostForm /> so the post-publish handoff modal
  * has the channel deep-link without re-validating in the client.
+ *
+ * BU-link-first-composer: also reads ?linkUrl= and ?title= as prefill
+ * params from the FAB starter card / paste-and-go shortcut. When
+ * either is set and ?intent= is not, the default intent becomes
+ * `link_share` (URL prefill) or `thought` (text prefill). linkUrl is
+ * normalised through normalizeUrl() at the FAB before the page is
+ * reached, so we receive a canonical https URL. Title prefill is
+ * truncated to the schema's 200-char cap.
  */
 
 import { redirect } from 'next/navigation';
@@ -45,8 +54,14 @@ const KNOWN_INTENTS = new Set([
   'undecided',
 ]);
 
+const TITLE_MAX = 200;
+
 interface PageProps {
-  searchParams: Promise<{ intent?: string }>;
+  searchParams: Promise<{
+    intent?: string;
+    linkUrl?: string;
+    title?: string;
+  }>;
 }
 
 export default async function ComposePage({ searchParams }: PageProps) {
@@ -57,7 +72,16 @@ export default async function ComposePage({ searchParams }: PageProps) {
   }
 
   const params = await searchParams;
-  const intent = params.intent && KNOWN_INTENTS.has(params.intent) ? params.intent : null;
+  const explicitIntent = params.intent && KNOWN_INTENTS.has(params.intent) ? params.intent : null;
+
+  const prefilledLinkUrl = (params.linkUrl ?? '').trim();
+  const prefilledTitleRaw = (params.title ?? '').trim();
+  const prefilledTitle = prefilledTitleRaw.slice(0, TITLE_MAX);
+
+  // BU-link-first-composer: when no explicit intent, derive a sensible
+  // default from the prefill payload. URL → link_share. Text → thought.
+  const intent =
+    explicitIntent ?? (prefilledLinkUrl ? 'link_share' : prefilledTitle ? 'thought' : null);
 
   const caller = createCaller(ctx);
   const kinds = await caller.postKind.listActive();
@@ -97,6 +121,8 @@ export default async function ComposePage({ searchParams }: PageProps) {
         kindMap={kindMap}
         networkChannelUrl={networkChannelUrl}
         siteOrigin={siteOrigin}
+        prefilledLinkUrl={prefilledLinkUrl || undefined}
+        prefilledTitle={prefilledTitle || undefined}
       />
     </main>
   );
