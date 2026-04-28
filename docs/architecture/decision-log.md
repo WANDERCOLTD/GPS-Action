@@ -4634,7 +4634,6 @@ Branch 1 (`fix/tick-or-cross-postkind-data-migration`, this ADR's home) ships pa
 - BU-tick-or-cross — the originating bug
 - PR #129 — the merge that introduced the gap
 
-
 # D071 — Prisma 5 → 7 upgrade: connection URL out of schema, runtime via @prisma/adapter-pg
 
 **Date:** 2026-04-28
@@ -4653,12 +4652,12 @@ Branch 1 (`fix/tick-or-cross-postkind-data-migration`, this ADR's home) ships pa
 
 ## Why this rule, not the alternatives
 
-| Alternative | Why rejected |
-| --- | --- |
-| **Stay on Prisma 5.** | Stale runtime, security patches lagging, ecosystem moving. Dependabot will keep proposing the bump. Fixing it once is cheaper than declining indefinitely. |
+| Alternative                                                | Why rejected                                                                                                                                                             |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Stay on Prisma 5.**                                      | Stale runtime, security patches lagging, ecosystem moving. Dependabot will keep proposing the bump. Fixing it once is cheaper than declining indefinitely.               |
 | **Migrate URL via `accelerateUrl` instead of an adapter.** | Accelerate is a paid Prisma cloud product (connection pooler + edge cache). We use AWS RDS directly; Accelerate would add cost and a vendor dependency for zero benefit. |
-| **Keep `url` in schema with a Prisma 5 escape hatch.** | Doesn't exist on Prisma 7 — the validation error is hard, not advisory. |
-| **Two-step: 5 → 6 → 7.** | The intermediate step buys nothing for our codebase. We don't depend on any 6-deprecated APIs. |
+| **Keep `url` in schema with a Prisma 5 escape hatch.**     | Doesn't exist on Prisma 7 — the validation error is hard, not advisory.                                                                                                  |
+| **Two-step: 5 → 6 → 7.**                                   | The intermediate step buys nothing for our codebase. We don't depend on any 6-deprecated APIs.                                                                           |
 
 ## What changed
 
