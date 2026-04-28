@@ -59,7 +59,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-link-first-composer | 7 | SCN-18, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069 |
 | BU-link-share | 5 | SCN-19 | D045, D048, D060, D061, D062, D064, D069, D072 |
 | BU-post-hero-demo | 6 | SCN-19 | D045, D048, D060, D062, D064, D069, D072 |
-| BU-publish-router | 9 | SCN-20, SCN-21, SCN-22, SCN-23 | D045, D048, D052, D054, D055, D056, D057, D058, D060, D064, D069, D072 |
+| BU-publish-router | 14 | SCN-20, SCN-21, SCN-22, SCN-23 | D045, D048, D052, D054, D055, D056, D057, D058, D060, D064, D069, D072 |
 | BU-reactions | 9 | SCN-3, SCN-20 | D036, D050, D052, D069 |
 | BU-requests-foundation | 6 | SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D065, D072 |
 | BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061, D072 |
@@ -99,5 +99,5 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D067 | WhatsApp share analytics: stub ping completes the catalogued event | 1 |
 | D069 | `tick_or_cross` PostKind + `Post.signal` + post-publish handoff to GPS Network channel (BU-tick-or-cross) | 11 |
 | D070 | Reference data ships in migrations, not seeds; CI gate fails the merge if a code-referenced row is missing | 2 |
-| D072 | Post lifecycle, publish router, and per-kind action registry | 9 |
+| D072 | Post lifecycle, publish router, and per-kind action registry | 14 |
 
