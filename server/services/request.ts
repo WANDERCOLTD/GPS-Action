@@ -1,21 +1,23 @@
 /**
- * @build-unit BU-requests-foundation BU-requests-urgent BU-requests-vetting
- * @spec architecture/decision-log.md (D054, D055, D056, D057, D058)
+ * @build-unit BU-requests-foundation BU-requests-urgent BU-requests-vetting BU-publish-router
+ * @spec architecture/decision-log.md (D054, D055, D056, D057, D058, D072)
  * @spec product/scenarios.md (SCN-21, SCN-22, SCN-23)
  * @spec architecture/claim-and-lease.md
  *
  * Request service — read queries + write actions (claim/resolve/
- * createUrgent). State-transition writes auto-emit a system-comment
- * on the timeline + a Notification to the submitter (D057).
+ * createUrgent + kind-review create/close). State-transition writes
+ * auto-emit a system-comment on the timeline + a Notification to the
+ * submitter (D057).
  *
  * Layer boundary: services → db + lib + shared only.
  */
 
-import type { Prisma, Request, RequestStatus, RequestType } from '@prisma/client';
+import type { Prisma, Request, RequestPriority, RequestStatus, RequestType } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
 import { getSystemSettingInt } from '@/server/services/system-setting';
 import { createNotification } from '@/server/services/notification';
+import { createPostReviewAttributionComment } from '@/server/services/comment';
 
 // Sentinel system-user identity for auto-written timeline comments
 // (BU-requests-vetting). Seed creates this user; service upserts on
@@ -367,4 +369,199 @@ export async function resolveRequest(input: {
   }
 
   return { ok: true };
+}
+
+// ── Kind-review (BU-publish-router / D072) ───────────────────────────────
+//
+// `kind_review` is the generic request type for reviewing a Post (D072
+// §3). Priority is inherited from the kind's `reviewPriority`, so high-
+// stakes kinds (urgent / cultural) bubble up the reviewer queue without
+// needing per-kind RequestType values.
+//
+// Two functions:
+//   - createKindReviewRequest: opens the request when an author taps
+//     "Send to reviewers"
+//   - closeKindReviewRequest: applies the verdict (publish / reject /
+//     withdrawn) — writes Post.status / Post.reviewedByUserId and
+//     inserts the auto-comment when verdict='publish'
+
+export interface CreateKindReviewRequestInput {
+  postId: string;
+  callerId: string;
+}
+
+export interface CreateKindReviewRequestResult {
+  id: string;
+  priority: RequestPriority;
+}
+
+export async function createKindReviewRequest(
+  input: CreateKindReviewRequestInput,
+): Promise<CreateKindReviewRequestResult> {
+  // Inherit priority from the post's kind. Falls back to 'normal'
+  // when the post has no kind or the kind row is gone — same defensive
+  // posture the urgent flow uses.
+  const post = await prisma.post.findUnique({
+    where: { id: input.postId },
+    select: {
+      id: true,
+      kindId: true,
+      kind: { select: { reviewPriority: true } },
+    },
+  });
+  if (!post) {
+    throw new Error('createKindReviewRequest: post not found');
+  }
+  const priority: RequestPriority = post.kind?.reviewPriority ?? 'normal';
+
+  const created = await prisma.request.create({
+    data: {
+      type: 'kind_review',
+      status: 'unclaimed',
+      priority,
+      kindId: post.kindId,
+      context: { postId: post.id, source: 'publish_modal' },
+      createdByUserId: input.callerId,
+    },
+    select: { id: true },
+  });
+
+  await auditLog({
+    action: 'request_kind_review_created',
+    entityType: 'Request',
+    entityId: created.id,
+    userId: input.callerId,
+    changes: { postId: post.id, priority },
+    context: { source: 'publish_modal' },
+  });
+
+  return { id: created.id, priority };
+}
+
+export type KindReviewVerdict = 'publish' | 'reject' | 'withdrawn';
+
+export interface CloseKindReviewRequestInput {
+  requestId: string;
+  verdict: KindReviewVerdict;
+  reviewerId: string;
+  reason?: string | null;
+}
+
+export type CloseKindReviewRequestResult =
+  | { ok: true; postId: string; verdict: KindReviewVerdict; autoCommentId: string | null }
+  | {
+      ok: false;
+      reason: 'not_found' | 'wrong_type' | 'already_closed' | 'no_post_link';
+    };
+
+/**
+ * Apply a verdict on a `kind_review` Request and cascade to the linked
+ * Post. Verdict effects:
+ *
+ *   - `publish` — flip Post.status → published, set publishedAt + the
+ *     reviewer's id, and (if the auto-comment system setting is on)
+ *     insert a `post_review_attribution` Comment. Request status
+ *     resolves with reviewer's id.
+ *   - `reject` — Post stays draft; reviewer's reason is written to
+ *     Request.resolutionNotes; originator is notified via the existing
+ *     `request_resolved` channel.
+ *   - `withdrawn` — used when the originator discards mid-review.
+ *     Request status flips to `abandoned`; Post is left as the
+ *     discardPost caller wrote it (no Post mutation here).
+ */
+export async function closeKindReviewRequest(
+  input: CloseKindReviewRequestInput,
+): Promise<CloseKindReviewRequestResult> {
+  const request = await prisma.request.findUnique({
+    where: { id: input.requestId },
+    select: {
+      id: true,
+      type: true,
+      status: true,
+      deletedAt: true,
+      createdByUserId: true,
+      context: true,
+    },
+  });
+  if (!request || request.deletedAt) return { ok: false, reason: 'not_found' };
+  if (request.type !== 'kind_review') return { ok: false, reason: 'wrong_type' };
+  if (request.status === 'resolved' || request.status === 'abandoned') {
+    return { ok: false, reason: 'already_closed' };
+  }
+
+  const ctx = request.context as Record<string, unknown> | null;
+  const postId = typeof ctx?.postId === 'string' ? ctx.postId : null;
+  if (!postId) return { ok: false, reason: 'no_post_link' };
+
+  const now = new Date();
+  let autoCommentId: string | null = null;
+
+  if (input.verdict === 'publish') {
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { status: true, publishedAt: true },
+    });
+    await prisma.post.update({
+      where: { id: postId },
+      data: {
+        status: 'published',
+        publishedAt: post?.publishedAt ?? now,
+        reviewedByUserId: input.reviewerId,
+      },
+    });
+
+    const auto = await createPostReviewAttributionComment({
+      postId,
+      reviewerId: input.reviewerId,
+    });
+    autoCommentId = auto?.id ?? null;
+  }
+
+  await prisma.request.update({
+    where: { id: input.requestId },
+    data: {
+      status: input.verdict === 'withdrawn' ? 'abandoned' : 'resolved',
+      resolvedAt: now,
+      resolvedByUserId: input.reviewerId,
+      resolutionNotes: input.reason ?? null,
+    },
+  });
+
+  await auditLog({
+    action: 'request_kind_review_closed',
+    entityType: 'Request',
+    entityId: request.id,
+    userId: input.reviewerId,
+    changes: {
+      verdict: input.verdict,
+      postId,
+      hasReason: Boolean(input.reason),
+      autoCommentId,
+    },
+    context: { source: 'publish_modal' },
+  });
+
+  // Submitter notifications mirror the existing resolve flow. The
+  // reviewer's identity is captured in the audit log + the auto-
+  // comment; this just nudges the originator that their request moved.
+  if (request.createdByUserId && request.createdByUserId !== input.reviewerId) {
+    const reviewer = await prisma.user.findUnique({
+      where: { id: input.reviewerId },
+      select: { displayName: true },
+    });
+    const verbByVerdict: Record<KindReviewVerdict, string> = {
+      publish: 'reviewed and published your post',
+      reject: 'sent back your post',
+      withdrawn: 'closed your review request',
+    };
+    await createNotification({
+      recipientUserId: request.createdByUserId,
+      type: 'request_resolved',
+      requestId: request.id,
+      fromUserId: input.reviewerId,
+      message: `${reviewer?.displayName ?? 'A reviewer'} ${verbByVerdict[input.verdict]}`,
+    });
+  }
+
+  return { ok: true, postId, verdict: input.verdict, autoCommentId };
 }

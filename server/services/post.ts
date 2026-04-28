@@ -1,7 +1,7 @@
 /**
- * @build-unit BU-feed BU-composer BU-link-share BU-post-hero-demo BU-tick-or-cross BU-event-time
+ * @build-unit BU-feed BU-composer BU-link-share BU-post-hero-demo BU-tick-or-cross BU-event-time BU-publish-router
  * @spec product/post-creation-flow.md
- * @spec architecture/decision-log.md (D045, D048, D060, D064, D069, D073)
+ * @spec architecture/decision-log.md (D045, D048, D060, D064, D069, D072, D073)
  * @spec docs/adrs/0001-post-event-time-fields.md
  *
  * Post service — business logic for listing and creating posts.
@@ -17,7 +17,7 @@
  * post (any role) / coordinator within region / director everywhere.
  */
 
-import type { PostVisibility, Signal, SystemRole } from '@prisma/client';
+import type { PostStatus, PostVisibility, Signal, SystemRole } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import type { PostCreateInput, PostUpdateInput } from '@/shared/validation/post';
 import { isAllowedHeroImageUrl } from '@/shared/seed-images';
@@ -25,6 +25,7 @@ import { todayStartLondonUtc } from '@/shared/format-event-time';
 import { auditLog } from '@/server/services/audit';
 import { listReactionsForPosts, type ReactionAggregate } from '@/server/services/reaction';
 import { listCommentCountsForPosts } from '@/server/services/comment';
+import { createKindReviewRequest, closeKindReviewRequest } from '@/server/services/request';
 import type { FeedFilter } from '@/shared/feed-filters';
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -610,4 +611,388 @@ export async function markSharedToNetwork(
   });
 
   return { alreadyShared: false, sharedToNetworkAt: now };
+}
+
+// ── Lifecycle (BU-publish-router / D072) ─────────────────────────────────
+//
+// Post lifecycle is two orthogonal flags + soft-delete:
+//   - status: draft | published — D072 §1
+//   - reviewRequestId: nullable FK to a kind_review Request — D072 §1
+//   - deletedAt: existing soft-delete pattern
+//
+// All transitions go through these service functions so the audit log
+// captures every state change, and the orthogonality rules (e.g.
+// "originator can't edit while in review") are enforced server-side.
+
+interface OwnedPostSnapshot {
+  id: string;
+  status: PostStatus;
+  publishedAt: Date | null;
+  reviewRequestId: string | null;
+  reviewedByUserId: string | null;
+  deletedAt: Date | null;
+  authorId: string;
+  kindId: string | null;
+}
+
+async function getOwnedPost(
+  postId: string,
+  callerId: string,
+): Promise<
+  { ok: true; post: OwnedPostSnapshot } | { ok: false; reason: 'not_found' | 'not_owner' }
+> {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: {
+      id: true,
+      status: true,
+      publishedAt: true,
+      reviewRequestId: true,
+      reviewedByUserId: true,
+      deletedAt: true,
+      authorId: true,
+      kindId: true,
+    },
+  });
+  if (!post) return { ok: false, reason: 'not_found' };
+  if (post.authorId !== callerId) return { ok: false, reason: 'not_owner' };
+  return { ok: true, post };
+}
+
+async function isReviewRequestOpen(reviewRequestId: string): Promise<boolean> {
+  const req = await prisma.request.findUnique({
+    where: { id: reviewRequestId },
+    select: { status: true, deletedAt: true },
+  });
+  if (!req || req.deletedAt) return false;
+  return req.status === 'unclaimed' || req.status === 'claimed' || req.status === 'in_review';
+}
+
+// ── publishPost ──────────────────────────────────────────────────────────
+
+export interface PublishPostInput {
+  postId: string;
+  callerId: string;
+}
+
+export type PublishPostResult =
+  | { ok: true; postId: string; publishedAt: Date }
+  | { ok: false; reason: 'not_found' | 'not_owner' | 'discarded' | 'already_published' };
+
+/**
+ * Flip a draft post to published. Idempotent on `publishedAt` — if the
+ * post is already published, the existing timestamp is preserved (we
+ * return `already_published` rather than re-stamping). Discarded posts
+ * cannot be published; restore them first.
+ */
+export async function publishPost(input: PublishPostInput): Promise<PublishPostResult> {
+  const found = await getOwnedPost(input.postId, input.callerId);
+  if (!found.ok) return { ok: false, reason: found.reason };
+  const post = found.post;
+
+  if (post.deletedAt) return { ok: false, reason: 'discarded' };
+  if (post.status === 'published') return { ok: false, reason: 'already_published' };
+
+  const publishedAt = new Date();
+  await prisma.post.update({
+    where: { id: post.id },
+    data: { status: 'published', publishedAt },
+  });
+
+  await auditLog({
+    action: 'post_published',
+    entityType: 'post',
+    entityId: post.id,
+    userId: input.callerId,
+    changes: { publishedAt: publishedAt.toISOString() },
+    context: { source: 'publish_modal' },
+  });
+
+  return { ok: true, postId: post.id, publishedAt };
+}
+
+// ── sendPostForReview ────────────────────────────────────────────────────
+
+export interface SendPostForReviewInput {
+  postId: string;
+  callerId: string;
+  alsoPublishToFeed: boolean;
+}
+
+export type SendPostForReviewResult =
+  | { ok: true; postId: string; reviewRequestId: string; publishedAt: Date | null }
+  | {
+      ok: false;
+      reason: 'not_found' | 'not_owner' | 'discarded' | 'already_in_review' | 'no_kind';
+    };
+
+/**
+ * Hand a post to reviewers. Creates a `kind_review` Request with the
+ * priority inherited from `PostKind.reviewPriority` (D072 §3) and
+ * links it to the post via `Post.reviewRequestId`. When
+ * `alsoPublishToFeed` is set, simultaneously flips status=published —
+ * supports the `review_after_publish` and "publish + review" modes.
+ */
+export async function sendPostForReview(
+  input: SendPostForReviewInput,
+): Promise<SendPostForReviewResult> {
+  const found = await getOwnedPost(input.postId, input.callerId);
+  if (!found.ok) return { ok: false, reason: found.reason };
+  const post = found.post;
+
+  if (post.deletedAt) return { ok: false, reason: 'discarded' };
+  if (post.reviewRequestId && (await isReviewRequestOpen(post.reviewRequestId))) {
+    return { ok: false, reason: 'already_in_review' };
+  }
+  if (!post.kindId) return { ok: false, reason: 'no_kind' };
+
+  // Defer Request creation to request.ts to keep cross-entity logic
+  // owned by the entity that's the subject of the verdict.
+  const created = await createKindReviewRequest({
+    postId: post.id,
+    callerId: input.callerId,
+  });
+
+  const publishedAt = input.alsoPublishToFeed ? new Date() : null;
+  await prisma.post.update({
+    where: { id: post.id },
+    data: {
+      reviewRequestId: created.id,
+      ...(publishedAt ? { status: 'published' as const, publishedAt } : {}),
+    },
+  });
+
+  await auditLog({
+    action: 'post_sent_for_review',
+    entityType: 'post',
+    entityId: post.id,
+    userId: input.callerId,
+    changes: {
+      reviewRequestId: created.id,
+      priority: created.priority,
+      alsoPublishToFeed: input.alsoPublishToFeed,
+      publishedAt: publishedAt ? publishedAt.toISOString() : null,
+    },
+    context: { source: 'publish_modal' },
+  });
+
+  return {
+    ok: true,
+    postId: post.id,
+    reviewRequestId: created.id,
+    publishedAt,
+  };
+}
+
+// ── saveDraft ────────────────────────────────────────────────────────────
+
+export interface SaveDraftInput {
+  postId: string;
+  callerId: string;
+}
+
+export type SaveDraftResult =
+  | { ok: true }
+  | { ok: false; reason: 'not_found' | 'not_owner' | 'discarded' | 'already_published' };
+
+/**
+ * Explicit "save as draft" verb from the publish modal. Posts are
+ * already drafts by default (schema default); this exists so the
+ * caller can confirm the verb, capture an audit-log line, and reject
+ * if the post has already been published.
+ */
+export async function saveDraft(input: SaveDraftInput): Promise<SaveDraftResult> {
+  const found = await getOwnedPost(input.postId, input.callerId);
+  if (!found.ok) return { ok: false, reason: found.reason };
+  const post = found.post;
+
+  if (post.deletedAt) return { ok: false, reason: 'discarded' };
+  if (post.status === 'published') return { ok: false, reason: 'already_published' };
+
+  await auditLog({
+    action: 'post_saved_as_draft',
+    entityType: 'post',
+    entityId: post.id,
+    userId: input.callerId,
+    changes: { status: 'draft' },
+    context: { source: 'publish_modal' },
+  });
+
+  return { ok: true };
+}
+
+// ── discardPost / restorePost ────────────────────────────────────────────
+
+export interface DiscardPostInput {
+  postId: string;
+  callerId: string;
+}
+
+export type DiscardPostResult =
+  | { ok: true; postId: string; deletedAt: Date }
+  | { ok: false; reason: 'not_found' | 'not_owner' | 'already_discarded' };
+
+/**
+ * Soft-delete a post. If the post has an open `kind_review` Request,
+ * cascades to closing that Request with verdict='withdrawn' so the
+ * reviewer queue updates. The undo window is owned by the UI layer —
+ * see `restorePost` below.
+ */
+export async function discardPost(input: DiscardPostInput): Promise<DiscardPostResult> {
+  const found = await getOwnedPost(input.postId, input.callerId);
+  if (!found.ok) return { ok: false, reason: found.reason };
+  const post = found.post;
+
+  if (post.deletedAt) return { ok: false, reason: 'already_discarded' };
+
+  const deletedAt = new Date();
+  await prisma.post.update({
+    where: { id: post.id },
+    data: { deletedAt },
+  });
+
+  if (post.reviewRequestId && (await isReviewRequestOpen(post.reviewRequestId))) {
+    await closeKindReviewRequest({
+      requestId: post.reviewRequestId,
+      verdict: 'withdrawn',
+      reviewerId: input.callerId,
+    });
+  }
+
+  await auditLog({
+    action: 'post_discarded',
+    entityType: 'post',
+    entityId: post.id,
+    userId: input.callerId,
+    changes: { deletedAt: deletedAt.toISOString() },
+    context: { source: 'publish_modal' },
+  });
+
+  return { ok: true, postId: post.id, deletedAt };
+}
+
+export interface RestorePostInput {
+  postId: string;
+  callerId: string;
+}
+
+export type RestorePostResult =
+  | { ok: true; postId: string }
+  | { ok: false; reason: 'not_found' | 'not_owner' | 'not_discarded' };
+
+/**
+ * Reverse a discard within the undo window. Clears `deletedAt`. Does
+ * NOT auto-reopen a withdrawn review request — the originator can send
+ * for review again from the modal. Phase-1 simple.
+ */
+export async function restorePost(input: RestorePostInput): Promise<RestorePostResult> {
+  const found = await getOwnedPost(input.postId, input.callerId);
+  if (!found.ok) return { ok: false, reason: found.reason };
+  const post = found.post;
+
+  if (!post.deletedAt) return { ok: false, reason: 'not_discarded' };
+
+  await prisma.post.update({
+    where: { id: post.id },
+    data: { deletedAt: null },
+  });
+
+  await auditLog({
+    action: 'post_restored',
+    entityType: 'post',
+    entityId: post.id,
+    userId: input.callerId,
+    changes: { deletedAt: null },
+    context: { source: 'publish_modal' },
+  });
+
+  return { ok: true, postId: post.id };
+}
+
+// ── autosaveDraft ────────────────────────────────────────────────────────
+
+export interface AutosaveDraftFields {
+  title?: string;
+  body?: string;
+  visibility?: PostVisibility;
+  linkUrl?: string | null;
+  linkTitle?: string | null;
+  linkDescription?: string | null;
+  linkImageUrl?: string | null;
+  linkSiteName?: string | null;
+  heroImageUrl?: string | null;
+  signal?: Signal | null;
+  kindId?: string | null;
+  urgency?: boolean;
+}
+
+export interface AutosaveDraftInput {
+  postId: string;
+  callerId: string;
+  fields: AutosaveDraftFields;
+}
+
+export type AutosaveDraftResult =
+  | { ok: true; updatedAt: Date }
+  | {
+      ok: false;
+      reason: 'not_found' | 'not_owner' | 'discarded' | 'in_review' | 'no_fields';
+    };
+
+const AUTOSAVE_FIELD_KEYS: ReadonlyArray<keyof AutosaveDraftFields> = [
+  'title',
+  'body',
+  'visibility',
+  'linkUrl',
+  'linkTitle',
+  'linkDescription',
+  'linkImageUrl',
+  'linkSiteName',
+  'heroImageUrl',
+  'signal',
+  'kindId',
+  'urgency',
+];
+
+/**
+ * Server-side autosave write. Updates only the fields the client sends
+ * (keep the wire-shape minimal); the IndexedDB-first strategy means
+ * the server only sees promoted-or-later writes. Skips quietly with
+ * `discarded` / `in_review` if the post is in a state where edits are
+ * paused (D072 — author edits paused while in review).
+ *
+ * No audit-log entry — at 30s cadence × N concurrent authors this
+ * would dwarf every other audit row. The post's `updatedAt` is the
+ * canonical timestamp; explicit verbs (publish/discard) keep their
+ * own audit lines.
+ */
+export async function autosaveDraft(input: AutosaveDraftInput): Promise<AutosaveDraftResult> {
+  const found = await getOwnedPost(input.postId, input.callerId);
+  if (!found.ok) return { ok: false, reason: found.reason };
+  const post = found.post;
+
+  if (post.deletedAt) return { ok: false, reason: 'discarded' };
+  if (post.reviewRequestId && (await isReviewRequestOpen(post.reviewRequestId))) {
+    return { ok: false, reason: 'in_review' };
+  }
+
+  const data: Record<string, unknown> = {};
+  for (const key of AUTOSAVE_FIELD_KEYS) {
+    const value = input.fields[key];
+    if (value === undefined) continue;
+    if (typeof value === 'string') {
+      data[key] = value.trim() === '' ? null : value;
+    } else {
+      data[key] = value;
+    }
+  }
+  if (Object.keys(data).length === 0) return { ok: false, reason: 'no_fields' };
+
+  const updated = await prisma.post.update({
+    where: { id: post.id },
+    data,
+    select: { updatedAt: true },
+  });
+
+  return { ok: true, updatedAt: updated.updatedAt };
 }

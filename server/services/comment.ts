@@ -1,6 +1,6 @@
 /**
- * @build-unit BU-comments BU-requests-vetting
- * @spec architecture/decision-log.md (D052, D056, D057)
+ * @build-unit BU-comments BU-requests-vetting BU-publish-router
+ * @spec architecture/decision-log.md (D052, D056, D057, D072)
  * @spec product/scenarios.md (SCN-20, SCN-21, SCN-22)
  * @spec product/analytics-events.md
  *
@@ -354,4 +354,61 @@ export async function listCommentsForRequest(
     reactions: reactionsByComment.get(c.id) ?? [],
     audience: c.audience,
   }));
+}
+
+// ── Auto-comment for review attribution (BU-publish-router / D072) ───────
+
+const REVIEW_PUBLISHED_CREATES_COMMENT_KEY = 'review_published_creates_comment';
+
+/**
+ * Insert the pinned `post_review_attribution` comment when a reviewer
+ * verdicts a post `publish` via the kind-review flow. Authored by the
+ * reviewer themselves (their avatar is the comment avatar — closes the
+ * three-tier loop per D072 §6). Suppressed when the
+ * `review_published_creates_comment` SystemSetting is `'false'` so an
+ * env can opt out without a code change.
+ *
+ * Returns `null` when the system setting disables the auto-comment, or
+ * when the reviewer / post can't be resolved (the verdict still
+ * proceeds; the comment is non-load-bearing). Never throws.
+ */
+export async function createPostReviewAttributionComment(input: {
+  postId: string;
+  reviewerId: string;
+}): Promise<{ id: string } | null> {
+  const setting = await prisma.systemSetting.findUnique({
+    where: { key: REVIEW_PUBLISHED_CREATES_COMMENT_KEY },
+    select: { value: true },
+  });
+  if (setting?.value === 'false') return null;
+
+  const reviewer = await prisma.user.findUnique({
+    where: { id: input.reviewerId },
+    select: { displayName: true, deletedAt: true },
+  });
+  if (!reviewer || reviewer.deletedAt) return null;
+
+  const body = `${reviewer.displayName} helped review and shape this post.`;
+
+  const created = await prisma.comment.create({
+    data: {
+      postId: input.postId,
+      authorId: input.reviewerId,
+      body,
+      audience: 'all',
+      systemKind: 'post_review_attribution',
+    },
+    select: { id: true },
+  });
+
+  await auditLog({
+    action: 'comment.system_review_attribution.add',
+    entityType: 'comment',
+    entityId: created.id,
+    userId: input.reviewerId,
+    changes: { postId: input.postId, systemKind: 'post_review_attribution' },
+    context: { source: 'kind_review_verdict' },
+  });
+
+  return created;
 }

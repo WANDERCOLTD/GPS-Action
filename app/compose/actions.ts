@@ -1,12 +1,13 @@
 'use server';
 
 /**
- * @build-unit BU-composer BU-link-share BU-am-link-collapse BU-post-hero-demo BU-tick-or-cross BU-event-time
+ * @build-unit BU-composer BU-link-share BU-am-link-collapse BU-post-hero-demo BU-tick-or-cross BU-event-time BU-publish-router
  * @spec architecture/api-contract.md
- * @spec architecture/decision-log.md (D060, D064, D069, D073)
+ * @spec architecture/decision-log.md (D060, D064, D069, D072, D073)
  * @spec build/session-briefs/bu-am-link-collapse.md
  * @spec build/session-briefs/bu-post-hero-demo.md
  * @spec build/session-briefs/bu-tick-or-cross.md
+ * @spec build/session-briefs/bu-publish-router.md
  * @spec docs/adrs/0001-post-event-time-fields.md
  *
  * Server action wrapping post.create for client-side form submit.
@@ -25,12 +26,20 @@
  * the action does NOT redirect on success. It returns
  * `{ handoff: { postId, signal } }` so the client can open the
  * SendToNetworkConfirm modal. All other kinds keep the redirect-to-feed
- * behaviour.
+ * behaviour. (Slated for removal in a later commit when the
+ * PostPublishModal owns this flow.)
  *
  * BU-event-time / D073: the form submits eventAtDate / eventAtTime /
  * eventEndsAtDate / eventEndsAtTime in Europe/London wall-clock; this
  * action converts them to UTC via shared/format-event-time before
  * passing to postCreateSchema. Empty inputs round-trip as undefined.
+ *
+ * BU-publish-router: the lifecycle verb actions (publishPostAction,
+ * sendPostForReviewAction, saveDraftAction, discardPostAction,
+ * restorePostAction, autosaveDraftAction) are added below; they're
+ * called from `<PostPublishModal>` once it lands. createPostAction is
+ * left untouched in this commit — the modal integration that strips
+ * its handoff payload is a later commit per the brief sequence.
  */
 
 import { redirect } from 'next/navigation';
@@ -127,4 +136,190 @@ export async function createPostAction(formData: FormData): Promise<CreatePostRe
   }
 
   redirect('/feed');
+}
+
+// ── Lifecycle verbs (BU-publish-router / D072) ───────────────────────────
+//
+// One thin wrapper per tRPC mutation. Each unwraps the typed result so
+// the caller (the publish modal, in a later commit) gets a consistent
+// `{ ok, reason }` discriminator and never has to interpret a TRPCError
+// directly. Unauthenticated callers redirect to `/dev/login` so the
+// modal flow degrades to the same spot as compose. `revalidatePath`
+// invalidates the feed and post detail page where state changed.
+
+export type PublishLifecycleReason =
+  | 'not_found'
+  | 'not_owner'
+  | 'in_review'
+  | 'discarded'
+  | 'already_published'
+  | 'already_in_review'
+  | 'already_discarded'
+  | 'not_discarded'
+  | 'no_kind'
+  | 'no_fields'
+  | 'unknown';
+
+interface ActionFailure {
+  ok: false;
+  reason: PublishLifecycleReason;
+}
+
+function reasonFromError(err: unknown): PublishLifecycleReason {
+  if (!(err instanceof TRPCError)) return 'unknown';
+  if (err.code === 'NOT_FOUND') return 'not_found';
+  if (err.code === 'FORBIDDEN') return 'not_owner';
+  if (err.code === 'CONFLICT') return 'in_review';
+  if (err.code === 'BAD_REQUEST') {
+    const m = err.message;
+    if (
+      m === 'discarded' ||
+      m === 'already_published' ||
+      m === 'already_in_review' ||
+      m === 'already_discarded' ||
+      m === 'not_discarded' ||
+      m === 'no_kind' ||
+      m === 'no_fields'
+    ) {
+      return m;
+    }
+  }
+  return 'unknown';
+}
+
+async function callerOrRedirect(): Promise<ReturnType<typeof createCaller>> {
+  const ctx = await createTRPCContext();
+  if (!ctx.user) redirect('/dev/login?returnTo=/feed');
+  return createCaller(ctx);
+}
+
+export interface PublishPostInput {
+  postId: string;
+}
+
+export type PublishPostActionResult =
+  | { ok: true; postId: string; publishedAt: Date }
+  | ActionFailure;
+
+export async function publishPostAction(input: PublishPostInput): Promise<PublishPostActionResult> {
+  try {
+    const caller = await callerOrRedirect();
+    const result = await caller.post.publish({ postId: input.postId });
+    revalidatePath('/feed');
+    revalidatePath(`/post/${result.postId}`);
+    return { ok: true, postId: result.postId, publishedAt: result.publishedAt };
+  } catch (err) {
+    return { ok: false, reason: reasonFromError(err) };
+  }
+}
+
+export interface SendPostForReviewInput {
+  postId: string;
+  alsoPublishToFeed: boolean;
+}
+
+export type SendPostForReviewActionResult =
+  | { ok: true; postId: string; reviewRequestId: string; publishedAt: Date | null }
+  | ActionFailure;
+
+export async function sendPostForReviewAction(
+  input: SendPostForReviewInput,
+): Promise<SendPostForReviewActionResult> {
+  try {
+    const caller = await callerOrRedirect();
+    const result = await caller.post.sendForReview({
+      postId: input.postId,
+      alsoPublishToFeed: input.alsoPublishToFeed,
+    });
+    if (input.alsoPublishToFeed) revalidatePath('/feed');
+    revalidatePath(`/post/${result.postId}`);
+    revalidatePath('/requests');
+    return {
+      ok: true,
+      postId: result.postId,
+      reviewRequestId: result.reviewRequestId,
+      publishedAt: result.publishedAt,
+    };
+  } catch (err) {
+    return { ok: false, reason: reasonFromError(err) };
+  }
+}
+
+export type SaveDraftActionResult = { ok: true } | ActionFailure;
+
+export async function saveDraftAction(input: { postId: string }): Promise<SaveDraftActionResult> {
+  try {
+    const caller = await callerOrRedirect();
+    await caller.post.saveDraft({ postId: input.postId });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, reason: reasonFromError(err) };
+  }
+}
+
+export type DiscardPostActionResult = { ok: true; postId: string; deletedAt: Date } | ActionFailure;
+
+export async function discardPostAction(input: {
+  postId: string;
+}): Promise<DiscardPostActionResult> {
+  try {
+    const caller = await callerOrRedirect();
+    const result = await caller.post.discard({ postId: input.postId });
+    revalidatePath('/feed');
+    revalidatePath(`/post/${result.postId}`);
+    return { ok: true, postId: result.postId, deletedAt: result.deletedAt };
+  } catch (err) {
+    return { ok: false, reason: reasonFromError(err) };
+  }
+}
+
+export type RestorePostActionResult = { ok: true; postId: string } | ActionFailure;
+
+export async function restorePostAction(input: {
+  postId: string;
+}): Promise<RestorePostActionResult> {
+  try {
+    const caller = await callerOrRedirect();
+    const result = await caller.post.restore({ postId: input.postId });
+    revalidatePath('/feed');
+    revalidatePath(`/post/${result.postId}`);
+    return { ok: true, postId: result.postId };
+  } catch (err) {
+    return { ok: false, reason: reasonFromError(err) };
+  }
+}
+
+export interface AutosaveDraftInput {
+  postId: string;
+  fields: {
+    title?: string;
+    body?: string;
+    visibility?: 'public' | 'authenticated_only';
+    linkUrl?: string | null;
+    linkTitle?: string | null;
+    linkDescription?: string | null;
+    linkImageUrl?: string | null;
+    linkSiteName?: string | null;
+    heroImageUrl?: string | null;
+    signal?: 'promote' | 'remove' | null;
+    kindId?: string | null;
+    urgency?: boolean;
+  };
+}
+
+export type AutosaveDraftActionResult = { ok: true; updatedAt: Date } | ActionFailure;
+
+export async function autosaveDraftAction(
+  input: AutosaveDraftInput,
+): Promise<AutosaveDraftActionResult> {
+  try {
+    const caller = await callerOrRedirect();
+    const result = await caller.post.autosaveDraft({
+      postId: input.postId,
+      fields: input.fields,
+    });
+    return { ok: true, updatedAt: result.updatedAt };
+  } catch (err) {
+    return { ok: false, reason: reasonFromError(err) };
+  }
 }
