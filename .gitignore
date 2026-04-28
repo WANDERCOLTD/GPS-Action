@@ -28,6 +28,9 @@ coverage/
 *.swp
 *.swo
 
+# Claude Code per-session worktrees (see CLAUDE.md "Session hygiene")
+.claude/worktrees/
+
 # OS
 .DS_Store
 Thumbs.db

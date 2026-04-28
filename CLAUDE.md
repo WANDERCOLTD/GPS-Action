@@ -41,6 +41,34 @@ consulted on demand, not pre-loaded every session.
 Long Claude Code sessions hit context limits. Before that happens, the
 discipline is:
 
+- **Worktree per session — MANDATORY for any session that will edit
+  files.** Parallel CC sessions sharing the root checkout cause branch
+  clashes: when one session runs `git checkout`, the other session's
+  HEAD silently moves and its next write lands on the wrong branch.
+  This rule is non-negotiable — do not edit from
+  `/Users/paulwander/projects/gps-action` directly.
+
+  Before the first edit, isolate:
+  1. `git fetch origin && git worktree add .claude/worktrees/<slug> -b <branch> origin/main`
+     - `<slug>`: short kebab-case name for the worktree dir (e.g. `feed-filter`)
+     - `<branch>`: `<type>/<task-slug>-<YYYYMMDD>` (e.g.
+       `feat/feed-filter-20260428`). The date suffix prevents two
+       parallel sessions colliding on the same branch name.
+  2. `cd .claude/worktrees/<slug>` and run **all** subsequent commands
+     from there — including `npm install` if needed (each worktree has
+     its own `node_modules`).
+  3. Verify in one call:
+     `git branch --show-current && git rev-parse --show-toplevel`
+     — confirm both the branch name and that the path ends in
+     `.claude/worktrees/<slug>`.
+
+  Read-only sessions (Q&A, code reading, doc lookup with zero writes)
+  skip the worktree. The moment a read-only session needs to edit,
+  stop and create the worktree before the first write.
+
+  Cleanup after PR merges: `git worktree remove .claude/worktrees/<slug>`
+  then `git branch -d <branch>`. `.claude/worktrees/` is gitignored.
+
 - **Commit per logical chunk** — never accumulate more than one
   reviewable unit of work uncommitted. After each chunk: commit, push,
   proceed.
@@ -55,10 +83,7 @@ discipline is:
 - **Verify branch after every git op** — run `git branch --show-current`
   after checkout / switch / stash / stash pop / reset / merge / rebase /
   pull / branch / worktree-create. Combine into the same Bash call where
-  possible (`git checkout X && git branch --show-current`). This repo
-  is sometimes worked by parallel Claude sessions; HEAD can move under
-  you. For genuinely independent parallel work, prefer `git worktree`
-  over branch-switching in the shared checkout.
+  possible (`git checkout X && git branch --show-current`).
 
 See `docs/process/session-hygiene.md` for the full discipline, the
 handoff doc template, and anti-patterns to avoid.
@@ -98,6 +123,11 @@ Violations are errors, not warnings. Don't bypass.
 - Don't open a PR without bumping `package.json` `version` — every PR
   bumps PATCH at minimum (CI blocks merge otherwise). See
   `docs/process/versioning.md` for the scheme.
+- Don't add code that depends on a row by static slug/id without
+  shipping an idempotent data migration that inserts it. Reference
+  data lives in `prisma/migrations/`, not in `scripts/seed.ts`. CI
+  fails the merge if any `REQUIRED_POST_KIND_SLUGS` row is missing
+  after `prisma migrate deploy`. See D070.
 
 ## Open questions to surface
 
