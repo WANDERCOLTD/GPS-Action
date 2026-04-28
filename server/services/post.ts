@@ -41,6 +41,13 @@ export interface PostAuthor {
   roles: SystemRole[];
 }
 
+/** D072 — minimal reviewer surface for the review-attribution UI. */
+export interface PostReviewer {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
 export interface PostListItem {
   id: string;
   title: string;
@@ -77,6 +84,10 @@ export interface PostListItem {
   reactions: ReactionAggregate[];
   /** Per BU-comments / D052 — non-deleted comment count. */
   commentCount: number;
+  /** D072 — set when a reviewer verdicted `publish` via the kind_review flow. */
+  reviewedByUserId: string | null;
+  /** D072 — reviewer profile snapshot for the three-tier attribution UI. */
+  reviewedBy: PostReviewer | null;
 }
 
 export interface ListPostsResult {
@@ -161,6 +172,9 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
         },
       },
       kind: { select: { slug: true, displayName: true, isAlertEligible: true } },
+      // D072 — reviewer profile for the three-tier attribution badge.
+      // Null when the post wasn't kind-reviewed (the common case).
+      reviewedBy: { select: { id: true, displayName: true, avatarUrl: true } },
     },
   });
 
@@ -208,6 +222,14 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
     },
     reactions: reactionsByPost.get(post.id) ?? [],
     commentCount: commentCountsByPost.get(post.id) ?? 0,
+    reviewedByUserId: post.reviewedByUserId,
+    reviewedBy: post.reviewedBy
+      ? {
+          id: post.reviewedBy.id,
+          displayName: post.reviewedBy.displayName,
+          avatarUrl: post.reviewedBy.avatarUrl,
+        }
+      : null,
   }));
 
   return { posts: mapped, nextCursor };

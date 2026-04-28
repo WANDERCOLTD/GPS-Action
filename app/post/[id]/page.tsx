@@ -1,6 +1,6 @@
 /**
- * @build-unit BU-comments BU-event-time
- * @spec architecture/decision-log.md (D052, D045, D073)
+ * @build-unit BU-comments BU-event-time BU-publish-router
+ * @spec architecture/decision-log.md (D052, D045, D072, D073)
  * @spec product/scenarios.md (SCN-20)
  * @spec product/design-philosophy.md
  * @spec docs/adrs/0001-post-event-time-fields.md
@@ -18,6 +18,11 @@
  * row + optional location render between the share-bar and the
  * primary CTA — the same EventTimeRow PostCard uses, sized larger
  * for the detail surface.
+ *
+ * D072 — when `post.reviewedByUserId` is set, a "Reviewed by Sharon"
+ * sub-byline renders under the author line with a 22px badge that
+ * scrolls to the pinned auto-comment in the thread (anchor id
+ * `post-${postId}-review-comment`).
  */
 
 import { notFound } from 'next/navigation';
@@ -32,6 +37,7 @@ import { ReactionPill } from '@/components/ReactionPill';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 import { PostShareGroup } from '@/components/PostShareGroup';
 import { formatEventRange } from '@/shared/format-event-time';
+import { ReviewedByBadge } from '@/components/ReviewedByBadge';
 import {
   addCommentAction,
   addReactionToCommentAction,
@@ -146,6 +152,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
       count: r.count,
       mine: r.mine,
     })),
+    systemKind: c.systemKind,
   }));
 
   const canReact = reactionsEnabled && Boolean(ctx.user);
@@ -209,6 +216,28 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
             >
               {relativeTime}
             </time>
+            {post.reviewedBy && (
+              <div
+                data-testid="post-detail-reviewed-by"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  marginTop: 'var(--space-2)',
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--colour-text-secondary)',
+                }}
+              >
+                <ReviewedByBadge
+                  postId={post.id}
+                  reviewerId={post.reviewedBy.id}
+                  reviewerDisplayName={post.reviewedBy.displayName}
+                  reviewerAvatarUrl={post.reviewedBy.avatarUrl}
+                  size={22}
+                />
+                <span>Reviewed by {post.reviewedBy.displayName}</span>
+              </div>
+            )}
           </div>
         </div>
 

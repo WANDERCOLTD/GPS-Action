@@ -119,6 +119,8 @@ describe('listPosts', () => {
       },
       reactions: [],
       commentCount: 0,
+      reviewedByUserId: null,
+      reviewedBy: null,
     });
   });
 

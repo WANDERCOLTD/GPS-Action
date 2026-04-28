@@ -44,6 +44,7 @@ import { ReactionPill } from '@/components/ReactionPill';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 import { PostShareGroup } from '@/components/PostShareGroup';
 import { formatEventRange } from '@/shared/format-event-time';
+import { ReviewedByBadge } from '@/components/ReviewedByBadge';
 
 // ── Types (shared with FeedList and feed page) ──────────────────────────
 
@@ -98,6 +99,14 @@ export interface FeedPost {
   reactions: FeedReaction[];
   /** Per BU-comments / D052 — non-deleted count. */
   commentCount: number;
+  /** D072 — id of the reviewer who verdicted this post via kind_review. */
+  reviewedByUserId: string | null;
+  /** D072 — reviewer profile snapshot for the byline badge. */
+  reviewedBy: {
+    id: string;
+    displayName: string;
+    avatarUrl: string | null;
+  } | null;
 }
 
 export interface FeedCursor {
@@ -420,6 +429,15 @@ export const PostCard: FC<PostCardProps> = ({
                     {formatRole(role)}
                   </span>
                 ))}
+                {post.reviewedBy && (
+                  <ReviewedByBadge
+                    postId={post.id}
+                    reviewerId={post.reviewedBy.id}
+                    reviewerDisplayName={post.reviewedBy.displayName}
+                    reviewerAvatarUrl={post.reviewedBy.avatarUrl}
+                    size={18}
+                  />
+                )}
               </div>
               <time className="gps-meta" dateTime={post.createdAt} suppressHydrationWarning>
                 {relativeTime}

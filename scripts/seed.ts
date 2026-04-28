@@ -137,6 +137,10 @@ interface SeedPost {
   eventStartMinute?: number;
   eventDurationMinutes?: number;
   locationText?: string;
+  // BU-publish-router / D072: when set, the post renders the three-tier
+  // review-attribution UI (badge in feed, sub-byline on detail, pinned
+  // auto-comment in thread) for the named reviewer.
+  reviewedByKey?: string;
 }
 
 const SEED_POSTS: SeedPost[] = [
@@ -160,6 +164,10 @@ const SEED_POSTS: SeedPost[] = [
     activistMailerUrl: 'https://activist-mailer.example.com/campaign/ofcom-sky-2026',
     groupTags: ['rapid-response'],
     daysAgo: 2,
+    // D072 demo — Bette reviewed and shaped this post via the kind_review
+    // flow. The badge appears on the feed card, the sub-byline on the
+    // detail page, and the pinned auto-comment in the thread.
+    reviewedByKey: 'bette',
   },
   {
     seedKey: 'school-board-curriculum',
@@ -1003,7 +1011,13 @@ async function main(): Promise<void> {
     }
     const locationText = post.locationText ?? null;
 
-    const existing = await prisma.post.findUnique({ where: { id: postId } });
+    // D072 — resolve reviewer user id (idempotent backfill below).
+    const reviewerId = post.reviewedByKey ? (userIds[post.reviewedByKey] ?? null) : null;
+
+    const existing = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true, reviewedByUserId: true },
+    });
     if (!existing) {
       await prisma.post.create({
         data: {
@@ -1034,9 +1048,45 @@ async function main(): Promise<void> {
           // an authenticated-author state; seed has no need for them.
           status: 'published',
           publishedAt: createdAt,
+          reviewedByUserId: reviewerId,
         },
       });
       postsCreated++;
+    } else if (reviewerId && existing.reviewedByUserId !== reviewerId) {
+      // D072 — backfill the reviewer link on an existing post when the
+      // seed declaration changes (idempotent for re-runs).
+      await prisma.post.update({
+        where: { id: postId },
+        data: { reviewedByUserId: reviewerId },
+      });
+    }
+
+    // D072 demo — when the post is reviewed, also seed the pinned
+    // attribution comment so the three-tier UI lights up end-to-end
+    // in dev. Idempotent via deterministic id.
+    if (reviewerId) {
+      const reviewer = SEED_USERS.find(
+        (u) => u.email === `${post.reviewedByKey}@demo.gps-action.test`,
+      );
+      if (reviewer) {
+        const attributionId = seedUuid('comment', `${post.seedKey}-review-attribution`);
+        const attributionExists = await prisma.comment.findUnique({
+          where: { id: attributionId },
+        });
+        if (!attributionExists) {
+          await prisma.comment.create({
+            data: {
+              id: attributionId,
+              postId,
+              authorId: reviewerId,
+              body: `${reviewer.displayName} helped review and shape this post.`,
+              audience: 'all',
+              systemKind: 'post_review_attribution',
+              createdAt,
+            },
+          });
+        }
+      }
     }
   }
 

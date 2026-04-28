@@ -17,7 +17,7 @@
  * Request comments emits Notification rows for each matched reviewer.
  */
 
-import type { CommentAudience, SystemRole } from '@prisma/client';
+import type { CommentAudience, CommentSystemKind, SystemRole } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
 import { listReactionsForComments, type ReactionAggregate } from '@/server/services/reaction';
@@ -31,6 +31,8 @@ export interface CommentAuthor {
   displayName: string;
   roles: SystemRole[];
   isNewMember: boolean;
+  /** D072 — for the post_review_attribution comment, the avatar IS the badge. */
+  avatarUrl: string | null;
 }
 
 export interface CommentListItem {
@@ -42,6 +44,8 @@ export interface CommentListItem {
   reactions: ReactionAggregate[];
   /** Audience marker — only meaningful for Request comments (D056). */
   audience?: CommentAudience;
+  /** D072 — non-null marks a system-authored comment with special rendering. */
+  systemKind: CommentSystemKind | null;
 }
 
 interface CreateCommentInput {
@@ -140,6 +144,7 @@ export async function listCommentsForPost(
           id: true,
           displayName: true,
           createdAt: true,
+          avatarUrl: true,
           roleGrants: {
             where: {
               revokedAt: null,
@@ -168,8 +173,10 @@ export async function listCommentsForPost(
       displayName: row.author.displayName,
       roles: row.author.roleGrants.map((g) => g.role),
       isNewMember: now - row.author.createdAt.getTime() < NEW_MEMBER_WINDOW_MS,
+      avatarUrl: row.author.avatarUrl,
     },
     reactions: reactionsByComment.get(row.id) ?? [],
+    systemKind: row.systemKind,
   }));
 }
 
@@ -323,6 +330,7 @@ export async function listCommentsForRequest(
           id: true,
           displayName: true,
           createdAt: true,
+          avatarUrl: true,
           roleGrants: {
             where: { revokedAt: null, role: { in: ['admin', 'queue_manager'] } },
             select: { role: true },
@@ -350,9 +358,11 @@ export async function listCommentsForRequest(
       displayName: c.author.displayName,
       roles: c.author.roleGrants.map((g) => g.role),
       isNewMember: now - c.author.createdAt.getTime() < NEW_MEMBER_WINDOW_MS,
+      avatarUrl: c.author.avatarUrl,
     },
     reactions: reactionsByComment.get(c.id) ?? [],
     audience: c.audience,
+    systemKind: c.systemKind,
   }));
 }
 
