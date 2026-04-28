@@ -3,12 +3,12 @@ slug: bu-drafts-inbox
 status: planned
 phase: 2
 priority: medium
-note: 'Phase 2 of D072. Depends on bu-publish-router (Phase 1) — needs Post.status, autosave plumbing, and the publish modal already shipped. The brief shape will be filled out closer to start.'
+note: 'Phase 2 of D072. Bundles the autosave plumbing deferred from bu-publish-router with the /drafts page so the work has a recall surface from day one. The brief shape will be filled out closer to start.'
 ---
 
-# SESSION BRIEF · bu-drafts-inbox — author's drafts list
+# SESSION BRIEF · bu-drafts-inbox — autosave + author's drafts list
 
-_Brief version: 0.1 (stub) · Author: Paul (via Claude) · Date: 2026-04-28_
+_Brief version: 0.2 (stub) · Author: Paul (via Claude) · Date: 2026-04-28_
 
 This is a **planned-status stub** for Phase 2 of the publish-router
 work designed in D072. The brief will be fleshed out when the BU is
@@ -19,15 +19,19 @@ about to start; until then this records the agreed shape.
 ## Why this exists / why now
 
 Phase 1 (`bu-publish-router`) ships `Save as draft` as one of the
-modal's base actions. Once it lands, drafts persist in the database
-but the author can't reach them — the form's saved-indicator menu
-links to `/drafts` which doesn't yet exist. Phase 2 makes that link
-real.
+modal's base actions and the `<DraftSavedIndicator>` component is
+built but not mounted. Drafts persist in the database via the
+explicit "Save as draft" verb, but the author can't reach them —
+the saved-indicator's "View all drafts" link is a placeholder, and
+the IndexedDB-backed autosave per D072 §8 is unbuilt. Phase 2 closes
+both gaps in one bundle.
 
-Without Phase 2, drafts are write-only — useful for "don't lose this"
-but not for "come back later". Sharon types a post, hits Save as
-draft, closes the app, and the post is unreachable. Acceptable as a
-named limitation during Phase 1 only.
+Without Phase 2, drafts are write-only and the indicator never
+mounts: refresh-during-compose loses content, "Save as draft" rows
+exist but are unreachable except by direct `/post/{id}` URL.
+Acceptable as a named Phase-1 limitation; bundling autosave +
+`/drafts` is the natural shape because autosaved drafts have no
+recall surface without the inbox.
 
 ---
 
@@ -55,10 +59,23 @@ publish via the universal modal.
 
 ### Likely build
 
-- `app/drafts/page.tsx` — server component, lists drafts
-- `components/DraftRow.tsx` — single-draft list row
+- `shared/autosave/indexeddb-cache.ts` — thin wrapper over IndexedDB,
+  debounced 500ms, namespaced per-postId-or-temp-id, in-memory
+  fallback (D072 §8)
+- `shared/autosave/use-autosave-draft.ts` — three-stage gradient
+  hook (client-only-debounce → server-promote-after-60s → server-
+  only-after-promote)
+- `components/PostForm.tsx` — mount the existing
+  `<DraftSavedIndicator>` in the form header, wire to the hook,
+  swap the "View all drafts" placeholder href for the real route
+- `app/drafts/page.tsx` — server component, lists drafts for the
+  signed-in author
+- `components/DraftRow.tsx` — single-draft list row (title preview,
+  body excerpt, kind chip, "In review" pill if reviewRequestId set,
+  last-saved timestamp, "Continue editing", "Discard")
 - `server/services/post.ts` — extend with `listDraftsForAuthor`
-- Tests, scenario(s)
+- Tests (fake-timer for autosave hook, integration for /drafts),
+  scenario(s)
 
 ### Out of scope
 
@@ -71,6 +88,10 @@ publish via the universal modal.
 
 ## Definition of done (sketch)
 
+- Autosave writes to IndexedDB on every keystroke, debounced 500ms;
+  fake-timer tests cover the three-stage gradient
+- `<DraftSavedIndicator>` mounts in the compose header and shows
+  honest state ("Editing…" / "Saved · 2s ago" / "Couldn't save")
 - `/drafts` page loads authenticated drafts only
 - Tap a draft → resumes in compose form with all fields populated
 - Discard from the list works the same way as discard from the modal
@@ -83,4 +104,5 @@ publish via the universal modal.
 ## Depends on
 
 - **bu-publish-router** must ship first. This BU has no value without
-  Phase 1's schema + autosave + discard infrastructure.
+  Phase 1's schema + lifecycle service functions + publish modal +
+  the `<DraftSavedIndicator>` component.

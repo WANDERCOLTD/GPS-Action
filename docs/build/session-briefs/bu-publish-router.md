@@ -282,6 +282,17 @@ operations, no breaking changes to existing readers.
 - **`<SendToNetworkConfirm />` deprecation shim** — it's deleted
   outright. No file remains. Existing tests are updated, not
   parallel-routed.
+- **Autosave plumbing is deferred.** The IndexedDB cache wrapper +
+  `useAutosaveDraft` hook were originally listed in this brief's
+  build list but moved to `BU-autosave-and-drafts-inbox` (Phase 2)
+  for symmetry — autosaved drafts have no recall surface until the
+  `/drafts` page exists, so shipping autosave alone produces work
+  members can't see. The `<DraftSavedIndicator>` component still
+  ships in this BU (covered by tests, kept for the Phase 2 wire-up)
+  but is not yet mounted in the compose form. Behaviour parity with
+  pre-BU: refresh-during-compose loses content, same as today; the
+  new "Save as draft" verb does persist a draft row but it can only
+  be reached via direct `/post/{id}` URL until Phase 2.
 
 ---
 
@@ -476,10 +487,15 @@ operations, no breaking changes to existing readers.
 After this BU lands, log Phase 2 and Phase 3 as proper briefs ready
 to start:
 
-- **`bu-drafts-inbox`** (Phase 2) — `/drafts` page, drafts list with
-  in-review pills, continue-editing flow, discard from list. Brief
-  stub at `docs/build/session-briefs/bu-drafts-inbox.md` (status:
-  planned).
+- **`bu-drafts-inbox`** (Phase 2) — `/drafts` page + the autosave
+  plumbing deferred from this BU (IndexedDB cache wrapper +
+  `useAutosaveDraft` hook + the existing `<DraftSavedIndicator>`
+  mount), plus the drafts list with in-review pills, continue-
+  editing, and discard. Stub at
+  `docs/build/session-briefs/bu-drafts-inbox.md` (status: planned).
+  Bundling autosave with the inbox is cleaner because autosaved
+  drafts have no recall surface without the inbox; shipping them
+  separately means invisible work.
 - **`bu-reviewer-kind-review-queue`** (Phase 3) — reviewer-side queue
   UI for pending kind_review requests, click-through to edit-and-
   verdict the post. Brief stub at

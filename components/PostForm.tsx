@@ -5,7 +5,7 @@
  * @spec product/design-philosophy.md
  * @spec architecture/api-contract.md
  * @spec architecture/decision-log.md (D060, D062, D064, D069, D072, D073)
- * @spec product/scenarios.md (SCN-19)
+ * @spec product/scenarios.md (SCN-19, SCN-26, SCN-27)
  * @spec build/session-briefs/bu-am-link-collapse.md
  * @spec build/session-briefs/bu-post-hero-demo.md
  * @spec build/session-briefs/bu-tick-or-cross.md

@@ -34,6 +34,8 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-23 | Maya raises an urgent alert at the school gate | 3 | BU-publish-router, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D054, D055, D056, D057, D058, D072 | ✓ shipped |
 | SCN-24 | Sharon pastes a Guardian link straight into the FAB | 2 | BU-composer, BU-fab-intent-picker, BU-link-first-composer, BU-publish-router, BU-tick-or-cross | D044, D062, D069, D072 | ✓ shipped |
 | SCN-25 | Eddie types a thought straight into the FAB | 2 | BU-composer, BU-fab-intent-picker, BU-link-first-composer, BU-publish-router, BU-tick-or-cross | D044, D062, D069, D072 | ✓ shipped |
+| SCN-26 | Sharon publishes a tick_or_cross post via the universal modal | 1 | BU-am-link-collapse, BU-composer, BU-fab-intent-picker, BU-link-share, BU-post-hero-demo, BU-publish-router, BU-tick-or-cross | D060, D062, D064, D069, D072 | ✓ shipped |
+| SCN-27 | Eddie sends his first post for review; Bette refines and publishes | 1 | BU-am-link-collapse, BU-composer, BU-fab-intent-picker, BU-link-share, BU-post-hero-demo, BU-publish-router, BU-tick-or-cross | D060, D062, D064, D069, D072 | ✓ shipped |
 
 ## Build Units
 
@@ -46,20 +48,20 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-admin-audit-integration | 3 | — | — |
 | BU-admin-bulk-ops | 8 | — | — |
 | BU-admin-crud | 21 | — | — |
-| BU-am-link-collapse | 4 | SCN-19 | D060, D061, D062, D064, D069, D072 |
+| BU-am-link-collapse | 4 | SCN-19, SCN-26, SCN-27 | D060, D061, D062, D064, D069, D072 |
 | BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057, D061, D064, D069, D072 |
-| BU-composer | 8 | SCN-18, SCN-19, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D072 |
+| BU-composer | 8 | SCN-18, SCN-19, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D060, D061, D062, D064, D069, D072 |
 | BU-demo-mode | 2 | — | — |
 | BU-error-boundary | 2 | — | D003, D037, D065 |
-| BU-fab-intent-picker | 8 | SCN-18, SCN-19, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D070, D072 |
+| BU-fab-intent-picker | 8 | SCN-18, SCN-19, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D060, D061, D062, D064, D069, D070, D072 |
 | BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060, D061, D064, D069, D072 |
 | BU-feed-card-clamp | 1 | — | D052, D061, D064 |
 | BU-feed-filter | 2 | — | — |
 | BU-healthcheck | 3 | — | D037 |
 | BU-link-first-composer | 7 | SCN-18, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D072 |
-| BU-link-share | 5 | SCN-19 | D045, D048, D060, D061, D062, D064, D069, D072 |
-| BU-post-hero-demo | 6 | SCN-19 | D045, D048, D060, D062, D064, D069, D072 |
-| BU-publish-router | 19 | SCN-18, SCN-19, SCN-20, SCN-21, SCN-22, SCN-23, SCN-24, SCN-25 | D044, D045, D048, D052, D054, D055, D056, D057, D058, D060, D062, D064, D069, D072 |
+| BU-link-share | 5 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D061, D062, D064, D069, D072 |
+| BU-post-hero-demo | 6 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D062, D064, D069, D072 |
+| BU-publish-router | 19 | SCN-18, SCN-19, SCN-20, SCN-21, SCN-22, SCN-23, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D052, D054, D055, D056, D057, D058, D060, D062, D064, D069, D072 |
 | BU-reactions | 9 | SCN-3, SCN-20 | D036, D050, D052, D069, D072 |
 | BU-requests-foundation | 6 | SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D065, D072 |
 | BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061, D072 |
@@ -68,7 +70,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-seed | 1 | — | D038 |
 | BU-share-rail-on-detail | 4 | — | D067 |
 | BU-sticky-nav | 5 | — | D003, D054, D061, D065 |
-| BU-tick-or-cross | 11 | SCN-18, SCN-19, SCN-20, SCN-24, SCN-25 | D044, D045, D048, D052, D060, D062, D064, D069, D070, D072 |
+| BU-tick-or-cross | 11 | SCN-18, SCN-19, SCN-20, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D052, D060, D062, D064, D069, D070, D072 |
 | BU-versioning | 3 | — | D003, D065 |
 | BU-whatsapp-share | 2 | — | D065, D067 |
 
