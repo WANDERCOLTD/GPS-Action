@@ -46,7 +46,14 @@
  * a registry handler the modal dispatches.
  */
 
-import { useState, useTransition, type CSSProperties, type ReactNode } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import {
   AlertTriangle,
   Link as LinkIcon,
@@ -79,6 +86,8 @@ import {
   EMPTY_EVENT_FIELDS_STATE,
   type EventFieldsState,
 } from './EventFieldsBlock';
+import { DraftSavedIndicator } from './DraftSavedIndicator';
+import { useAutosaveDraft } from '@/shared/autosave/use-autosave-draft';
 
 export interface KindMapEntry {
   id: string;
@@ -264,6 +273,11 @@ export function PostForm({
   const [draft, setDraft] = useState<CreatePostResult['draft'] | null>(null);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [undoState, setUndoState] = useState<{ postId: string } | null>(null);
+  // BU-publish-router (D072 §8 stage 1) — controlled title + body so the
+  // IndexedDB autosave can mirror them. The other text fields stay
+  // uncontrolled in Phase 1; Phase 2's bu-drafts-inbox extends this.
+  const [title, setTitle] = useState(prefilledTitle);
+  const [body, setBody] = useState('');
   // currentIntent is initialised from the prop but mutable — tapping the
   // banner opens KindPickerSheet which calls setCurrentIntent.
   const [currentIntent, setCurrentIntent] = useState<string | null>(intent);
@@ -299,6 +313,36 @@ export function PostForm({
   const isTimeBearing = kindIsTimeBearing(activeKindSlug ?? null);
   const submitDisabled = isPending || (isTickOrCross && signal === null);
 
+  // ── BU-publish-router (D072 §8 stage 1) — IndexedDB autosave ──────────
+  // Phase 1 ships only the client-side layer: every change writes to
+  // IndexedDB after a 500ms debounce; reload re-hydrates. Server-side
+  // autosave + the /drafts recall surface land in bu-drafts-inbox.
+  const draftSnapshot = useMemo(
+    () => ({ title, body, signal, currentIntent, selectedKind }),
+    [title, body, signal, currentIntent, selectedKind],
+  );
+  const autosave = useAutosaveDraft({
+    key: 'compose-draft-current',
+    value: draftSnapshot,
+    enabled: draft === null, // suspend once a server-side post exists
+  });
+
+  // Hydrate cached draft on first load. Runs once; subsequent changes
+  // come from the user, not the cache.
+  useEffect(() => {
+    if (!autosave.hasHydrated || !autosave.hydrated) return;
+    const cached = autosave.hydrated as Partial<typeof draftSnapshot>;
+    if (typeof cached.title === 'string' && cached.title.length > 0) {
+      setTitle(cached.title);
+    }
+    if (typeof cached.body === 'string' && cached.body.length > 0) {
+      setBody(cached.body);
+    }
+    if (cached.signal === 'promote' || cached.signal === 'remove') {
+      setSignal(cached.signal);
+    }
+  }, [autosave.hasHydrated]);
+
   function handleIntentSwitch(slug: string): void {
     setCurrentIntent(slug);
     if (slug === 'undecided') {
@@ -326,6 +370,10 @@ export function PostForm({
       }
       if (result.draft) {
         // D072 — every kind goes through the universal publish modal.
+        // The IndexedDB cache is now stale (the post is a real DB row);
+        // drop it so a refresh doesn't re-hydrate the typed text on top
+        // of an already-saved draft.
+        await autosave.clear();
         setDraft(result.draft);
         return;
       }
@@ -370,7 +418,16 @@ export function PostForm({
 
   async function confirmDiscard(): Promise<void> {
     setDiscardOpen(false);
-    if (!draft) return;
+    // No server-side post yet → discarding only the in-progress IndexedDB
+    // draft. Clear the cache and reset the controlled fields so the
+    // form is empty.
+    if (!draft) {
+      await autosave.clear();
+      setTitle('');
+      setBody('');
+      setSignal(null);
+      return;
+    }
     const result = await discardPostAction({ postId: draft.postId });
     if (!result.ok) {
       setErrors({ _form: [`Couldn't discard: ${result.reason}`] });
@@ -400,6 +457,24 @@ export function PostForm({
       data-intent={currentIntent ?? 'none'}
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}
     >
+      {/* BU-publish-router (D072 §8) — calm, honest autosave indicator
+          in the form header. The "View all drafts" link stays disabled
+          until bu-drafts-inbox lands. Discard menu item opens the same
+          confirm sheet the publish modal uses. */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <DraftSavedIndicator
+          state={
+            autosave.status === 'editing'
+              ? 'editing'
+              : autosave.status === 'failed'
+                ? 'failed'
+                : 'saved'
+          }
+          lastSavedAt={autosave.lastSavedAt}
+          onDiscardClick={() => setDiscardOpen(true)}
+        />
+      </div>
+
       {/* Intent banner — visual differentiation per FAB tile, also a
           tappable trigger to switch kinds without losing typed content. */}
       {currentIntent && (
@@ -484,7 +559,8 @@ export function PostForm({
           minLength={3}
           maxLength={200}
           placeholder={meta.titlePlaceholder || undefined}
-          defaultValue={prefilledTitle || undefined}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           className="gps-input"
           style={{
             width: '100%',
@@ -530,6 +606,8 @@ export function PostForm({
           maxLength={10000}
           rows={10}
           placeholder={meta.bodyPlaceholder || undefined}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
           className="gps-input"
           style={{
             width: '100%',

@@ -282,17 +282,16 @@ operations, no breaking changes to existing readers.
 - **`<SendToNetworkConfirm />` deprecation shim** — it's deleted
   outright. No file remains. Existing tests are updated, not
   parallel-routed.
-- **Autosave plumbing is deferred.** The IndexedDB cache wrapper +
-  `useAutosaveDraft` hook were originally listed in this brief's
-  build list but moved to `BU-autosave-and-drafts-inbox` (Phase 2)
-  for symmetry — autosaved drafts have no recall surface until the
-  `/drafts` page exists, so shipping autosave alone produces work
-  members can't see. The `<DraftSavedIndicator>` component still
-  ships in this BU (covered by tests, kept for the Phase 2 wire-up)
-  but is not yet mounted in the compose form. Behaviour parity with
-  pre-BU: refresh-during-compose loses content, same as today; the
-  new "Save as draft" verb does persist a draft row but it can only
-  be reached via direct `/post/{id}` URL until Phase 2.
+- **Autosave: stage 1 only.** D072 §8 calls for a three-stage
+  gradient (client-only IndexedDB → server-promote-after-inactivity
+  → server-only-autosave-thereafter). Phase 1 ships **stage 1 only**:
+  the IndexedDB cache wrapper, the `useAutosaveDraft` hook, and the
+  `<DraftSavedIndicator>` mounted in the compose form's header. So
+  refresh-during-compose now restores the typed text (loss prevented),
+  and members see "Editing… → Saved · 2s" honestly. Stages 2 and 3
+  (the server-side autosave) land in `bu-drafts-inbox` (Phase 2)
+  alongside the `/drafts` recall surface, because server-side
+  autosave without a way to come back to drafts is invisible work.
 
 ---
 
@@ -487,15 +486,13 @@ operations, no breaking changes to existing readers.
 After this BU lands, log Phase 2 and Phase 3 as proper briefs ready
 to start:
 
-- **`bu-drafts-inbox`** (Phase 2) — `/drafts` page + the autosave
-  plumbing deferred from this BU (IndexedDB cache wrapper +
-  `useAutosaveDraft` hook + the existing `<DraftSavedIndicator>`
-  mount), plus the drafts list with in-review pills, continue-
-  editing, and discard. Stub at
-  `docs/build/session-briefs/bu-drafts-inbox.md` (status: planned).
-  Bundling autosave with the inbox is cleaner because autosaved
-  drafts have no recall surface without the inbox; shipping them
-  separately means invisible work.
+- **`bu-drafts-inbox`** (Phase 2) — `/drafts` page + the server-side
+  half of D072 §8 autosave (server-promote on 60s inactivity +
+  server-only autosave thereafter), drafts list with in-review pills,
+  continue-editing, and discard. Phase 1 already shipped client-side
+  IndexedDB autosave + the indicator; Phase 2 extends both ends. Stub
+  at `docs/build/session-briefs/bu-drafts-inbox.md` (status:
+  planned).
 - **`bu-reviewer-kind-review-queue`** (Phase 3) — reviewer-side queue
   UI for pending kind_review requests, click-through to edit-and-
   verdict the post. Brief stub at
