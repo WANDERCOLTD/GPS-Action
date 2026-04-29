@@ -225,9 +225,22 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
           style={{
             position: 'absolute',
             top: '100%',
-            left: 0,
+            // Open leftward — the pill commonly sits at the right edge
+            // of a row (e.g. PostCard's bottom row), so anchoring the
+            // tray's right edge to the pill's right edge keeps it on
+            // screen on narrow phones. Falls back gracefully on wide
+            // surfaces because the tray is its natural width either way.
+            right: 0,
             zIndex: 10,
             marginTop: 'var(--space-1)',
+            // Width is required because the absolute wrapper otherwise
+            // shrinks to fit a single child, which combined with the
+            // tray's `flex-wrap: wrap` collapses the 8 emoji into a
+            // vertical column. `max-content` sizes to the unwrapped
+            // natural width — fixes the "tray opens vertical" bug on
+            // wide screens AND the "tray flashes invisibly" bug on
+            // narrow ones (the collapsed column was rendering off-card).
+            width: 'max-content',
           }}
         >
           <ReactionTray selected={myEmoji} onToggle={toggle} />
