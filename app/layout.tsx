@@ -27,6 +27,7 @@ import { HeaderRefreshButton } from '@/components/HeaderRefreshButton';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { IntentFab } from '@/components/IntentFab';
 import { VersionBadge } from '@/components/VersionBadge';
+import { EventDebugOverlay } from '@/components/EventDebugOverlay';
 import { DemoBanner } from '@/components/DemoBanner';
 import { createTRPCContext } from '@/server/routers/context';
 import { countUnreadForUser } from '@/server/services/notification';
@@ -133,6 +134,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         </ErrorBoundary>
         {ctx.user && <IntentFab />}
         <VersionBadge />
+        <EventDebugOverlay />
       </body>
     </html>
   );
