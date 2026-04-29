@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * @build-unit BU-link-first-composer
+ * @build-unit BU-link-first-composer BU-feed-card-affordances
  * @spec build/session-briefs/bu-link-first-composer.md
  * @spec product/scenarios.md (SCN-24, SCN-25)
  *
@@ -10,11 +10,18 @@
  * the live hint and the Continue payload. The "Pick a kind instead →"
  * escape hatch reveals the existing KindPickerSheet so members who
  * know what they want to post can skip the URL/text dance.
+ *
+ * Built on `@radix-ui/react-dialog`. Radix handles iOS-Safari focus +
+ * outside-click semantics correctly, killing the "ghost-click /
+ * panel-flashes-and-closes" class of bug we hit with the hand-rolled
+ * backdrop. Auto-focus is suppressed on open so iOS doesn't pop the
+ * keyboard the moment the sheet appears.
  */
 
 import * as React from 'react';
 import { useState, type CSSProperties, type ReactElement } from 'react';
 import { X, ClipboardPaste } from 'lucide-react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { normalizeUrl } from '@/shared/url-detect';
 import { payloadFromInput, readClipboardForFill } from './IntentFabPasteHandler';
 
@@ -61,103 +68,100 @@ export function IntentFabStarter({
   };
 
   return (
-    <div
-      style={backdropStyle}
-      onPointerDown={(e) => {
-        // iOS ghost-click guard. The original tap that opened this sheet
-        // landed on the FAB; iOS fires a synthesised `click` ~300ms
-        // later at the same coordinates, which would land on this
-        // freshly-mounted backdrop and fire onClose. Switching to
-        // pointerdown sidesteps that — synth clicks are MouseEvent-only,
-        // they do not synthesise a pointerdown on the new element. Real
-        // taps on the backdrop still fire pointerdown first, so dismiss
-        // still works.
-        if (e.target === e.currentTarget) onClose();
+    <Dialog.Root
+      open={true}
+      onOpenChange={(o) => {
+        if (!o) onClose();
       }}
-      data-testid="intent-fab-starter-backdrop"
-      role="presentation"
     >
-      <div
-        style={sheetStyle}
-        role="dialog"
-        aria-label="Start a post"
-        data-testid="intent-fab-starter-sheet"
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        <div style={headerStyle}>
-          <h2
-            className="gps-subtitle"
-            style={{ margin: 0, flex: 1 }}
-            data-testid="intent-fab-starter-title"
-          >
-            Start a post
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close starter"
-            data-testid="intent-fab-starter-close"
-            style={iconButtonStyle}
-          >
-            <X size={20} aria-hidden="true" />
-          </button>
-        </div>
-
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Paste a link or start typing…"
-          rows={3}
-          data-testid="intent-fab-starter-input"
-          style={textareaStyle}
-        />
-
-        <div style={pasteRowStyle}>
-          <button
-            type="button"
-            onClick={handlePaste}
-            data-testid="intent-fab-starter-paste"
-            aria-label="Paste from clipboard"
-            style={pasteButtonStyle}
-          >
-            <ClipboardPaste size={16} aria-hidden="true" />
-            <span>Paste</span>
-          </button>
-          {pasteNote ? (
-            <span style={pasteNoteStyle} data-testid="intent-fab-starter-paste-note">
-              {pasteNote}
-            </span>
-          ) : null}
-        </div>
-
-        <p
-          style={hintStyle}
-          data-testid="intent-fab-starter-hint"
-          data-hint-kind={detection?.kind ?? 'none'}
+      <Dialog.Portal>
+        <Dialog.Overlay asChild>
+          <div style={backdropStyle} data-testid="intent-fab-starter-backdrop" />
+        </Dialog.Overlay>
+        <Dialog.Content
+          asChild
+          aria-describedby={undefined}
+          onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          {hint ?? ' '}
-        </p>
+          <div style={sheetStyle} data-testid="intent-fab-starter-sheet">
+            <div style={headerStyle}>
+              <Dialog.Title asChild>
+                <h2
+                  className="gps-subtitle"
+                  style={{ margin: 0, flex: 1 }}
+                  data-testid="intent-fab-starter-title"
+                >
+                  Start a post
+                </h2>
+              </Dialog.Title>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close starter"
+                data-testid="intent-fab-starter-close"
+                style={iconButtonStyle}
+              >
+                <X size={20} aria-hidden="true" />
+              </button>
+            </div>
 
-        <button
-          type="button"
-          onClick={handleContinue}
-          disabled={continueDisabled}
-          data-testid="intent-fab-starter-continue"
-          style={continueButtonStyle(continueDisabled)}
-        >
-          Continue
-        </button>
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Paste a link or start typing…"
+              rows={3}
+              data-testid="intent-fab-starter-input"
+              style={textareaStyle}
+            />
 
-        <button
-          type="button"
-          onClick={onPickKind}
-          data-testid="intent-fab-starter-pick-kind"
-          style={pickKindStyle}
-        >
-          Pick a kind instead →
-        </button>
-      </div>
-    </div>
+            <div style={pasteRowStyle}>
+              <button
+                type="button"
+                onClick={handlePaste}
+                data-testid="intent-fab-starter-paste"
+                aria-label="Paste from clipboard"
+                style={pasteButtonStyle}
+              >
+                <ClipboardPaste size={16} aria-hidden="true" />
+                <span>Paste</span>
+              </button>
+              {pasteNote ? (
+                <span style={pasteNoteStyle} data-testid="intent-fab-starter-paste-note">
+                  {pasteNote}
+                </span>
+              ) : null}
+            </div>
+
+            <p
+              style={hintStyle}
+              data-testid="intent-fab-starter-hint"
+              data-hint-kind={detection?.kind ?? 'none'}
+            >
+              {hint ?? ' '}
+            </p>
+
+            <button
+              type="button"
+              onClick={handleContinue}
+              disabled={continueDisabled}
+              data-testid="intent-fab-starter-continue"
+              style={continueButtonStyle(continueDisabled)}
+            >
+              Continue
+            </button>
+
+            <button
+              type="button"
+              onClick={onPickKind}
+              data-testid="intent-fab-starter-pick-kind"
+              style={pickKindStyle}
+            >
+              Pick a kind instead →
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -166,12 +170,13 @@ const backdropStyle: CSSProperties = {
   inset: 0,
   background: 'var(--colour-surface-overlay)',
   zIndex: 200,
-  display: 'flex',
-  alignItems: 'flex-end',
-  justifyContent: 'center',
 };
 
 const sheetStyle: CSSProperties = {
+  position: 'fixed',
+  bottom: 0,
+  left: '50%',
+  transform: 'translateX(-50%)',
   background: 'var(--colour-surface-canvas)',
   borderTopLeftRadius: 'var(--radius-lg)',
   borderTopRightRadius: 'var(--radius-lg)',
@@ -183,6 +188,7 @@ const sheetStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: 'var(--space-3)',
+  zIndex: 201,
 };
 
 const headerStyle: CSSProperties = {

@@ -17,6 +17,7 @@
 
 import type { CSSProperties, ReactNode } from 'react';
 import Link from 'next/link';
+import * as Dialog from '@radix-ui/react-dialog';
 import {
   X,
   AlertTriangle,
@@ -172,113 +173,115 @@ export function KindPickerSheet({
   const visible = excludeKeys?.length ? TILES.filter((t) => !excludeKeys.includes(t.key)) : TILES;
 
   return (
-    <div
-      style={sheetBackdrop}
-      onPointerDown={(e) => {
-        // iOS ghost-click guard — see IntentFabStarter for the full
-        // explanation. Switching to pointerdown sidesteps the synth
-        // click that the original FAB tap dispatches at the same
-        // coordinates ~300ms later.
-        if (e.target === e.currentTarget) onClose();
+    <Dialog.Root
+      open={true}
+      onOpenChange={(o) => {
+        if (!o) onClose();
       }}
-      data-testid="intent-fab-backdrop"
     >
-      <div
-        style={sheetStyle}
-        role="dialog"
-        aria-label={title}
-        data-testid="intent-fab-sheet"
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: 'var(--space-4)',
-          }}
+      <Dialog.Portal>
+        <Dialog.Overlay asChild>
+          <div style={sheetBackdrop} data-testid="intent-fab-backdrop" />
+        </Dialog.Overlay>
+        <Dialog.Content
+          asChild
+          aria-describedby={undefined}
+          onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <h2
-            className="gps-subtitle"
-            style={{ margin: 0, flex: 1 }}
-            data-testid="intent-fab-title"
-          >
-            {title}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close picker"
-            data-testid="intent-fab-close"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 'var(--space-2)',
-              color: 'var(--colour-text-secondary)',
-            }}
-          >
-            <X size={20} aria-hidden="true" />
-          </button>
-        </div>
+          <div style={sheetStyle} data-testid="intent-fab-sheet">
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: 'var(--space-4)',
+              }}
+            >
+              <Dialog.Title asChild>
+                <h2
+                  className="gps-subtitle"
+                  style={{ margin: 0, flex: 1 }}
+                  data-testid="intent-fab-title"
+                >
+                  {title}
+                </h2>
+              </Dialog.Title>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close picker"
+                data-testid="intent-fab-close"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 'var(--space-2)',
+                  color: 'var(--colour-text-secondary)',
+                }}
+              >
+                <X size={20} aria-hidden="true" />
+              </button>
+            </div>
 
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-            gap: 'var(--space-3)',
-          }}
-          data-testid="intent-fab-tile-grid"
-        >
-          {visible.map((tile) => (
-            <li key={tile.key}>
-              {tile.disabled ? (
-                <button
-                  type="button"
-                  disabled
-                  aria-disabled="true"
-                  title={tile.hint}
-                  data-testid="intent-tile-disabled"
-                  data-intent-key={tile.key}
-                  style={{
-                    ...tileStyleBase(tile.accent, true),
-                    cursor: 'not-allowed',
-                    opacity: 0.55,
-                  }}
-                >
-                  <TileBody tile={tile} />
-                </button>
-              ) : onPick ? (
-                <button
-                  type="button"
-                  data-testid="intent-tile-pick"
-                  data-intent-key={tile.key}
-                  onClick={() => {
-                    onPick(tile.key);
-                    onClose();
-                  }}
-                  style={tileStyleBase(tile.accent, false)}
-                >
-                  <TileBody tile={tile} />
-                </button>
-              ) : (
-                <Link
-                  href={tile.href}
-                  data-testid="intent-tile-link"
-                  data-intent-key={tile.key}
-                  onClick={onClose}
-                  style={tileStyleBase(tile.accent, false)}
-                >
-                  <TileBody tile={tile} />
-                </Link>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+            <ul
+              style={{
+                listStyle: 'none',
+                margin: 0,
+                padding: 0,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                gap: 'var(--space-3)',
+              }}
+              data-testid="intent-fab-tile-grid"
+            >
+              {visible.map((tile) => (
+                <li key={tile.key}>
+                  {tile.disabled ? (
+                    <button
+                      type="button"
+                      disabled
+                      aria-disabled="true"
+                      title={tile.hint}
+                      data-testid="intent-tile-disabled"
+                      data-intent-key={tile.key}
+                      style={{
+                        ...tileStyleBase(tile.accent, true),
+                        cursor: 'not-allowed',
+                        opacity: 0.55,
+                      }}
+                    >
+                      <TileBody tile={tile} />
+                    </button>
+                  ) : onPick ? (
+                    <button
+                      type="button"
+                      data-testid="intent-tile-pick"
+                      data-intent-key={tile.key}
+                      onClick={() => {
+                        onPick(tile.key);
+                        onClose();
+                      }}
+                      style={tileStyleBase(tile.accent, false)}
+                    >
+                      <TileBody tile={tile} />
+                    </button>
+                  ) : (
+                    <Link
+                      href={tile.href}
+                      data-testid="intent-tile-link"
+                      data-intent-key={tile.key}
+                      onClick={onClose}
+                      style={tileStyleBase(tile.accent, false)}
+                    >
+                      <TileBody tile={tile} />
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -287,12 +290,13 @@ const sheetBackdrop: CSSProperties = {
   inset: 0,
   background: 'var(--colour-surface-overlay)',
   zIndex: 200,
-  display: 'flex',
-  alignItems: 'flex-end',
-  justifyContent: 'center',
 };
 
 const sheetStyle: CSSProperties = {
+  position: 'fixed',
+  bottom: 0,
+  left: '50%',
+  transform: 'translateX(-50%)',
   background: 'var(--colour-surface-canvas)',
   borderTopLeftRadius: 'var(--radius-lg)',
   borderTopRightRadius: 'var(--radius-lg)',
@@ -301,6 +305,7 @@ const sheetStyle: CSSProperties = {
   maxWidth: 720,
   maxHeight: '85vh',
   overflowY: 'auto',
+  zIndex: 201,
 };
 
 function tileStyleBase(accent: string, disabled: boolean): CSSProperties {
