@@ -109,26 +109,32 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
       data-testid="reaction-pill-container"
       style={{
         position: 'relative',
-        display: 'flex',
+        display: 'inline-flex',
         alignItems: 'center',
-        gap: 'var(--space-2)',
-        marginTop: 'var(--space-3)',
       }}
     >
       <button
         type="button"
-        onClick={() => canReact && setOpen((v) => !v)}
+        onClick={(e) => {
+          // Defensive: stop the click bubbling so any future ancestor-
+          // level click handler doesn't fire while the member is
+          // reacting. PostCard no longer carries one but this protects
+          // the reaction surface across all caller sites.
+          e.stopPropagation();
+          if (canReact) setOpen((v) => !v);
+        }}
         disabled={!canReact}
         aria-expanded={open}
-        aria-label={hasAny ? `${totalCount} reactions, tap to react` : 'React to this post'}
+        aria-label={hasAny ? `${totalCount} reactions, add a reaction` : 'Add a reaction'}
+        title={hasAny ? `${totalCount} reactions — add yours` : 'Add a reaction'}
         data-testid="reaction-pill-toggle"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
           gap: 'var(--space-1)',
-          padding: 'var(--space-1) var(--space-3)',
-          background: 'var(--colour-surface-raised)',
-          border: '1px solid var(--colour-border-subtle)',
+          padding: 'var(--space-1) var(--space-2)',
+          background: 'transparent',
+          border: 0,
           borderRadius: 'var(--radius-pill)',
           cursor: canReact ? 'pointer' : 'default',
           fontFamily: 'var(--font-ui)',
@@ -162,9 +168,40 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
             {totalCount > top3.reduce((s, r) => s + r.count, 0) && (
               <span style={{ fontSize: 'var(--text-xs)' }}>· {totalCount}</span>
             )}
+            {/* Add-reaction affordance — tail of the cluster.
+                Slack-pattern smiley+plus, never the word "React". */}
+            <span
+              aria-hidden="true"
+              data-testid="reaction-pill-add"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                marginLeft: 'var(--space-1)',
+                paddingLeft: 'var(--space-1)',
+                borderLeft: '1px solid var(--colour-border-subtle)',
+                fontSize: 'var(--text-sm)',
+                color: 'var(--colour-text-tertiary)',
+              }}
+            >
+              <span>🙂</span>
+              <span style={{ marginLeft: 1 }}>+</span>
+            </span>
           </>
         ) : (
-          <span>React</span>
+          /* No reactions yet — single smiley+plus icon as the only
+              affordance. No "React" word. Slack/Discord pattern. */
+          <span
+            data-testid="reaction-pill-add"
+            aria-hidden="true"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              fontSize: 'var(--text-sm)',
+            }}
+          >
+            <span>🙂</span>
+            <span style={{ marginLeft: 1 }}>+</span>
+          </span>
         )}
       </button>
 

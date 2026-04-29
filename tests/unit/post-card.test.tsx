@@ -52,6 +52,14 @@ function findByTestId(el: AnyElement, testId: string): AnyElement | undefined {
   return flatChildren(el).find((e) => e.props['data-testid'] === testId);
 }
 
+function findByPropValue(
+  el: AnyElement,
+  propName: string,
+  propValue: unknown,
+): AnyElement | undefined {
+  return flatChildren(el).find((e) => e.props[propName] === propValue);
+}
+
 const basePost = {
   id: 'post-1',
   title: 'A long-running march on Saturday',
@@ -185,19 +193,30 @@ describe('PostCard variant', () => {
   });
 
   describe('shared behaviour', () => {
-    it('navs to /post/[id] on tap (D061 contract) for both variants', () => {
+    it('renders the title as a real <Link> to /post/[id] for both variants (BU-feed-card-affordances)', () => {
       for (const variant of ['compact', 'full'] as const) {
-        pushSpy.mockReset();
         const tree = renderCard({ variant });
-        const article = findByTestId(tree, 'post-card-article');
-        expect(article).toBeDefined();
-        const onClick = article!.props.onClick as (e: {
-          target: { closest: (sel: string) => null };
-        }) => void;
-        onClick({ target: { closest: () => null } });
-        expect(pushSpy).toHaveBeenCalledTimes(1);
-        expect(pushSpy).toHaveBeenCalledWith('/post/post-1');
+        const titleLink = findByTestId(tree, 'feed-card-title-link');
+        expect(titleLink).toBeDefined();
+        expect(titleLink?.props.href).toBe('/post/post-1');
       }
+    });
+
+    it('renders a "Read post →" ArrowLink in the compact variant', () => {
+      const tree = renderCard({ variant: 'compact' });
+      // ArrowLink is a React component reference in the tree (not yet
+      // rendered) — match by the testIdSuffix prop the parent passes.
+      const readLink = findByPropValue(tree, 'testIdSuffix', 'read-post');
+      expect(readLink).toBeDefined();
+      expect(readLink?.props.href).toBe('/post/post-1');
+      expect(readLink?.props.direction).toBe('forward');
+    });
+
+    it('does not attach an article-level onClick (the inner Links carry navigation)', () => {
+      const tree = renderCard({ variant: 'compact' });
+      const article = findByTestId(tree, 'post-card-article');
+      expect(article?.props.onClick).toBeUndefined();
+      expect(article?.props.role).toBeUndefined();
     });
   });
 

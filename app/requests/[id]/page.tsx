@@ -10,7 +10,7 @@
  */
 
 import { notFound, redirect } from 'next/navigation';
-import Link from 'next/link';
+import { ArrowLink } from '@/components/ArrowLink';
 import { formatDistanceToNow } from 'date-fns';
 import { createTRPCContext } from '@/server/routers/context';
 import { listCommentsForRequest } from '@/server/services/comment';
@@ -137,17 +137,14 @@ export default async function RequestDetailPage({ params }: PageProps) {
         gap: 'var(--space-5)',
       }}
     >
-      <Link
+      <ArrowLink
         href="/requests"
-        data-testid="requests-detail-back-link"
-        style={{
-          color: 'var(--colour-text-link)',
-          fontSize: 'var(--text-sm)',
-          textDecoration: 'none',
-        }}
+        direction="back"
+        testIdArea="requests"
+        testIdSuffix="detail-back"
       >
-        ← Back to Requests
-      </Link>
+        Back to Requests
+      </ArrowLink>
 
       <header
         style={{

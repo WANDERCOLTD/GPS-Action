@@ -12,7 +12,7 @@
  */
 
 import { notFound, redirect } from 'next/navigation';
-import Link from 'next/link';
+import { ArrowLink } from '@/components/ArrowLink';
 import { createTRPCContext } from '@/server/routers/context';
 import { entityMetadata } from '@/server/admin/entity-metadata';
 import type { EntityKey } from '@/server/admin/entity-metadata';
@@ -63,19 +63,16 @@ export default async function DataEntityPage({ params, searchParams }: PageProps
         margin: '0 auto',
       }}
     >
-      <Link
-        href="/data"
-        data-testid="admin-list-back-index-link"
-        style={{
-          display: 'inline-block',
-          marginBottom: 'var(--space-4)',
-          color: 'var(--colour-text-link)',
-          fontSize: 'var(--text-sm)',
-          textDecoration: 'none',
-        }}
-      >
-        ← Back to data
-      </Link>
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        <ArrowLink
+          href="/data"
+          direction="back"
+          testIdArea="data"
+          testIdSuffix="list-back-index"
+        >
+          Back to data
+        </ArrowLink>
+      </div>
       <EntityListPage
         entity={entity as EntityKey}
         ctx={ctx}

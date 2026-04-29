@@ -27,6 +27,7 @@
 
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowLink } from '@/components/ArrowLink';
 import { formatDistanceToNow } from 'date-fns';
 import { Calendar, MapPin } from 'lucide-react';
 import { createCaller } from '@/server/routers/_app';
@@ -177,17 +178,9 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
           gap: 'var(--space-3)',
         }}
       >
-        <Link
-          href="/feed"
-          data-testid="post-detail-back-link"
-          style={{
-            color: 'var(--colour-text-link)',
-            fontSize: 'var(--text-sm)',
-            textDecoration: 'none',
-          }}
-        >
-          ← Back to feed
-        </Link>
+        <ArrowLink href="/feed" direction="back" testIdArea="post" testIdSuffix="back">
+          Back to feed
+        </ArrowLink>
         {canEdit && (
           <Link
             href={`/post/${post.id}/edit`}

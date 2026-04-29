@@ -13,7 +13,7 @@
  */
 
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
+import { ArrowLink } from '@/components/ArrowLink';
 import { listNotificationsForUser, countUnreadForUser } from '@/server/services/notification';
 import { createTRPCContext } from '@/server/routers/context';
 import { RequestRow } from '@/components/RequestRow';
@@ -138,17 +138,15 @@ export default async function RequestsPage() {
                   {n.type === 'request_archived' && 'archived your draft'}
                 </span>
                 {n.requestId && (
-                  <Link
+                  <ArrowLink
                     href={`/requests/${n.requestId}`}
-                    data-testid="requests-notifications-open-link"
-                    style={{
-                      color: 'var(--colour-text-link)',
-                      fontSize: 'var(--text-xs)',
-                      textDecoration: 'none',
-                    }}
+                    direction="forward"
+                    size="sm"
+                    testIdArea="requests"
+                    testIdSuffix="notifications-open"
                   >
-                    Open →
-                  </Link>
+                    Open
+                  </ArrowLink>
                 )}
               </li>
             ))}
@@ -236,17 +234,9 @@ export default async function RequestsPage() {
           borderTop: '1px solid var(--colour-border-subtle)',
         }}
       >
-        <Link
-          href="/feed"
-          data-testid="requests-back-feed-link"
-          style={{
-            color: 'var(--colour-text-link)',
-            fontSize: 'var(--text-sm)',
-            textDecoration: 'none',
-          }}
-        >
-          ← Back to feed
-        </Link>
+        <ArrowLink href="/feed" direction="back" testIdArea="requests" testIdSuffix="back-feed">
+          Back to feed
+        </ArrowLink>
       </div>
     </main>
   );
