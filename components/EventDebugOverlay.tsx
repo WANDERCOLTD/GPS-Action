@@ -29,7 +29,11 @@ export function EventDebugOverlay(): ReactElement | null {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    setEnabled(new URL(window.location.href).searchParams.get('debug') === '1');
+    // Belt-and-braces: query param AND non-production env. Prevents
+    // accidental exposure if this gets deployed before being reverted.
+    const isDev = process.env.NEXT_PUBLIC_APP_ENV !== 'production';
+    const debugParam = new URL(window.location.href).searchParams.get('debug') === '1';
+    setEnabled(isDev && debugParam);
   }, []);
 
   useEffect(() => {
