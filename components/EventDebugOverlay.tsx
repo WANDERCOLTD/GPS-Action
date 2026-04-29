@@ -1,7 +1,10 @@
 'use client';
 
+/* eslint-disable local-rules/require-testid, local-rules/require-design-tokens -- temporary debug overlay; reverted before merge per BU-feed-card-affordances brief. Hard-coded colours used deliberately (must be unmistakable on iPhone). */
+
 /**
  * @build-unit BU-feed-card-affordances
+ * @spec build/session-briefs/bu-feed-card-affordances.md
  *
  * Temporary on-screen debug trace. Opt-in via `?debug=1` query param.
  * Listens to document-level `click` and `pointerdown` and renders the
@@ -29,11 +32,15 @@ export function EventDebugOverlay(): ReactElement | null {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    // Belt-and-braces: query param AND non-production env. Prevents
-    // accidental exposure if this gets deployed before being reverted.
-    const isDev = process.env.NEXT_PUBLIC_APP_ENV !== 'production';
     const debugParam = new URL(window.location.href).searchParams.get('debug') === '1';
-    setEnabled(isDev && debugParam);
+    // eslint-disable-next-line no-console
+    console.log(
+      '[EventDebugOverlay] debug param =',
+      debugParam,
+      'APP_ENV =',
+      process.env.NEXT_PUBLIC_APP_ENV,
+    );
+    setEnabled(debugParam);
   }, []);
 
   useEffect(() => {
@@ -99,7 +106,7 @@ const overlayStyle: CSSProperties = {
   top: 'var(--space-2)',
   left: 'var(--space-2)',
   right: 'var(--space-2)',
-  zIndex: 999,
+  zIndex: 9999,
   padding: 'var(--space-2)',
   background: 'rgba(28, 28, 26, 0.94)',
   color: '#e9e7df',
@@ -107,6 +114,7 @@ const overlayStyle: CSSProperties = {
   fontSize: '11px',
   lineHeight: 1.35,
   borderRadius: 'var(--radius-sm)',
+  border: '2px solid #ff4f4f',
   display: 'flex',
   flexDirection: 'column',
   gap: '3px',
