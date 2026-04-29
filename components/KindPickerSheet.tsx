@@ -15,7 +15,7 @@
  * pattern: members learn one picker, recognise it everywhere.
  */
 
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { useRef, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   X,
@@ -168,23 +168,26 @@ export function KindPickerSheet({
   title = 'What would you like to share?',
 }: KindPickerSheetProps) {
   // BU-feed-card-affordances — iOS ghost-click guard. Same shape as
-  // IntentFabStarter and ReactionPill: the same tap that opens this
-  // sheet synthesises a click that lands on the backdrop, closing it
-  // immediately. 250ms gap covers iOS's synth-click window.
+  // IntentFabStarter: the same tap that opens this sheet synthesises
+  // a click that lands on the backdrop, closing it immediately.
+  // 350ms gap covers iOS's synth-click window with margin.
   //
-  // Critical: parent always renders <KindPickerSheet open={…}>, so
-  // this component is mounted at page-load. useState lazy init would
-  // capture mount-time, not open-time. Use a ref + effect instead.
+  // Stamp openedAt during render (not in useEffect) because iOS can
+  // fire the synth click between commit and effect-execution — that
+  // timing window leaves the ref at 0 and the guard fails to match.
+  // Render-time prev-prop tracking is the React idiom for this.
+  const prevOpenRef = useRef<boolean>(open);
   const openedAtRef = useRef<number>(0);
-  useEffect(() => {
+  if (prevOpenRef.current !== open) {
+    prevOpenRef.current = open;
     if (open) openedAtRef.current = Date.now();
-  }, [open]);
+  }
 
   if (!open) return null;
 
   const visible = excludeKeys?.length ? TILES.filter((t) => !excludeKeys.includes(t.key)) : TILES;
   const handleBackdropClick = (): void => {
-    if (Date.now() - openedAtRef.current < 250) return;
+    if (Date.now() - openedAtRef.current < 350) return;
     onClose();
   };
 

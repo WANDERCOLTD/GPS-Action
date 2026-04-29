@@ -13,7 +13,7 @@
  */
 
 import * as React from 'react';
-import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react';
+import { useRef, useState, type CSSProperties, type ReactElement } from 'react';
 import { X, ClipboardPaste } from 'lucide-react';
 import { normalizeUrl } from '@/shared/url-detect';
 import { payloadFromInput, readClipboardForFill } from './IntentFabPasteHandler';
@@ -41,23 +41,34 @@ export function IntentFabStarter({
   // that opens this panel synthesises a click whose coordinates land
   // on the just-rendered backdrop. Without this guard the panel
   // "flashes" on iPhone Chrome and Safari — opens, then immediately
-  // closes from the ghost click. 250ms gap covers the synth-click
-  // delay window.
+  // closes from the ghost click. 350ms gap covers the synth-click
+  // delay window with a comfortable margin.
   //
-  // Critical: this component is MOUNTED at page-load with `open=false`
-  // (parent always renders it). So we can't capture openedAt via
-  // useState lazy-init — that fires at mount, not at open. Instead,
-  // a useEffect runs every time `open` flips to true and stamps the
-  // ref. The handler reads the ref.
+  // Two non-obvious bits:
+  //
+  //   1. This component is MOUNTED at page-load with `open=false`
+  //      (parent always renders it). So `useState(() => Date.now())`
+  //      would capture mount-time, not open-time — too far in the
+  //      past, the guard never matches.
+  //
+  //   2. `useEffect(() => …, [open])` runs AFTER commit-phase.
+  //      iOS can fire the synthesised click between render-commit
+  //      and effect-execution, so `openedAtRef.current` is still 0
+  //      when the click handler reads it. Setting the ref during
+  //      render — via the React idiom for tracking transitions —
+  //      ensures it's stamped before the JSX (with the backdrop)
+  //      is returned.
+  const prevOpenRef = useRef<boolean>(open);
   const openedAtRef = useRef<number>(0);
-  useEffect(() => {
+  if (prevOpenRef.current !== open) {
+    prevOpenRef.current = open;
     if (open) openedAtRef.current = Date.now();
-  }, [open]);
+  }
 
   if (!open) return null;
 
   const handleBackdropClick = (): void => {
-    if (Date.now() - openedAtRef.current < 250) return;
+    if (Date.now() - openedAtRef.current < 350) return;
     onClose();
   };
 
