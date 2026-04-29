@@ -63,7 +63,17 @@ export function IntentFabStarter({
   return (
     <div
       style={backdropStyle}
-      onClick={onClose}
+      onPointerDown={(e) => {
+        // iOS ghost-click guard. The original tap that opened this sheet
+        // landed on the FAB; iOS fires a synthesised `click` ~300ms
+        // later at the same coordinates, which would land on this
+        // freshly-mounted backdrop and fire onClose. Switching to
+        // pointerdown sidesteps that — synth clicks are MouseEvent-only,
+        // they do not synthesise a pointerdown on the new element. Real
+        // taps on the backdrop still fire pointerdown first, so dismiss
+        // still works.
+        if (e.target === e.currentTarget) onClose();
+      }}
       data-testid="intent-fab-starter-backdrop"
       role="presentation"
     >
@@ -72,7 +82,7 @@ export function IntentFabStarter({
         role="dialog"
         aria-label="Start a post"
         data-testid="intent-fab-starter-sheet"
-        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <div style={headerStyle}>
           <h2

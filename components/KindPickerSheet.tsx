@@ -172,13 +172,23 @@ export function KindPickerSheet({
   const visible = excludeKeys?.length ? TILES.filter((t) => !excludeKeys.includes(t.key)) : TILES;
 
   return (
-    <div style={sheetBackdrop} onClick={onClose} data-testid="intent-fab-backdrop">
+    <div
+      style={sheetBackdrop}
+      onPointerDown={(e) => {
+        // iOS ghost-click guard — see IntentFabStarter for the full
+        // explanation. Switching to pointerdown sidesteps the synth
+        // click that the original FAB tap dispatches at the same
+        // coordinates ~300ms later.
+        if (e.target === e.currentTarget) onClose();
+      }}
+      data-testid="intent-fab-backdrop"
+    >
       <div
         style={sheetStyle}
         role="dialog"
         aria-label={title}
         data-testid="intent-fab-sheet"
-        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <div
           style={{
