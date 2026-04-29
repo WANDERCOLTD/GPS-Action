@@ -62,7 +62,11 @@ export function VersionBadge() {
 
   const containerStyle: CSSProperties = {
     position: 'fixed',
-    right: 'var(--space-3)',
+    // Bottom-LEFT — bottom-right is occupied by the FAB pill (z-index
+    // 100, ~134px wide × 56px tall), and the badge previously sat
+    // behind it which made the tap-to-reload affordance unusable on
+    // iPhone.
+    left: 'var(--space-3)',
     bottom: 'var(--space-3)',
     zIndex: 50,
     display: 'inline-flex',
