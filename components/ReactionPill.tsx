@@ -70,13 +70,14 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
   // Click outside closes the tray.
   //
   // Two iOS-PWA gotchas the implementation guards against:
-  //   1. Defer listener attachment by one tick. On iOS Safari the
-  //      same touch that fired `setOpen(true)` can dispatch a second
-  //      synthesized event right after — if the listener is already
-  //      attached, that second event closes the tray we just opened
-  //      (the "flash" bug).
+  //   1. Defer listener attachment by 250ms. On iOS Safari the same
+  //      touch that fired `setOpen(true)` synthesises a click whose
+  //      coordinates land outside this container (because the touch
+  //      ends ~100-200ms after the click handler runs). Without a
+  //      delay, that synth click closes the tray we just opened (the
+  //      "flash" bug). 250ms covers iOS's synth-click window.
   //   2. Use `pointerdown` instead of `mousedown`. `pointerdown` fires
-  //      cleanly once per touch on iOS without the synthesized-mouse
+  //      cleanly once per touch on iOS without the synthesised-mouse
   //      double-fire that `mousedown` is prone to.
   useEffect(() => {
     if (!open) return;
@@ -88,7 +89,7 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
     }
     const t = setTimeout(() => {
       document.addEventListener('pointerdown', handler);
-    }, 0);
+    }, 250);
     return () => {
       clearTimeout(t);
       document.removeEventListener('pointerdown', handler);

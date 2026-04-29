@@ -37,8 +37,20 @@ export function IntentFabStarter({
 }: IntentFabStarterProps): ReactElement | null {
   const [input, setInput] = useState<string>('');
   const [pasteNote, setPasteNote] = useState<string | null>(null);
+  // BU-feed-card-affordances — iOS ghost-click guard. The same touch
+  // that opens this panel synthesises a click whose coordinates land
+  // on the just-rendered backdrop (because that's where the finger
+  // ends up). Without this guard the panel "flashes" on iPhone Chrome
+  // and Safari standalone — opens, then immediately closes from the
+  // ghost click. 250ms gap covers the synth-click delay window.
+  const [openedAt] = useState<number>(() => Date.now());
 
   if (!open) return null;
+
+  const handleBackdropClick = (): void => {
+    if (Date.now() - openedAt < 250) return;
+    onClose();
+  };
 
   const trimmed = input.trim();
   const detection = trimmed ? normalizeUrl(trimmed) : null;
@@ -63,7 +75,7 @@ export function IntentFabStarter({
   return (
     <div
       style={backdropStyle}
-      onClick={onClose}
+      onClick={handleBackdropClick}
       data-testid="intent-fab-starter-backdrop"
       role="presentation"
     >

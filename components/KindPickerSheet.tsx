@@ -15,7 +15,7 @@
  * pattern: members learn one picker, recognise it everywhere.
  */
 
-import type { CSSProperties, ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   X,
@@ -167,12 +167,21 @@ export function KindPickerSheet({
   excludeKeys,
   title = 'What would you like to share?',
 }: KindPickerSheetProps) {
+  // BU-feed-card-affordances — iOS ghost-click guard. Same shape as
+  // IntentFabStarter and ReactionPill: the same tap that opens this
+  // sheet synthesises a click that lands on the backdrop, closing it
+  // immediately. 250ms gap covers iOS's synth-click window.
+  const [openedAt] = useState<number>(() => Date.now());
   if (!open) return null;
 
   const visible = excludeKeys?.length ? TILES.filter((t) => !excludeKeys.includes(t.key)) : TILES;
+  const handleBackdropClick = (): void => {
+    if (Date.now() - openedAt < 250) return;
+    onClose();
+  };
 
   return (
-    <div style={sheetBackdrop} onClick={onClose} data-testid="intent-fab-backdrop">
+    <div style={sheetBackdrop} onClick={handleBackdropClick} data-testid="intent-fab-backdrop">
       <div
         style={sheetStyle}
         role="dialog"
