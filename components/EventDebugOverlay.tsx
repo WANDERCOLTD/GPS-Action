@@ -32,15 +32,11 @@ export function EventDebugOverlay(): ReactElement | null {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const debugParam = new URL(window.location.href).searchParams.get('debug') === '1';
     // eslint-disable-next-line no-console
-    console.log(
-      '[EventDebugOverlay] debug param =',
-      debugParam,
-      'APP_ENV =',
-      process.env.NEXT_PUBLIC_APP_ENV,
-    );
-    setEnabled(debugParam);
+    console.log('[EventDebugOverlay] mounted; APP_ENV =', process.env.NEXT_PUBLIC_APP_ENV);
+    // Always render — diagnosing why the gated version was invisible on
+    // iPhone. Reverted before merge.
+    setEnabled(true);
   }, []);
 
   useEffect(() => {
