@@ -15,7 +15,7 @@
  * pattern: members learn one picker, recognise it everywhere.
  */
 
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   X,
@@ -171,12 +171,20 @@ export function KindPickerSheet({
   // IntentFabStarter and ReactionPill: the same tap that opens this
   // sheet synthesises a click that lands on the backdrop, closing it
   // immediately. 250ms gap covers iOS's synth-click window.
-  const [openedAt] = useState<number>(() => Date.now());
+  //
+  // Critical: parent always renders <KindPickerSheet open={…}>, so
+  // this component is mounted at page-load. useState lazy init would
+  // capture mount-time, not open-time. Use a ref + effect instead.
+  const openedAtRef = useRef<number>(0);
+  useEffect(() => {
+    if (open) openedAtRef.current = Date.now();
+  }, [open]);
+
   if (!open) return null;
 
   const visible = excludeKeys?.length ? TILES.filter((t) => !excludeKeys.includes(t.key)) : TILES;
   const handleBackdropClick = (): void => {
-    if (Date.now() - openedAt < 250) return;
+    if (Date.now() - openedAtRef.current < 250) return;
     onClose();
   };
 

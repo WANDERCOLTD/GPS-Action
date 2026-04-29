@@ -13,7 +13,7 @@
  */
 
 import * as React from 'react';
-import { useState, type CSSProperties, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react';
 import { X, ClipboardPaste } from 'lucide-react';
 import { normalizeUrl } from '@/shared/url-detect';
 import { payloadFromInput, readClipboardForFill } from './IntentFabPasteHandler';
@@ -39,16 +39,25 @@ export function IntentFabStarter({
   const [pasteNote, setPasteNote] = useState<string | null>(null);
   // BU-feed-card-affordances — iOS ghost-click guard. The same touch
   // that opens this panel synthesises a click whose coordinates land
-  // on the just-rendered backdrop (because that's where the finger
-  // ends up). Without this guard the panel "flashes" on iPhone Chrome
-  // and Safari standalone — opens, then immediately closes from the
-  // ghost click. 250ms gap covers the synth-click delay window.
-  const [openedAt] = useState<number>(() => Date.now());
+  // on the just-rendered backdrop. Without this guard the panel
+  // "flashes" on iPhone Chrome and Safari — opens, then immediately
+  // closes from the ghost click. 250ms gap covers the synth-click
+  // delay window.
+  //
+  // Critical: this component is MOUNTED at page-load with `open=false`
+  // (parent always renders it). So we can't capture openedAt via
+  // useState lazy-init — that fires at mount, not at open. Instead,
+  // a useEffect runs every time `open` flips to true and stamps the
+  // ref. The handler reads the ref.
+  const openedAtRef = useRef<number>(0);
+  useEffect(() => {
+    if (open) openedAtRef.current = Date.now();
+  }, [open]);
 
   if (!open) return null;
 
   const handleBackdropClick = (): void => {
-    if (Date.now() - openedAt < 250) return;
+    if (Date.now() - openedAtRef.current < 250) return;
     onClose();
   };
 

@@ -14,6 +14,8 @@ import type { ReactElement } from 'react';
 
 const stateSlots: unknown[] = [];
 let slotIdx = 0;
+const refSlots: { current: unknown }[] = [];
+let refIdx = 0;
 
 vi.mock('react', async () => {
   const actual = await vi.importActual<typeof import('react')>('react');
@@ -27,6 +29,17 @@ vi.mock('react', async () => {
       const value = (idx in stateSlots ? stateSlots[idx] : init) as T;
       return [value, setter] as const;
     },
+    useRef: <T,>(init: T) => {
+      const idx = refIdx++;
+      const slot = refSlots[idx] ?? { current: init };
+      refSlots[idx] = slot;
+      return slot;
+    },
+    // No-op useEffect — these tests only inspect the rendered tree,
+    // not the side-effect behaviour. The ghost-click guard's effect
+    // is exercised by manual smoke-test on iPhone, not by these unit
+    // assertions.
+    useEffect: () => undefined,
   };
 });
 
@@ -56,10 +69,13 @@ function findByTestId(el: AnyElement | null, testId: string): AnyElement | undef
 function resetState(): void {
   stateSlots.length = 0;
   slotIdx = 0;
+  refSlots.length = 0;
+  refIdx = 0;
 }
 
 function render(props: Parameters<typeof IntentFabStarter>[0]): AnyElement | null {
   slotIdx = 0;
+  refIdx = 0;
   return IntentFabStarter(props) as AnyElement | null;
 }
 
