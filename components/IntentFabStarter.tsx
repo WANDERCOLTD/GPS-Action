@@ -13,7 +13,7 @@
  */
 
 import * as React from 'react';
-import { useRef, useState, type CSSProperties, type ReactElement } from 'react';
+import { useState, type CSSProperties, type ReactElement } from 'react';
 import { X, ClipboardPaste } from 'lucide-react';
 import { normalizeUrl } from '@/shared/url-detect';
 import { payloadFromInput, readClipboardForFill } from './IntentFabPasteHandler';
@@ -37,40 +37,8 @@ export function IntentFabStarter({
 }: IntentFabStarterProps): ReactElement | null {
   const [input, setInput] = useState<string>('');
   const [pasteNote, setPasteNote] = useState<string | null>(null);
-  // BU-feed-card-affordances — iOS ghost-click guard. The same touch
-  // that opens this panel synthesises a click whose coordinates land
-  // on the just-rendered backdrop. Without this guard the panel
-  // "flashes" on iPhone Chrome and Safari — opens, then immediately
-  // closes from the ghost click. 350ms gap covers the synth-click
-  // delay window with a comfortable margin.
-  //
-  // Two non-obvious bits:
-  //
-  //   1. This component is MOUNTED at page-load with `open=false`
-  //      (parent always renders it). So `useState(() => Date.now())`
-  //      would capture mount-time, not open-time — too far in the
-  //      past, the guard never matches.
-  //
-  //   2. `useEffect(() => …, [open])` runs AFTER commit-phase.
-  //      iOS can fire the synthesised click between render-commit
-  //      and effect-execution, so `openedAtRef.current` is still 0
-  //      when the click handler reads it. Setting the ref during
-  //      render — via the React idiom for tracking transitions —
-  //      ensures it's stamped before the JSX (with the backdrop)
-  //      is returned.
-  const prevOpenRef = useRef<boolean>(open);
-  const openedAtRef = useRef<number>(0);
-  if (prevOpenRef.current !== open) {
-    prevOpenRef.current = open;
-    if (open) openedAtRef.current = Date.now();
-  }
 
   if (!open) return null;
-
-  const handleBackdropClick = (): void => {
-    if (Date.now() - openedAtRef.current < 350) return;
-    onClose();
-  };
 
   const trimmed = input.trim();
   const detection = trimmed ? normalizeUrl(trimmed) : null;
@@ -95,7 +63,7 @@ export function IntentFabStarter({
   return (
     <div
       style={backdropStyle}
-      onClick={handleBackdropClick}
+      onClick={onClose}
       data-testid="intent-fab-starter-backdrop"
       role="presentation"
     >
