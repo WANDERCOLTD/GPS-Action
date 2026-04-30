@@ -297,4 +297,40 @@ describe('MonthViewBody (stateless presentation)', () => {
     const label = findByTestId(tree, 'calendar-month-label');
     expect(label).toBeDefined();
   });
+
+  // BU-month-nav: prev/next chevrons render as <Link>s when hrefs
+  // are passed; aria-labels + testids match the brief.
+  it('renders prev/next chevrons with correct hrefs, testids, and aria-labels', () => {
+    const tree = MonthViewBody({
+      posts: [],
+      now: NOW,
+      monthAnchor: MAY_ANCHOR,
+      monthLabel: 'May 2026',
+      selectedDayKey: '2026-05-01',
+      onSelectDay: () => {},
+      prevMonthHref: '/calendar?view=month&month=2026-04',
+      nextMonthHref: '/calendar?view=month&month=2026-06',
+    }) as AnyElement;
+    const prev = findByTestId(tree, 'calendar-month-prev-link');
+    const next = findByTestId(tree, 'calendar-month-next-link');
+    expect(prev).toBeDefined();
+    expect(next).toBeDefined();
+    expect(prev?.props['href']).toBe('/calendar?view=month&month=2026-04');
+    expect(next?.props['href']).toBe('/calendar?view=month&month=2026-06');
+    expect(prev?.props['aria-label']).toBe('Previous month');
+    expect(next?.props['aria-label']).toBe('Next month');
+  });
+
+  it('omits chevrons when hrefs are not provided', () => {
+    const tree = MonthViewBody({
+      posts: [],
+      now: NOW,
+      monthAnchor: MAY_ANCHOR,
+      monthLabel: 'May 2026',
+      selectedDayKey: '2026-05-01',
+      onSelectDay: () => {},
+    }) as AnyElement;
+    expect(findByTestId(tree, 'calendar-month-prev-link')).toBeUndefined();
+    expect(findByTestId(tree, 'calendar-month-next-link')).toBeUndefined();
+  });
 });
