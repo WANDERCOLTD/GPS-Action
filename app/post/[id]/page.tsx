@@ -151,21 +151,50 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
   const canReact = reactionsEnabled && Boolean(ctx.user);
   const canComment = commentsEnabled && Boolean(ctx.user);
 
+  // BU-event-time / D073. Edit affordance — surfaced when the caller
+  // is the author or holds an elevated role grant. Mirrors the
+  // permission gate inside /post/[id]/edit.
+  const canEdit =
+    Boolean(ctx.user) &&
+    (post.author.id === ctx.user?.id ||
+      ctx.activeRoles.some((r) => r === 'admin' || r === 'queue_manager'));
+
   return (
     <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
-      <Link
-        href="/feed"
-        data-testid="post-detail-back-link"
+      <div
         style={{
-          display: 'inline-block',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           marginBottom: 'var(--space-4)',
-          color: 'var(--colour-text-link)',
-          fontSize: 'var(--text-sm)',
-          textDecoration: 'none',
+          gap: 'var(--space-3)',
         }}
       >
-        ← Back to feed
-      </Link>
+        <Link
+          href="/feed"
+          data-testid="post-detail-back-link"
+          style={{
+            color: 'var(--colour-text-link)',
+            fontSize: 'var(--text-sm)',
+            textDecoration: 'none',
+          }}
+        >
+          ← Back to feed
+        </Link>
+        {canEdit && (
+          <Link
+            href={`/post/${post.id}/edit`}
+            data-testid="post-detail-edit-link"
+            style={{
+              color: 'var(--colour-text-link)',
+              fontSize: 'var(--text-sm)',
+              textDecoration: 'none',
+            }}
+          >
+            Edit post
+          </Link>
+        )}
+      </div>
 
       {/* Post — anchored near the top per SCN-20 */}
       <article className="gps-card">
