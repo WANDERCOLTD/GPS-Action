@@ -57,17 +57,30 @@ export function FeedList({
 
   if (posts.length === 0) {
     return (
-      <p
+      <div
+        data-testid="feed-empty-state"
         style={{
           color: 'var(--colour-text-secondary)',
           textAlign: 'center',
           padding: 'var(--space-8) 0',
           fontFamily: 'var(--font-ui)',
           fontSize: 'var(--text-base)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-2)',
         }}
       >
-        Nothing here yet.
-      </p>
+        <p style={{ margin: 0 }}>Nothing here yet.</p>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 'var(--text-sm)',
+            color: 'var(--colour-text-tertiary)',
+          }}
+        >
+          Try another filter, or check back soon.
+        </p>
+      </div>
     );
   }
 

@@ -15,12 +15,25 @@
 import * as React from 'react';
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
-import { FEED_FILTERS, FEED_FILTER_LABELS, type FeedFilter } from '@/shared/feed-filters';
+import {
+  FEED_FILTERS,
+  FEED_FILTER_LABELS,
+  FEED_FILTER_TONES,
+  FEED_FILTER_ICONS,
+  type FeedFilter,
+} from '@/shared/feed-filters';
 
 interface FeedFilterChipsProps {
   active: FeedFilter;
 }
 
+// Right-edge gradient mask on the scroll container so members on
+// narrow viewports can see at a glance that the chip strip scrolls
+// horizontally — the scrollbar is hidden on iPhone, so without an
+// affordance an Events / Meetings chip cut off at the edge looks
+// indistinguishable from "no more chips". The mask only kicks in
+// when content overflows; on wide screens the mask region is empty
+// and invisible.
 const rowStyle: CSSProperties = {
   display: 'flex',
   gap: 'var(--space-2)',
@@ -29,6 +42,8 @@ const rowStyle: CSSProperties = {
   scrollbarWidth: 'none',
   marginBottom: 'var(--space-6)',
   paddingBottom: 'var(--space-1)',
+  WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 24px), transparent 100%)',
+  maskImage: 'linear-gradient(to right, black calc(100% - 24px), transparent 100%)',
 };
 
 const srOnlyStyle: CSSProperties = {
@@ -51,15 +66,33 @@ export function FeedFilterChips({ active }: FeedFilterChipsProps) {
         {FEED_FILTERS.map((filter) => {
           const isActive = filter === active;
           const href = filter === 'all' ? '/feed' : `/feed?filter=${filter}`;
+          // Active chip mirrors the kind chip on the posts it surfaces:
+          // urgent / Now → urgent palette, meeting / event → info,
+          // tick_or_cross → primary, all → neutral. Inactive chips fall
+          // back to the default ghost.
+          const tone = FEED_FILTER_TONES[filter];
+          const className = isActive ? `gps-chip gps-chip--${tone}` : 'gps-chip';
+          const iconUrl = FEED_FILTER_ICONS[filter];
           return (
             <Link
               key={filter}
               href={href}
               prefetch={false}
               data-testid={`feed-filter-${filter}`}
+              data-tone={tone}
               aria-current={isActive ? 'page' : undefined}
-              className={isActive ? 'gps-chip gps-chip--active' : 'gps-chip'}
+              className={className}
             >
+              {iconUrl ? (
+                <img
+                  src={iconUrl}
+                  alt=""
+                  aria-hidden="true"
+                  width={14}
+                  height={14}
+                  style={{ display: 'inline-block', marginRight: 4 }}
+                />
+              ) : null}
               {FEED_FILTER_LABELS[filter]}
             </Link>
           );

@@ -9,6 +9,7 @@
  */
 
 import Link from 'next/link';
+import { ArrowLink } from '@/components/ArrowLink';
 import { notFound } from 'next/navigation';
 import type { TRPCContext } from '@/server/lib/trpc';
 import { entityMetadata } from '@/server/admin/entity-metadata';
@@ -49,19 +50,16 @@ export async function EntityDetailPage({ entity, id, ctx }: EntityDetailPageProp
   return (
     <section data-testid="admin-detail-section">
       <header style={{ marginBottom: 'var(--space-4)' }}>
-        <Link
-          href={`/data/${entity}`}
-          data-testid="admin-detail-back-link"
-          style={{
-            display: 'inline-block',
-            marginBottom: 'var(--space-2)',
-            color: 'var(--colour-text-link)',
-            fontSize: 'var(--text-sm)',
-            textDecoration: 'none',
-          }}
-        >
-          ← Back to {entity}
-        </Link>
+        <div style={{ marginBottom: 'var(--space-2)' }}>
+          <ArrowLink
+            href={`/data/${entity}`}
+            direction="back"
+            testIdArea="data"
+            testIdSuffix="detail-back"
+          >
+            Back to {entity}
+          </ArrowLink>
+        </div>
         <h1 className="gps-title" data-testid="admin-detail-title" style={{ margin: 0 }}>
           {entity} · {String(row[meta.displayField] ?? id).slice(0, 80)}
         </h1>

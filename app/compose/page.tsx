@@ -41,6 +41,7 @@ import {
   type KindMapEntry,
   type PublishModalKindConfigBySlug,
 } from '@/components/PostForm';
+import { ArrowLink } from '@/components/ArrowLink';
 import { createPostAction } from '@/app/compose/actions';
 import { whatsappNetworkChannelUrlOrNull } from '@/shared/env/whatsapp-network-channel';
 import { getSiteOrigin } from '@/shared/site-origin';
@@ -123,6 +124,11 @@ export default async function ComposePage({ searchParams }: PageProps) {
 
   return (
     <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        <ArrowLink href="/feed" direction="back" testIdArea="compose" testIdSuffix="back-feed">
+          Back to feed
+        </ArrowLink>
+      </div>
       <h1
         className="gps-title"
         style={{ marginBottom: 'var(--space-6)' }}

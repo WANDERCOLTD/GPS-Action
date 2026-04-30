@@ -11,7 +11,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | --- | ----- | -----:| --- | ---- | ------ |
 | SCN-1 | Sharon sees a Sky News bias post and boosts it | 0 | — | — | parked |
 | SCN-2 | Emma has a concern about leafleting at her child's school | 0 | — | — | parked |
-| SCN-3 | David reacts to a Shabbat Shalom post | 5 | BU-reactions | D050, D052 | ✓ shipped |
+| SCN-3 | David reacts to a Shabbat Shalom post | 5 | BU-feed-card-affordances, BU-reactions | D050, D052 | ✓ shipped |
 | SCN-4 | Rachel attends a local gathering — RSVP and follow-up | 0 | — | — | parked |
 | SCN-5 | Michael loses his phone, needs to log in on a new device | 0 | — | — | parked |
 | SCN-6 | Claire publishes an outcome post about a successful letter placement | 0 | — | — | parked |
@@ -28,12 +28,12 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-17 | System auto-comments on a closing campaign | 0 | — | — | parked |
 | SCN-18 | Eddie writes his first post (the demo flow) | 2 | BU-composer, BU-fab-intent-picker, BU-feed, BU-link-first-composer, BU-publish-router, BU-tick-or-cross | D044, D062, D069, D072 | ✓ shipped |
 | SCN-19 | Sharon shares a Guardian article with a preview card | 2 | BU-am-link-collapse, BU-composer, BU-event-time, BU-fab-intent-picker, BU-link-share, BU-post-hero-demo, BU-publish-router, BU-tick-or-cross | D060, D061, D062, D064, D069, D072, D073 | ✓ shipped |
-| SCN-20 | Eddie reads the Sky News post and writes his first comment | 11 | BU-comments, BU-event-time, BU-publish-router, BU-reactions, BU-requests-vetting, BU-tick-or-cross | D045, D050, D052, D056, D057, D069, D072, D073 | ✓ shipped |
+| SCN-20 | Eddie reads the Sky News post and writes his first comment | 11 | BU-comments, BU-event-time, BU-feed-card-affordances, BU-publish-router, BU-reactions, BU-requests-vetting, BU-tick-or-cross | D045, D050, D052, D056, D057, D069, D072, D073 | ✓ shipped |
 | SCN-21 | Eddie tracks his vetting application from submission to outcome | 6 | BU-comments, BU-publish-router, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D052, D054, D055, D056, D057, D058, D061, D072 | ✓ shipped |
 | SCN-22 | Sharon picks up and resolves Eddie's vetting application | 6 | BU-comments, BU-publish-router, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D052, D054, D055, D056, D057, D058, D061, D072 | ✓ shipped |
 | SCN-23 | Maya raises an urgent alert at the school gate | 3 | BU-publish-router, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D054, D055, D056, D057, D058, D072 | ✓ shipped |
-| SCN-24 | Sharon pastes a Guardian link straight into the FAB | 2 | BU-composer, BU-fab-intent-picker, BU-link-first-composer, BU-publish-router, BU-tick-or-cross | D044, D062, D069, D072 | ✓ shipped |
-| SCN-25 | Eddie types a thought straight into the FAB | 2 | BU-composer, BU-fab-intent-picker, BU-link-first-composer, BU-publish-router, BU-tick-or-cross | D044, D062, D069, D072 | ✓ shipped |
+| SCN-24 | Sharon pastes a Guardian link straight into the FAB | 1 | BU-composer, BU-fab-intent-picker, BU-link-first-composer, BU-publish-router, BU-tick-or-cross | D044, D062, D069, D072 | ✓ shipped |
+| SCN-25 | Eddie types a thought straight into the FAB | 1 | BU-composer, BU-fab-intent-picker, BU-link-first-composer, BU-publish-router, BU-tick-or-cross | D044, D062, D069, D072 | ✓ shipped |
 | SCN-26 | Sharon publishes a tick_or_cross post via the universal modal | 1 | BU-am-link-collapse, BU-composer, BU-event-time, BU-fab-intent-picker, BU-link-share, BU-post-hero-demo, BU-publish-router, BU-tick-or-cross | D060, D062, D064, D069, D072, D073 | ✓ shipped |
 | SCN-27 | Eddie sends his first post for review; Bette refines and publishes | 1 | BU-am-link-collapse, BU-composer, BU-event-time, BU-fab-intent-picker, BU-link-share, BU-post-hero-demo, BU-publish-router, BU-tick-or-cross | D060, D062, D064, D069, D072, D073 | ✓ shipped |
 
@@ -57,6 +57,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-event-time | 13 | SCN-19, SCN-20, SCN-26, SCN-27 | D045, D048, D052, D060, D061, D062, D064, D069, D070, D072, D073 |
 | BU-fab-intent-picker | 8 | SCN-18, SCN-19, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D060, D061, D062, D064, D069, D070, D072, D073 |
 | BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060, D061, D064, D069, D072, D073 |
+| BU-feed-card-affordances | 8 | SCN-3, SCN-20 | D044, D050, D052, D061, D062 |
 | BU-feed-card-clamp | 1 | — | D052, D061, D064, D073 |
 | BU-feed-filter | 2 | — | — |
 | BU-healthcheck | 3 | — | D037 |
@@ -87,7 +88,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D037 | Observability stack — Sentry + PostHog + Better Stack | 3 |
 | D038 | Traceability infrastructure — YAML frontmatter + file annotations + `trace` script | 1 |
 | D042 | Coordinator identity vs queue_manager permission — split into two concepts | 1 |
-| D044 | Intent-first post creation (FAB cards model) | 3 |
+| D044 | Intent-first post creation (FAB cards model) | 4 |
 | D045 | Public-by-default post visibility with author override | 4 |
 | D048 | Post axes taxonomy + deferred PostType | 2 |
 | D050 | Reaction schema, fixed 8-emoji set, polymorphic target | 7 |
@@ -98,8 +99,8 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D057 | Notifications entity + in-app delivery | 7 |
 | D058 | Urgent flag, AlertCategory, admin-configurable TTL, polling | 5 |
 | D060 | Post schema additions for link-share preview cards | 6 |
-| D061 | Global tap interaction pattern | 7 |
-| D062 | PostKind table + alert orthogonality | 8 |
+| D061 | Global tap interaction pattern | 8 |
+| D062 | PostKind table + alert orthogonality | 9 |
 | D064 | Post.heroImageUrl optional field; demo-stub picker on top of D046's phased plan | 5 |
 | D065 | Sticky app header + soft refresh button (BU-sticky-nav) | 6 |
 | D067 | WhatsApp share analytics: stub ping completes the catalogued event | 1 |

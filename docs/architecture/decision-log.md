@@ -4948,3 +4948,187 @@ Timezone convention: store UTC, render `Europe/London` at the UI boundary via `d
 - ADR-0001 — `docs/adrs/0001-post-event-time-fields.md` (the long form)
 - BU-event-time — this BU's brief
 - BU-calendar-view — the downstream consumer
+
+---
+
+# D074 — Per-kind feed comment-peek toggle on PostKind
+
+**Status:** decided · 2026-04-30
+
+## Context
+
+Feed cards in `BU-feed-card-affordances` gain a "comment peek" row beneath
+the body — author + 1-2 lines of the most-recent non-system comment, or
+"Be the first to respond →" when no comments exist. The peek doubles as
+the nav affordance to `/post/<id>#comments`.
+
+Some kinds shouldn't have a peek. `cultural` posts (Shabbat, remembrance)
+are quieter by design — surfacing chatter beneath them clashes with the
+calm-marker tone (D041, design-philosophy.md). `tick_or_cross` is a
+"network ask" whose discussion belongs on the detail page; surfacing one
+comment in the feed risks fragmenting the response.
+
+The toggle has to be data-driven, not hardcoded in the View. Admins (D043)
+manage `PostKind` via the existing CRUD surface, and "Should this kind
+show a peek?" is a content decision that belongs alongside the other
+per-kind config (`reviewMode`, `canSelfPublish`, `reviewPriority`).
+
+## Decision
+
+Add a single column to `PostKind`:
+
+```
+feedCommentPeekEnabled BOOLEAN NOT NULL DEFAULT true
+```
+
+Default `true` because most kinds benefit from showing discussion. One
+seeded kind gets `false`:
+
+| Slug       | Peek? | Why                                                 |
+| ---------- | ----- | --------------------------------------------------- |
+| `cultural` | false | Quiet markers; no engagement metrics on the surface |
+
+Every other seeded kind (`happening_now`, `link_share`, `call_to_action`,
+`outcome`, `thought`, `event`, `meeting`, `undecided`, `tick_or_cross`)
+gets `true`.
+
+Note: `tick_or_cross` was originally seeded `false` on the assumption
+that network-ask discussion belonged on the detail page; flipped to
+`true` shortly after on the user's UX call, since the most-recent reply
+is useful in the feed for these posts too. See migration
+`20260430113000_enable_comment_peek_for_tick_or_cross`.
+
+The migration is idempotent (`ADD COLUMN IF NOT EXISTS` + `UPDATE` per
+slug) per D070. No backfill data risk — the column is non-null with a
+default; existing rows pick up `true` automatically.
+
+## Consequences
+
+- **Feed query joins on `PostKind`** (or projects this column when posts
+  are selected with their kind). Performance neutral — `PostKind` is
+  small (~12 rows) and already loaded for the existing `kindSlug` /
+  `kindDisplayName` projection.
+- **`PostCard` reads `post.feedCommentPeekEnabled`** (passed through the
+  existing `FeedPost` shape). When false, the peek row is suppressed
+  entirely. When true, the peek row renders (with empty-state copy when
+  there are no comments).
+- **Admin CRUD picks the column up automatically** via the generic
+  PostKind admin path; no admin UI change required, the boolean appears
+  as a checkbox.
+- **The `Read post →` link goes away** when the peek row ships. With the
+  peek tappable (Link to detail#comments) and the title already a Link,
+  a third nav affordance is redundant.
+
+## Alternatives considered
+
+- **Hardcode the kind list in `PostCard`.** Tighter coupling between View
+  and content rules; admins couldn't change the list without a code
+  change. Rejected.
+- **Feature flag (`ff_feed_comment_peek`) with a kind-allowlist.** Two
+  layers of indirection for a permanent decision; not what feature flags
+  are for (D036). Rejected.
+- **Render the peek for every kind, just hide for cultural / tick_or_cross
+  via design-philosophy enforcement.** Same hardcode, different file.
+  Rejected.
+
+## Related
+
+- D041 — Calm marker aesthetic (cultural posts are visually quieter)
+- D050 — Reactions (similar "engagement on feed cards" question)
+- D052 — Comments primitive
+- D062 — PostKind as managed table (the table this ADR extends)
+- D070 — Reference data ships in migrations (the seed defaults ride this rule)
+
+---
+
+# D075 — Activist Mailer flag on Post + AM feed filter
+
+**Status:** decided · 2026-04-30
+
+## Context
+
+Activist Mailer URLs were detected at _render time_ in `LinkPreviewCard`
+via host-match against `ACTIVIST_MAILER_ALLOWED_DOMAINS` (D060,
+BU-am-link-collapse). That worked for the visual treatment ("Send
+email →" button on the link card) but had three limits:
+
+1. **No filter.** Filtering the feed by AM URLs would mean a SQL
+   `LIKE` against `linkUrl` per allowed domain — slow and untyped.
+2. **No author override.** A member who pastes their own org's mailer
+   URL (not on the allow-list) couldn't get the AM treatment; a member
+   pasting a generic-looking URL that _is_ an AM action couldn't
+   manually flag it as such.
+3. **Retroactive reclassification.** Changing `am-domain.ts`'s
+   allow-list reclassified all historical posts — undesirable for
+   provenance.
+
+## Decision
+
+Add a persisted boolean flag to `Post`:
+
+```
+isActivistMailer  Boolean  @default(false)
+```
+
+Plus a single composite index `(isActivistMailer, createdAt DESC)` for
+the feed filter.
+
+The form auto-sets the flag at submit time when `linkUrl` matches
+`ACTIVIST_MAILER_ALLOWED_DOMAINS` (using the existing
+`isActivistMailerDomain` helper). The author can manually toggle the
+checkbox either way; once they touch it, the auto-detect is sticky on
+their explicit choice — URL changes don't override it.
+
+The `LinkPreviewCard`'s `isAmAction` prop now reads `post.isActivistMailer`
+on the feed card path. The host-match fallback inside the card stays
+for use sites that don't have a stored flag (e.g. the live preview
+inside the compose form).
+
+A new feed filter `activist_mailer` slots in the chip strip:
+
+```
+All · ⚡ Urgent · AM · ✅❌ · Now · Meetings · Events
+```
+
+The chip carries the Activist Mailer logo (saved at
+`/public/brands/activist-mailer.webp`) ahead of the text label;
+active palette is `gps-chip--primary` (green) to match the
+"Send email →" CTA colour.
+
+## Consequences
+
+- New column on `Post`. Migration is idempotent (`ADD COLUMN IF NOT
+EXISTS DEFAULT false`) and backfills via SQL regex matching the
+  canonical `activistmailer.com` domain plus the dev / test
+  `activist-mailer.example.com` domain plus a fallback
+  `activistMailerUrl IS NOT NULL` rule for legacy seed posts that
+  used the deprecated dedicated field. All idempotent per D070.
+- Single index supports the filter; query is a one-liner equality
+  check against the boolean column.
+- Form submit sends `isActivistMailer=true` as a hidden form field
+  when checked. The compose action reads it and passes it to the
+  service; the schema accepts it as an optional boolean.
+- Read path: feed query projects the column into `PostListItem`;
+  `PostCard` reads it onto its `FeedPost` interface; `LinkPreviewCard`
+  receives it as `isAmAction`.
+
+## Alternatives considered
+
+- **Detect at query time** with a SQL LIKE per allowed domain: slow,
+  not indexable, retroactive reclassification on allow-list change.
+  Rejected.
+- **Store the URL match decision in a join table** (one row per AM
+  domain × post): flexible but overkill for what's a single boolean
+  classifier. Rejected.
+
+## Related
+
+- D060 — Link share preview card (the ancestor of "AM as link with a
+  domain match"; D075 elevates the match to a flag)
+- D062 — `PostKind` as managed table (similar approach: kind is data
+  on the post, not derived at render)
+- D070 — Reference data ships in migrations (the AM-domain backfill
+  rides this rule)
+- BU-am-link-collapse — removed the dedicated `activistMailerUrl`
+  field in favour of host-match on `linkUrl`. D075 is the next step:
+  persist the classification on the post.

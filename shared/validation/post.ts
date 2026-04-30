@@ -135,6 +135,10 @@ export const postCreateSchema = z
     linkDescription: z.string().trim().max(500).optional(),
     linkImageUrl: httpUrlSchema,
     linkSiteName: z.string().trim().max(100).optional(),
+    // D075 — Activist Mailer flag. Persisted on Post; auto-set at submit
+    // by the form when the linkUrl matches an AM domain, manually
+    // overridable by the author.
+    isActivistMailer: z.boolean().optional(),
     // Intent kind FK (D062 revised). UUID of a PostKind row. Composer
     // resolves the slug → id before submit; the API takes the id directly.
     kindId: z.string().trim().min(1).optional(),

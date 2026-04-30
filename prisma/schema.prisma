@@ -374,6 +374,11 @@ model PostKind {
   canSelfPublish Boolean         @default(true)
   reviewPriority RequestPriority @default(normal)
 
+  // D073 — when false, feed cards for posts of this kind suppress the
+  // comment-peek row beneath the body. Cultural / tick_or_cross are
+  // false; everything else true. Surfaced via the generic admin CRUD.
+  feedCommentPeekEnabled Boolean @default(true)
+
   posts    Post[]
   requests Request[]
 
@@ -745,6 +750,13 @@ model Post {
   linkImageUrl    String?
   linkSiteName    String?
 
+  // D075 — flagged-AM bit. True if this post is an Activist Mailer
+  // email-action share. Auto-set at submit time when linkUrl matches
+  // ACTIVIST_MAILER_ALLOWED_DOMAINS; member can manually override
+  // either way. Drives the "Send email →" CTA on the link card and
+  // the AM filter on /feed.
+  isActivistMailer Boolean @default(false)
+
   // Member-picked hero image (BU-post-hero-demo — D064). Distinct from
   // linkImageUrl: linkImageUrl is fetched from the linked URL's og:image
   // and refreshes when linkUrl changes; heroImageUrl is explicitly chosen
@@ -827,6 +839,8 @@ model Post {
   @@index([eventAt])
   // D071 — feed query: published posts ordered by publishedAt
   @@index([status, publishedAt(sort: Desc)])
+  // D075 — feed AM filter
+  @@index([isActivistMailer, createdAt(sort: Desc)])
 }
 
 // ─── Reaction ────────────────────────────────────────────────────────────────

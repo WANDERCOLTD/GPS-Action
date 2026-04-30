@@ -30,6 +30,7 @@
 
 import type { FC, MouseEvent as ReactMouseEvent } from 'react';
 import * as React from 'react';
+import { Phone } from 'lucide-react';
 import { whatsAppShareUrl } from '@/shared/share/whatsapp-url';
 import { getSiteOrigin } from '@/shared/site-origin';
 
@@ -91,20 +92,25 @@ export const WhatsAppShareButton: FC<WhatsAppShareButtonProps> = ({
         flexShrink: 0,
       }}
     >
-      <WhatsAppGlyph size={isPill ? 20 : 18} />
+      <Phone size={isPill ? 20 : 18} fill="currentColor" strokeWidth={0} aria-hidden="true" />
       {isPill && <span>WhatsApp</span>}
     </a>
   );
 };
 
-// ── Glyph (single-path, white-on-green) ──────────────────────────────────
+// ── Icon ─────────────────────────────────────────────────────────────────
 //
-// Using a generic speech-bubble-with-handle outline rather than the
-// trademarked WhatsApp logomark. WhatsApp's brand guidelines forbid
-// recolouring or modifying their official mark; a stylised bubble glyph
-// carries the visual cue ("messaging") without being the registered
-// logo. Replace with the official asset once the brand-asset license is
-// confirmed.
+// We use lucide's `Phone` (a phone receiver glyph) rather than a chat
+// bubble. The chat-bubble icon was visually identical to the comments
+// icon used elsewhere in the rail, which made the column read as two
+// instances of the same concept. The phone receiver is universally
+// "call/voice" — distinct from the comments bubble and still consistent
+// with the WhatsApp affordance (the green bubble + phone is what every
+// platform's WhatsApp share button looks like).
+//
+// Not using the trademarked WhatsApp logomark, which has brand-use
+// restrictions; the phone-on-green is the universal substitute and
+// still reads as "WhatsApp share" in context.
 
 function pingShareIntent(postId: string): void {
   if (typeof window === 'undefined') return;
@@ -128,19 +134,3 @@ function pingShareIntent(postId: string): void {
     // Analytics is fire-and-forget; never block the share UX on a ping failure.
   });
 }
-
-const WhatsAppGlyph: FC<{ size: number }> = ({ size }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={2}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-  </svg>
-);

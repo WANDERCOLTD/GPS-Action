@@ -47,6 +47,25 @@ export function buildComposeHref(payload: ContinuePayload): string {
   return `/compose?title=${encodeURIComponent(clamped)}`;
 }
 
+/**
+ * Same as buildComposeHref but with an `intent` slug pinned. Used by
+ * the unified FAB sheet where the member picks a kind tile and any
+ * pasted/typed input rides along as a prefill.
+ */
+export function buildComposeHrefWithIntent(
+  intent: string,
+  payload: ContinuePayload | null,
+): string {
+  const params = new URLSearchParams();
+  params.set('intent', intent);
+  if (payload?.kind === 'url') {
+    params.set('linkUrl', payload.value);
+  } else if (payload?.kind === 'text') {
+    params.set('title', payload.value.slice(0, TITLE_MAX));
+  }
+  return `/compose?${params.toString()}`;
+}
+
 export async function readClipboardForFill(): Promise<ClipboardReadResult> {
   if (typeof navigator === 'undefined' || !navigator.clipboard?.readText) {
     return { outcome: 'unsupported' };

@@ -259,6 +259,15 @@
   color: var(--colour-primary);
 }
 
+/* Filter chip — neutral active palette for the "All" selector. Solid
+   surface so it reads as "I am the current selector" without leaning on
+   a tonal accent. */
+.gps-chip--neutral {
+  background: var(--colour-surface-raised);
+  color: var(--colour-text-primary);
+  border-color: var(--colour-border-strong);
+}
+
 .gps-chip--static {
   cursor: default;
 }
@@ -678,4 +687,41 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ── ArrowLink (BU-feed-card-affordances) ─────────────────────────────
+   Inline link with directional arrow that shifts on hover. Used for
+   "← Back to feed", "Read post →", "Open →" etc. Native <Link>
+   underneath so iOS taps fire reliably. */
+.gps-arrow-link {
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: color 120ms ease;
+}
+.gps-arrow-link:hover {
+  color: color-mix(in srgb, var(--colour-text-link) 80%, var(--colour-text-primary));
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.gps-arrow-link:focus-visible {
+  outline: 2px solid var(--colour-text-link);
+  outline-offset: 2px;
+  text-decoration: none;
+}
+.gps-arrow-link__arrow {
+  display: inline-block;
+  transition: transform 120ms ease;
+  font-weight: 600;
+}
+.gps-arrow-link:hover .gps-arrow-link__arrow[data-arrow='forward'] {
+  transform: translateX(2px);
+}
+.gps-arrow-link:hover .gps-arrow-link__arrow[data-arrow='back'] {
+  transform: translateX(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gps-arrow-link__arrow {
+    transition: none;
+  }
 }

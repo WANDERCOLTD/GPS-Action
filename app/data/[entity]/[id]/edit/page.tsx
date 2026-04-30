@@ -8,7 +8,7 @@
  */
 
 import { notFound, redirect } from 'next/navigation';
-import Link from 'next/link';
+import { ArrowLink } from '@/components/ArrowLink';
 import { createTRPCContext } from '@/server/routers/context';
 import { entityMetadata } from '@/server/admin/entity-metadata';
 import type { EntityKey } from '@/server/admin/entity-metadata';
@@ -58,19 +58,16 @@ export default async function DataEntityEditPage({ params }: PageProps) {
         margin: '0 auto',
       }}
     >
-      <Link
-        href={`/data/${entity}/${id}`}
-        data-testid="admin-edit-back-link"
-        style={{
-          display: 'inline-block',
-          marginBottom: 'var(--space-2)',
-          color: 'var(--colour-text-link)',
-          fontSize: 'var(--text-sm)',
-          textDecoration: 'none',
-        }}
-      >
-        ← Back to detail
-      </Link>
+      <div style={{ marginBottom: 'var(--space-2)' }}>
+        <ArrowLink
+          href={`/data/${entity}/${id}`}
+          direction="back"
+          testIdArea="data"
+          testIdSuffix="edit-back"
+        >
+          Back to detail
+        </ArrowLink>
+      </div>
       <h1 className="gps-title" data-testid="admin-edit-title" style={{ margin: 0 }}>
         Edit {entity}
       </h1>

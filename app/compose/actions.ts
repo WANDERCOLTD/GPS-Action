@@ -38,6 +38,7 @@ import { postCreateSchema } from '@/shared/validation/post';
 import { eventInputToUtc } from '@/shared/format-event-time';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
+import { fetchLinkMetadata, type LinkMetadataResult } from '@/server/services/link-metadata';
 import { TRPCError } from '@trpc/server';
 import type { Signal } from '@prisma/client';
 
@@ -81,6 +82,8 @@ export async function createPostAction(formData: FormData): Promise<CreatePostRe
     linkDescription: formData.get('linkDescription')?.toString() || undefined,
     linkImageUrl: formData.get('linkImageUrl')?.toString() || undefined,
     linkSiteName: formData.get('linkSiteName')?.toString() || undefined,
+    // D074 — AM flag posted as the literal "true" / "false" string.
+    isActivistMailer: formData.get('isActivistMailer')?.toString() === 'true' ? true : undefined,
     kindId: formData.get('kindId')?.toString() || undefined,
     urgency: formData.get('urgency')?.toString() === 'true' ? true : undefined,
     heroImageUrl: formData.get('heroImageUrl')?.toString() || undefined,
@@ -301,4 +304,26 @@ export async function autosaveDraftAction(
   } catch (err) {
     return { ok: false, reason: reasonFromError(err) };
   }
+}
+
+/**
+ * Fetch OG/Twitter/HTML metadata for a URL pasted into the link-first
+ * compose form. Wraps the pure `fetchLinkMetadata` service.
+ *
+ * **Auth-gated**: anonymous callers cannot trigger this. The server
+ * action otherwise turns the dev server into an open URL fetcher
+ * (SSRF: any unauthenticated visitor could ask the server to load
+ * arbitrary URLs — including internal services, cloud-metadata
+ * endpoints, etc.). Authenticated callers are presumed to be members
+ * of the network, raising the bar to "we trust them not to attack."
+ *
+ * Defence-in-depth: the underlying service also rejects internal /
+ * loopback / link-local / RFC1918 hostnames at the URL-parse layer.
+ */
+export async function fetchLinkMetadataAction(input: { url: string }): Promise<LinkMetadataResult> {
+  const ctx = await createTRPCContext();
+  if (!ctx.user) {
+    return { ok: false, reason: 'unauthorized' };
+  }
+  return fetchLinkMetadata(input);
 }

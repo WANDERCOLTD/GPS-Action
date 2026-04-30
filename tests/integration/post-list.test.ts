@@ -79,6 +79,7 @@ function makeDbPost(overrides: Record<string, unknown> = {}) {
     linkDescription: null,
     linkImageUrl: null,
     linkSiteName: null,
+    isActivistMailer: false,
     kindId: null,
     urgency: false,
     heroImageUrl: null,

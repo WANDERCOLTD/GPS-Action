@@ -7,7 +7,7 @@
  */
 
 import { notFound, redirect } from 'next/navigation';
-import Link from 'next/link';
+import { ArrowLink } from '@/components/ArrowLink';
 import { createTRPCContext } from '@/server/routers/context';
 import { entityMetadata } from '@/server/admin/entity-metadata';
 import type { EntityKey } from '@/server/admin/entity-metadata';
@@ -55,19 +55,16 @@ export default async function DataEntityNewPage({ params }: PageProps) {
         margin: '0 auto',
       }}
     >
-      <Link
-        href={`/data/${entity}`}
-        data-testid="admin-new-back-link"
-        style={{
-          display: 'inline-block',
-          marginBottom: 'var(--space-2)',
-          color: 'var(--colour-text-link)',
-          fontSize: 'var(--text-sm)',
-          textDecoration: 'none',
-        }}
-      >
-        ← Back to {entity}
-      </Link>
+      <div style={{ marginBottom: 'var(--space-2)' }}>
+        <ArrowLink
+          href={`/data/${entity}`}
+          direction="back"
+          testIdArea="data"
+          testIdSuffix="new-back"
+        >
+          Back to {entity}
+        </ArrowLink>
+      </div>
       <h1 className="gps-title" data-testid="admin-new-title" style={{ margin: 0 }}>
         New {entity}
       </h1>

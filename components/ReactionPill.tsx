@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * @build-unit BU-reactions
+ * @build-unit BU-reactions BU-feed-card-affordances
  * @spec architecture/decision-log.md (D050, D052)
  * @spec product/scenarios.md (SCN-3, SCN-20)
  * @spec product/design-philosophy.md
@@ -13,10 +13,24 @@
  * Optimistic UI via React 19 useOptimistic with the committed-
  * state pattern from PR #47. Per design-philosophy.md principle 3
  * — no celebration, no streaks, no "+1 reaction" toast.
+ *
+ * Layout (BU-feed-card-affordances): vertical for the feed card's
+ * right rail. The 🙂+ "add" button is the anchor — tapping it opens
+ * the 8-emoji picker tray. Beneath, top-3 reactions stack one-per-
+ * row as small `emoji <count>` quick-toggle buttons; tapping a row
+ * toggles the member's reaction for that emoji directly without
+ * going through the picker. A `+M` expander appears when more than
+ * three emojis have reactions; tapping reveals the rest inline.
+ *
+ * Built on `@radix-ui/react-popover` for the tray. Radix gives us
+ * positioning across viewport widths (Floating UI under the hood,
+ * with built-in collision detection), focus trap, ESC-to-close, and
+ * ARIA semantics for free.
  */
 
-import { useOptimistic, useState, useTransition, useRef, useEffect } from 'react';
-import type { FC } from 'react';
+import { useOptimistic, useState, useTransition } from 'react';
+import type { CSSProperties, FC } from 'react';
+import * as Popover from '@radix-ui/react-popover';
 import type { FeedReaction, FeedReactionEmoji } from '@/components/PostCard';
 import { REACTION_GLYPH, ReactionTray } from '@/components/ReactionTray';
 
@@ -35,6 +49,8 @@ interface OptimisticAction {
   emoji: FeedReactionEmoji;
   kind: 'add' | 'remove';
 }
+
+const TOP_N = 3;
 
 function applyOptimistic(state: FeedReaction[], action: OptimisticAction): FeedReaction[] {
   const existing = state.find((r) => r.emoji === action.emoji);
@@ -58,35 +74,17 @@ function applyOptimistic(state: FeedReaction[], action: OptimisticAction): FeedR
 }
 
 export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove, canReact }) => {
-  const [open, setOpen] = useState(false);
+  const [trayOpen, setTrayOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [, startTransition] = useTransition();
   // Local state — committed truth for this client. Initialised from
   // server-rendered props; updated on successful mutation. Prop drift
   // (e.g. after refresh) re-mounts the component and resets state.
   const [committed, setCommitted] = useState<FeedReaction[]>(reactions);
   const [optimistic, setOptimistic] = useOptimistic(committed, applyOptimistic);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Click outside closes the tray
-  useEffect(() => {
-    if (!open) return;
-    function handler(event: MouseEvent): void {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
-  const myEmoji = new Set(optimistic.filter((r) => r.mine).map((r) => r.emoji));
-  const hasAny = optimistic.length > 0;
-  const totalCount = optimistic.reduce((sum, r) => sum + r.count, 0);
-  const top3 = optimistic.slice(0, 3);
 
   function toggle(emoji: FeedReactionEmoji): void {
-    const isOn = myEmoji.has(emoji);
+    const isOn = optimistic.find((r) => r.emoji === emoji)?.mine === true;
     const action: OptimisticAction = { emoji, kind: isOn ? 'remove' : 'add' };
     startTransition(async () => {
       setOptimistic(action);
@@ -97,90 +95,173 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
           await onAdd(emoji);
         }
         setCommitted((prev) => applyOptimistic(prev, action));
-      } catch {
-        // Failure: optimistic rolls back to `committed`.
+      } catch (e) {
+        // Failure: optimistic rolls back to `committed`. Log so the
+        // demo / production console at least surfaces a trail when a
+        // tap doesn't stick — silent rollback was previously
+        // indistinguishable from "tap didn't register".
+
+        console.error('[ReactionPill] toggle failed', { emoji, kind: action.kind, error: e });
       }
     });
   }
 
+  const hasAny = optimistic.length > 0;
+  const visible = expanded ? optimistic : optimistic.slice(0, TOP_N);
+  const overflow = Math.max(0, optimistic.length - TOP_N);
+
   return (
-    <div
-      ref={containerRef}
-      data-testid="reaction-pill-container"
-      style={{
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--space-2)',
-        marginTop: 'var(--space-3)',
-      }}
-    >
-      <button
-        type="button"
-        onClick={() => canReact && setOpen((v) => !v)}
-        disabled={!canReact}
-        aria-expanded={open}
-        aria-label={hasAny ? `${totalCount} reactions, tap to react` : 'React to this post'}
-        data-testid="reaction-pill-toggle"
+    <Popover.Root open={trayOpen} onOpenChange={setTrayOpen}>
+      <div
+        data-testid="reaction-pill-container"
         style={{
-          display: 'inline-flex',
+          display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          gap: 'var(--space-1)',
-          padding: 'var(--space-1) var(--space-3)',
-          background: 'var(--colour-surface-raised)',
-          border: '1px solid var(--colour-border-subtle)',
-          borderRadius: 'var(--radius-pill)',
-          cursor: canReact ? 'pointer' : 'default',
-          fontFamily: 'var(--font-ui)',
-          fontSize: 'var(--text-sm)',
-          color: 'var(--colour-text-secondary)',
-          opacity: canReact ? 1 : 0.7,
+          gap: 2,
         }}
       >
-        {hasAny ? (
-          <>
-            {top3.map((r) => (
-              <span
+        <Popover.Trigger asChild>
+          <button
+            type="button"
+            disabled={!canReact}
+            aria-label="Add a reaction"
+            title="Add a reaction"
+            data-testid="reaction-pill-toggle"
+            style={triggerStyle(canReact)}
+          >
+            <span data-testid="reaction-pill-add" aria-hidden="true">
+              🙂+
+            </span>
+          </button>
+        </Popover.Trigger>
+
+        {hasAny && (
+          <div data-testid="reaction-pill-stack" style={stackStyle}>
+            {visible.map((r) => (
+              <button
                 key={r.emoji}
-                aria-hidden="true"
+                type="button"
+                disabled={!canReact}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (canReact) toggle(r.emoji);
+                }}
+                aria-label={`${r.count} ${r.emoji} — tap to toggle yours`}
                 data-testid="reaction-pill-emoji"
                 data-emoji={r.emoji}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-0)',
-                  padding: r.mine ? '0 var(--space-1)' : '0',
-                  borderRadius: 'var(--radius-sm)',
-                  background: r.mine ? 'var(--colour-surface-selected)' : 'transparent',
-                  border: r.mine ? '1px solid var(--colour-text-link)' : '1px solid transparent',
-                }}
+                style={emojiRowStyle(r.mine)}
               >
-                <span>{REACTION_GLYPH[r.emoji]}</span>
-                <span style={{ fontSize: 'var(--text-xs)', marginLeft: 2 }}>{r.count}</span>
-              </span>
+                <span aria-hidden="true">{REACTION_GLYPH[r.emoji]}</span>
+                <span style={countTextStyle}>{r.count}</span>
+              </button>
             ))}
-            {totalCount > top3.reduce((s, r) => s + r.count, 0) && (
-              <span style={{ fontSize: 'var(--text-xs)' }}>· {totalCount}</span>
+            {!expanded && overflow > 0 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded(true);
+                }}
+                data-testid="reaction-pill-expand"
+                aria-label={`Show ${overflow} more reactions`}
+                style={expanderStyle}
+              >
+                +{overflow}
+              </button>
             )}
-          </>
-        ) : (
-          <span>React</span>
+            {expanded && overflow > 0 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded(false);
+                }}
+                data-testid="reaction-pill-collapse"
+                aria-label="Hide extra reactions"
+                style={expanderStyle}
+              >
+                −
+              </button>
+            )}
+          </div>
         )}
-      </button>
-
-      {open && canReact && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            zIndex: 10,
-            marginTop: 'var(--space-1)',
-          }}
-        >
-          <ReactionTray selected={myEmoji} onToggle={toggle} />
-        </div>
+      </div>
+      {canReact && (
+        <Popover.Portal>
+          <Popover.Content
+            side="left"
+            align="start"
+            sideOffset={6}
+            collisionPadding={8}
+            onOpenAutoFocus={(e) => e.preventDefault()}
+            style={{ zIndex: 220 }}
+          >
+            <ReactionTray
+              selected={new Set(optimistic.filter((r) => r.mine).map((r) => r.emoji))}
+              onToggle={toggle}
+            />
+          </Popover.Content>
+        </Popover.Portal>
       )}
-    </div>
+    </Popover.Root>
   );
+};
+
+function triggerStyle(canReact: boolean): CSSProperties {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '4px 6px',
+    background: 'transparent',
+    border: 0,
+    borderRadius: 'var(--radius-pill)',
+    cursor: canReact ? 'pointer' : 'default',
+    fontFamily: 'var(--font-ui)',
+    fontSize: 'var(--text-sm)',
+    color: 'var(--colour-text-secondary)',
+    opacity: canReact ? 1 : 0.7,
+    minWidth: 32,
+    minHeight: 32,
+  };
+}
+
+const stackStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 2,
+};
+
+function emojiRowStyle(mine: boolean): CSSProperties {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 2,
+    padding: '1px 6px',
+    borderRadius: 'var(--radius-pill)',
+    background: mine ? 'var(--colour-surface-selected)' : 'transparent',
+    border: mine ? '1px solid var(--colour-text-link)' : '1px solid transparent',
+    cursor: 'pointer',
+    fontSize: '14px',
+    lineHeight: 1.1,
+    color: 'var(--colour-text-secondary)',
+    minHeight: 22,
+  };
+}
+
+const countTextStyle: CSSProperties = {
+  fontSize: 'var(--text-xs)',
+  color: 'var(--colour-text-secondary)',
+};
+
+const expanderStyle: CSSProperties = {
+  background: 'transparent',
+  border: 0,
+  padding: '1px 6px',
+  fontSize: 'var(--text-xs)',
+  color: 'var(--colour-text-secondary)',
+  cursor: 'pointer',
+  borderRadius: 'var(--radius-pill)',
 };

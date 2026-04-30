@@ -36,8 +36,8 @@
  * (UTC storage, Europe/London render) stays in one place.
  */
 
-import type { FC, MouseEvent as ReactMouseEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import type { CSSProperties, FC } from 'react';
+import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageSquare, Calendar, MapPin } from 'lucide-react';
 import { ReactionPill } from '@/components/ReactionPill';
@@ -45,6 +45,7 @@ import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 import { PostShareGroup } from '@/components/PostShareGroup';
 import { formatEventRange } from '@/shared/format-event-time';
 import { ReviewedByBadge } from '@/components/ReviewedByBadge';
+import { AvatarBubble, KindChip, SignalBadgeRow, formatRole } from '@/components/post-meta';
 
 // ── Types (shared with FeedList and feed page) ──────────────────────────
 
@@ -75,6 +76,9 @@ export interface FeedPost {
   linkDescription: string | null;
   linkImageUrl: string | null;
   linkSiteName: string | null;
+  /** D075 — flagged-AM bit. Drives the "Send email →" CTA on the link
+   * card and surfaces the post under the AM filter on /feed. */
+  isActivistMailer: boolean;
   /** Intent kind (BU-fab-intent-picker / D062 revised — FK + display fields). */
   kindSlug: string | null;
   kindDisplayName: string | null;
@@ -99,6 +103,14 @@ export interface FeedPost {
   reactions: FeedReaction[];
   /** Per BU-comments / D052 — non-deleted count. */
   commentCount: number;
+  /** D074 — per-kind toggle. When false, no comment-peek row beneath the body. */
+  feedCommentPeekEnabled: boolean;
+  /** D074 — newest non-deleted, non-system comment for the peek row. */
+  topComment: {
+    authorDisplayName: string;
+    excerpt: string;
+    createdAt: string;
+  } | null;
   /** D072 — id of the reviewer who verdicted this post via kind_review. */
   reviewedByUserId: string | null;
   /** D072 — reviewer profile snapshot for the byline badge. */
@@ -112,196 +124,6 @@ export interface FeedPost {
 export interface FeedCursor {
   createdAt: string; // ISO 8601
   id: string;
-}
-
-// ── Utilities ────────────────────────────────────────────────────────────
-
-const AVATAR_COLOURS = [
-  'var(--colour-primary-bright)', // blue
-  'var(--colour-success)', // green
-  'var(--colour-warning)', // amber
-  'var(--colour-danger)', // red
-  'var(--colour-cultural)', // bordeaux
-  'var(--colour-info)', // indigo
-  'var(--colour-urgent)', // orange
-];
-
-function getAvatarColour(name: string): string {
-  let hash = 0;
-  for (const char of name) {
-    hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
-  }
-  return (
-    AVATAR_COLOURS[Math.abs(hash) % AVATAR_COLOURS.length] ??
-    AVATAR_COLOURS[0] ??
-    'var(--colour-primary-bright)'
-  );
-}
-
-function getInitials(name: string): string {
-  const parts = name.split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
-
-function formatRole(role: string): string {
-  return role
-    .split('_')
-    .map((word, i) => (i === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word))
-    .join(' ');
-}
-
-// ── KindChip (BU-fab-intent-picker / D062) ───────────────────────────────
-
-const KIND_CHIPS: Record<string, { label: string; bg: string; fg: string }> = {
-  happening_now: {
-    label: 'Happening now',
-    bg: 'var(--colour-urgent-subtle)',
-    fg: 'var(--colour-urgent)',
-  },
-  cultural: {
-    label: 'Cultural',
-    bg: 'var(--colour-cultural-subtle)',
-    fg: 'var(--colour-cultural)',
-  },
-  call_to_action: {
-    label: 'Call to action',
-    bg: 'var(--colour-primary-subtle)',
-    fg: 'var(--colour-primary)',
-  },
-  outcome: {
-    label: 'Outcome',
-    bg: 'var(--colour-success-subtle)',
-    fg: 'var(--colour-success)',
-  },
-  event: {
-    label: 'Event',
-    bg: 'var(--colour-info-subtle)',
-    fg: 'var(--colour-info)',
-  },
-  meeting: {
-    label: 'Meeting',
-    bg: 'var(--colour-info-subtle)',
-    fg: 'var(--colour-info)',
-  },
-};
-
-// BU-tick-or-cross / D069. Calm badge — the glyph alone carries the
-// meaning. Both ✅ and ❌ get the same visual treatment per the brief's
-// tone rules: no red on the flag side, no anxiety amplification. When
-// the author has confirmed the WhatsApp paste, a "Sent to GPS Network"
-// pill renders next to the glyph. Both children are inline-flex so they
-// sit on a single line without overflowing narrow cards.
-function SignalBadgeRow({
-  signal,
-  sharedToNetworkAt,
-}: {
-  signal: 'promote' | 'remove';
-  sharedToNetworkAt: string | null;
-}) {
-  const glyph = signal === 'promote' ? '✅' : '❌';
-  return (
-    <div
-      data-testid="post-card-signal-row"
-      data-signal={signal}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--space-2)',
-        marginBottom: 'var(--space-2)',
-        flexWrap: 'wrap',
-      }}
-    >
-      <span
-        data-testid="post-card-signal-badge"
-        aria-label={signal === 'promote' ? 'Amplify' : 'Flag'}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          padding: '2px var(--space-2)',
-          borderRadius: 'var(--radius-pill)',
-          background: 'var(--colour-surface-sunken)',
-          color: 'var(--colour-text-primary)',
-          fontSize: 'var(--text-sm)',
-          fontWeight: 600,
-          border: '1px solid var(--colour-border-subtle)',
-        }}
-      >
-        {glyph}
-      </span>
-      {sharedToNetworkAt && (
-        <span
-          data-testid="post-card-sent-pill"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            padding: '2px var(--space-2)',
-            borderRadius: 'var(--radius-pill)',
-            background: 'var(--colour-info-subtle)',
-            color: 'var(--colour-text-primary)',
-            fontSize: 'var(--text-2xs)',
-            fontWeight: 600,
-            letterSpacing: '0.04em',
-          }}
-        >
-          Sent to GPS Network
-        </span>
-      )}
-    </div>
-  );
-}
-
-function KindChip({ kindSlug, urgency }: { kindSlug: string | null; urgency: boolean }) {
-  // Alert flag chip (D062 revised — orthogonal). Renders ahead of the kind
-  // chip so urgency is the first thing the eye catches.
-  const alertChip = urgency ? (
-    <span
-      data-testid="post-urgent-chip"
-      style={{
-        display: 'inline-block',
-        marginRight: 'var(--space-2)',
-        marginBottom: 'var(--space-2)',
-        padding: '2px var(--space-2)',
-        borderRadius: 'var(--radius-pill)',
-        background: 'var(--colour-urgent)',
-        color: 'var(--colour-urgent-contrast)',
-        fontSize: 'var(--text-2xs)',
-        fontWeight: 700,
-        letterSpacing: '0.06em',
-        textTransform: 'uppercase' as const,
-      }}
-    >
-      Alert
-    </span>
-  ) : null;
-
-  if (!kindSlug) return alertChip;
-  const chip = KIND_CHIPS[kindSlug];
-  if (!chip) return alertChip;
-  return (
-    <div style={{ marginBottom: 'var(--space-1)' }}>
-      {alertChip}
-      <span
-        data-testid="post-kind-chip"
-        data-kind={kindSlug}
-        style={{
-          display: 'inline-block',
-          marginBottom: 'var(--space-1)',
-          padding: '2px var(--space-2)',
-          borderRadius: 'var(--radius-pill)',
-          background: chip.bg,
-          color: chip.fg,
-          fontSize: 'var(--text-2xs)',
-          fontWeight: 700,
-          letterSpacing: '0.04em',
-          textTransform: 'uppercase' as const,
-        }}
-      >
-        {chip.label}
-      </span>
-    </div>
-  );
 }
 
 // ── Component ────────────────────────────────────────────────────────────
@@ -326,6 +148,48 @@ interface PostCardProps {
   variant?: PostCardVariant;
 }
 
+// ── Comment-peek styles (D074 / BU-feed-card-affordances) ──────────────
+//
+// Single-line peek beneath the body: when there's a top comment, show
+// `<Author · excerpt… · 2h →>`; when there isn't, show a gentle empty
+// CTA. The peek itself is rendered inline in the card body — kept here
+// as a single component to avoid breaking the post-card unit test's
+// JSX-tree walker, which doesn't invoke function components.
+
+const peekRowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--space-1)',
+  marginTop: 'var(--space-3)',
+  padding: 'var(--space-2) 0',
+  borderTop: '1px solid var(--colour-border-subtle)',
+  fontSize: 'var(--text-sm)',
+  color: 'var(--colour-text-secondary)',
+  textDecoration: 'none',
+  minWidth: 0,
+};
+
+const peekRowEmptyStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--space-2)',
+  marginTop: 'var(--space-3)',
+  padding: 'var(--space-2) 0',
+  borderTop: '1px solid var(--colour-border-subtle)',
+  fontSize: 'var(--text-sm)',
+  color: 'var(--colour-text-link)',
+  textDecoration: 'none',
+};
+
+const excerptStyle: CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  color: 'var(--colour-text-primary)',
+};
+
 export const PostCard: FC<PostCardProps> = ({
   post,
   onAddReaction,
@@ -334,17 +198,16 @@ export const PostCard: FC<PostCardProps> = ({
   reactionsEnabled,
   variant = 'compact',
 }) => {
-  const router = useRouter();
   const paragraphs = post.body.split('\n\n');
   const relativeTime = formatDistanceToNow(new Date(post.createdAt), {
     addSuffix: true,
   });
+  const detailHref = `/post/${post.id}`;
 
-  // Primary CTA = the AM URL when present, else the linkUrl. Renders as the
-  // top-of-card visual, just below the header (D060 §3 puts AM first when both
-  // are set; D066 generalises this to a primary/secondary Action[] model).
-  // Secondary CTA = the linkUrl, but only when an AM URL is also set; the
-  // legacy "both populated" path keeps its supporting-context slot at the bottom.
+  // Primary CTA = the AM URL when present, else the linkUrl. D075:
+  // `isAmAction` now reads the persisted `post.isActivistMailer` flag
+  // instead of host-matching at render time, so a member's manual AM
+  // toggle in compose carries through to what the card shows.
   const primaryCta = post.activistMailerUrl ? (
     <LinkPreviewCard
       linkUrl={post.activistMailerUrl}
@@ -363,6 +226,7 @@ export const PostCard: FC<PostCardProps> = ({
       linkImageUrl={post.linkImageUrl}
       linkSiteName={post.linkSiteName}
       size="small"
+      isAmAction={post.isActivistMailer}
     />
   ) : null;
 
@@ -378,32 +242,8 @@ export const PostCard: FC<PostCardProps> = ({
       />
     ) : null;
 
-  function handleCardClick(event: ReactMouseEvent<HTMLElement>): void {
-    // Bail if the click landed on an interactive child (anchor, button,
-    // input, label, form, etc.) — the child handles its own action.
-    const target = event.target as HTMLElement;
-    if (target.closest('a, button, input, label, form, textarea')) return;
-    router.push(`/post/${post.id}`);
-  }
-
   return (
-    <article
-      className="gps-card"
-      onClick={handleCardClick}
-      role="link"
-      aria-label={`Open post: ${post.title}`}
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          if ((e.target as HTMLElement).closest('a, button, input, label, form, textarea')) return;
-          e.preventDefault();
-          router.push(`/post/${post.id}`);
-        }
-      }}
-      data-testid="post-card-article"
-      data-post-id={post.id}
-      style={{ cursor: 'pointer' }}
-    >
+    <article className="gps-card" data-testid="post-card-article" data-post-id={post.id}>
       <div
         style={{
           display: 'flex',
@@ -414,13 +254,7 @@ export const PostCard: FC<PostCardProps> = ({
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Header: avatar · name · role chip · timestamp */}
           <div className="gps-card__header">
-            <span
-              className="gps-avatar"
-              style={{ background: getAvatarColour(post.author.displayName) }}
-              aria-hidden="true"
-            >
-              {getInitials(post.author.displayName)}
-            </span>
+            <AvatarBubble displayName={post.author.displayName} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="gps-row gps-row--tight" style={{ flexWrap: 'wrap' }}>
                 <strong style={{ fontSize: 'var(--text-sm)' }}>{post.author.displayName}</strong>
@@ -448,9 +282,6 @@ export const PostCard: FC<PostCardProps> = ({
           {/* Primary CTA — moved to top of content (just under header) so the
           action sits above the title. D060 §3a / D066-proposed direction. */}
           {primaryCta}
-
-          {/* Kind chip (BU-fab-intent-picker / D062) — only for kinds that warrant a visual badge */}
-          <KindChip kindSlug={post.kindSlug} urgency={post.urgency} />
 
           {/* BU-tick-or-cross / D069 — amplify/flag glyph + sent-pill row */}
           {post.signal && (
@@ -518,31 +349,50 @@ export const PostCard: FC<PostCardProps> = ({
           the hero shrinks to a 96×96 right thumbnail rendered next to the
           body, below. */}
           {variant === 'full' && post.heroImageUrl && (
-            <img
-              src={post.heroImageUrl}
-              alt=""
-              loading="lazy"
-              data-testid="post-card-hero-image"
-              style={{
-                display: 'block',
-                width: '100%',
-                aspectRatio: '16 / 9',
-                objectFit: 'cover',
-                borderRadius: 'var(--radius-md)',
-                marginBottom: 'var(--space-3)',
-              }}
-            />
+            <Link
+              href={detailHref}
+              data-testid="feed-card-hero-link"
+              style={{ display: 'block', marginBottom: 'var(--space-3)' }}
+            >
+              <img
+                src={post.heroImageUrl}
+                alt=""
+                loading="lazy"
+                data-testid="post-card-hero-image"
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  aspectRatio: '16 / 9',
+                  objectFit: 'cover',
+                  borderRadius: 'var(--radius-md)',
+                }}
+              />
+            </Link>
           )}
 
-          {/* Title */}
+          {/* Title — kind chip sits inline (Reddit-flair pattern) so the
+          eye registers category and headline together. The whole line is
+          a real <Link> so iOS taps fire natively (the bug this BU fixes). */}
           <h2 className="gps-subtitle" style={{ marginBottom: 'var(--space-2)' }}>
-            {post.title}
+            <KindChip kindSlug={post.kindSlug} urgency={post.urgency} />
+            <Link
+              href={detailHref}
+              data-testid="feed-card-title-link"
+              style={{
+                color: 'inherit',
+                textDecoration: 'none',
+              }}
+            >
+              {post.title}
+            </Link>
           </h2>
 
           {/* Body — `full` keeps the \n\n paragraph split; `compact` collapses
           paragraphs into a single string so `-webkit-line-clamp` can span
           the whole body and renders the optional 96×96 hero thumbnail to
-          the right of the clamped text. */}
+          the right of the clamped text. The thumbnail also wraps the
+          detail link so members who instinctively tap thumbnails get a
+          third reliable tap target. */}
           {variant === 'compact' ? (
             <div
               data-testid="post-card-body"
@@ -568,19 +418,24 @@ export const PostCard: FC<PostCardProps> = ({
                 {post.body.replace(/\n\n+/g, ' ')}
               </div>
               {post.heroImageUrl && (
-                <img
-                  src={post.heroImageUrl}
-                  alt=""
-                  loading="lazy"
-                  data-testid="post-card-thumb"
-                  style={{
-                    flex: '0 0 96px',
-                    width: 96,
-                    height: 96,
-                    objectFit: 'cover',
-                    borderRadius: 'var(--radius-md)',
-                  }}
-                />
+                <Link
+                  href={detailHref}
+                  data-testid="feed-card-thumb-link"
+                  style={{ flex: '0 0 96px', display: 'block' }}
+                >
+                  <img
+                    src={post.heroImageUrl}
+                    alt=""
+                    loading="lazy"
+                    data-testid="post-card-thumb"
+                    style={{
+                      width: 96,
+                      height: 96,
+                      objectFit: 'cover',
+                      borderRadius: 'var(--radius-md)',
+                    }}
+                  />
+                </Link>
               )}
             </div>
           ) : (
@@ -593,50 +448,118 @@ export const PostCard: FC<PostCardProps> = ({
             </div>
           )}
 
-          {/* Reaction pill (BU-reactions / D050) */}
-          {reactionsEnabled && (
-            <ReactionPill
-              reactions={post.reactions}
-              onAdd={(emoji) => onAddReaction(post.id, emoji)}
-              onRemove={(emoji) => onRemoveReaction(post.id, emoji)}
-              canReact={canReact}
-            />
-          )}
-
-          {/* Comment count (BU-comments / D052) */}
-          {post.commentCount > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-1)',
-                marginTop: 'var(--space-2)',
-                fontSize: 'var(--text-sm)',
-                color: 'var(--colour-text-secondary)',
-              }}
-              data-testid="post-card-comment-count"
-              data-post-id={post.id}
-            >
-              <MessageSquare size={14} aria-hidden="true" />
-              <span>
-                {post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}
-              </span>
-            </div>
-          )}
+          {/* D074 — comment peek row. Doubles as the nav affordance to the
+          detail page (replaces the old "Read post →" link, which is now
+          redundant: the title is a Link, the thumbnail is a Link, and
+          this peek itself is a Link). Suppressed entirely when the kind
+          opts out via PostKind.feedCommentPeekEnabled (cultural,
+          tick_or_cross). When enabled with no top comment, falls back to
+          a gentle empty CTA. */}
+          {variant === 'compact' &&
+            post.feedCommentPeekEnabled &&
+            (post.topComment ? (
+              <Link
+                href={`${detailHref}#comments`}
+                data-testid="post-card-comment-peek"
+                data-post-id={post.id}
+                style={peekRowStyle}
+              >
+                <MessageSquare size={14} aria-hidden="true" style={{ flexShrink: 0 }} />
+                <strong style={{ flexShrink: 0 }}>{post.topComment.authorDisplayName}</strong>
+                <span aria-hidden="true" style={{ opacity: 0.6, flexShrink: 0 }}>
+                  ·
+                </span>
+                <span style={excerptStyle}>{post.topComment.excerpt}</span>
+                <span aria-hidden="true" style={{ opacity: 0.6, flexShrink: 0 }}>
+                  · {formatDistanceToNow(new Date(post.topComment.createdAt), { addSuffix: false })}{' '}
+                  →
+                </span>
+              </Link>
+            ) : (
+              <Link
+                href={`${detailHref}#comments`}
+                data-testid="post-card-comment-peek-empty"
+                data-post-id={post.id}
+                style={peekRowEmptyStyle}
+              >
+                <MessageSquare size={14} aria-hidden="true" />
+                <span>Be the first to respond</span>
+                <span aria-hidden="true">→</span>
+              </Link>
+            ))}
 
           {/* Secondary linkUrl card (legacy edge case: both AM + link populated).
           Stays at the bottom as supporting context per D060 §3. */}
           {secondaryCta}
         </div>
 
-        {/* Right rail of share affordances — WhatsApp (lead) + socials.
-        Mirrors the detail page's horizontal share-bar but in vertical card form. */}
-        <PostShareGroup
-          postId={post.id}
-          postTitle={post.title}
-          postBody={post.body}
-          variant="card-rail"
-        />
+        {/* Right rail. Two clusters:
+            - outbound shares (WhatsApp + socials) at the top
+            - inbound interactions (reactions + comments) below a divider
+            The whole bottom row is gone — engagement actions live in the
+            rail (TikTok-pattern) so the body has more vertical space. */}
+        <aside
+          data-testid="post-card-rail"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            flexShrink: 0,
+          }}
+        >
+          <PostShareGroup
+            postId={post.id}
+            postTitle={post.title}
+            postBody={post.body}
+            variant="card-rail"
+          />
+
+          {(reactionsEnabled || post.commentCount > 0) && (
+            <div
+              aria-hidden="true"
+              style={{
+                width: '60%',
+                height: 1,
+                background: 'var(--colour-border-subtle)',
+                margin: 'var(--space-1) 0',
+              }}
+            />
+          )}
+
+          {reactionsEnabled && (
+            <div data-testid="feed-card-reaction-cluster">
+              <ReactionPill
+                reactions={post.reactions}
+                onAdd={(emoji) => onAddReaction(post.id, emoji)}
+                onRemove={(emoji) => onRemoveReaction(post.id, emoji)}
+                canReact={canReact}
+              />
+            </div>
+          )}
+
+          {post.commentCount > 0 && (
+            <Link
+              href={`${detailHref}#comments`}
+              data-testid="post-card-comment-count"
+              data-post-id={post.id}
+              aria-label={`${post.commentCount} ${post.commentCount === 1 ? 'comment' : 'comments'}`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2,
+                color: 'var(--colour-text-secondary)',
+                textDecoration: 'none',
+                fontSize: 'var(--text-xs)',
+                lineHeight: 1.1,
+              }}
+            >
+              <MessageSquare size={18} aria-hidden="true" />
+              <span>{post.commentCount}</span>
+            </Link>
+          )}
+        </aside>
       </div>
     </article>
   );

@@ -10,7 +10,7 @@
  */
 
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
+import { ArrowLink } from '@/components/ArrowLink';
 import { createTRPCContext } from '@/server/routers/context';
 
 export const metadata = {
@@ -33,6 +33,11 @@ export default async function SettingsPage() {
         margin: '0 auto',
       }}
     >
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        <ArrowLink href="/feed" direction="back" testIdArea="settings" testIdSuffix="back-feed-top">
+          Back to feed
+        </ArrowLink>
+      </div>
       <h1 className="gps-title" data-testid="settings-page-title">
         Settings
       </h1>
@@ -156,17 +161,9 @@ export default async function SettingsPage() {
           borderTop: '1px solid var(--colour-border-subtle)',
         }}
       >
-        <Link
-          href="/feed"
-          data-testid="settings-back-feed-link"
-          style={{
-            color: 'var(--colour-text-link)',
-            fontSize: 'var(--text-sm)',
-            textDecoration: 'none',
-          }}
-        >
-          ← Back to feed
-        </Link>
+        <ArrowLink href="/feed" direction="back" testIdArea="settings" testIdSuffix="back-feed">
+          Back to feed
+        </ArrowLink>
       </div>
     </main>
   );

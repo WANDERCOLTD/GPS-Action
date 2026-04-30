@@ -92,6 +92,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-link-first-composer** — bu-link-first-composer | ✅ Merged | #135 |
 | **bu-feed-card-clamp** — bu-feed-card-clamp | ✅ Merged | #141 |
 | **bu-publish-router** — bu-publish-router | ✅ Merged | #146 |
+| **bu-feed-card-affordances** — bu-feed-card-affordances | ✅ Merged | #147 |
 | **bu-event-time** — BU-event-time | ✅ Merged | #150 |
 | **bu-calendar-view** — BU-calendar-view | ✅ Merged | #151 |
 | **bu-icon-nav** — BU-icon-nav | ✅ Merged | #152 |
@@ -115,6 +116,8 @@ by hand — run `npm run trackers`):
 
 <!-- AUTOGEN:planned:start -->
 - **bu-hydration-fixes** _[high]_ — BU-hydration-fixes
+- **bu-prod-auth** _[high]_ — bu-prod-auth
+- **bu-vercel-prep** _[high]_ — bu-vercel-prep
 - **bu-drafts-inbox** _[medium]_ — bu-drafts-inbox
 - **bu-reviewer-kind-review-queue** _[medium]_ — bu-reviewer-kind-review-queue
 - **bu-search-surface** _[medium]_ — BU-search-surface

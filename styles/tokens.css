@@ -347,9 +347,18 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* FAB-aware bottom clearance. The IntentFab is `position: fixed` at
+   bottom-right (~56px tall + space-6 inset), so without padding the
+   last items in any list ("Load more", last comment, submit button,
+   last entity tile) sit underneath it on iPhone. Reserving padding on
+   <body> rather than <main> avoids fighting per-page inline padding,
+   and gives every authenticated route the clearance for free.
+   Authenticated-only because the FAB only renders for logged-in users.
+   ~120px = FAB height + inset + a comfortable gap. env(safe-area-
+   inset-bottom) covers home-indicator iPhones. */
 body {
   margin: 0;
-  padding: 0;
+  padding: 0 0 calc(120px + env(safe-area-inset-bottom, 0px)) 0;
 }
 
 /* Respect user motion preference */

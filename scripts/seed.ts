@@ -361,7 +361,9 @@ const SEED_POSTS: SeedPost[] = [
     linkTitle: 'What it means to be visibly Jewish in Britain in 2026',
     linkDescription:
       'A reflective long-read on identity, generational change, and the questions younger British Jews are asking that their parents never had to.',
-    linkImageUrl: 'https://i.guim.co.uk/img/media/article-share-2026.jpg',
+    // Self-hosted seed image — the previous Guardian hotlink returned
+    // 401 (hotlinking protection) and surfaced as a broken preview tile.
+    linkImageUrl: '/seed-images/05.svg',
     linkSiteName: 'The Guardian',
   },
   {
@@ -752,6 +754,7 @@ async function main(): Promise<void> {
       reviewMode: 'review_after_publish' as const,
       canSelfPublish: true,
       reviewPriority: 'urgent' as const,
+      feedCommentPeekEnabled: true,
     },
     {
       slug: 'tick_or_cross',
@@ -763,6 +766,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_review_first' as const,
       canSelfPublish: true,
       reviewPriority: 'high' as const,
+      feedCommentPeekEnabled: true,
     },
     {
       slug: 'meeting',
@@ -774,6 +778,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_publish' as const,
       canSelfPublish: true,
       reviewPriority: 'normal' as const,
+      feedCommentPeekEnabled: true,
     },
     {
       slug: 'cultural',
@@ -785,6 +790,7 @@ async function main(): Promise<void> {
       reviewMode: 'review_first' as const,
       canSelfPublish: false,
       reviewPriority: 'high' as const,
+      feedCommentPeekEnabled: false,
     },
     {
       slug: 'call_to_action',
@@ -796,6 +802,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_review_first' as const,
       canSelfPublish: true,
       reviewPriority: 'normal' as const,
+      feedCommentPeekEnabled: true,
     },
     {
       slug: 'outcome',
@@ -807,6 +814,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_publish' as const,
       canSelfPublish: true,
       reviewPriority: 'low' as const,
+      feedCommentPeekEnabled: true,
     },
     {
       slug: 'thought',
@@ -818,6 +826,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_publish' as const,
       canSelfPublish: true,
       reviewPriority: 'low' as const,
+      feedCommentPeekEnabled: true,
     },
     {
       slug: 'link_share',
@@ -829,6 +838,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_publish' as const,
       canSelfPublish: true,
       reviewPriority: 'normal' as const,
+      feedCommentPeekEnabled: true,
     },
     {
       slug: 'event',
@@ -840,6 +850,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_publish' as const,
       canSelfPublish: true,
       reviewPriority: 'normal' as const,
+      feedCommentPeekEnabled: true,
     },
   ];
 
@@ -856,6 +867,7 @@ async function main(): Promise<void> {
         reviewMode: def.reviewMode,
         canSelfPublish: def.canSelfPublish,
         reviewPriority: def.reviewPriority,
+        feedCommentPeekEnabled: def.feedCommentPeekEnabled,
       },
     });
   }
