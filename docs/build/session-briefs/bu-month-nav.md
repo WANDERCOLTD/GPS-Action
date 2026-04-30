@@ -1,9 +1,10 @@
 ---
 slug: bu-month-nav
-status: planned
+status: shipped
 phase: 2
 priority: medium
-note: "Follow-up to bu-calendar-view: smart default anchor + prev/next chevrons in /calendar?view=month. Files at the start of this session, flips to shipped at the end with shipped_in: <PR#>."
+shipped_in: "#153"
+note: "Follow-up to bu-calendar-view: smart default anchor + prev/next chevrons in /calendar?view=month."
 ---
 
 # SESSION BRIEF · BU-month-nav — Smart anchor + prev/next chevrons for `/calendar?view=month`
