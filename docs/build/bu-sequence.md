@@ -115,6 +115,7 @@ by hand — run `npm run trackers`):
 <!-- AUTOGEN:planned:start -->
 - **bu-hydration-fixes** _[high]_ — BU-hydration-fixes
 - **bu-drafts-inbox** _[medium]_ — bu-drafts-inbox
+- **bu-month-nav** _[medium]_ — BU-month-nav
 - **bu-reviewer-kind-review-queue** _[medium]_ — bu-reviewer-kind-review-queue
 - **bu-search-surface** _[medium]_ — BU-search-surface
 - **bu-composer-link-first** _[low]_ — BU-composer-link-first
