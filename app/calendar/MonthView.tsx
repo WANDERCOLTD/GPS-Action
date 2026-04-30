@@ -26,6 +26,12 @@
  * (single-month view is enough for the demo). Per brief Q3, when they
  * arrive the default selection on a navigated-to month becomes
  * "first day of that month".
+ *
+ * Architecture note: the component is split into a stateless
+ * `MonthViewBody` (pure presentation, plain-call testable) and a thin
+ * `MonthView` shell that owns the selection state. This matches the
+ * project's tree-walker test pattern — see app-nav.test.tsx — without
+ * needing a full DOM renderer.
  */
 
 import * as React from 'react';
@@ -81,58 +87,53 @@ const emptyPanelStyle: CSSProperties = {
   fontSize: 'var(--text-sm)',
 };
 
-export function MonthView({ posts, now, monthAnchor, monthLabel }: MonthViewProps) {
-  const nowDate = React.useMemo(() => new Date(now), [now]);
-  const monthAnchorDate = React.useMemo(() => new Date(monthAnchor), [monthAnchor]);
+interface MonthViewBodyProps {
+  posts: MonthPost[];
+  now: Date;
+  monthAnchor: Date;
+  monthLabel: string;
+  selectedDayKey: string;
+  onSelectDay: (day: MonthGridDay) => void;
+}
 
-  // Bucket posts by London-day key once per render.
-  const { postsByDayKey, eventCountByDayKey } = React.useMemo(() => {
-    const byDay = new Map<string, MonthPost[]>();
-    for (const p of posts) {
-      const key = formatInTimeZone(new Date(p.eventAt), EVENT_TIMEZONE, 'yyyy-MM-dd');
-      const list = byDay.get(key) ?? [];
-      list.push(p);
-      byDay.set(key, list);
-    }
-    const counts = new Map<string, number>();
-    for (const [k, v] of byDay) counts.set(k, v.length);
-    return { postsByDayKey: byDay, eventCountByDayKey: counts };
-  }, [posts]);
+/**
+ * Stateless body. Computes day-key buckets + the active-day header
+ * from the supplied `selectedDayKey`. `MonthView` owns the state; this
+ * function is plain-call testable.
+ */
+export function MonthViewBody({
+  posts,
+  now,
+  monthAnchor,
+  monthLabel,
+  selectedDayKey,
+  onSelectDay,
+}: MonthViewBodyProps) {
+  const postsByDayKey = new Map<string, MonthPost[]>();
+  for (const p of posts) {
+    const key = formatInTimeZone(new Date(p.eventAt), EVENT_TIMEZONE, 'yyyy-MM-dd');
+    const list = postsByDayKey.get(key) ?? [];
+    list.push(p);
+    postsByDayKey.set(key, list);
+  }
+  const eventCountByDayKey = new Map<string, number>();
+  for (const [k, v] of postsByDayKey) eventCountByDayKey.set(k, v.length);
 
-  const todayKey = React.useMemo(
-    () => formatInTimeZone(nowDate, EVENT_TIMEZONE, 'yyyy-MM-dd'),
-    [nowDate],
+  const todayKey = formatInTimeZone(now, EVENT_TIMEZONE, 'yyyy-MM-dd');
+  const tomorrowKey = formatInTimeZone(
+    new Date(now.getTime() + 24 * 60 * 60 * 1000),
+    EVENT_TIMEZONE,
+    'yyyy-MM-dd',
   );
-
-  const [selectedDayKey, setSelectedDayKey] = React.useState<string>(todayKey);
-
-  const selectedPosts: MonthPost[] = React.useMemo(
-    () => postsByDayKey.get(selectedDayKey) ?? [],
-    [postsByDayKey, selectedDayKey],
-  );
-
-  const handleSelectDay = React.useCallback((day: MonthGridDay) => {
-    setSelectedDayKey(day.dayKey);
-  }, []);
-
+  const selectedAnchor = parseDayKeyToUtc(selectedDayKey);
+  const selectedHeader =
+    selectedDayKey === todayKey
+      ? 'Today'
+      : selectedDayKey === tomorrowKey
+        ? 'Tomorrow'
+        : formatLondon(selectedAnchor, 'EEEE d MMMM');
+  const selectedPosts = postsByDayKey.get(selectedDayKey) ?? [];
   const monthHasEvents = posts.length > 0;
-  const selectedAnchor = React.useMemo(() => {
-    // Reconstruct a UTC anchor for the selected day so the panel
-    // header can format "Today" / "Tomorrow" / weekday-date the same
-    // way Agenda does. We re-zone the yyyy-MM-dd back to 00:00 London.
-    return parseDayKeyToUtc(selectedDayKey);
-  }, [selectedDayKey]);
-
-  const selectedHeader = React.useMemo(() => {
-    if (selectedDayKey === todayKey) return 'Today';
-    const tomorrowKey = formatInTimeZone(
-      new Date(nowDate.getTime() + 24 * 60 * 60 * 1000),
-      EVENT_TIMEZONE,
-      'yyyy-MM-dd',
-    );
-    if (selectedDayKey === tomorrowKey) return 'Tomorrow';
-    return formatLondon(selectedAnchor, 'EEEE d MMMM');
-  }, [selectedDayKey, todayKey, nowDate, selectedAnchor]);
 
   return (
     <section data-testid="calendar-month-view">
@@ -140,11 +141,11 @@ export function MonthView({ posts, now, monthAnchor, monthLabel }: MonthViewProp
         {monthLabel}
       </h2>
       <MonthGrid
-        monthAnchorUtc={monthAnchorDate}
-        now={nowDate}
+        monthAnchorUtc={monthAnchor}
+        now={now}
         eventCountByDayKey={eventCountByDayKey}
         selectedDayKey={selectedDayKey}
-        onSelectDay={handleSelectDay}
+        onSelectDay={onSelectDay}
       />
       <div data-testid="calendar-month-day-panel" style={panelStyle}>
         <h3 data-testid="calendar-month-day-panel-header" style={panelHeaderStyle}>
@@ -172,6 +173,25 @@ export function MonthView({ posts, now, monthAnchor, monthLabel }: MonthViewProp
         )}
       </div>
     </section>
+  );
+}
+
+export function MonthView({ posts, now, monthAnchor, monthLabel }: MonthViewProps) {
+  const nowDate = new Date(now);
+  const monthAnchorDate = new Date(monthAnchor);
+  const todayKey = formatInTimeZone(nowDate, EVENT_TIMEZONE, 'yyyy-MM-dd');
+
+  const [selectedDayKey, setSelectedDayKey] = React.useState<string>(todayKey);
+
+  return (
+    <MonthViewBody
+      posts={posts}
+      now={nowDate}
+      monthAnchor={monthAnchorDate}
+      monthLabel={monthLabel}
+      selectedDayKey={selectedDayKey}
+      onSelectDay={(day) => setSelectedDayKey(day.dayKey)}
+    />
   );
 }
 

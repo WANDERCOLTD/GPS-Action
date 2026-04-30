@@ -25,7 +25,6 @@
  * elaborate roving-tabindex pattern is parking-lot.
  */
 
-import * as React from 'react';
 import type { CSSProperties } from 'react';
 import {
   startOfMonth,
@@ -167,10 +166,7 @@ export function MonthGrid({
   selectedDayKey,
   onSelectDay,
 }: MonthGridProps) {
-  const days = React.useMemo(
-    () => buildMonthGridDays(monthAnchorUtc, now, eventCountByDayKey),
-    [monthAnchorUtc, now, eventCountByDayKey],
-  );
+  const days = buildMonthGridDays(monthAnchorUtc, now, eventCountByDayKey);
 
   return (
     <div role="grid" aria-label="Month view" data-testid="calendar-month-grid" style={wrapStyle}>
