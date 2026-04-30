@@ -75,7 +75,9 @@ import {
   sendPostForReviewAction,
   saveDraftAction,
   discardPostAction,
+  fetchLinkMetadataAction,
 } from '@/app/compose/actions';
+import { LinkPreviewCard } from './LinkPreviewCard';
 import { HeroImagePicker } from './HeroImagePicker';
 import { KindPickerSheet, TILES, type Tile } from './KindPickerSheet';
 import { PostPublishModal, type PublishModalKindConfig } from './PostPublishModal';
@@ -278,6 +280,18 @@ export function PostForm({
   // uncontrolled in Phase 1; Phase 2's bu-drafts-inbox extends this.
   const [title, setTitle] = useState(prefilledTitle);
   const [body, setBody] = useState('');
+  // BU-feed-card-affordances — link-first compose. linkUrl is the first
+  // input the member sees; pasting it triggers a debounced server-side
+  // metadata fetch which prefills the post title (unless the member has
+  // already typed one) and the four link-card fields. Those four are
+  // submitted as hidden inputs so the LinkPreviewCard renders correctly.
+  const [linkUrl, setLinkUrl] = useState(prefilledLinkUrl);
+  const [linkTitle, setLinkTitle] = useState('');
+  const [linkDescription, setLinkDescription] = useState('');
+  const [linkImageUrl, setLinkImageUrl] = useState('');
+  const [linkSiteName, setLinkSiteName] = useState('');
+  const [linkMetaLoading, setLinkMetaLoading] = useState(false);
+  const [titleEdited, setTitleEdited] = useState(prefilledTitle.length > 0);
   // currentIntent is initialised from the prop but mutable — tapping the
   // banner opens KindPickerSheet which calls setCurrentIntent.
   const [currentIntent, setCurrentIntent] = useState<string | null>(intent);
@@ -288,14 +302,6 @@ export function PostForm({
   const [pickerOpen, setPickerOpen] = useState(false);
   const isUndecided = currentIntent === 'undecided';
   const meta = getMeta(isUndecided ? selectedKind : currentIntent);
-  // Open the link-share field by default for intents that historically
-  // asked for an Activist Mailer URL above-the-fold (call_to_action) or
-  // explicitly share-a-link.
-  const [shareLinkOpen, setShareLinkOpen] = useState(
-    currentIntent === 'link_share' ||
-      currentIntent === 'call_to_action' ||
-      Boolean(prefilledLinkUrl),
-  );
   // BU-post-hero-demo (D064): optional member-picked hero from the
   // seeded set. null = no hero. Submitted via a hidden input below.
   const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
@@ -334,6 +340,7 @@ export function PostForm({
     const cached = autosave.hydrated as Partial<typeof draftSnapshot>;
     if (typeof cached.title === 'string' && cached.title.length > 0) {
       setTitle(cached.title);
+      setTitleEdited(true);
     }
     if (typeof cached.body === 'string' && cached.body.length > 0) {
       setBody(cached.body);
@@ -343,6 +350,44 @@ export function PostForm({
     }
   }, [autosave.hasHydrated]);
 
+  // BU-feed-card-affordances — link-first auto-fetch. When linkUrl
+  // looks valid (after a 600ms debounce so we don't fire on every
+  // keystroke), call the server action to pull og:title /
+  // og:description / og:image / og:site_name. Populate the four link
+  // fields unconditionally (always reflect the latest URL); populate
+  // the post title only if the member hasn't typed their own.
+  useEffect(() => {
+    const trimmed = linkUrl.trim();
+    if (!trimmed) {
+      setLinkTitle('');
+      setLinkDescription('');
+      setLinkImageUrl('');
+      setLinkSiteName('');
+      setLinkMetaLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLinkMetaLoading(true);
+    const t = setTimeout(async () => {
+      const result = await fetchLinkMetadataAction({ url: trimmed });
+      if (cancelled) return;
+      setLinkMetaLoading(false);
+      if (!result.ok) return;
+      const { data } = result;
+      setLinkTitle(data.title ?? '');
+      setLinkDescription(data.description ?? '');
+      setLinkImageUrl(data.imageUrl ?? '');
+      setLinkSiteName(data.siteName ?? '');
+      if (!titleEdited && data.title) {
+        setTitle(data.title);
+      }
+    }, 600);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [linkUrl, titleEdited]);
+
   function handleIntentSwitch(slug: string): void {
     setCurrentIntent(slug);
     if (slug === 'undecided') {
@@ -350,8 +395,6 @@ export function PostForm({
     } else {
       setSelectedKind(slug);
     }
-    if (slug === 'link_share' || slug === 'call_to_action') setShareLinkOpen(true);
-    if (slug === 'cultural' || slug === 'tick_or_cross') setShareLinkOpen(false);
     if (slug !== 'tick_or_cross') setSignal(null);
   }
 
@@ -535,6 +578,87 @@ export function PostForm({
           Publish stays disabled until one is picked. */}
       {isTickOrCross && <SignalToggle value={signal} onChange={setSignal} />}
 
+      {/* BU-feed-card-affordances — link-first compose. The link URL is
+          the first input the member sees (hidden only for kinds that
+          don't take a link: cultural, tick_or_cross). When a URL is
+          pasted we debounce 600ms and call the metadata server action;
+          the post title gets prefilled (only if the member hasn't typed
+          their own) and a LinkPreviewCard appears so they can see the
+          card their post will render. */}
+      {!meta.hideLinkToggle && (
+        <div>
+          <label
+            htmlFor="linkUrl"
+            data-testid="compose-link-url-label"
+            style={{
+              display: 'block',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 500,
+              marginBottom: 'var(--space-1)',
+              fontFamily: 'var(--font-ui)',
+            }}
+          >
+            Link{' '}
+            <span style={{ color: 'var(--colour-text-secondary)', fontWeight: 400 }}>
+              (optional)
+            </span>
+          </label>
+          <input
+            id="linkUrl"
+            name="linkUrl"
+            type="url"
+            inputMode="url"
+            placeholder="Paste a URL — we'll fill the rest"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            data-testid="compose-link-url-input"
+            className="gps-input"
+            style={{
+              width: '100%',
+              borderColor: errors.linkUrl ? 'var(--colour-danger)' : undefined,
+            }}
+          />
+          {errors.linkUrl && (
+            <p
+              style={{
+                color: 'var(--colour-danger)',
+                fontSize: 'var(--text-xs)',
+                marginTop: 'var(--space-1)',
+                fontFamily: 'var(--font-ui)',
+              }}
+              role="alert"
+            >
+              {errors.linkUrl[0]}
+            </p>
+          )}
+          {linkMetaLoading && (
+            <p
+              data-testid="compose-link-meta-loading"
+              style={{
+                margin: 'var(--space-2) 0 0',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--colour-text-secondary)',
+                fontFamily: 'var(--font-ui)',
+              }}
+            >
+              Fetching link details…
+            </p>
+          )}
+          {!linkMetaLoading && linkUrl.trim() && (linkTitle || linkSiteName) && (
+            <div style={{ marginTop: 'var(--space-3)' }} data-testid="compose-link-preview-wrapper">
+              <LinkPreviewCard
+                linkUrl={linkUrl}
+                linkTitle={linkTitle || null}
+                linkDescription={linkDescription || null}
+                linkImageUrl={linkImageUrl || null}
+                linkSiteName={linkSiteName || null}
+                size="small"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Title */}
       <div>
         <label
@@ -560,7 +684,10 @@ export function PostForm({
           maxLength={200}
           placeholder={meta.titlePlaceholder || undefined}
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            setTitleEdited(true);
+          }}
           className="gps-input"
           style={{
             width: '100%',
@@ -657,208 +784,38 @@ export function PostForm({
         data-testid="compose-hero-image-input"
       />
 
-      {/* Share a link? (BU-link-share / D060 / SCN-19) */}
+      {/* Hidden inputs carry the fetched link metadata to FormData
+          submit. They're populated by the link-first useEffect at the
+          top of the form. The four fields are not user-visible — when
+          a member needs to override them later, that lives in post
+          edit (a separate BU). */}
       {!meta.hideLinkToggle && (
-        <div>
-          <button
-            type="button"
-            data-testid="compose-sharelink-toggle"
-            onClick={() => setShareLinkOpen((v) => !v)}
-            aria-expanded={shareLinkOpen}
-            aria-controls="compose-sharelink-fields"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)',
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              color: 'var(--colour-text-link)',
-              fontFamily: 'var(--font-ui)',
-              fontSize: 'var(--text-sm)',
-              cursor: 'pointer',
-            }}
-          >
-            <span>{shareLinkOpen ? '▾' : '▸'}</span>
-            Share a link?
-          </button>
-
-          {shareLinkOpen && (
-            <div
-              id="compose-sharelink-fields"
-              style={{
-                marginTop: 'var(--space-3)',
-                padding: 'var(--space-4)',
-                background: 'var(--colour-surface-sunken)',
-                borderRadius: 'var(--radius-md)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--space-3)',
-              }}
-            >
-              <div>
-                <label
-                  htmlFor="linkUrl"
-                  data-testid="compose-link-url-label"
-                  style={{
-                    display: 'block',
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 500,
-                    marginBottom: 'var(--space-1)',
-                    fontFamily: 'var(--font-ui)',
-                  }}
-                >
-                  Link URL
-                </label>
-                <input
-                  id="linkUrl"
-                  name="linkUrl"
-                  type="url"
-                  inputMode="url"
-                  placeholder="https://..."
-                  defaultValue={prefilledLinkUrl || undefined}
-                  data-testid="compose-link-url-input"
-                  className="gps-input"
-                  style={{
-                    width: '100%',
-                    borderColor: errors.linkUrl ? 'var(--colour-danger)' : undefined,
-                  }}
-                />
-                {errors.linkUrl && (
-                  <p
-                    style={{
-                      color: 'var(--colour-danger)',
-                      fontSize: 'var(--text-xs)',
-                      marginTop: 'var(--space-1)',
-                      fontFamily: 'var(--font-ui)',
-                    }}
-                    role="alert"
-                  >
-                    {errors.linkUrl[0]}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label
-                  htmlFor="linkTitle"
-                  data-testid="compose-link-title-label"
-                  style={{
-                    display: 'block',
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 500,
-                    marginBottom: 'var(--space-1)',
-                    fontFamily: 'var(--font-ui)',
-                  }}
-                >
-                  Title
-                </label>
-                <input
-                  id="linkTitle"
-                  name="linkTitle"
-                  type="text"
-                  maxLength={200}
-                  data-testid="compose-link-title-input"
-                  className="gps-input"
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="linkDescription"
-                  data-testid="compose-link-description-label"
-                  style={{
-                    display: 'block',
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 500,
-                    marginBottom: 'var(--space-1)',
-                    fontFamily: 'var(--font-ui)',
-                  }}
-                >
-                  Description
-                </label>
-                <textarea
-                  id="linkDescription"
-                  name="linkDescription"
-                  rows={2}
-                  maxLength={500}
-                  data-testid="compose-link-description-input"
-                  className="gps-input"
-                  style={{ width: '100%', resize: 'vertical' }}
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="linkImageUrl"
-                  data-testid="compose-link-imageurl-label"
-                  style={{
-                    display: 'block',
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 500,
-                    marginBottom: 'var(--space-1)',
-                    fontFamily: 'var(--font-ui)',
-                  }}
-                >
-                  Image URL
-                </label>
-                <input
-                  id="linkImageUrl"
-                  name="linkImageUrl"
-                  type="url"
-                  inputMode="url"
-                  placeholder="https://..."
-                  data-testid="compose-link-imageurl-input"
-                  className="gps-input"
-                  style={{
-                    width: '100%',
-                    borderColor: errors.linkImageUrl ? 'var(--colour-danger)' : undefined,
-                  }}
-                />
-                {errors.linkImageUrl && (
-                  <p
-                    style={{
-                      color: 'var(--colour-danger)',
-                      fontSize: 'var(--text-xs)',
-                      marginTop: 'var(--space-1)',
-                      fontFamily: 'var(--font-ui)',
-                    }}
-                    role="alert"
-                  >
-                    {errors.linkImageUrl[0]}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label
-                  htmlFor="linkSiteName"
-                  data-testid="compose-link-sitename-label"
-                  style={{
-                    display: 'block',
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 500,
-                    marginBottom: 'var(--space-1)',
-                    fontFamily: 'var(--font-ui)',
-                  }}
-                >
-                  Site name
-                </label>
-                <input
-                  id="linkSiteName"
-                  name="linkSiteName"
-                  type="text"
-                  maxLength={100}
-                  placeholder="e.g. The Guardian"
-                  data-testid="compose-link-sitename-input"
-                  className="gps-input"
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+        <>
+          <input
+            type="hidden"
+            name="linkTitle"
+            value={linkTitle}
+            data-testid="compose-link-title-input"
+          />
+          <input
+            type="hidden"
+            name="linkDescription"
+            value={linkDescription}
+            data-testid="compose-link-description-input"
+          />
+          <input
+            type="hidden"
+            name="linkImageUrl"
+            value={linkImageUrl}
+            data-testid="compose-link-imageurl-input"
+          />
+          <input
+            type="hidden"
+            name="linkSiteName"
+            value={linkSiteName}
+            data-testid="compose-link-sitename-input"
+          />
+        </>
       )}
 
       {/* Visibility */}

@@ -38,6 +38,7 @@ import { postCreateSchema } from '@/shared/validation/post';
 import { eventInputToUtc } from '@/shared/format-event-time';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
+import { fetchLinkMetadata, type LinkMetadataResult } from '@/server/services/link-metadata';
 import { TRPCError } from '@trpc/server';
 import type { Signal } from '@prisma/client';
 
@@ -301,4 +302,13 @@ export async function autosaveDraftAction(
   } catch (err) {
     return { ok: false, reason: reasonFromError(err) };
   }
+}
+
+/**
+ * Fetch OG/Twitter/HTML metadata for a URL pasted into the link-first
+ * compose form. Wraps the pure `fetchLinkMetadata` service so the
+ * client only needs to invoke a server action.
+ */
+export async function fetchLinkMetadataAction(input: { url: string }): Promise<LinkMetadataResult> {
+  return fetchLinkMetadata(input);
 }
