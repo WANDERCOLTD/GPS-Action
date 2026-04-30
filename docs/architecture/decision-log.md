@@ -4892,3 +4892,59 @@ Phase 1 is the lift. Phases 2 and 3 are smaller, build on the same primitives.
 - D070 — Reference data ships in migrations (the seed values for the new columns ride this rule)
 - BU-tick-or-cross — the originating BU whose UX prompted the generalisation
 - BU-vetting — the existing RequestType this BU explicitly does not conflate with
+
+---
+
+# D073 — Structured event-time fields on `Post` (`event_at`, `event_ends_at`, `location_text`)
+
+**Date:** 2026-04-30
+**Status:** Accepted
+**ADR:** [`docs/adrs/0001-post-event-time-fields.md`](../adrs/0001-post-event-time-fields.md)
+**Trigger:** bu-event-time brief — meeting / event / happening_now posts had no structured place for date, end-time, or venue. Buried in body text → unsortable, un-queryable, ugly. Bu-calendar-view (next BU) needs structured time data to render an agenda. This BU lays the schema groundwork and ships the composer / PostCard / edit-page surfaces that consume it.
+
+## Decision
+
+Add three nullable columns to `Post`:
+
+- `eventAt` (`DateTime?`) — start of event, UTC
+- `eventEndsAt` (`DateTime?`) — end of event, UTC. Server + client validation: ≥ `eventAt` when both set
+- `locationText` (`String?`) — free-text venue, ≤ 500 chars
+
+Plus a B-tree index on `eventAt` for the upcoming-events query path.
+
+Source-of-truth helper `kindIsTimeBearing(slug)` lands in `shared/post-kinds.ts`. v1 mapping: `meeting`, `event`, `happening_now` → true; everything else → false. Composer / PostCard / bu-calendar-view all consume the same flag — flipping a kind on or off is a one-line change.
+
+Timezone convention: store UTC, render `Europe/London` at the UI boundary via `date-fns-tz` (added as a dep). Never construct local times via raw `new Date()` arithmetic.
+
+`event_at` is **optional for all kinds**. UI nudges (shows pickers for time-bearing kinds), server does not block submission when absent. Backwards-compatible: every existing post gets `eventAt = NULL` after the migration with no backfill required.
+
+## Why this rule, not the alternatives
+
+| Alternative                                             | Why rejected                                                                                                                           |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Sidecar `PostEvent` table.**                          | Premature. Single set of fields, no recurring/tickets in scope. Adds a join + nullable include to every list path.                     |
+| **Server-enforced `event_at` for time-bearing kinds.**  | UI nudge is sufficient + flexible. A speaker who hasn't fixed a date yet can still post a draft event.                                 |
+| **Per-PostKind column (`eventStart` only on `event`).** | Same data, three kinds — duplicating the column triples the schema for no analytical benefit.                                          |
+| **Local-timezone storage.**                             | DST edge cases (1:30am clock-change weekends) silently corrupt timestamps. UTC + render-time conversion is the established pattern.    |
+| **Partial index `WHERE event_at IS NOT NULL`.**         | Prisma `@@index` syntax can't round-trip partial indexes today. Plain B-tree is fine at MVP scale; promote later when the table grows. |
+
+## Consequences
+
+- **bu-calendar-view unblocked.** `findMany({ where: { eventAt: { gte: today00LDN } }, orderBy: { eventAt: 'asc' } })` is the agenda query.
+- **Composer renders real date+time pickers** for `event` / `meeting` / `happening_now`, replacing the "date and time fields are coming" hint banner.
+- **PostCard renders absolute time prominently** — "Sat 3 May · 6pm" above the relative `createdAt`.
+- **Edit page is new** — `/post/[id]/edit` did not exist before. Lands as a full edit surface (title, body, visibility, link, hero, event fields). Permission matrix: own post (any role); coordinator within region; director all.
+- **`date-fns-tz` is a new dep.** Used only in `shared/format-event-time.ts` plus the date-picker form components. No leak into services.
+- **Phase-2 migration is forward-only and additive.** Three nullable columns + one index. Reversible if needed via a follow-up migration.
+- **`calendar_enabled` feature flag registered** in `docs/product/feature-flag-register.md` for bu-calendar-view to consume — NOT gating this BU's surfaces.
+
+## Related
+
+- D013 — Self-dispatch (calendar is a read-only routing surface)
+- D017 — Add-to-calendar action (parking-lot, not in scope)
+- D062 — PostKind as managed table (extended with `kindIsTimeBearing`)
+- D064 — Hero image (the precedent for "optional, member-picked, additive column")
+- D070 — Reference data in migrations (no new PostKind rows here, only column adds)
+- ADR-0001 — `docs/adrs/0001-post-event-time-fields.md` (the long form)
+- BU-event-time — this BU's brief
+- BU-calendar-view — the downstream consumer
