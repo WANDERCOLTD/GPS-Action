@@ -36,7 +36,7 @@
  * (UTC storage, Europe/London render) stays in one place.
  */
 
-import type { FC } from 'react';
+import type { CSSProperties, FC } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageSquare, Calendar, MapPin } from 'lucide-react';
@@ -45,7 +45,6 @@ import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 import { PostShareGroup } from '@/components/PostShareGroup';
 import { formatEventRange } from '@/shared/format-event-time';
 import { ReviewedByBadge } from '@/components/ReviewedByBadge';
-import { ArrowLink } from '@/components/ArrowLink';
 
 // ── Types (shared with FeedList and feed page) ──────────────────────────
 
@@ -100,6 +99,14 @@ export interface FeedPost {
   reactions: FeedReaction[];
   /** Per BU-comments / D052 — non-deleted count. */
   commentCount: number;
+  /** D074 — per-kind toggle. When false, no comment-peek row beneath the body. */
+  feedCommentPeekEnabled: boolean;
+  /** D074 — newest non-deleted, non-system comment for the peek row. */
+  topComment: {
+    authorDisplayName: string;
+    excerpt: string;
+    createdAt: string;
+  } | null;
   /** D072 — id of the reviewer who verdicted this post via kind_review. */
   reviewedByUserId: string | null;
   /** D072 — reviewer profile snapshot for the byline badge. */
@@ -350,6 +357,48 @@ interface PostCardProps {
    */
   variant?: PostCardVariant;
 }
+
+// ── Comment-peek styles (D074 / BU-feed-card-affordances) ──────────────
+//
+// Single-line peek beneath the body: when there's a top comment, show
+// `<Author · excerpt… · 2h →>`; when there isn't, show a gentle empty
+// CTA. The peek itself is rendered inline in the card body — kept here
+// as a single component to avoid breaking the post-card unit test's
+// JSX-tree walker, which doesn't invoke function components.
+
+const peekRowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--space-1)',
+  marginTop: 'var(--space-3)',
+  padding: 'var(--space-2) 0',
+  borderTop: '1px solid var(--colour-border-subtle)',
+  fontSize: 'var(--text-sm)',
+  color: 'var(--colour-text-secondary)',
+  textDecoration: 'none',
+  minWidth: 0,
+};
+
+const peekRowEmptyStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--space-2)',
+  marginTop: 'var(--space-3)',
+  padding: 'var(--space-2) 0',
+  borderTop: '1px solid var(--colour-border-subtle)',
+  fontSize: 'var(--text-sm)',
+  color: 'var(--colour-text-link)',
+  textDecoration: 'none',
+};
+
+const excerptStyle: CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  color: 'var(--colour-text-primary)',
+};
 
 export const PostCard: FC<PostCardProps> = ({
   post,
@@ -615,29 +664,45 @@ export const PostCard: FC<PostCardProps> = ({
             </div>
           )}
 
-          {/* "Read post →" — the visible affordance the user instinctively
-          looks for. Right-justified so the eye can find it after scanning
-          the body. The whole-card click behaviour is gone; this is the
-          contract. */}
-          {variant === 'compact' && (
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                marginTop: 'var(--space-2)',
-              }}
-            >
-              <ArrowLink
-                href={detailHref}
-                direction="forward"
-                size="sm"
-                testIdArea="feed"
-                testIdSuffix="read-post"
+          {/* D074 — comment peek row. Doubles as the nav affordance to the
+          detail page (replaces the old "Read post →" link, which is now
+          redundant: the title is a Link, the thumbnail is a Link, and
+          this peek itself is a Link). Suppressed entirely when the kind
+          opts out via PostKind.feedCommentPeekEnabled (cultural,
+          tick_or_cross). When enabled with no top comment, falls back to
+          a gentle empty CTA. */}
+          {variant === 'compact' &&
+            post.feedCommentPeekEnabled &&
+            (post.topComment ? (
+              <Link
+                href={`${detailHref}#comments`}
+                data-testid="post-card-comment-peek"
+                data-post-id={post.id}
+                style={peekRowStyle}
               >
-                Read post
-              </ArrowLink>
-            </div>
-          )}
+                <MessageSquare size={14} aria-hidden="true" style={{ flexShrink: 0 }} />
+                <strong style={{ flexShrink: 0 }}>{post.topComment.authorDisplayName}</strong>
+                <span aria-hidden="true" style={{ opacity: 0.6, flexShrink: 0 }}>
+                  ·
+                </span>
+                <span style={excerptStyle}>{post.topComment.excerpt}</span>
+                <span aria-hidden="true" style={{ opacity: 0.6, flexShrink: 0 }}>
+                  · {formatDistanceToNow(new Date(post.topComment.createdAt), { addSuffix: false })}{' '}
+                  →
+                </span>
+              </Link>
+            ) : (
+              <Link
+                href={`${detailHref}#comments`}
+                data-testid="post-card-comment-peek-empty"
+                data-post-id={post.id}
+                style={peekRowEmptyStyle}
+              >
+                <MessageSquare size={14} aria-hidden="true" />
+                <span>Be the first to respond</span>
+                <span aria-hidden="true">→</span>
+              </Link>
+            ))}
 
           {/* Secondary linkUrl card (legacy edge case: both AM + link populated).
           Stays at the bottom as supporting context per D060 §3. */}

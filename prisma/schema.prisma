@@ -374,6 +374,11 @@ model PostKind {
   canSelfPublish Boolean         @default(true)
   reviewPriority RequestPriority @default(normal)
 
+  // D073 — when false, feed cards for posts of this kind suppress the
+  // comment-peek row beneath the body. Cultural / tick_or_cross are
+  // false; everything else true. Surfaced via the generic admin CRUD.
+  feedCommentPeekEnabled Boolean @default(true)
+
   posts    Post[]
   requests Request[]
 

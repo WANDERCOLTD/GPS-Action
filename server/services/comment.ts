@@ -206,6 +206,59 @@ export async function listCommentCountsForPosts(input: {
   return byPost;
 }
 
+/**
+ * D073 — fetch the most-recent non-deleted, non-system comment per post
+ * for the feed-card peek row. Returns a Map<postId, peek> with the
+ * minimal projection the View needs. Posts with no qualifying comment
+ * are absent from the map (caller renders the empty CTA).
+ *
+ * One findFirst per post id — N round-trips, but the feed page is
+ * paginated to ~20 and these are point lookups on the (postId, deletedAt,
+ * systemKind, createdAt DESC) index. If this becomes a hot path we'd
+ * switch to a lateral-join raw query.
+ */
+export interface FeedCommentPeek {
+  authorDisplayName: string;
+  excerpt: string;
+  createdAt: Date;
+}
+
+export async function listTopCommentsForPosts(input: {
+  postIds: string[];
+}): Promise<Map<string, FeedCommentPeek>> {
+  if (input.postIds.length === 0) return new Map();
+
+  const peeks = await Promise.all(
+    input.postIds.map((postId) =>
+      prisma.comment.findFirst({
+        where: {
+          postId,
+          deletedAt: null,
+          systemKind: null, // skip the auto review-attribution comments
+        },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          body: true,
+          createdAt: true,
+          author: { select: { displayName: true } },
+        },
+      }),
+    ),
+  );
+
+  const byPost = new Map<string, FeedCommentPeek>();
+  input.postIds.forEach((postId, idx) => {
+    const c = peeks[idx];
+    if (!c) return;
+    byPost.set(postId, {
+      authorDisplayName: c.author.displayName,
+      excerpt: c.body,
+      createdAt: c.createdAt,
+    });
+  });
+  return byPost;
+}
+
 // ── Request comments (BU-requests-vetting) ────────────────────────────────
 //
 // Polymorphic Comment.requestId — comments attached to a Request rather

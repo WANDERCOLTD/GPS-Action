@@ -87,6 +87,10 @@ const basePost = {
   author: { displayName: 'Sharon', roles: [] },
   reactions: [],
   commentCount: 0,
+  feedCommentPeekEnabled: true,
+  topComment: null,
+  reviewedByUserId: null,
+  reviewedBy: null,
 };
 
 const noopHandler = async () => {};
@@ -202,14 +206,15 @@ describe('PostCard variant', () => {
       }
     });
 
-    it('renders a "Read post →" ArrowLink in the compact variant', () => {
+    it('renders the comment-peek empty CTA in the compact variant when no top comment exists', () => {
       const tree = renderCard({ variant: 'compact' });
-      // ArrowLink is a React component reference in the tree (not yet
-      // rendered) — match by the testIdSuffix prop the parent passes.
-      const readLink = findByPropValue(tree, 'testIdSuffix', 'read-post');
-      expect(readLink).toBeDefined();
-      expect(readLink?.props.href).toBe('/post/post-1');
-      expect(readLink?.props.direction).toBe('forward');
+      // D074 — the old `Read post →` ArrowLink is gone; the comment-peek
+      // row replaces it as the visible nav affordance, so its testid is
+      // what we now assert. With no comments seeded by the test, the
+      // empty CTA renders.
+      const peek = findByTestId(tree, 'post-card-comment-peek-empty');
+      expect(peek).toBeDefined();
+      expect(peek?.props.href).toBe('/post/post-1#comments');
     });
 
     it('does not attach an article-level onClick (the inner Links carry navigation)', () => {

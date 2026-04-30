@@ -31,7 +31,11 @@ import { isAllowedHeroImageUrl } from '@/shared/seed-images';
 import { todayStartLondonUtc } from '@/shared/format-event-time';
 import { auditLog } from '@/server/services/audit';
 import { listReactionsForPosts, type ReactionAggregate } from '@/server/services/reaction';
-import { listCommentCountsForPosts } from '@/server/services/comment';
+import {
+  listCommentCountsForPosts,
+  listTopCommentsForPosts,
+  type FeedCommentPeek,
+} from '@/server/services/comment';
 import { createKindReviewRequest, closeKindReviewRequest } from '@/server/services/request';
 import type { FeedFilter } from '@/shared/feed-filters';
 
@@ -91,6 +95,12 @@ export interface PostListItem {
   reactions: ReactionAggregate[];
   /** Per BU-comments / D052 — non-deleted comment count. */
   commentCount: number;
+  /** D074 — per-kind toggle (PostKind.feedCommentPeekEnabled). When false the
+   * feed card suppresses the comment-peek row entirely. */
+  feedCommentPeekEnabled: boolean;
+  /** D074 — most-recent non-deleted, non-system comment for the peek row.
+   * Null when no qualifying comment exists; the View renders an empty CTA. */
+  topComment: FeedCommentPeek | null;
   /** D072 — set when a reviewer verdicted `publish` via the kind_review flow. */
   reviewedByUserId: string | null;
   /** D072 — reviewer profile snapshot for the three-tier attribution UI. */
@@ -178,7 +188,14 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
           },
         },
       },
-      kind: { select: { slug: true, displayName: true, isAlertEligible: true } },
+      kind: {
+        select: {
+          slug: true,
+          displayName: true,
+          isAlertEligible: true,
+          feedCommentPeekEnabled: true,
+        },
+      },
       // D072 — reviewer profile for the three-tier attribution badge.
       // Null when the post wasn't kind-reviewed (the common case).
       reviewedBy: { select: { id: true, displayName: true, avatarUrl: true } },
@@ -193,9 +210,15 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
     hasMore && lastPost ? { createdAt: lastPost.createdAt, id: lastPost.id } : null;
 
   const postIds = resultPosts.map((p) => p.id);
-  const [reactionsByPost, commentCountsByPost] = await Promise.all([
+  // D074 — only fetch peek comments for posts whose kind has the peek
+  // enabled. Saves a findFirst per cultural / tick_or_cross post.
+  const peekablePostIds = resultPosts
+    .filter((p) => p.kind?.feedCommentPeekEnabled === true)
+    .map((p) => p.id);
+  const [reactionsByPost, commentCountsByPost, topCommentsByPost] = await Promise.all([
     listReactionsForPosts({ postIds, callerId: input.callerId }),
     listCommentCountsForPosts({ postIds }),
+    listTopCommentsForPosts({ postIds: peekablePostIds }),
   ]);
 
   const mapped: PostListItem[] = resultPosts.map((post) => ({
@@ -229,6 +252,8 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
     },
     reactions: reactionsByPost.get(post.id) ?? [],
     commentCount: commentCountsByPost.get(post.id) ?? 0,
+    feedCommentPeekEnabled: post.kind?.feedCommentPeekEnabled ?? true,
+    topComment: topCommentsByPost.get(post.id) ?? null,
     reviewedByUserId: post.reviewedByUserId,
     reviewedBy: post.reviewedBy
       ? {

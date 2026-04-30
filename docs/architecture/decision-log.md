@@ -4948,3 +4948,87 @@ Timezone convention: store UTC, render `Europe/London` at the UI boundary via `d
 - ADR-0001 — `docs/adrs/0001-post-event-time-fields.md` (the long form)
 - BU-event-time — this BU's brief
 - BU-calendar-view — the downstream consumer
+
+---
+
+# D074 — Per-kind feed comment-peek toggle on PostKind
+
+**Status:** decided · 2026-04-30
+
+## Context
+
+Feed cards in `BU-feed-card-affordances` gain a "comment peek" row beneath
+the body — author + 1-2 lines of the most-recent non-system comment, or
+"Be the first to respond →" when no comments exist. The peek doubles as
+the nav affordance to `/post/<id>#comments`.
+
+Some kinds shouldn't have a peek. `cultural` posts (Shabbat, remembrance)
+are quieter by design — surfacing chatter beneath them clashes with the
+calm-marker tone (D041, design-philosophy.md). `tick_or_cross` is a
+"network ask" whose discussion belongs on the detail page; surfacing one
+comment in the feed risks fragmenting the response.
+
+The toggle has to be data-driven, not hardcoded in the View. Admins (D043)
+manage `PostKind` via the existing CRUD surface, and "Should this kind
+show a peek?" is a content decision that belongs alongside the other
+per-kind config (`reviewMode`, `canSelfPublish`, `reviewPriority`).
+
+## Decision
+
+Add a single column to `PostKind`:
+
+```
+feedCommentPeekEnabled BOOLEAN NOT NULL DEFAULT true
+```
+
+Default `true` because most kinds benefit from showing discussion. Two
+seeded kinds get `false`:
+
+| Slug            | Peek? | Why                                                   |
+| --------------- | ----- | ----------------------------------------------------- |
+| `cultural`      | false | Quiet markers; no engagement metrics on the surface   |
+| `tick_or_cross` | false | Network ask: discussion lives on detail, not the feed |
+
+Every other seeded kind (`happening_now`, `link_share`, `call_to_action`,
+`outcome`, `thought`, `event`, `meeting`, `undecided`) gets `true`.
+
+The migration is idempotent (`ADD COLUMN IF NOT EXISTS` + `UPDATE` per
+slug) per D070. No backfill data risk — the column is non-null with a
+default; existing rows pick up `true` automatically.
+
+## Consequences
+
+- **Feed query joins on `PostKind`** (or projects this column when posts
+  are selected with their kind). Performance neutral — `PostKind` is
+  small (~12 rows) and already loaded for the existing `kindSlug` /
+  `kindDisplayName` projection.
+- **`PostCard` reads `post.feedCommentPeekEnabled`** (passed through the
+  existing `FeedPost` shape). When false, the peek row is suppressed
+  entirely. When true, the peek row renders (with empty-state copy when
+  there are no comments).
+- **Admin CRUD picks the column up automatically** via the generic
+  PostKind admin path; no admin UI change required, the boolean appears
+  as a checkbox.
+- **The `Read post →` link goes away** when the peek row ships. With the
+  peek tappable (Link to detail#comments) and the title already a Link,
+  a third nav affordance is redundant.
+
+## Alternatives considered
+
+- **Hardcode the kind list in `PostCard`.** Tighter coupling between View
+  and content rules; admins couldn't change the list without a code
+  change. Rejected.
+- **Feature flag (`ff_feed_comment_peek`) with a kind-allowlist.** Two
+  layers of indirection for a permanent decision; not what feature flags
+  are for (D036). Rejected.
+- **Render the peek for every kind, just hide for cultural / tick_or_cross
+  via design-philosophy enforcement.** Same hardcode, different file.
+  Rejected.
+
+## Related
+
+- D041 — Calm marker aesthetic (cultural posts are visually quieter)
+- D050 — Reactions (similar "engagement on feed cards" question)
+- D052 — Comments primitive
+- D062 — PostKind as managed table (the table this ADR extends)
+- D070 — Reference data ships in migrations (the seed defaults ride this rule)

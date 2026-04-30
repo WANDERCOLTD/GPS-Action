@@ -752,6 +752,7 @@ async function main(): Promise<void> {
       reviewMode: 'review_after_publish' as const,
       canSelfPublish: true,
       reviewPriority: 'urgent' as const,
+      feedCommentPeekEnabled: true,
     },
     {
       slug: 'tick_or_cross',
@@ -763,6 +764,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_review_first' as const,
       canSelfPublish: true,
       reviewPriority: 'high' as const,
+      feedCommentPeekEnabled: false,
     },
     {
       slug: 'meeting',
@@ -774,6 +776,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_publish' as const,
       canSelfPublish: true,
       reviewPriority: 'normal' as const,
+      feedCommentPeekEnabled: true,
     },
     {
       slug: 'cultural',
@@ -785,6 +788,7 @@ async function main(): Promise<void> {
       reviewMode: 'review_first' as const,
       canSelfPublish: false,
       reviewPriority: 'high' as const,
+      feedCommentPeekEnabled: false,
     },
     {
       slug: 'call_to_action',
@@ -796,6 +800,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_review_first' as const,
       canSelfPublish: true,
       reviewPriority: 'normal' as const,
+      feedCommentPeekEnabled: true,
     },
     {
       slug: 'outcome',
@@ -807,6 +812,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_publish' as const,
       canSelfPublish: true,
       reviewPriority: 'low' as const,
+      feedCommentPeekEnabled: true,
     },
     {
       slug: 'thought',
@@ -818,6 +824,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_publish' as const,
       canSelfPublish: true,
       reviewPriority: 'low' as const,
+      feedCommentPeekEnabled: true,
     },
     {
       slug: 'link_share',
@@ -829,6 +836,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_publish' as const,
       canSelfPublish: true,
       reviewPriority: 'normal' as const,
+      feedCommentPeekEnabled: true,
     },
     {
       slug: 'event',
@@ -840,6 +848,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_publish' as const,
       canSelfPublish: true,
       reviewPriority: 'normal' as const,
+      feedCommentPeekEnabled: true,
     },
   ];
 
@@ -856,6 +865,7 @@ async function main(): Promise<void> {
         reviewMode: def.reviewMode,
         canSelfPublish: def.canSelfPublish,
         reviewPriority: def.reviewPriority,
+        feedCommentPeekEnabled: def.feedCommentPeekEnabled,
       },
     });
   }

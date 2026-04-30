@@ -94,6 +94,14 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
         mine: r.mine,
       })),
       commentCount: p.commentCount,
+      feedCommentPeekEnabled: p.feedCommentPeekEnabled,
+      topComment: p.topComment
+        ? {
+            authorDisplayName: p.topComment.authorDisplayName,
+            excerpt: p.topComment.excerpt,
+            createdAt: p.topComment.createdAt.toISOString(),
+          }
+        : null,
       reviewedByUserId: p.reviewedByUserId,
       reviewedBy: p.reviewedBy,
     }),

@@ -119,6 +119,8 @@ describe('listPosts', () => {
       },
       reactions: [],
       commentCount: 0,
+      feedCommentPeekEnabled: true,
+      topComment: null,
       reviewedByUserId: null,
       reviewedBy: null,
     });
