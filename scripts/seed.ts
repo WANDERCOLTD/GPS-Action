@@ -764,7 +764,7 @@ async function main(): Promise<void> {
       reviewMode: 'either_with_default_review_first' as const,
       canSelfPublish: true,
       reviewPriority: 'high' as const,
-      feedCommentPeekEnabled: false,
+      feedCommentPeekEnabled: true,
     },
     {
       slug: 'meeting',

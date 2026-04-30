@@ -4981,16 +4981,22 @@ Add a single column to `PostKind`:
 feedCommentPeekEnabled BOOLEAN NOT NULL DEFAULT true
 ```
 
-Default `true` because most kinds benefit from showing discussion. Two
-seeded kinds get `false`:
+Default `true` because most kinds benefit from showing discussion. One
+seeded kind gets `false`:
 
-| Slug            | Peek? | Why                                                   |
-| --------------- | ----- | ----------------------------------------------------- |
-| `cultural`      | false | Quiet markers; no engagement metrics on the surface   |
-| `tick_or_cross` | false | Network ask: discussion lives on detail, not the feed |
+| Slug       | Peek? | Why                                                 |
+| ---------- | ----- | --------------------------------------------------- |
+| `cultural` | false | Quiet markers; no engagement metrics on the surface |
 
 Every other seeded kind (`happening_now`, `link_share`, `call_to_action`,
-`outcome`, `thought`, `event`, `meeting`, `undecided`) gets `true`.
+`outcome`, `thought`, `event`, `meeting`, `undecided`, `tick_or_cross`)
+gets `true`.
+
+Note: `tick_or_cross` was originally seeded `false` on the assumption
+that network-ask discussion belonged on the detail page; flipped to
+`true` shortly after on the user's UX call, since the most-recent reply
+is useful in the feed for these posts too. See migration
+`20260430113000_enable_comment_peek_for_tick_or_cross`.
 
 The migration is idempotent (`ADD COLUMN IF NOT EXISTS` + `UPDATE` per
 slug) per D070. No backfill data risk — the column is non-null with a
