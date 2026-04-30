@@ -18,6 +18,7 @@ import 'dotenv/config';
 import { createHash } from 'crypto';
 import type { PostVisibility } from '@prisma/client';
 import { prisma } from '@/server/db/client';
+import { eventInputToUtc } from '@/shared/format-event-time';
 
 // ── Deterministic ID generator ──────────────────────────────────────────
 // Produces a stable UUID-formatted string from a namespace + key so that
@@ -126,6 +127,16 @@ interface SeedPost {
   urgency?: boolean;
   // BU-post-hero-demo / D064: hero image, must be a SEED_HERO_IMAGES URL.
   heroImageUrl?: string;
+  // BU-event-time / D073: structured event-time fields.
+  // `eventInDays` schedules the event N days FROM seed-run time (positive
+  // = future). `eventStartHour` / `eventStartMinute` set the
+  // Europe/London wall-clock start; `eventDurationMinutes` (optional)
+  // computes eventEndsAt. `locationText` is free-text.
+  eventInDays?: number;
+  eventStartHour?: number;
+  eventStartMinute?: number;
+  eventDurationMinutes?: number;
+  locationText?: string;
 }
 
 const SEED_POSTS: SeedPost[] = [
@@ -419,6 +430,149 @@ const SEED_POSTS: SeedPost[] = [
     kindSlug: 'meeting',
     urgency: false,
     heroImageUrl: '/seed-images/04.svg',
+  },
+
+  // ── BU-event-time / D073 — structured event-time demo posts ─────────
+  // Eight posts spanning the next four weeks: a mix of meetings,
+  // events, and one happening_now. All have a real eventAt + most
+  // have eventEndsAt + locationText. The composer / PostCard / future
+  // calendar all consume the same shape via shared/format-event-time.
+  {
+    seedKey: 'event-vigil-cheddar-road',
+    authorKey: 'cary',
+    title: 'Saturday morning vigil — Cheddar Road',
+    body: `Quiet vigil this Saturday morning. We will gather, light candles, hold the space for an hour, then go for coffee at the cafe across the road.\n\nNot a march, not a protest — a moment of public presence. Bring a friend if you can.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['rapid-response'],
+    daysAgo: 0,
+    kindSlug: 'event',
+    urgency: false,
+    eventInDays: 3,
+    eventStartHour: 10,
+    eventStartMinute: 0,
+    eventDurationMinutes: 90,
+    locationText: 'Cheddar Road, Bristol — outside the school gate',
+  },
+  {
+    seedKey: 'event-letter-writing-workshop',
+    authorKey: 'bette',
+    title: 'Letter-writing workshop — effective complaint writing',
+    body: `Two-hour workshop on writing letters that get read, not filed. We will cover: how to reference specific broadcasting codes, structuring a complaint, when to use formal vs. conversational register, and a live edit of a real letter.\n\nBring a draft if you have one. Tea + biscuits provided.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['writers'],
+    daysAgo: 0,
+    kindSlug: 'event',
+    urgency: false,
+    eventInDays: 5,
+    eventStartHour: 19,
+    eventStartMinute: 0,
+    eventDurationMinutes: 120,
+    locationText: 'Online via Zoom — link posted in the Writers group',
+  },
+  {
+    seedKey: 'meeting-rapid-response-weekly',
+    authorKey: 'cary',
+    title: 'Rapid Response weekly check-in',
+    body: `Standing Tuesday evening call. We review what is on the watch list, what landed in the last week, and who is on call for the week ahead.\n\nIf you are new to Rapid Response, this is the right meeting to come and listen. Camera optional.`,
+    visibility: 'authenticated_only',
+    activistMailerUrl: null,
+    groupTags: ['rapid-response'],
+    daysAgo: 0,
+    kindSlug: 'meeting',
+    urgency: false,
+    eventInDays: 7,
+    eventStartHour: 20,
+    eventStartMinute: 0,
+    eventDurationMinutes: 60,
+    locationText: 'Online — Zoom link in the Rapid Response group',
+  },
+  {
+    seedKey: 'event-manchester-meetup-burton',
+    authorKey: 'eddie',
+    title: 'Manchester meetup — Sunday at Nelly’s',
+    body: `Informal get-together at Nelly’s on Burton Road. No agenda. Just coffee and faces.\n\nLast time about 15 of us came. Step-free access, parking free on Sundays. Stay an hour or three.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['manchester'],
+    daysAgo: 0,
+    kindSlug: 'event',
+    urgency: false,
+    eventInDays: 11,
+    eventStartHour: 11,
+    eventStartMinute: 0,
+    eventDurationMinutes: 180,
+    locationText: 'Nelly’s, Burton Road, West Didsbury',
+  },
+  {
+    seedKey: 'meeting-school-board-curriculum',
+    authorKey: 'bette',
+    title: 'Barnet school board public meeting — Holocaust curriculum',
+    body: `Public school board meeting where the KS3 history curriculum is on the agenda. Members of the public can attend; speaking slots open in advance.\n\nWe are coordinating attendance so we have a visible presence. Reply if you plan to come — Bette will collate and share notes.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['writers'],
+    daysAgo: 0,
+    kindSlug: 'meeting',
+    urgency: false,
+    eventInDays: 14,
+    eventStartHour: 18,
+    eventStartMinute: 30,
+    eventDurationMinutes: 120,
+    locationText: 'Barnet Council, Hendon NW9 — committee room 2',
+  },
+  {
+    seedKey: 'event-yom-haatzmaut-picnic',
+    authorKey: 'ingrid',
+    title: 'Yom Ha’atzmaut community picnic',
+    body: `Communal picnic to mark Yom Ha’atzmaut. Children very welcome. Bring something sweet if you can; we will provide drinks and savoury platters.\n\nGazebos pitched by 11; music starts at 12. Rain plan: indoor at the JCC if needed.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: [],
+    daysAgo: 0,
+    kindSlug: 'event',
+    urgency: false,
+    eventInDays: 17,
+    eventStartHour: 11,
+    eventStartMinute: 0,
+    eventDurationMinutes: 240,
+    locationText: 'Hampstead Heath — meet by the bandstand',
+    heroImageUrl: '/seed-images/01.svg',
+  },
+  {
+    seedKey: 'happening-now-school-gate-bristol',
+    authorKey: 'maya',
+    title: 'Police commissioner public surgery — Bristol',
+    body: `Bristol PCC running an open-doors surgery this evening. Constituents can raise individual concerns; the school-gate leaflet incident is on the public agenda.\n\nIf you live in Bristol, please come if you can — visible turnout matters here.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['rapid-response'],
+    daysAgo: 0,
+    kindSlug: 'happening_now',
+    urgency: true,
+    eventInDays: 1,
+    eventStartHour: 18,
+    eventStartMinute: 0,
+    eventDurationMinutes: 90,
+    locationText: 'Bristol City Hall, College Green',
+  },
+  {
+    seedKey: 'meeting-writers-summer-planning',
+    authorKey: 'ingrid',
+    title: 'Writers group — summer campaigns planning',
+    body: `Quarterly Writers planning session. We will agree the four campaigns we will throw weight behind across June–August, divide the drafting work, and pair newer members with experienced writers.\n\nIf you are new and want to get involved with letter-writing, this is the meeting that gets you a buddy.`,
+    visibility: 'authenticated_only',
+    activistMailerUrl: null,
+    groupTags: ['writers'],
+    daysAgo: 0,
+    kindSlug: 'meeting',
+    urgency: false,
+    eventInDays: 21,
+    eventStartHour: 19,
+    eventStartMinute: 30,
+    eventDurationMinutes: 90,
+    locationText: 'Online via Zoom — link in the Writers group',
   },
 ];
 
@@ -783,6 +937,25 @@ async function main(): Promise<void> {
     // mirrors the groupTags pattern).
     const kindId = post.kindSlug ? (kindIdsBySlug[post.kindSlug] ?? null) : null;
 
+    // BU-event-time / D073: build eventAt / eventEndsAt from the
+    // seed's relative-day specification. Europe/London wall-clock →
+    // UTC via shared/format-event-time, matching the composer's path.
+    let eventAt: Date | null = null;
+    let eventEndsAt: Date | null = null;
+    if (typeof post.eventInDays === 'number') {
+      const target = new Date(now.getTime() + post.eventInDays * 24 * 60 * 60 * 1000);
+      const yyyy = target.getFullYear();
+      const mm = String(target.getMonth() + 1).padStart(2, '0');
+      const dd = String(target.getDate()).padStart(2, '0');
+      const hh = String(post.eventStartHour ?? 18).padStart(2, '0');
+      const min = String(post.eventStartMinute ?? 0).padStart(2, '0');
+      eventAt = eventInputToUtc(`${yyyy}-${mm}-${dd}`, `${hh}:${min}`);
+      if (eventAt && typeof post.eventDurationMinutes === 'number') {
+        eventEndsAt = new Date(eventAt.getTime() + post.eventDurationMinutes * 60 * 1000);
+      }
+    }
+    const locationText = post.locationText ?? null;
+
     const existing = await prisma.post.findUnique({ where: { id: postId } });
     if (!existing) {
       await prisma.post.create({
@@ -806,6 +979,10 @@ async function main(): Promise<void> {
           heroImageUrl: post.heroImageUrl ?? null,
           kindId,
           urgency: post.urgency ?? false,
+          // BU-event-time / D073
+          eventAt,
+          eventEndsAt,
+          locationText,
         },
       });
       postsCreated++;
