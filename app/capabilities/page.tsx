@@ -217,7 +217,12 @@ const SECTIONS: Section[] = [
     ref: '§8',
     blurb: 'MFA-protected secure repository for fact-sheets, research, toolkits, memes and media.',
     tiles: [
-      { icon: BookOpen, title: 'Fact-Sheets / Research / Toolkits', ref: '§8', status: 'future-build' },
+      {
+        icon: BookOpen,
+        title: 'Fact-Sheets / Research / Toolkits',
+        ref: '§8',
+        status: 'future-build',
+      },
       { icon: FolderLock, title: 'Per-Asset Access Control', ref: '§8', status: 'not-done' },
       { icon: BookMarked, title: 'User-Submitted Content', ref: '§8', status: 'partial' },
       { icon: BookMarked, title: 'Training-Topic Submissions', ref: '§8', status: 'not-done' },
@@ -247,8 +252,18 @@ const SECTIONS: Section[] = [
     ref: '§10',
     blurb: 'Talk-radio call-in alerts, newspaper + RSS scraping, newswriters digest.',
     tiles: [
-      { icon: Antenna, title: 'Talk-Radio Call-In Briefings', ref: '§10.1', status: 'future-build' },
-      { icon: Radio, title: 'Real-Time Stream Transcription', ref: '§10.1', status: 'future-integration' },
+      {
+        icon: Antenna,
+        title: 'Talk-Radio Call-In Briefings',
+        ref: '§10.1',
+        status: 'future-build',
+      },
+      {
+        icon: Radio,
+        title: 'Real-Time Stream Transcription',
+        ref: '§10.1',
+        status: 'future-integration',
+      },
       { icon: Tv, title: 'Manual Broadcast Logging', ref: '§10.1', status: 'future-build' },
       { icon: Megaphone, title: 'Auto-Complaints', ref: '§10.1', status: 'future-build' },
       { icon: Newspaper, title: 'Newswriters Digest', ref: '§10.2', status: 'future-build' },
@@ -310,20 +325,52 @@ const SECTIONS: Section[] = [
       'SRS-marked URGENT. Audience builder, campaign types Pledge / Agreement / Reply, sending-domain management, double-confirmed pledges, and per-councillor engagement history.',
     urgent: true,
     tiles: [
-      { icon: Database, title: 'Councillor DB', ref: '§14.1', status: 'future-build', note: 'Democracy Club / moderngov' },
+      {
+        icon: Database,
+        title: 'Councillor DB',
+        ref: '§14.1',
+        status: 'future-build',
+        note: 'Democracy Club / moderngov',
+      },
       { icon: Eye, title: 'Engagement History', ref: '§14.1', status: 'future-build' },
-      { icon: Radar, title: 'Audience Builder', ref: '§14.2', status: 'future-build', note: 'AND/OR filters' },
+      {
+        icon: Radar,
+        title: 'Audience Builder',
+        ref: '§14.2',
+        status: 'future-build',
+        note: 'AND/OR filters',
+      },
       { icon: BarChart3, title: 'Live Match Count', ref: '§14.2', status: 'future-build' },
       { icon: Vote, title: 'Pledge Campaigns', ref: '§14.3', status: 'future-build' },
       { icon: Gavel, title: 'Agreement Campaigns', ref: '§14.3', status: 'future-build' },
       { icon: Mail, title: 'Reply Campaigns', ref: '§14.3', status: 'future-build' },
       { icon: Sparkles, title: 'AI Draft (human review)', ref: '§14.3', status: 'future-build' },
-      { icon: ShieldCheck, title: 'SPF / DKIM / DMARC', ref: '§14.4', status: 'future-integration' },
+      {
+        icon: ShieldCheck,
+        title: 'SPF / DKIM / DMARC',
+        ref: '§14.4',
+        status: 'future-integration',
+      },
       { icon: Send, title: 'Sending Domain Manager', ref: '§14.5', status: 'future-build' },
-      { icon: CheckCircle2, title: 'Pledge Double-Confirmation', ref: '§14.6', status: 'future-build' },
-      { icon: BarChart3, title: 'Real-Time Campaign Dashboard', ref: '§14.8', status: 'future-build' },
+      {
+        icon: CheckCircle2,
+        title: 'Pledge Double-Confirmation',
+        ref: '§14.6',
+        status: 'future-build',
+      },
+      {
+        icon: BarChart3,
+        title: 'Real-Time Campaign Dashboard',
+        ref: '§14.8',
+        status: 'future-build',
+      },
       { icon: GitBranch, title: 'Follow-Up Segments', ref: '§14.8', status: 'future-build' },
-      { icon: FileSpreadsheet, title: 'Council / Party Leaderboards', ref: '§14.9', status: 'future-build' },
+      {
+        icon: FileSpreadsheet,
+        title: 'Council / Party Leaderboards',
+        ref: '§14.9',
+        status: 'future-build',
+      },
       { icon: FileSpreadsheet, title: 'CSV / Excel Export', ref: '§14.9', status: 'future-build' },
       { icon: Megaphone, title: 'Post-Council Escalation', ref: '§14.10', status: 'future-build' },
     ],
@@ -368,7 +415,13 @@ const SECTIONS: Section[] = [
     blurb: 'Cross-cutting requirements that every module depends on.',
     tiles: [
       { icon: FileSpreadsheet, title: 'Audit Log', ref: 'NFR-06', status: 'partial' },
-      { icon: Globe, title: 'UK Data Residency', ref: 'NFR-03', status: 'shipped', note: 'eu-west-2' },
+      {
+        icon: Globe,
+        title: 'UK Data Residency',
+        ref: 'NFR-03',
+        status: 'shipped',
+        note: 'eu-west-2',
+      },
       { icon: ShieldCheck, title: 'WCAG 2.2 AA', ref: 'NFR-04', status: 'shipped' },
       { icon: FileSpreadsheet, title: 'CSV / Excel Export', ref: 'NFR-09', status: 'not-done' },
       { icon: Search, title: 'Full-Text Search', ref: 'NFR-10', status: 'future-build' },
@@ -383,7 +436,12 @@ const SECTIONS: Section[] = [
     ref: '§16',
     blurb: 'External providers GPS Action will plug into rather than rebuild.',
     tiles: [
-      { icon: Sparkles, title: 'AI / LLM (GPT-4o / Claude)', ref: '§16', status: 'future-integration' },
+      {
+        icon: Sparkles,
+        title: 'AI / LLM (GPT-4o / Claude)',
+        ref: '§16',
+        status: 'future-integration',
+      },
       { icon: Languages, title: 'Whisper STT', ref: '§16', status: 'future-integration' },
       { icon: Mail, title: 'SendGrid / Postmark / SES', ref: '§16', status: 'future-integration' },
       { icon: Video, title: 'YouTube Data API', ref: '§16', status: 'future-integration' },
@@ -483,9 +541,7 @@ function SectionBlock({ section }: { section: Section }): ReactElement {
         >
           <span className="gps-kicker">{section.kicker}</span>
           <span className="gps-meta">{section.ref}</span>
-          {section.urgent ? (
-            <span className="gps-badge gps-badge--urgent">URGENT</span>
-          ) : null}
+          {section.urgent ? <span className="gps-badge gps-badge--urgent">URGENT</span> : null}
         </div>
         <h2 className="gps-title" style={{ marginBottom: 'var(--space-2)' }}>
           {section.title}
@@ -513,13 +569,7 @@ function SectionBlock({ section }: { section: Section }): ReactElement {
 }
 
 function StatusLegend(): ReactElement {
-  const items: Status[] = [
-    'shipped',
-    'partial',
-    'future-build',
-    'future-integration',
-    'not-done',
-  ];
+  const items: Status[] = ['shipped', 'partial', 'future-build', 'future-integration', 'not-done'];
   return (
     <div
       style={{
@@ -569,9 +619,9 @@ export default function CapabilitiesPage(): ReactElement {
             marginBottom: 'var(--space-5)',
           }}
         >
-          National + granular regional coordination, with AI assistance throughout. Eleven
-          modules in the SRS, plus the Network of Networks addendum. Each tile names a
-          requirement in the spec&apos;s own words and shows where it sits in the build today.
+          National + granular regional coordination, with AI assistance throughout. Eleven modules
+          in the SRS, plus the Network of Networks addendum. Each tile names a requirement in the
+          spec&apos;s own words and shows where it sits in the build today.
         </p>
         <div
           style={{
@@ -608,9 +658,9 @@ export default function CapabilitiesPage(): ReactElement {
         }}
       >
         <p className="gps-meta">
-          Source: <code>docs/feature-spec/GPS_Software_Requirements_v1.1.docx</code> ·
-          mapped against <code>docs/build/srs-coverage.md</code>. This is a static mockup
-          — every tile other than the &ldquo;Open the App&rdquo; CTA is non-interactive.
+          Source: <code>docs/feature-spec/GPS_Software_Requirements_v1.1.docx</code> · mapped
+          against <code>docs/build/srs-coverage.md</code>. This is a static mockup — every tile
+          other than the &ldquo;Open the App&rdquo; CTA is non-interactive.
         </p>
       </footer>
     </main>

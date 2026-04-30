@@ -24,13 +24,13 @@ Reached at `/capabilities`. Public — no auth gate.
 
 ## Status legend
 
-| Badge | Meaning |
-|---|---|
-| Shipped | Live in the codebase today |
-| Partial | Some shipped, bounded gap remains |
-| Future build | Native build pending — brief / roadmap row |
+| Badge              | Meaning                                          |
+| ------------------ | ------------------------------------------------ |
+| Shipped            | Live in the codebase today                       |
+| Partial            | Some shipped, bounded gap remains                |
+| Future build       | Native build pending — brief / roadmap row       |
 | Future integration | Possible via 3rd-party (Whisper, SendGrid, etc.) |
-| Not done | Nothing shipped, no decision either way |
+| Not done           | Nothing shipped, no decision either way          |
 
 ## What it isn't
 
