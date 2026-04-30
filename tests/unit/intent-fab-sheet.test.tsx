@@ -27,6 +27,9 @@ vi.mock('react', async () => {
       const value = (idx in stateSlots ? stateSlots[idx] : init) as T;
       return [value, setter] as const;
     },
+    // The IntentFabSheet's clipboard-feature-detection effect is a
+    // post-mount side effect; the tree-walk tests don't need it to run.
+    useEffect: () => undefined,
   };
 });
 
@@ -100,14 +103,25 @@ describe('IntentFabSheet', () => {
     expect(tree).toBeNull();
   });
 
-  it('renders the input, paste button, hint, and tile grid with canonical testids', () => {
+  it('renders the input, hint, and tile grid with canonical testids (paste button gated on clipboard support)', () => {
     const tree = render({ open: true, onClose: () => {} });
     expect(findByTestId(tree, 'intent-fab-sheet')).toBeDefined();
     expect(findByTestId(tree, 'intent-fab-input')).toBeDefined();
-    expect(findByTestId(tree, 'intent-fab-paste')).toBeDefined();
     expect(findByTestId(tree, 'intent-fab-hint')).toBeDefined();
     expect(findByTestId(tree, 'intent-fab-tile-grid')).toBeDefined();
     expect(findByTestId(tree, 'intent-fab-close')).toBeDefined();
+  });
+
+  it('renders the paste button when clipboardSupported state is true', () => {
+    // clipboardSupported is the third useState slot (after input + pasteNote)
+    stateSlots[2] = true;
+    const tree = render({ open: true, onClose: () => {} });
+    expect(findByTestId(tree, 'intent-fab-paste')).toBeDefined();
+  });
+
+  it('does not render the paste button when clipboardSupported is false', () => {
+    const tree = render({ open: true, onClose: () => {} });
+    expect(findByTestId(tree, 'intent-fab-paste')).toBeUndefined();
   });
 
   it('renders enabled and disabled tiles distinctly', () => {
@@ -177,6 +191,7 @@ describe('IntentFabSheet', () => {
   it('paste button reads clipboard and writes the result into state', async () => {
     const readText = vi.fn().mockResolvedValue('www.example.com');
     vi.stubGlobal('navigator', { clipboard: { readText } } as unknown as Navigator);
+    stateSlots[2] = true; // clipboardSupported
     const tree = render({ open: true, onClose: () => {} });
     const paste = findByTestId(tree, 'intent-fab-paste');
     await (paste?.props.onClick as () => Promise<void>)();
@@ -187,11 +202,13 @@ describe('IntentFabSheet', () => {
   it('paste shows a quiet inline note when clipboard read is denied', async () => {
     const readText = vi.fn().mockRejectedValue(new Error('denied'));
     vi.stubGlobal('navigator', { clipboard: { readText } } as unknown as Navigator);
+    stateSlots[2] = true; // clipboardSupported
     const tree = render({ open: true, onClose: () => {} });
     const paste = findByTestId(tree, 'intent-fab-paste');
     await (paste?.props.onClick as () => Promise<void>)();
     // pasteNote is the second useState slot
-    expect(stateSlots[1]).toMatch(/couldn't read your clipboard/);
+    expect(stateSlots[1]).toMatch(/long-press|paste/i);
+    stateSlots[2] = true;
     const tree2 = render({ open: true, onClose: () => {} });
     expect(findByTestId(tree2, 'intent-fab-paste-note')).toBeDefined();
   });

@@ -24,7 +24,7 @@
  */
 
 import * as React from 'react';
-import { useState, type CSSProperties, type ReactElement } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactElement } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, ClipboardPaste } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -43,12 +43,28 @@ export interface IntentFabSheetProps {
 
 const HINT_URL = "Looks like a link — we'll prefill the share.";
 const HINT_TEXT = "We'll start a post with this as the title.";
-const PASTE_DENIED_NOTE = "We couldn't read your clipboard — paste below or type.";
+const PASTE_DENIED_NOTE = 'Paste below with long-press, or type.';
 
 export function IntentFabSheet({ open, onClose }: IntentFabSheetProps): ReactElement | null {
   const router = useRouter();
   const [input, setInput] = useState<string>('');
   const [pasteNote, setPasteNote] = useState<string | null>(null);
+  // The Paste button only renders when the runtime can actually read
+  // the clipboard. iOS Safari requires both a secure context (HTTPS or
+  // localhost) and `navigator.clipboard.readText`; over HTTP on a LAN
+  // IP / .local hostname it rejects every call, which makes the
+  // button perpetually broken with an alarming error message. Cleaner
+  // to hide it entirely there. Computed in an effect so SSR doesn't
+  // mismatch (window is undefined on the server).
+  const [clipboardSupported, setClipboardSupported] = useState(false);
+  useEffect(() => {
+    setClipboardSupported(
+      typeof window !== 'undefined' &&
+        window.isSecureContext &&
+        typeof navigator !== 'undefined' &&
+        typeof navigator.clipboard?.readText === 'function',
+    );
+  }, []);
 
   if (!open) return null;
 
@@ -120,23 +136,25 @@ export function IntentFabSheet({ open, onClose }: IntentFabSheetProps): ReactEle
               style={textareaStyle}
             />
 
-            <div style={pasteRowStyle}>
-              <button
-                type="button"
-                onClick={handlePaste}
-                data-testid="intent-fab-paste"
-                aria-label="Paste from clipboard"
-                style={pasteButtonStyle}
-              >
-                <ClipboardPaste size={16} aria-hidden="true" />
-                <span>Paste</span>
-              </button>
-              {pasteNote ? (
-                <span style={pasteNoteStyle} data-testid="intent-fab-paste-note">
-                  {pasteNote}
-                </span>
-              ) : null}
-            </div>
+            {clipboardSupported && (
+              <div style={pasteRowStyle}>
+                <button
+                  type="button"
+                  onClick={handlePaste}
+                  data-testid="intent-fab-paste"
+                  aria-label="Paste from clipboard"
+                  style={pasteButtonStyle}
+                >
+                  <ClipboardPaste size={16} aria-hidden="true" />
+                  <span>Paste</span>
+                </button>
+                {pasteNote ? (
+                  <span style={pasteNoteStyle} data-testid="intent-fab-paste-note">
+                    {pasteNote}
+                  </span>
+                ) : null}
+              </div>
+            )}
 
             <p
               style={hintStyle}
