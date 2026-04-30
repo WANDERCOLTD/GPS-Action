@@ -1,12 +1,13 @@
 'use server';
 
 /**
- * @build-unit BU-composer BU-link-share BU-am-link-collapse BU-post-hero-demo BU-tick-or-cross
+ * @build-unit BU-composer BU-link-share BU-am-link-collapse BU-post-hero-demo BU-tick-or-cross BU-event-time
  * @spec architecture/api-contract.md
- * @spec architecture/decision-log.md (D060, D064, D069)
+ * @spec architecture/decision-log.md (D060, D064, D069, D073)
  * @spec build/session-briefs/bu-am-link-collapse.md
  * @spec build/session-briefs/bu-post-hero-demo.md
  * @spec build/session-briefs/bu-tick-or-cross.md
+ * @spec docs/adrs/0001-post-event-time-fields.md
  *
  * Server action wrapping post.create for client-side form submit.
  * Mirrors app/feed/actions.ts pattern: createTRPCContext → createCaller.
@@ -25,11 +26,17 @@
  * `{ handoff: { postId, signal } }` so the client can open the
  * SendToNetworkConfirm modal. All other kinds keep the redirect-to-feed
  * behaviour.
+ *
+ * BU-event-time / D073: the form submits eventAtDate / eventAtTime /
+ * eventEndsAtDate / eventEndsAtTime in Europe/London wall-clock; this
+ * action converts them to UTC via shared/format-event-time before
+ * passing to postCreateSchema. Empty inputs round-trip as undefined.
  */
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { postCreateSchema } from '@/shared/validation/post';
+import { eventInputToUtc } from '@/shared/format-event-time';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { TRPCError } from '@trpc/server';
@@ -52,6 +59,17 @@ export async function createPostAction(formData: FormData): Promise<CreatePostRe
   const signal: Signal | undefined =
     rawSignal && VALID_SIGNALS.has(rawSignal) ? (rawSignal as Signal) : undefined;
 
+  // BU-event-time / D073. Composer submits date+time as
+  // Europe/London wall-clock; the action converts to UTC here before
+  // the Zod schema runs. Empty inputs round-trip to undefined.
+  const eventAtDate = formData.get('eventAtDate')?.toString() ?? '';
+  const eventAtTime = formData.get('eventAtTime')?.toString() ?? '';
+  const eventEndsAtDate = formData.get('eventEndsAtDate')?.toString() ?? '';
+  const eventEndsAtTime = formData.get('eventEndsAtTime')?.toString() ?? '';
+  const eventAtUtc = eventInputToUtc(eventAtDate || null, eventAtTime || null);
+  const eventEndsAtUtc = eventInputToUtc(eventEndsAtDate || null, eventEndsAtTime || null);
+  const locationTextRaw = formData.get('locationText')?.toString() ?? '';
+
   const raw = {
     title: formData.get('title')?.toString() ?? '',
     body: formData.get('body')?.toString() ?? '',
@@ -65,6 +83,9 @@ export async function createPostAction(formData: FormData): Promise<CreatePostRe
     urgency: formData.get('urgency')?.toString() === 'true' ? true : undefined,
     heroImageUrl: formData.get('heroImageUrl')?.toString() || undefined,
     signal,
+    eventAt: eventAtUtc ?? undefined,
+    eventEndsAt: eventEndsAtUtc ?? undefined,
+    locationText: locationTextRaw.trim() ? locationTextRaw : undefined,
   };
 
   const parsed = postCreateSchema.safeParse(raw);
