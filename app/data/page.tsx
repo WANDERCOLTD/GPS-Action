@@ -10,6 +10,7 @@
 
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowLink } from '@/components/ArrowLink';
 import { createTRPCContext } from '@/server/routers/context';
 import { entityMetadata } from '@/server/admin/entity-metadata';
 
@@ -44,6 +45,11 @@ export default async function DataIndexPage() {
         margin: '0 auto',
       }}
     >
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        <ArrowLink href="/feed" direction="back" testIdArea="data" testIdSuffix="back-feed-top">
+          Back to feed
+        </ArrowLink>
+      </div>
       <h1 className="gps-title" data-testid="data-page-title">
         Data
       </h1>
@@ -60,13 +66,29 @@ export default async function DataIndexPage() {
       </p>
 
       {entities.length === 0 ? (
-        <p
-          style={{ color: 'var(--colour-text-secondary)', fontSize: 'var(--text-sm)' }}
+        <div
           data-testid="data-empty-message"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-1)',
+            padding: 'var(--space-4) 0',
+            fontFamily: 'var(--font-ui)',
+          }}
         >
-          No data tables visible to your role. Admins see everything; queue managers see queue
-          tables.
-        </p>
+          <p style={{ margin: 0, color: 'var(--colour-text-secondary)' }}>
+            No data tables visible to your role.
+          </p>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 'var(--text-sm)',
+              color: 'var(--colour-text-tertiary)',
+            }}
+          >
+            Admins see everything; queue managers see queue tables.
+          </p>
+        </div>
       ) : (
         <ul
           style={{

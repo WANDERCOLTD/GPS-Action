@@ -33,6 +33,11 @@ export default async function SettingsPage() {
         margin: '0 auto',
       }}
     >
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        <ArrowLink href="/feed" direction="back" testIdArea="settings" testIdSuffix="back-feed-top">
+          Back to feed
+        </ArrowLink>
+      </div>
       <h1 className="gps-title" data-testid="settings-page-title">
         Settings
       </h1>
