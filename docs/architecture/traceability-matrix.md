@@ -70,6 +70,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-tick-or-cross | 12 | SCN-18, SCN-19, SCN-20, SCN-24, SCN-25 | D044, D045, D048, D052, D060, D062, D064, D069, D070 |
 | BU-versioning | 3 | — | D003, D065 |
 | BU-whatsapp-share | 2 | — | D065, D067 |
+| bu-capabilities-mockup | 1 | — | — |
 
 ## ADRs (referenced by code)
 
