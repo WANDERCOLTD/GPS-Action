@@ -1,10 +1,11 @@
 'use client';
 
 /**
- * @build-unit BU-feed BU-comments BU-feed-card-clamp
+ * @build-unit BU-feed BU-comments BU-feed-card-clamp BU-event-time
  * @spec product/design-philosophy.md
- * @spec architecture/decision-log.md (D052, D061, D064)
+ * @spec architecture/decision-log.md (D052, D061, D064, D073)
  * @spec build/session-briefs/bu-feed-card-clamp.md
+ * @spec docs/adrs/0001-post-event-time-fields.md
  *
  * Single post card for the feed. Renders author, timestamp, title,
  * body paragraphs, the reaction pill, comment-count link, and an
@@ -25,15 +26,24 @@
  * and bails if the click landed on an interactive child — this is
  * cleaner than wrapping in <Link> (which would require nested
  * anchors / aggressive stopPropagation across the reaction pill).
+ *
+ * BU-event-time / D073: when `eventAt` is set, an absolute date+time
+ * row renders above the title, with `locationText` (if present) on
+ * the line below. Range support — when `eventEndsAt` is also set,
+ * the row formats as "Sat 3 May · 6–8pm" (single-day) or
+ * "Sat 3 May 6pm – Sun 4 May 9am" (multi-day). All formatting routes
+ * through shared/format-event-time.ts so the timezone discipline
+ * (UTC storage, Europe/London render) stays in one place.
  */
 
 import type { FC, MouseEvent as ReactMouseEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Calendar, MapPin } from 'lucide-react';
 import { ReactionPill } from '@/components/ReactionPill';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 import { PostShareGroup } from '@/components/PostShareGroup';
+import { formatEventRange } from '@/shared/format-event-time';
 
 // ── Types (shared with FeedList and feed page) ──────────────────────────
 
@@ -76,6 +86,10 @@ export interface FeedPost {
   signal: 'promote' | 'remove' | null;
   /** ISO timestamp set when the author confirmed the WhatsApp paste landed. */
   sharedToNetworkAt: string | null;
+  /** Structured event-time fields (BU-event-time / D073). All ISO 8601 / null. */
+  eventAt: string | null;
+  eventEndsAt: string | null;
+  locationText: string | null;
   createdAt: string; // ISO 8601
   author: {
     displayName: string;
@@ -224,6 +238,85 @@ function SignalBadgeRow({
         >
           Sent to GPS Network
         </span>
+      )}
+    </div>
+  );
+}
+
+// ── EventTimeRow (BU-event-time / D073) ─────────────────────────────────
+//
+// When a post carries `eventAt`, render an absolute date+time line
+// (and an optional location line) prominently — above the title for
+// time-bearing posts. Uses Europe/London formatting via
+// shared/format-event-time.ts so the same string appears on every
+// surface (PostCard / detail / future calendar).
+//
+// The absolute time replaces the relative "2 days ago" timestamp's
+// role as the primary "when?" signal — but per the brief we keep the
+// existing relative timestamp in the header so members can still see
+// "this was posted 2 days ago" alongside "the event itself is on
+// Sat 3 May at 6pm".
+//
+// Cultural posts never reach this surface (they're not time-bearing),
+// so the bordeaux styling stays untouched.
+
+function EventTimeRow({
+  eventAt,
+  eventEndsAt,
+  locationText,
+}: {
+  eventAt: string;
+  eventEndsAt: string | null;
+  locationText: string | null;
+}) {
+  const start = new Date(eventAt);
+  const end = eventEndsAt ? new Date(eventEndsAt) : null;
+  const label = formatEventRange(start, end);
+  if (!label) return null;
+  return (
+    <div
+      data-testid="post-card-event-time"
+      data-event-at={eventAt}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-1)',
+        marginTop: 'var(--space-1)',
+        marginBottom: 'var(--space-2)',
+      }}
+    >
+      <div
+        data-testid="post-card-event-time-row"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 'var(--space-2)',
+          fontSize: 'var(--text-sm)',
+          fontWeight: 600,
+          color: 'var(--colour-info)',
+          fontFamily: 'var(--font-ui)',
+        }}
+      >
+        <Calendar size={14} aria-hidden="true" />
+        <time dateTime={eventAt} suppressHydrationWarning>
+          {label}
+        </time>
+      </div>
+      {locationText && locationText.trim() !== '' && (
+        <div
+          data-testid="post-card-event-location"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--colour-text-secondary)',
+            fontFamily: 'var(--font-ui)',
+          }}
+        >
+          <MapPin size={12} aria-hidden="true" />
+          <span>{locationText}</span>
+        </div>
       )}
     </div>
   );
@@ -423,6 +516,18 @@ export const PostCard: FC<PostCardProps> = ({
           {/* BU-tick-or-cross / D069 — amplify/flag glyph + sent-pill row */}
           {post.signal && (
             <SignalBadgeRow signal={post.signal} sharedToNetworkAt={post.sharedToNetworkAt} />
+          )}
+
+          {/* BU-event-time / D073 — absolute event date+time, above the title.
+          Renders only when eventAt is set (which the composer only
+          surfaces for time-bearing kinds — meeting / event /
+          happening_now per shared/post-kinds.ts kindIsTimeBearing). */}
+          {post.eventAt && (
+            <EventTimeRow
+              eventAt={post.eventAt}
+              eventEndsAt={post.eventEndsAt}
+              locationText={post.locationText}
+            />
           )}
 
           {/* Hero image — `full` only (BU-post-hero-demo / D064). In `compact`

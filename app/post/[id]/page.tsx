@@ -1,8 +1,9 @@
 /**
- * @build-unit BU-comments
- * @spec architecture/decision-log.md (D052, D045)
+ * @build-unit BU-comments BU-event-time
+ * @spec architecture/decision-log.md (D052, D045, D073)
  * @spec product/scenarios.md (SCN-20)
  * @spec product/design-philosophy.md
+ * @spec docs/adrs/0001-post-event-time-fields.md
  *
  * Post detail page. The post anchors near the top, the discussion
  * thread stacks underneath, an in-line composer sits at the bottom.
@@ -12,11 +13,17 @@
  *   - authenticated_only ("members_only" in spec): gated landing
  *     for unauthed; full thread for authed
  *   - private: 404 (indistinguishable from deleted)
+ *
+ * BU-event-time / D073: when `eventAt` is set, an absolute date+time
+ * row + optional location render between the share-bar and the
+ * primary CTA — the same EventTimeRow PostCard uses, sized larger
+ * for the detail surface.
  */
 
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import { Calendar, MapPin } from 'lucide-react';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
@@ -24,6 +31,7 @@ import { CommentList } from '@/components/CommentList';
 import { ReactionPill } from '@/components/ReactionPill';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 import { PostShareGroup } from '@/components/PostShareGroup';
+import { formatEventRange } from '@/shared/format-event-time';
 import {
   addCommentAction,
   addReactionToCommentAction,
@@ -188,6 +196,70 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
             variant="detail-bar"
           />
         </div>
+
+        {/* BU-event-time / D073 — absolute date+time + location, between
+        share-bar and primary CTA. Larger styling than PostCard for the
+        detail surface. */}
+        {post.eventAt && (
+          <div
+            data-testid="post-detail-event-time"
+            data-event-at={post.eventAt instanceof Date ? post.eventAt.toISOString() : post.eventAt}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-1)',
+              marginBottom: 'var(--space-4)',
+              padding: 'var(--space-3) var(--space-4)',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--colour-info-subtle)',
+            }}
+          >
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                fontSize: 'var(--text-base)',
+                fontWeight: 700,
+                color: 'var(--colour-info)',
+                fontFamily: 'var(--font-ui)',
+              }}
+            >
+              <Calendar size={16} aria-hidden="true" />
+              <time
+                dateTime={
+                  post.eventAt instanceof Date ? post.eventAt.toISOString() : String(post.eventAt)
+                }
+                suppressHydrationWarning
+              >
+                {formatEventRange(
+                  post.eventAt instanceof Date ? post.eventAt : new Date(post.eventAt),
+                  post.eventEndsAt
+                    ? post.eventEndsAt instanceof Date
+                      ? post.eventEndsAt
+                      : new Date(post.eventEndsAt)
+                    : null,
+                )}
+              </time>
+            </div>
+            {post.locationText && post.locationText.trim() !== '' && (
+              <div
+                data-testid="post-detail-event-location"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--colour-text-secondary)',
+                  fontFamily: 'var(--font-ui)',
+                }}
+              >
+                <MapPin size={14} aria-hidden="true" />
+                <span>{post.locationText}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Primary CTA — top of content (D060 §3a / D066-proposed). */}
         {primaryCta}
