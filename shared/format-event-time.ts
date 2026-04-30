@@ -111,6 +111,15 @@ export function formatEventRange(
     const dateLabel = formatInTimeZone(at, EVENT_TIMEZONE, 'EEE d MMM');
     const startHour = formatInTimeZone(at, EVENT_TIMEZONE, buildHourFormat(at));
     const endHour = formatInTimeZone(endsAt, EVENT_TIMEZONE, buildHourFormat(endsAt));
+    // BU-event-time / D073: collapse "6pm–8pm" → "6–8pm" when both
+    // halves share the same am/pm marker. Matches the brief's UI-state
+    // table example. Different markers (e.g. "11am–1pm") spell both.
+    const startMarker = startHour.endsWith('pm') ? 'pm' : startHour.endsWith('am') ? 'am' : '';
+    const endMarker = endHour.endsWith('pm') ? 'pm' : endHour.endsWith('am') ? 'am' : '';
+    if (startMarker && startMarker === endMarker) {
+      const startStripped = startHour.slice(0, -startMarker.length);
+      return `${dateLabel} · ${startStripped}–${endHour}`;
+    }
     return `${dateLabel} · ${startHour}–${endHour}`;
   }
 

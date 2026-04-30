@@ -243,85 +243,6 @@ function SignalBadgeRow({
   );
 }
 
-// ── EventTimeRow (BU-event-time / D073) ─────────────────────────────────
-//
-// When a post carries `eventAt`, render an absolute date+time line
-// (and an optional location line) prominently — above the title for
-// time-bearing posts. Uses Europe/London formatting via
-// shared/format-event-time.ts so the same string appears on every
-// surface (PostCard / detail / future calendar).
-//
-// The absolute time replaces the relative "2 days ago" timestamp's
-// role as the primary "when?" signal — but per the brief we keep the
-// existing relative timestamp in the header so members can still see
-// "this was posted 2 days ago" alongside "the event itself is on
-// Sat 3 May at 6pm".
-//
-// Cultural posts never reach this surface (they're not time-bearing),
-// so the bordeaux styling stays untouched.
-
-function EventTimeRow({
-  eventAt,
-  eventEndsAt,
-  locationText,
-}: {
-  eventAt: string;
-  eventEndsAt: string | null;
-  locationText: string | null;
-}) {
-  const start = new Date(eventAt);
-  const end = eventEndsAt ? new Date(eventEndsAt) : null;
-  const label = formatEventRange(start, end);
-  if (!label) return null;
-  return (
-    <div
-      data-testid="post-card-event-time"
-      data-event-at={eventAt}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-1)',
-        marginTop: 'var(--space-1)',
-        marginBottom: 'var(--space-2)',
-      }}
-    >
-      <div
-        data-testid="post-card-event-time-row"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 'var(--space-2)',
-          fontSize: 'var(--text-sm)',
-          fontWeight: 600,
-          color: 'var(--colour-info)',
-          fontFamily: 'var(--font-ui)',
-        }}
-      >
-        <Calendar size={14} aria-hidden="true" />
-        <time dateTime={eventAt} suppressHydrationWarning>
-          {label}
-        </time>
-      </div>
-      {locationText && locationText.trim() !== '' && (
-        <div
-          data-testid="post-card-event-location"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-            fontSize: 'var(--text-xs)',
-            color: 'var(--colour-text-secondary)',
-            fontFamily: 'var(--font-ui)',
-          }}
-        >
-          <MapPin size={12} aria-hidden="true" />
-          <span>{locationText}</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function KindChip({ kindSlug, urgency }: { kindSlug: string | null; urgency: boolean }) {
   // Alert flag chip (D062 revised — orthogonal). Renders ahead of the kind
   // chip so urgency is the first thing the eye catches.
@@ -521,13 +442,58 @@ export const PostCard: FC<PostCardProps> = ({
           {/* BU-event-time / D073 — absolute event date+time, above the title.
           Renders only when eventAt is set (which the composer only
           surfaces for time-bearing kinds — meeting / event /
-          happening_now per shared/post-kinds.ts kindIsTimeBearing). */}
+          happening_now per shared/post-kinds.ts kindIsTimeBearing).
+          Inlined (not a child component) so the test walker finds
+          the root testid without a custom React renderer. */}
           {post.eventAt && (
-            <EventTimeRow
-              eventAt={post.eventAt}
-              eventEndsAt={post.eventEndsAt}
-              locationText={post.locationText}
-            />
+            <div
+              data-testid="post-card-event-time"
+              data-event-at={post.eventAt}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-1)',
+                marginTop: 'var(--space-1)',
+                marginBottom: 'var(--space-2)',
+              }}
+            >
+              <div
+                data-testid="post-card-event-time-row"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 600,
+                  color: 'var(--colour-info)',
+                  fontFamily: 'var(--font-ui)',
+                }}
+              >
+                <Calendar size={14} aria-hidden="true" />
+                <time dateTime={post.eventAt} suppressHydrationWarning>
+                  {formatEventRange(
+                    new Date(post.eventAt),
+                    post.eventEndsAt ? new Date(post.eventEndsAt) : null,
+                  )}
+                </time>
+              </div>
+              {post.locationText && post.locationText.trim() !== '' && (
+                <div
+                  data-testid="post-card-event-location"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--colour-text-secondary)',
+                    fontFamily: 'var(--font-ui)',
+                  }}
+                >
+                  <MapPin size={12} aria-hidden="true" />
+                  <span>{post.locationText}</span>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Hero image — `full` only (BU-post-hero-demo / D064). In `compact`

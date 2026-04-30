@@ -84,33 +84,41 @@ const httpUrlSchema = z
   .optional();
 
 // BU-event-time / D073. Accept ISO strings (the typical FormData / JSON
-// shape) or Date instances (when called from server-side seed scripts).
-// `null` and empty strings round-trip to `undefined` so the schema's
-// `.optional()` semantics keep working from FormData where empty inputs
-// arrive as `''`.
+// shape), Date instances (when called from server-side seed / test
+// scripts), `null` (explicit clear on the edit surface), or
+// `undefined` (no value). The transform PRESERVES the `null vs
+// undefined` distinction:
+//
+//  - `undefined` → "field absent" → service skips it on update
+//  - `null`      → "explicit clear" → service writes NULL on update
+//  - empty string → undefined (round-trips empty FormData to absent)
+//  - ISO string / Date → parsed to a Date
+//
+// Invalid date strings produce an `Invalid Date` which the
+// downstream `.refine` rejects with a friendly message (rather than
+// throwing inside the transform, which Zod surfaces as an
+// unrecoverable system error).
 const eventDateTimeSchema = z
   .union([z.string(), z.date()])
   .nullable()
   .optional()
-  .transform((val): Date | undefined => {
-    if (val == null) return undefined;
+  .transform((val): Date | null | undefined => {
+    if (val === undefined) return undefined;
+    if (val === null) return null;
     if (val instanceof Date) return val;
     if (typeof val === 'string') {
       const trimmed = val.trim();
       if (trimmed === '') return undefined;
-      const d = new Date(trimmed);
-      if (isNaN(d.getTime())) {
-        throw new Error('invalid');
-      }
-      return d;
+      return new Date(trimmed);
     }
     return undefined;
   })
   .pipe(
     z
       .date()
+      .nullable()
       .optional()
-      .refine((d) => d === undefined || !isNaN(d.getTime()), {
+      .refine((d) => d === undefined || d === null || !isNaN(d.getTime()), {
         message: 'must be a valid date-time',
       }),
   );

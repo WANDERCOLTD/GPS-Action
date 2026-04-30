@@ -103,6 +103,10 @@ describe('listPosts', () => {
       signal: null,
       sharedToNetworkAt: null,
       groupTags: [],
+      // BU-event-time / D073
+      eventAt: null,
+      eventEndsAt: null,
+      locationText: null,
       createdAt: post.createdAt,
       author: {
         id: 'user-1',
