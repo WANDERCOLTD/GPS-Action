@@ -1,7 +1,9 @@
 /**
  * @build-unit BU-calendar-view
+ * @build-unit BU-month-nav
  * @spec architecture/decision-log.md (D036, D073)
  * @spec docs/build/session-briefs/bu-calendar-view.md
+ * @spec docs/build/session-briefs/bu-month-nav.md
  *
  * `/calendar` route — agenda + month surfaces for time-bearing posts.
  * Server component. Reads `?view=agenda|month` from the URL
@@ -14,15 +16,20 @@
  * as `/feed`. The query (`post.listUpcoming`) handles the filter
  * server-side.
  *
- * For the agenda view, `from` defaults to "today 00:00 Europe/London"
- * (set inside the service). For the month view, the page narrows the
- * window to the visible month so the grid only counts events that
- * actually fall inside it.
+ * Month-view anchor selection (BU-month-nav):
+ *  1. `?month=YYYY-MM` (valid) → anchor on first-of-that-month London.
+ *  2. Otherwise probe `listUpcoming({ from: today, limit: 1 })` and
+ *     anchor on the month containing that event's `eventAt`.
+ *  3. If no upcoming events at all → anchor on the current month.
+ *
+ * Prev/next month hrefs are computed here and passed into `MonthView`
+ * so the chevrons are plain server-rendered `<Link>`s (back button +
+ * shareable URL).
  */
 
 import { redirect } from 'next/navigation';
-import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
-import { endOfMonth } from 'date-fns';
+import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { addMonths, endOfMonth } from 'date-fns';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
@@ -37,7 +44,7 @@ export const metadata = {
 };
 
 interface CalendarPageProps {
-  searchParams: Promise<{ view?: string | string[] }>;
+  searchParams: Promise<{ view?: string | string[]; month?: string | string[] }>;
 }
 
 /** Wire-shape mapper: tRPC `listUpcoming` returns Date instances; the
@@ -68,19 +75,40 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
     redirect('/feed');
   }
 
-  const view: CalendarView = parseCalendarView((await searchParams).view);
+  const params = await searchParams;
+  const view: CalendarView = parseCalendarView(params.view);
   const now = new Date();
 
   const ctx = await createTRPCContext();
   const caller = createCaller(ctx);
 
   if (view === 'month') {
-    // Narrow the listUpcoming window to the visible month so the grid
-    // counts only events inside it. We anchor on "now" — prev/next
-    // month navigation is parking-lot for this BU.
-    const monthAnchor = monthStartLondonUtc(now);
-    const monthEnd = endOfMonth(monthAnchor);
-    const monthLabel = formatInTimeZone(now, EVENT_TIMEZONE, 'MMMM yyyy');
+    // Resolve the month anchor:
+    //  1. ?month=YYYY-MM (if valid) wins.
+    //  2. Else probe listUpcoming for the next event and anchor on
+    //     that event's month.
+    //  3. Else fall back to the current month.
+    const monthParam = parseMonthParam(params.month);
+    let monthAnchor: Date;
+    if (monthParam) {
+      monthAnchor = monthParam;
+    } else {
+      const probe = await caller.post.listUpcoming({
+        from: todayStartLondonUtc(now).toISOString(),
+        limit: 1,
+      });
+      const firstEvent = probe.posts[0];
+      monthAnchor = firstEvent?.eventAt
+        ? monthStartLondonUtc(firstEvent.eventAt as Date)
+        : monthStartLondonUtc(now);
+    }
+
+    // Compute the visible month's end TZ-safely. `endOfMonth` operates
+    // in local time, so project monthAnchor → London, take endOfMonth,
+    // project back to UTC. Mirrors MonthGrid.buildMonthGridDays.
+    const monthAnchorLondon = toZonedTime(monthAnchor, EVENT_TIMEZONE);
+    const monthEnd = fromZonedTime(endOfMonth(monthAnchorLondon), EVENT_TIMEZONE);
+    const monthLabel = formatInTimeZone(monthAnchor, EVENT_TIMEZONE, 'MMMM yyyy');
 
     const result = await caller.post.listUpcoming({
       from: monthAnchor.toISOString(),
@@ -88,6 +116,9 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
       limit: 50,
     });
     const posts: MonthPost[] = result.posts.map(toCalendarPost);
+
+    const prevMonthHref = `/calendar?view=month&month=${monthParamFor(monthAnchor, -1)}`;
+    const nextMonthHref = `/calendar?view=month&month=${monthParamFor(monthAnchor, 1)}`;
 
     return (
       <main style={mainStyle}>
@@ -97,6 +128,8 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
           now={now.toISOString()}
           monthAnchor={monthAnchor.toISOString()}
           monthLabel={monthLabel}
+          prevMonthHref={prevMonthHref}
+          nextMonthHref={nextMonthHref}
         />
       </main>
     );
@@ -124,10 +157,50 @@ const mainStyle = {
 };
 
 /**
- * UTC anchor for the first day of the visible month, in Europe/London.
- * Mirrors `todayStartLondonUtc` but for the start of the month.
+ * UTC anchor for the first day of the month containing `at`, in
+ * Europe/London. Mirrors `todayStartLondonUtc` but for the start of
+ * the month. Accepts any UTC `Date` (today, an event's `eventAt`, or
+ * a month-param string already converted) — we only read the
+ * London-local `yyyy-MM` from it.
  */
-function monthStartLondonUtc(now: Date): Date {
-  const monthStr = formatInTimeZone(now, EVENT_TIMEZONE, 'yyyy-MM');
+function monthStartLondonUtc(at: Date): Date {
+  const monthStr = formatInTimeZone(at, EVENT_TIMEZONE, 'yyyy-MM');
   return fromZonedTime(`${monthStr}-01T00:00:00`, EVENT_TIMEZONE);
+}
+
+/**
+ * Parse `?month=YYYY-MM`. Returns the UTC anchor for the first day
+ * of that month in Europe/London, or `null` for missing / malformed
+ * values. Strict on shape: month must be 01–12, year must be a
+ * 4-digit positive integer. Anything else (e.g. `2026-13`, `xyz`,
+ * an array) → null and the caller falls back to the smart default.
+ */
+function parseMonthParam(raw: string | string[] | undefined): Date | null {
+  if (raw === undefined) return null;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (!value) return null;
+  const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(value);
+  if (!match) return null;
+  const [, year, month] = match;
+  // Build the canonical first-of-month string and round-trip through
+  // fromZonedTime; if `date-fns-tz` rejects it, treat as invalid.
+  const local = `${year}-${month}-01T00:00:00`;
+  let utc: Date;
+  try {
+    utc = fromZonedTime(local, EVENT_TIMEZONE);
+  } catch {
+    return null;
+  }
+  return Number.isNaN(utc.getTime()) ? null : utc;
+}
+
+/**
+ * Compute the `month=` query value (`YYYY-MM`) for the month at
+ * `offset` months from `monthAnchor`, expressed in Europe/London.
+ * `offset` is signed: -1 = previous month, +1 = next month.
+ */
+function monthParamFor(monthAnchor: Date, offset: number): string {
+  const anchorLondon = toZonedTime(monthAnchor, EVENT_TIMEZONE);
+  const target = addMonths(anchorLondon, offset);
+  return formatInTimeZone(fromZonedTime(target, EVENT_TIMEZONE), EVENT_TIMEZONE, 'yyyy-MM');
 }

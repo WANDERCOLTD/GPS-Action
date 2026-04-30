@@ -95,6 +95,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-event-time** — BU-event-time | ✅ Merged | #150 |
 | **bu-calendar-view** — BU-calendar-view | ✅ Merged | #151 |
 | **bu-icon-nav** — BU-icon-nav | ✅ Merged | #152 |
+| **bu-month-nav** — BU-month-nav | ✅ Merged | #153 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |

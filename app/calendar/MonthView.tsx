@@ -36,6 +36,8 @@
 
 import * as React from 'react';
 import type { CSSProperties } from 'react';
+import Link from 'next/link';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { MonthGrid, type MonthGridDay } from './MonthGrid';
 import { CalendarRow, type CalendarRowPost } from './CalendarRow';
@@ -51,6 +53,10 @@ interface MonthViewProps {
   monthAnchor: string; // ISO 8601
   /** Human-friendly month label, pre-formatted server-side: "May 2026". */
   monthLabel: string;
+  /** BU-month-nav: URL for the previous month chevron. Omit to hide it. */
+  prevMonthHref?: string;
+  /** BU-month-nav: URL for the next month chevron. Omit to hide it. */
+  nextMonthHref?: string;
 }
 
 const panelStyle: CSSProperties = {
@@ -69,12 +75,45 @@ const panelHeaderStyle: CSSProperties = {
   marginBottom: 'var(--space-3)',
 };
 
+const monthHeaderRowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 'var(--space-2)',
+  marginBottom: 'var(--space-3)',
+};
+
 const monthLabelStyle: CSSProperties = {
   fontSize: 'var(--text-base)',
   fontWeight: 'var(--weight-semibold)',
   color: 'var(--colour-text-primary)',
   margin: 0,
-  marginBottom: 'var(--space-3)',
+  textAlign: 'center',
+  flex: '1 1 auto',
+};
+
+// Chevron buttons keep the visual mass minimal — small touch target,
+// no fill, no border. Same idiom as the month-label heading. The
+// chevron icon itself carries the affordance.
+const chevronLinkStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 32,
+  height: 32,
+  borderRadius: 'var(--radius-sm)',
+  color: 'var(--colour-text-secondary)',
+  textDecoration: 'none',
+  flex: '0 0 auto',
+};
+
+// Spacer used when one of the chevrons is missing so the heading
+// stays centred. Same width as a chevron link.
+const chevronSpacerStyle: CSSProperties = {
+  display: 'inline-block',
+  width: 32,
+  height: 32,
+  flex: '0 0 auto',
 };
 
 const emptyPanelStyle: CSSProperties = {
@@ -94,6 +133,10 @@ interface MonthViewBodyProps {
   monthLabel: string;
   selectedDayKey: string;
   onSelectDay: (day: MonthGridDay) => void;
+  /** BU-month-nav: URL for the previous month chevron. Omit to hide it. */
+  prevMonthHref?: string;
+  /** BU-month-nav: URL for the next month chevron. Omit to hide it. */
+  nextMonthHref?: string;
 }
 
 /**
@@ -108,6 +151,8 @@ export function MonthViewBody({
   monthLabel,
   selectedDayKey,
   onSelectDay,
+  prevMonthHref,
+  nextMonthHref,
 }: MonthViewBodyProps) {
   const postsByDayKey = new Map<string, MonthPost[]>();
   for (const p of posts) {
@@ -137,9 +182,35 @@ export function MonthViewBody({
 
   return (
     <section data-testid="calendar-month-view">
-      <h2 data-testid="calendar-month-label" style={monthLabelStyle}>
-        {monthLabel}
-      </h2>
+      <div style={monthHeaderRowStyle}>
+        {prevMonthHref ? (
+          <Link
+            href={prevMonthHref}
+            aria-label="Previous month"
+            data-testid="calendar-month-prev-link"
+            style={chevronLinkStyle}
+          >
+            <ChevronLeft size={20} aria-hidden="true" />
+          </Link>
+        ) : (
+          <span aria-hidden="true" style={chevronSpacerStyle} />
+        )}
+        <h2 data-testid="calendar-month-label" style={monthLabelStyle}>
+          {monthLabel}
+        </h2>
+        {nextMonthHref ? (
+          <Link
+            href={nextMonthHref}
+            aria-label="Next month"
+            data-testid="calendar-month-next-link"
+            style={chevronLinkStyle}
+          >
+            <ChevronRight size={20} aria-hidden="true" />
+          </Link>
+        ) : (
+          <span aria-hidden="true" style={chevronSpacerStyle} />
+        )}
+      </div>
       <MonthGrid
         monthAnchorUtc={monthAnchor}
         now={now}
@@ -176,12 +247,30 @@ export function MonthViewBody({
   );
 }
 
-export function MonthView({ posts, now, monthAnchor, monthLabel }: MonthViewProps) {
+export function MonthView({
+  posts,
+  now,
+  monthAnchor,
+  monthLabel,
+  prevMonthHref,
+  nextMonthHref,
+}: MonthViewProps) {
   const nowDate = new Date(now);
   const monthAnchorDate = new Date(monthAnchor);
+  // BU-month-nav: default selection now depends on whether we're
+  // viewing the month containing today. If we are, today is the
+  // natural anchor (preserves bu-calendar-view behaviour). If we're
+  // not — because the smart-default landed on a future month, or the
+  // user navigated via chevrons / `?month=` — the first day of the
+  // visible month is the natural anchor (per bu-calendar-view brief
+  // Q3, deferred to here).
   const todayKey = formatInTimeZone(nowDate, EVENT_TIMEZONE, 'yyyy-MM-dd');
+  const monthAnchorKey = formatInTimeZone(monthAnchorDate, EVENT_TIMEZONE, 'yyyy-MM-dd');
+  const todayMonthKey = todayKey.slice(0, 7);
+  const visibleMonthKey = monthAnchorKey.slice(0, 7);
+  const initialDayKey = todayMonthKey === visibleMonthKey ? todayKey : monthAnchorKey;
 
-  const [selectedDayKey, setSelectedDayKey] = React.useState<string>(todayKey);
+  const [selectedDayKey, setSelectedDayKey] = React.useState<string>(initialDayKey);
 
   return (
     <MonthViewBody
@@ -191,6 +280,8 @@ export function MonthView({ posts, now, monthAnchor, monthLabel }: MonthViewProp
       monthLabel={monthLabel}
       selectedDayKey={selectedDayKey}
       onSelectDay={(day) => setSelectedDayKey(day.dayKey)}
+      prevMonthHref={prevMonthHref}
+      nextMonthHref={nextMonthHref}
     />
   );
 }
