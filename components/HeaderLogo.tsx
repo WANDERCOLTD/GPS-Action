@@ -2,7 +2,8 @@
  * @build-unit BU-sticky-nav
  * @spec architecture/decision-log.md (D065)
  *
- * GPS Action brand mark in the sticky header. Clickable, routes to /feed.
+ * GPS Action brand mark in the sticky header. Clickable, routes to
+ * /capabilities (the SRS showcase landing page).
  *
  * Three SVG layers, two colours:
  *   1. Brand-colour tile (rounded square)
@@ -23,9 +24,9 @@ const MARK = 'var(--colour-primary-contrast)';
 export function HeaderLogo() {
   return (
     <Link
-      href="/feed"
+      href="/capabilities"
       data-testid="nav-header-logo"
-      aria-label="GPS Action — go to feed"
+      aria-label="GPS Action — capabilities overview"
       style={{
         display: 'inline-flex',
         alignItems: 'center',

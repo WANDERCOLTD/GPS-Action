@@ -19,6 +19,7 @@
     "alert",
     "data",
     "settings",
-    "intent"
+    "intent",
+    "capabilities"
   ]
 }
