@@ -551,6 +551,8 @@ export async function listUpcoming(input: ListUpcomingInput): Promise<{ posts: P
         },
       },
       kind: { select: { slug: true, displayName: true, isAlertEligible: true } },
+      // D072 — reviewer profile for the three-tier attribution badge.
+      reviewedBy: { select: { id: true, displayName: true, avatarUrl: true } },
     },
   });
 
@@ -591,6 +593,14 @@ export async function listUpcoming(input: ListUpcomingInput): Promise<{ posts: P
     },
     reactions: reactionsByPost.get(post.id) ?? [],
     commentCount: commentCountsByPost.get(post.id) ?? 0,
+    reviewedByUserId: post.reviewedByUserId,
+    reviewedBy: post.reviewedBy
+      ? {
+          id: post.reviewedBy.id,
+          displayName: post.reviewedBy.displayName,
+          avatarUrl: post.reviewedBy.avatarUrl,
+        }
+      : null,
   }));
 
   return { posts: mapped };
