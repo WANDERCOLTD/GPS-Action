@@ -52,17 +52,20 @@ describe('FeedFilterChips', () => {
     }
   });
 
-  it('marks only the active chip with gps-chip--active and aria-current', () => {
+  it('marks only the active chip with its tone modifier and aria-current', () => {
+    // BU-feed-card-affordances — active state mirrors the kind palette of
+    // the posts the filter surfaces. `urgent` filter → urgent palette.
     const tree = FeedFilterChips({ active: 'urgent' }) as AnyElement;
     for (const filter of FEED_FILTERS) {
       const chip = findByTestId(tree, `feed-filter-${filter}`);
       const className = chip?.props.className as string | undefined;
       const ariaCurrent = chip?.props['aria-current'];
       if (filter === 'urgent') {
-        expect(className).toContain('gps-chip--active');
+        expect(className).toContain('gps-chip--urgent');
         expect(ariaCurrent).toBe('page');
       } else {
-        expect(className).not.toContain('gps-chip--active');
+        // Non-active chips never carry a tone modifier.
+        expect(className).toBe('gps-chip');
         expect(ariaCurrent).toBeUndefined();
       }
     }

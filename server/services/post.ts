@@ -132,6 +132,7 @@ function filterToWhere(filter: FeedFilter | undefined): Record<string, unknown> 
       return {};
     case 'urgent':
       return { urgency: true };
+    case 'tick_or_cross':
     case 'happening_now':
     case 'meeting':
     case 'event':

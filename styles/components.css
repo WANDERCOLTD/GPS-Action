@@ -259,6 +259,15 @@
   color: var(--colour-primary);
 }
 
+/* Filter chip — neutral active palette for the "All" selector. Solid
+   surface so it reads as "I am the current selector" without leaning on
+   a tonal accent. */
+.gps-chip--neutral {
+  background: var(--colour-surface-raised);
+  color: var(--colour-text-primary);
+  border-color: var(--colour-border-strong);
+}
+
 .gps-chip--static {
   cursor: default;
 }

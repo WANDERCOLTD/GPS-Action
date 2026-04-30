@@ -15,7 +15,12 @@
 import * as React from 'react';
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
-import { FEED_FILTERS, FEED_FILTER_LABELS, type FeedFilter } from '@/shared/feed-filters';
+import {
+  FEED_FILTERS,
+  FEED_FILTER_LABELS,
+  FEED_FILTER_TONES,
+  type FeedFilter,
+} from '@/shared/feed-filters';
 
 interface FeedFilterChipsProps {
   active: FeedFilter;
@@ -51,14 +56,21 @@ export function FeedFilterChips({ active }: FeedFilterChipsProps) {
         {FEED_FILTERS.map((filter) => {
           const isActive = filter === active;
           const href = filter === 'all' ? '/feed' : `/feed?filter=${filter}`;
+          // Active chip mirrors the kind chip on the posts it surfaces:
+          // urgent / Now → urgent palette, meeting / event → info,
+          // tick_or_cross → primary, all → neutral. Inactive chips fall
+          // back to the default ghost.
+          const tone = FEED_FILTER_TONES[filter];
+          const className = isActive ? `gps-chip gps-chip--${tone}` : 'gps-chip';
           return (
             <Link
               key={filter}
               href={href}
               prefetch={false}
               data-testid={`feed-filter-${filter}`}
+              data-tone={tone}
               aria-current={isActive ? 'page' : undefined}
-              className={isActive ? 'gps-chip gps-chip--active' : 'gps-chip'}
+              className={className}
             >
               {FEED_FILTER_LABELS[filter]}
             </Link>
