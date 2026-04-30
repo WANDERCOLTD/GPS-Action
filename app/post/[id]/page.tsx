@@ -39,6 +39,7 @@ import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 import { PostShareGroup } from '@/components/PostShareGroup';
 import { formatEventRange } from '@/shared/format-event-time';
 import { ReviewedByBadge } from '@/components/ReviewedByBadge';
+import { AvatarBubble, KindChip, SignalBadgeRow, formatRole } from '@/components/post-meta';
 import {
   addCommentAction,
   addReactionToCommentAction,
@@ -196,11 +197,31 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
         )}
       </div>
 
-      {/* Post — anchored near the top per SCN-20 */}
+      {/* Post — anchored near the top per SCN-20. Header mirrors the
+      feed card byline (avatar · name · role chips · timestamp · reviewed-
+      by badge) so a member arriving via direct link sees the same
+      author affordances they'd see on /feed. */}
       <article className="gps-card">
         <div className="gps-card__header">
+          <AvatarBubble displayName={post.author.displayName} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <strong style={{ fontSize: 'var(--text-sm)' }}>{post.author.displayName}</strong>
+            <div className="gps-row gps-row--tight" style={{ flexWrap: 'wrap' }}>
+              <strong style={{ fontSize: 'var(--text-sm)' }}>{post.author.displayName}</strong>
+              {(post.author.roles as string[]).map((role) => (
+                <span key={role} className="gps-chip gps-chip--static gps-chip--info">
+                  {formatRole(role)}
+                </span>
+              ))}
+              {post.reviewedBy && (
+                <ReviewedByBadge
+                  postId={post.id}
+                  reviewerId={post.reviewedBy.id}
+                  reviewerDisplayName={post.reviewedBy.displayName}
+                  reviewerAvatarUrl={post.reviewedBy.avatarUrl}
+                  size={22}
+                />
+              )}
+            </div>
             <time
               className="gps-meta"
               dateTime={new Date(post.createdAt).toISOString()}
@@ -213,22 +234,12 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
               <div
                 data-testid="post-detail-reviewed-by"
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  marginTop: 'var(--space-2)',
+                  marginTop: 'var(--space-1)',
                   fontSize: 'var(--text-xs)',
                   color: 'var(--colour-text-secondary)',
                 }}
               >
-                <ReviewedByBadge
-                  postId={post.id}
-                  reviewerId={post.reviewedBy.id}
-                  reviewerDisplayName={post.reviewedBy.displayName}
-                  reviewerAvatarUrl={post.reviewedBy.avatarUrl}
-                  size={22}
-                />
-                <span>Reviewed by {post.reviewedBy.displayName}</span>
+                Reviewed by {post.reviewedBy.displayName}
               </div>
             )}
           </div>
@@ -315,12 +326,26 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
         {/* Primary CTA — top of content (D060 §3a / D066-proposed). */}
         {primaryCta}
 
+        {/* Signal row for tick_or_cross posts (BU-tick-or-cross / D069).
+        Same component the feed card uses, kept consistent across
+        surfaces so the ✅/❌ badge anchors before the title. */}
+        {post.signal && (
+          <SignalBadgeRow
+            signal={post.signal}
+            sharedToNetworkAt={
+              post.sharedToNetworkAt instanceof Date
+                ? post.sharedToNetworkAt.toISOString()
+                : (post.sharedToNetworkAt ?? null)
+            }
+          />
+        )}
+
         {/* Hero image (BU-post-hero-demo / D064). Larger than card; hero
         wins over linkImageUrl for the top-of-detail slot. */}
         {post.heroImageUrl && (
           <img
             src={post.heroImageUrl}
-            alt=""
+            alt={post.title}
             loading="lazy"
             data-testid="post-detail-hero-image"
             style={{
@@ -334,7 +359,10 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
           />
         )}
 
+        {/* Title with inline kind chip (Reddit-flair pattern, mirrors
+        feed card). */}
         <h1 className="gps-title" style={{ marginBottom: 'var(--space-3)' }}>
+          <KindChip kindSlug={post.kindSlug} urgency={post.urgency} />
           {post.title}
         </h1>
 
