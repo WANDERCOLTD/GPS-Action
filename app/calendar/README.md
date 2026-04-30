@@ -1,6 +1,6 @@
 # `app/calendar` — Calendar tab
 
-**Build Unit:** BU-calendar-view (D073)
+**Build Units:** BU-calendar-view (D073), BU-month-nav
 **Status:** ships behind the `calendar_enabled` feature flag.
 
 ## What lives here
@@ -20,9 +20,34 @@
 - `/calendar` → agenda (default)
 - `/calendar?view=agenda` → agenda (explicit)
 - `/calendar?view=month` → month grid + day panel
+- `/calendar?view=month&month=YYYY-MM` → month grid pinned to that month
 
 Unknown / missing `view` falls back to `agenda`. Back-button preserves
 state because each chip is a plain `<Link>`.
+
+### Month anchor (BU-month-nav)
+
+When `?view=month` is active and no `?month=YYYY-MM` is supplied, the
+page picks the anchor month with this fallback chain:
+
+1. **Next upcoming event.** Probe `listUpcoming({ from: today, limit: 1 })`
+   and anchor on the month containing the result's `eventAt`.
+2. **Current month.** When the probe is empty, anchor on the current
+   Europe/London month.
+
+Invalid `?month=` values (e.g. `2026-13`, `xyz`, `06-2026`) fall through
+to the same fallback chain. The accepted shape is strictly `YYYY-MM`
+with `MM` in `01..12`.
+
+### Prev/next month chevrons (BU-month-nav)
+
+`MonthView` renders `ChevronLeft` / `ChevronRight` `<Link>` buttons
+flanking the month-label heading. Each updates the URL to
+`?view=month&month=<adjacent-month>`, so back-button + share-this-URL
+both work. Testids: `calendar-month-prev-link`,
+`calendar-month-next-link`. Aria-labels: `Previous month`, `Next
+month`. There is no past or future cap — the agenda enforces "today
+onwards", but the month grid is freely navigable in both directions.
 
 ## Visibility + flag rules
 
@@ -46,7 +71,8 @@ No calendar-specific refresh control was added.
 
 ## Out of scope (parking-lot for follow-up BUs)
 
-- Prev/next month navigation (chevrons + first-day-of-month default selection per brief Q3).
+- Year-jump / month picker dropdown.
+- Keyboard shortcuts for prev/next.
 - Week view / hour grid.
 - Recurring events, all-day flag, iCal export, reminders.
 - Inline editing from the calendar surface — `/post/[id]/edit` is the path.
