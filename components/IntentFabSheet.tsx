@@ -130,13 +130,17 @@ export function IntentFabSheet({ open, onClose }: IntentFabSheetProps): ReactEle
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Paste a link or start typing…"
+              placeholder={
+                clipboardSupported
+                  ? 'Paste a link or start typing…'
+                  : 'Tap and hold to paste, or start typing…'
+              }
               rows={3}
               data-testid="intent-fab-input"
               style={textareaStyle}
             />
 
-            {clipboardSupported ? (
+            {clipboardSupported && (
               <div style={pasteRowStyle}>
                 <button
                   type="button"
@@ -154,10 +158,6 @@ export function IntentFabSheet({ open, onClose }: IntentFabSheetProps): ReactEle
                   </span>
                 ) : null}
               </div>
-            ) : (
-              <p style={pasteHintStyle} data-testid="intent-fab-paste-hint">
-                Tip: tap and hold the field above to paste.
-              </p>
             )}
 
             <p
@@ -286,13 +286,6 @@ const pasteButtonStyle: CSSProperties = {
 const pasteNoteStyle: CSSProperties = {
   fontSize: 'var(--text-xs)',
   color: 'var(--colour-text-secondary)',
-};
-
-const pasteHintStyle: CSSProperties = {
-  margin: 0,
-  fontSize: 'var(--text-xs)',
-  color: 'var(--colour-text-secondary)',
-  fontStyle: 'italic',
 };
 
 const hintStyle: CSSProperties = {

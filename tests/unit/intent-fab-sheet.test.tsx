@@ -124,15 +124,18 @@ describe('IntentFabSheet', () => {
     expect(findByTestId(tree, 'intent-fab-paste')).toBeUndefined();
   });
 
-  it('shows a paste hint when clipboardSupported is false', () => {
+  it('textarea placeholder includes the long-press hint when clipboardSupported is false', () => {
     const tree = render({ open: true, onClose: () => {} });
-    expect(findByTestId(tree, 'intent-fab-paste-hint')).toBeDefined();
+    const input = findByTestId(tree, 'intent-fab-input');
+    expect(input?.props.placeholder).toMatch(/tap and hold/i);
   });
 
-  it('does not show the paste hint when clipboardSupported is true', () => {
+  it('textarea placeholder is plain when clipboardSupported is true', () => {
     stateSlots[2] = true;
     const tree = render({ open: true, onClose: () => {} });
-    expect(findByTestId(tree, 'intent-fab-paste-hint')).toBeUndefined();
+    const input = findByTestId(tree, 'intent-fab-input');
+    expect(input?.props.placeholder).not.toMatch(/tap and hold/i);
+    expect(input?.props.placeholder).toMatch(/paste a link/i);
   });
 
   it('renders enabled and disabled tiles distinctly', () => {
