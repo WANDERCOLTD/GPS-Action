@@ -158,7 +158,7 @@ composer / edit surface drive the UX nudge.
   `docs/product/feature-flag-register.md` for **bu-calendar-view** to
   consume. This BU's composer / PostCard / edit changes are NOT
   gated behind it — they are evergreen improvements.
-- See decision-log entry **D072** (this PR) for the cross-reference.
+- See decision-log entry **D073** (this PR) for the cross-reference.
 
 ## Related
 
