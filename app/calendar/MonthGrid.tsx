@@ -35,7 +35,7 @@ import {
   isBefore,
   isAfter,
 } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { EVENT_TIMEZONE } from '@/shared/format-event-time';
 
 export interface MonthGridDay {
@@ -135,11 +135,20 @@ export function buildMonthGridDays(
   now: Date,
   eventCountByDayKey: ReadonlyMap<string, number>,
 ): MonthGridDay[] {
-  const monthStart = startOfMonth(monthAnchorUtc);
-  const monthEnd = endOfMonth(monthAnchorUtc);
+  // Compute month + week boundaries in Europe/London regardless of host
+  // TZ. date-fns's startOfMonth/Week operate in local time, so we project
+  // monthAnchorUtc into a London-clocked Date, do the math, then project
+  // back to UTC. This keeps tests deterministic when CI runs in UTC.
+  const monthAnchorLondon = toZonedTime(monthAnchorUtc, EVENT_TIMEZONE);
+  const monthStartLondon = startOfMonth(monthAnchorLondon);
+  const monthEndLondon = endOfMonth(monthAnchorLondon);
   // weekStartsOn: 1 = Monday.
-  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const gridStartLondon = startOfWeek(monthStartLondon, { weekStartsOn: 1 });
+  const gridEndLondon = endOfWeek(monthEndLondon, { weekStartsOn: 1 });
+  const monthStart = fromZonedTime(monthStartLondon, EVENT_TIMEZONE);
+  const monthEnd = fromZonedTime(monthEndLondon, EVENT_TIMEZONE);
+  const gridStart = fromZonedTime(gridStartLondon, EVENT_TIMEZONE);
+  const gridEnd = fromZonedTime(gridEndLondon, EVENT_TIMEZONE);
 
   const todayKey = formatInTimeZone(now, EVENT_TIMEZONE, 'yyyy-MM-dd');
   const days: MonthGridDay[] = [];
