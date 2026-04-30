@@ -54,6 +54,9 @@ function makePost(overrides: Record<string, unknown> = {}) {
     signal: null,
     sharedToNetworkAt: null,
     groupTags: [],
+    eventAt: null,
+    eventEndsAt: null,
+    locationText: null,
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
@@ -100,6 +103,10 @@ describe('listPosts', () => {
       signal: null,
       sharedToNetworkAt: null,
       groupTags: [],
+      // BU-event-time / D073
+      eventAt: null,
+      eventEndsAt: null,
+      locationText: null,
       createdAt: post.createdAt,
       author: {
         id: 'user-1',

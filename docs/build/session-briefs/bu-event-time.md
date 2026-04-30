@@ -1,8 +1,9 @@
 ---
 slug: bu-event-time
-status: planned
+status: shipped
 phase: 2
 priority: high
+shipped_in: "#150"
 note: "Prerequisite for bu-calendar-view. Independently shippable: enriches /feed Meeting/Event cards with absolute date+time even before the calendar tab lands. Split from bu-calendar on 2026-04-30."
 ---
 

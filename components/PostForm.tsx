@@ -1,14 +1,15 @@
 'use client';
 
 /**
- * @build-unit BU-composer BU-link-share BU-fab-intent-picker BU-am-link-collapse BU-post-hero-demo BU-tick-or-cross
+ * @build-unit BU-composer BU-link-share BU-fab-intent-picker BU-am-link-collapse BU-post-hero-demo BU-tick-or-cross BU-event-time
  * @spec product/design-philosophy.md
  * @spec architecture/api-contract.md
- * @spec architecture/decision-log.md (D060, D062, D064, D069)
+ * @spec architecture/decision-log.md (D060, D062, D064, D069, D073)
  * @spec product/scenarios.md (SCN-19)
  * @spec build/session-briefs/bu-am-link-collapse.md
  * @spec build/session-briefs/bu-post-hero-demo.md
  * @spec build/session-briefs/bu-tick-or-cross.md
+ * @spec docs/adrs/0001-post-event-time-fields.md
  *
  * Post creation form. Client component — manages form state, calls
  * the createPostAction server action on submit.
@@ -30,6 +31,13 @@
  * until a choice is made. Submit appends `signal` to FormData. The
  * post-publish handoff modal is mounted by the page on success
  * (compose/page.tsx), not by this form.
+ *
+ * BU-event-time / D073: when the active kind is time-bearing per
+ * `kindIsTimeBearing` (meeting / event / happening_now), an
+ * <EventFieldsBlock /> renders between the body and the share-link
+ * toggle, with start date+time, optional end date+time, and an
+ * optional location. The composer's server action assembles UTC
+ * Dates from the FormData strings via shared/format-event-time.
  */
 
 import { useState, useTransition, type CSSProperties, type ReactNode } from 'react';
@@ -48,9 +56,15 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { CreatePostResult } from '@/app/compose/actions';
+import { kindIsTimeBearing } from '@/shared/post-kinds';
 import { HeroImagePicker } from './HeroImagePicker';
 import { KindPickerSheet, TILES, type Tile } from './KindPickerSheet';
 import { SendToNetworkConfirm } from './SendToNetworkConfirm';
+import {
+  EventFieldsBlock,
+  EMPTY_EVENT_FIELDS_STATE,
+  type EventFieldsState,
+} from './EventFieldsBlock';
 
 export interface KindMapEntry {
   id: string;
@@ -165,7 +179,6 @@ const INTENT_META: Record<string, IntentMeta> = {
     bannerHeading: 'Event',
     bannerBody: 'When, where, who is hosting.',
     submitLabel: 'Post event',
-    hint: 'Date and time fields are coming. For now, write date / time / location in the body.',
     titlePlaceholder: 'e.g. Saturday morning vigil — Cheddar Road',
     bodyPlaceholder: 'When, where, who is hosting.',
   },
@@ -175,7 +188,6 @@ const INTENT_META: Record<string, IntentMeta> = {
     bannerHeading: 'Meeting',
     bannerBody: 'Group meeting — who, when, what we will cover.',
     submitLabel: 'Post meeting',
-    hint: 'Date and join-link fields are coming. For now, write date / time / link in the body.',
     titlePlaceholder: 'e.g. Writers group — Sunday 19:00',
     bodyPlaceholder: 'Who, when, what we will cover.',
   },
@@ -251,10 +263,15 @@ export function PostForm({
   // BU-tick-or-cross (D069): author's ✅/❌ choice. Required iff the
   // active kind is `tick_or_cross`; cleared on intent switch.
   const [signal, setSignal] = useState<'promote' | 'remove' | null>(null);
+  // BU-event-time (D073): event-field state lives here so values
+  // survive kind toggles. The block renders only when the active
+  // kind is time-bearing per kindIsTimeBearing.
+  const [eventFields, setEventFields] = useState<EventFieldsState>(EMPTY_EVENT_FIELDS_STATE);
 
   const resolvedKindId = selectedKind ? kindMap[selectedKind]?.id : undefined;
   const activeKindSlug = isUndecided ? selectedKind : currentIntent;
   const isTickOrCross = activeKindSlug === 'tick_or_cross';
+  const isTimeBearing = kindIsTimeBearing(activeKindSlug ?? null);
   const submitDisabled = isPending || (isTickOrCross && signal === null);
 
   function handleIntentSwitch(slug: string): void {
@@ -454,6 +471,23 @@ export function PostForm({
           </p>
         )}
       </div>
+
+      {/* BU-event-time / D073 — date+time + location pickers. Renders
+          when the active kind is time-bearing (meeting / event /
+          happening_now per shared/post-kinds.kindIsTimeBearing). State
+          lives in PostForm so values survive kind toggles per
+          Sharon-warmth. */}
+      {isTimeBearing && (
+        <EventFieldsBlock
+          value={eventFields}
+          onChange={setEventFields}
+          errors={{
+            eventAt: errors['eventAt'],
+            eventEndsAt: errors['eventEndsAt'],
+            locationText: errors['locationText'],
+          }}
+        />
+      )}
 
       {/* Hero image picker (BU-post-hero-demo / D064) — demo-only path,
           seeded URLs only. Hidden input passes the value to FormData. */}

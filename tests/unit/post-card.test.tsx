@@ -71,6 +71,10 @@ const basePost = {
   heroImageUrl: 'https://example.com/hero.jpg',
   signal: null,
   sharedToNetworkAt: null,
+  // BU-event-time / D073 — defaults: not a time-bearing post.
+  eventAt: null,
+  eventEndsAt: null,
+  locationText: null,
   createdAt: '2026-04-28T11:00:00.000Z',
   author: { displayName: 'Sharon', roles: [] },
   reactions: [],
@@ -194,6 +198,55 @@ describe('PostCard variant', () => {
         expect(pushSpy).toHaveBeenCalledTimes(1);
         expect(pushSpy).toHaveBeenCalledWith('/post/post-1');
       }
+    });
+  });
+
+  // BU-event-time / D073 — absolute date+time row above the title.
+  describe('event-time row', () => {
+    it('does NOT render when eventAt is null', () => {
+      const tree = renderCard();
+      expect(findByTestId(tree, 'post-card-event-time')).toBeUndefined();
+    });
+
+    it('renders an absolute date+time row when eventAt is set', () => {
+      // 2026-05-03 18:00 Europe/London (BST → UTC+1) → 17:00 UTC
+      const tree = renderCard({
+        post: {
+          eventAt: '2026-05-03T17:00:00.000Z',
+          eventEndsAt: null,
+          locationText: null,
+        },
+      });
+      const row = findByTestId(tree, 'post-card-event-time');
+      expect(row).toBeDefined();
+      expect(row?.props['data-event-at']).toBe('2026-05-03T17:00:00.000Z');
+    });
+
+    it('renders the locationText line when set', () => {
+      const tree = renderCard({
+        post: {
+          eventAt: '2026-05-03T17:00:00.000Z',
+          eventEndsAt: null,
+          locationText: 'Albert Square, Manchester',
+        },
+      });
+      const loc = findByTestId(tree, 'post-card-event-location');
+      expect(loc).toBeDefined();
+      const text = flatChildren(loc!)
+        .map((e) => (typeof e.props.children === 'string' ? e.props.children : ''))
+        .join(' ');
+      expect(text).toContain('Albert Square, Manchester');
+    });
+
+    it('omits the location line when locationText is null or empty', () => {
+      const tree = renderCard({
+        post: {
+          eventAt: '2026-05-03T17:00:00.000Z',
+          eventEndsAt: null,
+          locationText: '',
+        },
+      });
+      expect(findByTestId(tree, 'post-card-event-location')).toBeUndefined();
     });
   });
 });

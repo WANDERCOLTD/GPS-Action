@@ -79,6 +79,10 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       heroImageUrl: p.heroImageUrl,
       signal: p.signal,
       sharedToNetworkAt: p.sharedToNetworkAt ? p.sharedToNetworkAt.toISOString() : null,
+      // BU-event-time / D073 — UTC ISO at the wire boundary.
+      eventAt: p.eventAt ? p.eventAt.toISOString() : null,
+      eventEndsAt: p.eventEndsAt ? p.eventEndsAt.toISOString() : null,
+      locationText: p.locationText,
       createdAt: p.createdAt.toISOString(),
       author: {
         displayName: p.author.displayName,
