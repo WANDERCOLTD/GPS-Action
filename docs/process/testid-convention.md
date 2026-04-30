@@ -66,6 +66,7 @@ The first segment must come from this approved list:
 | `settings`     | Settings landing + admin sections (BU-requests-foundation, future BUs)                                          |
 | `intent`       | FAB intent picker — single FAB + tile grid (BU-fab-intent-picker — D044, D062)                                  |
 | `capabilities` | SRS capabilities mockup at `/capabilities` — static showcase tiles (`app/capabilities/`)                        |
+| `calendar`     | Calendar tab — agenda view, month grid, day panel (BU-calendar-view — D073)                                     |
 
 To add a new area:
 

@@ -1,6 +1,6 @@
 /**
- * @build-unit BU-000-scaffold BU-001-lite BU-error-boundary BU-versioning BU-sticky-nav
- * @spec architecture/decision-log.md (D003, D065)
+ * @build-unit BU-000-scaffold BU-001-lite BU-error-boundary BU-versioning BU-sticky-nav BU-calendar-view
+ * @spec architecture/decision-log.md (D003, D065, D073)
  * @spec docs/build/phase-0-foundations.md
  * @spec docs/process/versioning.md
  *
@@ -30,6 +30,7 @@ import { VersionBadge } from '@/components/VersionBadge';
 import { DemoBanner } from '@/components/DemoBanner';
 import { createTRPCContext } from '@/server/routers/context';
 import { countUnreadForUser } from '@/server/services/notification';
+import { isFeatureEnabled } from '@/server/services/flags';
 import { isDemoMode } from '@/shared/demo-mode';
 
 export const metadata = {
@@ -80,7 +81,11 @@ function RootErrorFallback() {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const ctx = await createTRPCContext();
 
-  const unreadNotificationCount = ctx.user ? await countUnreadForUser(ctx.user.id) : 0;
+  const [unreadNotificationCount, calendarEnabled] = await Promise.all([
+    ctx.user ? countUnreadForUser(ctx.user.id) : Promise.resolve(0),
+    // BU-calendar-view / D073 — Calendar tab gated by `calendar_enabled`.
+    isFeatureEnabled('calendar_enabled'),
+  ]);
 
   // The sticky header is suppressed entirely when there is genuinely
   // nothing to render in it — production with no user (LoggedInAs is a
@@ -114,7 +119,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 }}
               >
                 <HeaderLogo />
-                <AppNav unreadNotificationCount={unreadNotificationCount} />
+                <AppNav
+                  unreadNotificationCount={unreadNotificationCount}
+                  calendarEnabled={calendarEnabled}
+                />
                 <HeaderRefreshButton />
               </div>
             )}

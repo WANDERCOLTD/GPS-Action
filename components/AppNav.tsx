@@ -1,15 +1,20 @@
 'use client';
 
 /**
- * @build-unit BU-requests-foundation BU-sticky-nav
- * @spec architecture/decision-log.md (D054, D061, D065)
+ * @build-unit BU-requests-foundation BU-sticky-nav BU-calendar-view
+ * @spec architecture/decision-log.md (D054, D061, D065, D073)
  * @spec architecture/admin-surface.md
  *
  * Top-level horizontal navigation strip. Rendered once by the root
  * layout inside the sticky `<header>`. Active link is derived from
  * `usePathname()` rather than a per-page `active` prop (D065).
  *
- *   Feed | Requests | Data | Settings
+ *   Feed | Calendar? | Requests | Data | Settings
+ *
+ * The Calendar tab is gated by the `calendar_enabled` feature flag
+ * (BU-calendar-view / D073). The flag is resolved in the layout (server
+ * component) and passed down so this client component never reads from
+ * the database.
  *
  * Per D061 every link is an explicit interactive element with a
  * canonical testid (F14 'nav' area). All testids preserved verbatim
@@ -24,13 +29,16 @@ import { usePathname } from 'next/navigation';
 interface AppNavProps {
   /** Unread Notification count (BU-requests-vetting / D057). Renders a red dot when > 0. */
   unreadNotificationCount?: number;
+  /** BU-calendar-view / D073: when true, renders the Calendar tab between Feed and Requests. */
+  calendarEnabled?: boolean;
 }
 
-type ActiveKey = 'feed' | 'compose' | 'requests' | 'data' | 'settings' | null;
+type ActiveKey = 'feed' | 'calendar' | 'compose' | 'requests' | 'data' | 'settings' | null;
 
 function deriveActive(pathname: string | null): ActiveKey {
   if (!pathname) return null;
   if (pathname === '/feed' || pathname.startsWith('/feed/')) return 'feed';
+  if (pathname === '/calendar' || pathname.startsWith('/calendar/')) return 'calendar';
   if (pathname === '/compose' || pathname.startsWith('/compose/')) return 'compose';
   if (pathname === '/requests' || pathname.startsWith('/requests/')) return 'requests';
   if (pathname === '/data' || pathname.startsWith('/data/')) return 'data';
@@ -55,7 +63,7 @@ const activeStyle: CSSProperties = {
   fontWeight: 600,
 };
 
-export function AppNav({ unreadNotificationCount = 0 }: AppNavProps) {
+export function AppNav({ unreadNotificationCount = 0, calendarEnabled = false }: AppNavProps) {
   const active = deriveActive(usePathname());
 
   return (
@@ -79,6 +87,15 @@ export function AppNav({ unreadNotificationCount = 0 }: AppNavProps) {
       >
         Feed
       </Link>
+      {calendarEnabled && (
+        <Link
+          href="/calendar"
+          data-testid="nav-calendar-link"
+          style={active === 'calendar' ? activeStyle : linkStyle}
+        >
+          Calendar
+        </Link>
+      )}
       <Link
         href="/requests"
         data-testid="nav-requests-link"

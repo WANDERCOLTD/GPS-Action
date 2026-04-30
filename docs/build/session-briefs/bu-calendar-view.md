@@ -1,8 +1,9 @@
 ---
 slug: bu-calendar-view
-status: planned
+status: shipped
 phase: 2
 priority: high
+shipped_in: "#151"
 note: "Depends on bu-event-time (schema + listUpcoming query). Branch from bu-event-time's branch for parallel work; do not merge before bu-event-time merges. Split from bu-calendar on 2026-04-30."
 ---
 

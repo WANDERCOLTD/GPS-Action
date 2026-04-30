@@ -20,6 +20,7 @@
     "data",
     "settings",
     "intent",
-    "capabilities"
+    "capabilities",
+    "calendar"
   ]
 }

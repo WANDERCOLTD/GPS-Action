@@ -40,17 +40,18 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU | Files | Scenarios | ADRs |
 | -- | -----:| --------- | ---- |
 | BU-000-root | 1 | — | — |
-| BU-000-scaffold | 2 | — | D003, D065 |
-| BU-001-lite | 11 | — | D003, D007, D042, D065 |
+| BU-000-scaffold | 2 | — | D003, D065, D073 |
+| BU-001-lite | 11 | — | D003, D007, D042, D065, D073 |
 | BU-001-prep | 1 | — | — |
 | BU-admin-audit-integration | 3 | — | — |
 | BU-admin-bulk-ops | 8 | — | — |
 | BU-admin-crud | 21 | — | — |
 | BU-am-link-collapse | 4 | SCN-19 | D060, D061, D062, D064, D069, D073 |
+| BU-calendar-view | 9 | — | D003, D036, D054, D061, D065, D073 |
 | BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057, D061, D064, D069, D073 |
 | BU-composer | 8 | SCN-18, SCN-19, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D073 |
 | BU-demo-mode | 2 | — | — |
-| BU-error-boundary | 2 | — | D003, D037, D065 |
+| BU-error-boundary | 2 | — | D003, D037, D065, D073 |
 | BU-event-time | 13 | SCN-19, SCN-20 | D045, D048, D052, D060, D061, D062, D064, D069, D070, D073 |
 | BU-fab-intent-picker | 8 | SCN-18, SCN-19, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D070, D073 |
 | BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060, D061, D064, D069, D073 |
@@ -61,15 +62,15 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-link-share | 5 | SCN-19 | D045, D048, D060, D061, D062, D064, D069, D073 |
 | BU-post-hero-demo | 6 | SCN-19 | D045, D048, D060, D062, D064, D069, D073 |
 | BU-reactions | 9 | SCN-3, SCN-20 | D036, D050, D052, D069 |
-| BU-requests-foundation | 6 | SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D065 |
+| BU-requests-foundation | 6 | SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D065, D073 |
 | BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061 |
 | BU-requests-vetting | 7 | SCN-20, SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061 |
 | BU-secondary-cta-placeholders | 1 | — | DNaN |
 | BU-seed | 1 | — | D038 |
 | BU-share-rail-on-detail | 4 | — | D067 |
-| BU-sticky-nav | 5 | — | D003, D054, D061, D065 |
+| BU-sticky-nav | 5 | — | D003, D054, D061, D065, D073 |
 | BU-tick-or-cross | 12 | SCN-18, SCN-19, SCN-20, SCN-24, SCN-25 | D044, D045, D048, D052, D060, D062, D064, D069, D070, D073 |
-| BU-versioning | 3 | — | D003, D065 |
+| BU-versioning | 3 | — | D003, D065, D073 |
 | BU-whatsapp-share | 2 | — | D065, D067 |
 | bu-capabilities-mockup | 1 | — | — |
 
@@ -78,7 +79,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | ADR | Title | Referencing files |
 | --- | ----- | -----------------:|
 | D003 | TypeScript / Next.js / Prisma / tRPC stack | 2 |
-| D036 | Feature flag tooling — homegrown, DB-driven, discipline-enforced | 1 |
+| D036 | Feature flag tooling — homegrown, DB-driven, discipline-enforced | 2 |
 | D037 | Observability stack — Sentry + PostHog + Better Stack | 3 |
 | D038 | Traceability infrastructure — YAML frontmatter + file annotations + `trace` script | 1 |
 | D042 | Coordinator identity vs queue_manager permission — split into two concepts | 1 |
@@ -100,5 +101,5 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D067 | WhatsApp share analytics: stub ping completes the catalogued event | 1 |
 | D069 | `tick_or_cross` PostKind + `Post.signal` + post-publish handoff to GPS Network channel (BU-tick-or-cross) | 11 |
 | D070 | Reference data ships in migrations, not seeds; CI gate fails the merge if a code-referenced row is missing | 2 |
-| D073 | Structured event-time fields on `Post` (`event_at`, `event_ends_at`, `location_text`) | 13 |
+| D073 | Structured event-time fields on `Post` (`event_at`, `event_ends_at`, `location_text`) | 22 |
 
