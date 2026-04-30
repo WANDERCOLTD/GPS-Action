@@ -124,6 +124,17 @@ describe('IntentFabSheet', () => {
     expect(findByTestId(tree, 'intent-fab-paste')).toBeUndefined();
   });
 
+  it('shows a paste hint when clipboardSupported is false', () => {
+    const tree = render({ open: true, onClose: () => {} });
+    expect(findByTestId(tree, 'intent-fab-paste-hint')).toBeDefined();
+  });
+
+  it('does not show the paste hint when clipboardSupported is true', () => {
+    stateSlots[2] = true;
+    const tree = render({ open: true, onClose: () => {} });
+    expect(findByTestId(tree, 'intent-fab-paste-hint')).toBeUndefined();
+  });
+
   it('renders enabled and disabled tiles distinctly', () => {
     const tree = render({ open: true, onClose: () => {} });
     const enabled = findAllByTestId(tree as AnyElement, 'intent-tile-pick');
