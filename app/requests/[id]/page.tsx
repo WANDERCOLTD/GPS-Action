@@ -137,12 +137,7 @@ export default async function RequestDetailPage({ params }: PageProps) {
         gap: 'var(--space-5)',
       }}
     >
-      <ArrowLink
-        href="/requests"
-        direction="back"
-        testIdArea="requests"
-        testIdSuffix="detail-back"
-      >
+      <ArrowLink href="/requests" direction="back" testIdArea="requests" testIdSuffix="detail-back">
         Back to Requests
       </ArrowLink>
 

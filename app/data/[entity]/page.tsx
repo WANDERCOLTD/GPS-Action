@@ -64,12 +64,7 @@ export default async function DataEntityPage({ params, searchParams }: PageProps
       }}
     >
       <div style={{ marginBottom: 'var(--space-4)' }}>
-        <ArrowLink
-          href="/data"
-          direction="back"
-          testIdArea="data"
-          testIdSuffix="list-back-index"
-        >
+        <ArrowLink href="/data" direction="back" testIdArea="data" testIdSuffix="list-back-index">
           Back to data
         </ArrowLink>
       </div>

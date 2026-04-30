@@ -51,20 +51,20 @@ items to a brief when they're about to ship.
 
 ## Inventory of navigation primitives
 
-| Primitive | Status | Industry reference | When |
-|---|---|---|---|
-| `<ArrowLink>` (back / forward inline link) | **Shipped** in #147 | Stripe docs, Vercel, Linear | Now |
-| Visible affordances on tappable cards (title link + thumb link + "Read post →") | **Shipped** in #147 | Twitter, Reddit, Bluesky | Now |
-| Breadcrumbs (multi-level "X > Y > Z" trail) | Not built; not yet needed | GitHub, Linear, Notion | When admin / data pages get >2 levels deep |
-| Edge-swipe-back gesture (iPhone PWA standalone) | Not built; planned | TikTok PWA, native iOS | `BU-edge-swipe-back` (next nav BU) |
-| Keyboard `Esc` to back | Not built | macOS apps, some web apps | Mid-priority polish |
-| Focus management on route change (autofocus on `<h1>` after nav) | Not built | a11y best practice | When ratchet hits a11y |
-| Scroll restoration on back-nav | Next.js default behaviour | All major frameworks | Already partially correct |
-| App-wide bottom-tab nav (`AppNav`) | **Shipped** | Twitter / Threads / Bluesky | Now |
-| Sticky top-nav (`AppNav` upper) | **Shipped** | All major mobile web apps | Now |
-| Header refresh button (iOS PWA fallback) | **Shipped** | None — bespoke per D065 | Now |
-| Tab persistence (e.g. feed filter survives back-nav) | Partially built (URL-driven) | Reddit | Iterate as needed |
-| Forward-nav prefetch | Next.js default for `<Link>` | All major frameworks | Already correct |
+| Primitive                                                                       | Status                       | Industry reference          | When                                       |
+| ------------------------------------------------------------------------------- | ---------------------------- | --------------------------- | ------------------------------------------ |
+| `<ArrowLink>` (back / forward inline link)                                      | **Shipped** in #147          | Stripe docs, Vercel, Linear | Now                                        |
+| Visible affordances on tappable cards (title link + thumb link + "Read post →") | **Shipped** in #147          | Twitter, Reddit, Bluesky    | Now                                        |
+| Breadcrumbs (multi-level "X > Y > Z" trail)                                     | Not built; not yet needed    | GitHub, Linear, Notion      | When admin / data pages get >2 levels deep |
+| Edge-swipe-back gesture (iPhone PWA standalone)                                 | Not built; planned           | TikTok PWA, native iOS      | `BU-edge-swipe-back` (next nav BU)         |
+| Keyboard `Esc` to back                                                          | Not built                    | macOS apps, some web apps   | Mid-priority polish                        |
+| Focus management on route change (autofocus on `<h1>` after nav)                | Not built                    | a11y best practice          | When ratchet hits a11y                     |
+| Scroll restoration on back-nav                                                  | Next.js default behaviour    | All major frameworks        | Already partially correct                  |
+| App-wide bottom-tab nav (`AppNav`)                                              | **Shipped**                  | Twitter / Threads / Bluesky | Now                                        |
+| Sticky top-nav (`AppNav` upper)                                                 | **Shipped**                  | All major mobile web apps   | Now                                        |
+| Header refresh button (iOS PWA fallback)                                        | **Shipped**                  | None — bespoke per D065     | Now                                        |
+| Tab persistence (e.g. feed filter survives back-nav)                            | Partially built (URL-driven) | Reddit                      | Iterate as needed                          |
+| Forward-nav prefetch                                                            | Next.js default for `<Link>` | All major frameworks        | Already correct                            |
 
 The five **not built** items — breadcrumbs, edge-swipe, Esc-to-back,
 autofocus, scroll polish — are the runway for follow-up nav BUs.
@@ -83,9 +83,9 @@ member is invited to navigate to a peer or parent surface.
 ```tsx
 <ArrowLink
   href="/feed"
-  direction="back"   // 'back' | 'forward' | 'none'
-  size="sm"          // 'sm' | 'md'
-  testIdArea="post"  // canonical area prefix for the testid
+  direction="back" // 'back' | 'forward' | 'none'
+  size="sm" // 'sm' | 'md'
+  testIdArea="post" // canonical area prefix for the testid
   testIdSuffix="back"
 >
   Back to feed
@@ -118,14 +118,14 @@ settings).
 
 Every tappable card in a feed has multiple aligned affordances:
 
-| Affordance | Visual treatment | Tap action |
-|---|---|---|
-| Card title | Real `<Link>`, inherits text colour | Navigate to detail |
-| Card thumbnail (when present) | Wrapped in same `<Link>` | Navigate to detail |
-| "Read post →" | `<ArrowLink direction="forward">` bottom-right of body | Navigate to detail |
-| Reactions / share buttons | `<button>` with `e.stopPropagation()` | Action, never navigate |
+| Affordance                    | Visual treatment                                       | Tap action             |
+| ----------------------------- | ------------------------------------------------------ | ---------------------- |
+| Card title                    | Real `<Link>`, inherits text colour                    | Navigate to detail     |
+| Card thumbnail (when present) | Wrapped in same `<Link>`                               | Navigate to detail     |
+| "Read post →"                 | `<ArrowLink direction="forward">` bottom-right of body | Navigate to detail     |
+| Reactions / share buttons     | `<button>` with `e.stopPropagation()`                  | Action, never navigate |
 
-**Rule:** the tap-anywhere-on-the-card `onClick` is *not allowed* on
+**Rule:** the tap-anywhere-on-the-card `onClick` is _not allowed_ on
 any new card type. Every navigation must originate from a real anchor.
 
 ### 3. Breadcrumbs (planned)
@@ -237,7 +237,8 @@ are two known gaps:
 new feed-affecting BU lands.
 
 ### 8. Cross-cutting: the "where do I sit on the navigation tree?"
-   problem
+
+problem
 
 Every page has an implicit position in the tree:
 
@@ -274,12 +275,12 @@ parent? what's my children? what's my back-link?"
 
 The next nav-themed BUs in priority order:
 
-| BU | Trigger | Effort |
-|---|---|---|
-| `BU-edge-swipe-back` (with `Esc` to back bundled) | Any time | Small (~half day) |
-| `BU-route-focus-reset` (a11y polish) | Next a11y pass | Tiny (~2h) |
-| `BU-breadcrumbs` | First 4-level-deep page | Medium (~1 day) |
-| `BU-route-loading-states` (skeleton on slow nav) | If Vercel Analytics shows nav-pause complaints | Medium |
+| BU                                                | Trigger                                        | Effort            |
+| ------------------------------------------------- | ---------------------------------------------- | ----------------- |
+| `BU-edge-swipe-back` (with `Esc` to back bundled) | Any time                                       | Small (~half day) |
+| `BU-route-focus-reset` (a11y polish)              | Next a11y pass                                 | Tiny (~2h)        |
+| `BU-breadcrumbs`                                  | First 4-level-deep page                        | Medium (~1 day)   |
+| `BU-route-loading-states` (skeleton on slow nav)  | If Vercel Analytics shows nav-pause complaints | Medium            |
 
 None block each other. Most can ship in parallel with feature work.
 
