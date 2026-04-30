@@ -152,4 +152,39 @@ describe('AppNav', () => {
       expect(findByTestId(tree, testId)).toBeDefined();
     }
   });
+
+  // ── BU-calendar-view / D073: Calendar tab gating ─────────────────────────
+
+  it('omits the Calendar tab when calendarEnabled is unset / false', () => {
+    usePathnameMock.mockReturnValue('/feed');
+    const tree = AppNav({}) as AnyElement;
+    expect(findByTestId(tree, 'nav-calendar-link')).toBeUndefined();
+  });
+
+  it('renders the Calendar tab when calendarEnabled is true', () => {
+    usePathnameMock.mockReturnValue('/feed');
+    const tree = AppNav({ calendarEnabled: true }) as AnyElement;
+    const link = findByTestId(tree, 'nav-calendar-link');
+    expect(link).toBeDefined();
+    expect(link?.props['href']).toBe('/calendar');
+    expect(flatStrings(link)).toBe('Calendar');
+  });
+
+  it('marks the Calendar tab active when on /calendar', () => {
+    usePathnameMock.mockReturnValue('/calendar');
+    const tree = AppNav({ calendarEnabled: true }) as AnyElement;
+    expect(isActive(findByTestId(tree, 'nav-calendar-link'))).toBe(true);
+    expect(isActive(findByTestId(tree, 'nav-feed-link'))).toBe(false);
+  });
+
+  it('marks the Calendar tab active on a /calendar/* sub-path', () => {
+    usePathnameMock.mockReturnValue('/calendar?view=month');
+    const tree = AppNav({ calendarEnabled: true }) as AnyElement;
+    // usePathname() does not include search params, so feed in a real path.
+    usePathnameMock.mockReturnValue('/calendar/something');
+    const tree2 = AppNav({ calendarEnabled: true }) as AnyElement;
+    expect(isActive(findByTestId(tree2, 'nav-calendar-link'))).toBe(true);
+    // The first test confirms the no-query-string pathname matches too.
+    expect(findByTestId(tree, 'nav-calendar-link')).toBeDefined();
+  });
 });
