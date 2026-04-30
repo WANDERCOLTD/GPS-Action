@@ -110,11 +110,14 @@ Briefs in `planned` or `in_progress` status (auto-generated; do not edit
 by hand — run `npm run trackers`):
 
 <!-- AUTOGEN:planned:start -->
+- **bu-calendar-view** _[high]_ — BU-calendar-view
+- **bu-event-time** _[high]_ — BU-event-time
 - **bu-hydration-fixes** _[high]_ — BU-hydration-fixes
 - **bu-drafts-inbox** _[medium]_ — bu-drafts-inbox
 - **bu-reviewer-kind-review-queue** _[medium]_ — bu-reviewer-kind-review-queue
 - **bu-search-surface** _[medium]_ — BU-search-surface
 - **bu-composer-link-first** _[low]_ — BU-composer-link-first
+- **bu-icon-nav** _[low]_ — BU-icon-nav
 <!-- AUTOGEN:planned:end -->
 
 For BUs not yet briefed, the Phase 2/3/4 schedule further down lays
