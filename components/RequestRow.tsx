@@ -38,17 +38,20 @@ const STATUS_LABELS: Record<string, string> = {
   abandoned: 'abandoned',
 };
 
-function statusColour(status: string): string {
+// Map each status to a `gps-chip--<tone>` modifier so the row pills
+// share the project's chip palette (filter strip, kind chips, role
+// chips). One source of truth for tone tokens.
+function statusToneClass(status: string): string {
   switch (status) {
     case 'unclaimed':
-      return 'var(--colour-info-subtle)';
+      return 'gps-chip--info';
     case 'claimed':
     case 'in_review':
-      return 'var(--colour-warning-subtle)';
+      return 'gps-chip--warning';
     case 'resolved':
-      return 'var(--colour-success-subtle)';
+      return 'gps-chip--success';
     default:
-      return 'var(--colour-surface-sunken)';
+      return '';
   }
 }
 
@@ -126,15 +129,13 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
         {row.urgency && (
           <span
             data-testid="requests-row-urgent-badge"
+            className="gps-chip gps-chip--static gps-chip--urgent"
             style={{
-              fontSize: 'var(--text-2xs)',
-              background: 'var(--colour-urgent)',
-              color: 'var(--colour-urgent-contrast)',
-              padding: '2px var(--space-2)',
-              borderRadius: 'var(--radius-pill)',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
               fontWeight: 700,
+              background: 'var(--colour-urgent)',
+              color: 'var(--colour-urgent-contrast)',
             }}
           >
             {row.kindDisplayName ?? 'Urgent'}
@@ -142,11 +143,8 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
         )}
         <strong style={{ fontSize: 'var(--text-sm)' }}>{TYPE_LABELS[row.type]}</strong>
         <span
+          className={`gps-chip gps-chip--static ${statusToneClass(row.status)}`}
           style={{
-            fontSize: 'var(--text-2xs)',
-            background: statusColour(row.status),
-            padding: '2px var(--space-2)',
-            borderRadius: 'var(--radius-pill)',
             textTransform: 'uppercase',
             letterSpacing: '0.04em',
           }}

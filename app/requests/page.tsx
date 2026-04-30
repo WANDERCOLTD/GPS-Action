@@ -90,12 +90,17 @@ export default async function RequestsPage() {
         <section data-testid="requests-notifications-section">
           <h2
             className="gps-subtitle"
-            style={{ marginBottom: 'var(--space-3)' }}
+            style={{
+              marginBottom: 'var(--space-3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+            }}
             data-testid="requests-notifications-title"
           >
-            Notifications{' '}
+            <span>Notifications</span>
             {unreadCount > 0 && (
-              <span style={{ color: 'var(--colour-urgent)' }}>({unreadCount} new)</span>
+              <span className="gps-chip gps-chip--static gps-chip--warning">{unreadCount} new</span>
             )}
           </h2>
           <ul
@@ -122,7 +127,11 @@ export default async function RequestsPage() {
                     n.readAt === null
                       ? 'var(--colour-warning-subtle)'
                       : 'var(--colour-surface-raised)',
-                  border: '1px solid var(--colour-border-subtle)',
+                  borderLeft:
+                    n.readAt === null ? '3px solid var(--colour-warning)' : '3px solid transparent',
+                  borderTop: '1px solid var(--colour-border-subtle)',
+                  borderRight: '1px solid var(--colour-border-subtle)',
+                  borderBottom: '1px solid var(--colour-border-subtle)',
                   fontSize: 'var(--text-sm)',
                   display: 'flex',
                   alignItems: 'center',
@@ -164,12 +173,27 @@ export default async function RequestsPage() {
           My requests ({mine.length})
         </h2>
         {mine.length === 0 ? (
-          <p
-            style={{ color: 'var(--colour-text-secondary)', fontSize: 'var(--text-sm)' }}
+          <div
             data-testid="requests-submitter-empty"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-1)',
+              padding: 'var(--space-4) 0',
+              fontFamily: 'var(--font-ui)',
+            }}
           >
-            Nothing to show. Things you submit (vetting, flags, edit requests) will appear here.
-          </p>
+            <p style={{ margin: 0, color: 'var(--colour-text-secondary)' }}>Nothing to show.</p>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 'var(--text-sm)',
+                color: 'var(--colour-text-tertiary)',
+              }}
+            >
+              Things you submit (vetting, flags, edit requests) will appear here.
+            </p>
+          </div>
         ) : (
           <ul style={{ margin: 0, padding: 0 }}>
             {mine.map((r) => (
@@ -201,12 +225,29 @@ export default async function RequestsPage() {
               : `You see: ${scopedTypes.map((t) => TYPE_LABELS[t]).join(', ')}.`}
           </p>
           {queue.length === 0 ? (
-            <p
-              style={{ color: 'var(--colour-text-secondary)', fontSize: 'var(--text-sm)' }}
+            <div
               data-testid="requests-reviewer-empty"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-1)',
+                padding: 'var(--space-4) 0',
+                fontFamily: 'var(--font-ui)',
+              }}
             >
-              Nothing in the queue. New Requests will surface here.
-            </p>
+              <p style={{ margin: 0, color: 'var(--colour-text-secondary)' }}>
+                Nothing in the queue.
+              </p>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--colour-text-tertiary)',
+                }}
+              >
+                New Requests will surface here as members submit them.
+              </p>
+            </div>
           ) : (
             <ul style={{ margin: 0, padding: 0 }}>
               {queue.map((r) => (
