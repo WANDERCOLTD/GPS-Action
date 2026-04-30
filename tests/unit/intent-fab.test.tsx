@@ -1,12 +1,14 @@
 /**
- * @build-unit BU-link-first-composer
+ * @build-unit BU-link-first-composer BU-feed-card-affordances
  * @spec build/session-briefs/bu-link-first-composer.md
+ * @spec build/session-briefs/bu-feed-card-affordances.md
  *
- * Two halves to the FAB pill: a primary "+" that opens the starter
- * sheet, and a "📋" shortcut that reads the clipboard and routes
- * straight to /compose. Both must carry distinct testids and aria
- * labels (so screen readers can tell them apart) and both must funnel
- * through the shared paste handler.
+ * Two halves to the FAB pill: a primary "+" that opens the unified
+ * IntentFabSheet (paste/type + kind tiles in one screen), and a "📋"
+ * shortcut that reads the clipboard and routes straight to /compose.
+ * Both must carry distinct testids and aria labels (so screen readers
+ * can tell them apart) and both must funnel through the shared paste
+ * handler.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -35,18 +37,14 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: pushSpy }),
 }));
 
-// KindPickerSheet uses JSX without `import * as React` so importing it for
-// real fails this test's transform; both children are stubbed and we instead
-// inspect the React elements IntentFab renders for them (open prop) directly.
-vi.mock('@/components/KindPickerSheet', () => ({
-  KindPickerSheet: () => null,
-}));
-vi.mock('@/components/IntentFabStarter', () => ({
-  IntentFabStarter: () => null,
+// IntentFabSheet imports Radix + JSX modules that don't survive this test's
+// transform; stub it and inspect the React element IntentFab renders for it
+// (open prop) directly.
+vi.mock('@/components/IntentFabSheet', () => ({
+  IntentFabSheet: () => null,
 }));
 
-const { IntentFabStarter: MockedStarter } = await import('@/components/IntentFabStarter');
-const { KindPickerSheet: MockedPicker } = await import('@/components/KindPickerSheet');
+const { IntentFabSheet: MockedSheet } = await import('@/components/IntentFabSheet');
 
 const { IntentFab } = await import('@/components/IntentFab');
 
@@ -74,8 +72,8 @@ function findByType(el: AnyElement, type: unknown): AnyElement | undefined {
   return flatChildren(el).find((e) => e.type === type);
 }
 
-function starterIsOpen(tree: AnyElement): boolean {
-  const el = findByType(tree, MockedStarter);
+function sheetIsOpen(tree: AnyElement): boolean {
+  const el = findByType(tree, MockedSheet);
   return Boolean(el?.props.open);
 }
 
@@ -121,15 +119,15 @@ describe('IntentFab — split pill', () => {
     expect(pasteStyle.minHeight).toBeGreaterThanOrEqual(44);
   });
 
-  it('starter sheet is closed on first render and opens after the primary tap', () => {
+  it('sheet is closed on first render and opens after the primary tap', () => {
     const tree1 = render();
-    expect(starterIsOpen(tree1)).toBe(false);
+    expect(sheetIsOpen(tree1)).toBe(false);
 
     const primary = findByTestId(tree1, 'intent-fab-button-primary');
     (primary?.props.onClick as () => void)();
 
     const tree2 = render();
-    expect(starterIsOpen(tree2)).toBe(true);
+    expect(sheetIsOpen(tree2)).toBe(true);
   });
 
   it('paste tap routes to /compose with the right query when clipboard contains a URL', async () => {
@@ -159,7 +157,7 @@ describe('IntentFab — split pill', () => {
     expect(href).toMatch(/^\/compose\?title=Park%20Royal%20walkout%20tonight$/);
   });
 
-  it('paste tap falls back to opening the starter when the clipboard is empty', async () => {
+  it('paste tap falls back to opening the sheet when the clipboard is empty', async () => {
     const readText = vi.fn().mockResolvedValue('');
     vi.stubGlobal('navigator', { clipboard: { readText } } as unknown as Navigator);
 
@@ -169,10 +167,10 @@ describe('IntentFab — split pill', () => {
 
     expect(pushSpy).not.toHaveBeenCalled();
     const tree2 = render();
-    expect(starterIsOpen(tree2)).toBe(true);
+    expect(sheetIsOpen(tree2)).toBe(true);
   });
 
-  it('paste tap falls back to opening the starter when clipboard read is denied', async () => {
+  it('paste tap falls back to opening the sheet when clipboard read is denied', async () => {
     const readText = vi.fn().mockRejectedValue(new Error('denied'));
     vi.stubGlobal('navigator', { clipboard: { readText } } as unknown as Navigator);
 
@@ -182,6 +180,6 @@ describe('IntentFab — split pill', () => {
 
     expect(pushSpy).not.toHaveBeenCalled();
     const tree2 = render();
-    expect(starterIsOpen(tree2)).toBe(true);
+    expect(sheetIsOpen(tree2)).toBe(true);
   });
 });

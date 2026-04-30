@@ -1,35 +1,28 @@
 'use client';
 
 /**
- * @build-unit BU-fab-intent-picker BU-link-first-composer
+ * @build-unit BU-fab-intent-picker BU-link-first-composer BU-feed-card-affordances
  * @spec architecture/decision-log.md (D044, D061, D062)
  * @spec build/session-briefs/bu-link-first-composer.md
  *
  * Split FAB — one rounded pill, two tap targets:
- *   • left "+"   → opens the IntentFabStarter card (paste-or-type)
+ *   • left "+"   → opens the unified IntentFabSheet (paste/type +
+ *                  kind-tile grid in one screen)
  *   • right "📋" → reads clipboard and routes straight to /compose
+ *                  via `readClipboardAndContinue`
  *
  * Both halves funnel through `IntentFabPasteHandler` so behaviour
- * cannot drift between the in-card paste button and this shortcut.
+ * cannot drift between the in-sheet Paste button and this shortcut.
  * On clipboard miss (empty / denied / unsupported) the paste tap
- * falls back to opening the starter so the member can paste manually.
- *
- * The kind picker remains reachable via the starter's "Pick a kind
- * instead →" escape, preserving the BU-fab-intent-picker UX for
- * members who already know what they want to post.
+ * falls back to opening the sheet so the member can paste manually.
  */
 
 import * as React from 'react';
 import { useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, ClipboardPaste } from 'lucide-react';
-import { KindPickerSheet } from './KindPickerSheet';
-import { IntentFabStarter } from './IntentFabStarter';
-import {
-  buildComposeHref,
-  payloadFromInput,
-  readClipboardAndContinue,
-} from './IntentFabPasteHandler';
+import { IntentFabSheet } from './IntentFabSheet';
+import { readClipboardAndContinue } from './IntentFabPasteHandler';
 
 const pillStyle: CSSProperties = {
   position: 'fixed',
@@ -72,26 +65,13 @@ const pasteHalfStyle: CSSProperties = {
 
 export function IntentFab() {
   const router = useRouter();
-  const [starterOpen, setStarterOpen] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const handlePaste = async () => {
     const outcome = await readClipboardAndContinue(router);
     if (outcome !== 'success') {
-      setStarterOpen(true);
+      setOpen(true);
     }
-  };
-
-  const handleContinue = (payload: { kind: 'url' | 'text'; value: string }) => {
-    const safe = payloadFromInput(payload.value);
-    if (!safe) return;
-    setStarterOpen(false);
-    router.push(buildComposeHref(safe));
-  };
-
-  const handlePickKind = () => {
-    setStarterOpen(false);
-    setPickerOpen(true);
   };
 
   return (
@@ -99,7 +79,7 @@ export function IntentFab() {
       <div style={pillStyle} data-testid="intent-fab" role="group" aria-label="Create or paste">
         <button
           type="button"
-          onClick={() => setStarterOpen(true)}
+          onClick={() => setOpen(true)}
           aria-label="Create a post"
           data-testid="intent-fab-button-primary"
           style={primaryHalfStyle}
@@ -116,13 +96,7 @@ export function IntentFab() {
           <ClipboardPaste size={22} aria-hidden="true" />
         </button>
       </div>
-      <IntentFabStarter
-        open={starterOpen}
-        onClose={() => setStarterOpen(false)}
-        onContinue={handleContinue}
-        onPickKind={handlePickKind}
-      />
-      <KindPickerSheet open={pickerOpen} onClose={() => setPickerOpen(false)} />
+      <IntentFabSheet open={open} onClose={() => setOpen(false)} />
     </>
   );
 }
