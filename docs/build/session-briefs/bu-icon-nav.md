@@ -1,8 +1,9 @@
 ---
 slug: bu-icon-nav
-status: planned
+status: shipped
 phase: 2
 priority: low
+shipped_in: "#152"
 note: "Stub. Convert AppNav from text-or-text+icon to icons-only across all five tabs. Two of five icon picks already locked (Feed, Calendar); three open. Spawned out of bu-calendar Q4 walkthrough on 2026-04-30."
 ---
 

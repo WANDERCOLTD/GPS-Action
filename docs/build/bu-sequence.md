@@ -94,6 +94,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-publish-router** — bu-publish-router | ✅ Merged | #142 |
 | **bu-event-time** — BU-event-time | ✅ Merged | #150 |
 | **bu-calendar-view** — BU-calendar-view | ✅ Merged | #151 |
+| **bu-icon-nav** — BU-icon-nav | ✅ Merged | #152 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |
@@ -117,7 +118,6 @@ by hand — run `npm run trackers`):
 - **bu-reviewer-kind-review-queue** _[medium]_ — bu-reviewer-kind-review-queue
 - **bu-search-surface** _[medium]_ — BU-search-surface
 - **bu-composer-link-first** _[low]_ — BU-composer-link-first
-- **bu-icon-nav** _[low]_ — BU-icon-nav
 <!-- AUTOGEN:planned:end -->
 
 For BUs not yet briefed, the Phase 2/3/4 schedule further down lays
