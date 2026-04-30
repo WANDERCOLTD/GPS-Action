@@ -1,13 +1,19 @@
 /**
  * Unit tests for AppNav.
  *
- * @build-unit BU-sticky-nav
+ * @build-unit BU-sticky-nav BU-icon-nav
  * @spec architecture/decision-log.md (D054, D061, D065)
  *
  * Vitest env is `node`, no RTL. We mock `next/navigation` so
  * `usePathname()` returns a controllable value; we then invoke AppNav
  * as a plain function and walk the ReactElement tree to assert the
  * contract.
+ *
+ * BU-icon-nav (2026-04-30): tabs are now icons-only. Tests assert
+ * each tab's `aria-label` matches its prior text label so screen
+ * readers continue to announce tab names. Text-content assertions
+ * are gone (links no longer contain visible text); the `99+` cap
+ * still applies to the unread badge.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -57,6 +63,13 @@ function flatStrings(node: unknown): string {
   return '';
 }
 
+const NAV_LINKS: ReadonlyArray<readonly [string, string]> = [
+  ['nav-feed-link', 'Feed'],
+  ['nav-requests-link', 'Requests'],
+  ['nav-data-link', 'Data'],
+  ['nav-settings-link', 'Settings'],
+];
+
 describe('AppNav', () => {
   beforeEach(() => {
     usePathnameMock.mockReset();
@@ -76,8 +89,7 @@ describe('AppNav', () => {
     usePathnameMock.mockReturnValue(pathname);
     const tree = AppNav({}) as AnyElement;
 
-    const allLinks = ['nav-feed-link', 'nav-requests-link', 'nav-data-link', 'nav-settings-link'];
-    for (const testId of allLinks) {
+    for (const [testId] of NAV_LINKS) {
       const link = findByTestId(tree, testId);
       expect(link).toBeDefined();
       if (testId === expectedActiveTestId) {
@@ -92,12 +104,7 @@ describe('AppNav', () => {
     usePathnameMock.mockReturnValue('/some/other/path');
     const tree = AppNav({}) as AnyElement;
 
-    for (const testId of [
-      'nav-feed-link',
-      'nav-requests-link',
-      'nav-data-link',
-      'nav-settings-link',
-    ]) {
+    for (const [testId] of NAV_LINKS) {
       expect(isActive(findByTestId(tree, testId))).toBe(false);
     }
   });
@@ -132,6 +139,22 @@ describe('AppNav', () => {
     expect(flatStrings(dot)).toBe('99+');
   });
 
+  it('renders the dot alongside the Requests icon (not replacing it)', () => {
+    // Regression guard: BU-icon-nav must keep the badge AND the icon.
+    usePathnameMock.mockReturnValue('/feed');
+    const tree = AppNav({ unreadNotificationCount: 5 }) as AnyElement;
+    const link = findByTestId(tree, 'nav-requests-link');
+    expect(link).toBeDefined();
+    // The link must contain both the unread-dot span and at least one
+    // additional child (the icon).
+    const childArray = Array.isArray(link?.props.children)
+      ? (link?.props.children as unknown[])
+      : [link?.props.children];
+    const dot = findByTestId(tree, 'nav-requests-unread-dot');
+    expect(dot).toBeDefined();
+    expect(childArray.length).toBeGreaterThan(1);
+  });
+
   // ── strip-level testid stability ───────────────────────────────────────
 
   it('renders the canonical nav-app-strip testid', () => {
@@ -143,13 +166,35 @@ describe('AppNav', () => {
   it('renders all four canonical link testids', () => {
     usePathnameMock.mockReturnValue('/feed');
     const tree = AppNav({}) as AnyElement;
-    for (const testId of [
-      'nav-feed-link',
-      'nav-requests-link',
-      'nav-data-link',
-      'nav-settings-link',
-    ]) {
+    for (const [testId] of NAV_LINKS) {
       expect(findByTestId(tree, testId)).toBeDefined();
+    }
+  });
+
+  // ── BU-icon-nav: aria-labels for screen readers ────────────────────────
+
+  it.each(NAV_LINKS)(
+    '%s carries aria-label %s (icons-only nav still announces tab name)',
+    (testId, expectedAriaLabel) => {
+      usePathnameMock.mockReturnValue('/feed');
+      const tree = AppNav({}) as AnyElement;
+      const link = findByTestId(tree, testId);
+      expect(link).toBeDefined();
+      expect(link?.props['aria-label']).toBe(expectedAriaLabel);
+    },
+  );
+
+  it('every nav link is an icon-only Link (no visible text content)', () => {
+    // Regression guard: prevent accidental reintroduction of a text label.
+    usePathnameMock.mockReturnValue('/feed');
+    const tree = AppNav({ calendarEnabled: true }) as AnyElement;
+    for (const [testId] of [...NAV_LINKS, ['nav-calendar-link', 'Calendar'] as const]) {
+      const link = findByTestId(tree, testId);
+      // Skip the unread badge text; check only direct text in the link itself.
+      const directText = flatStrings(link?.props.children)
+        .replace(/\d+|\+/g, '')
+        .trim();
+      expect(directText).toBe('');
     }
   });
 
@@ -167,7 +212,7 @@ describe('AppNav', () => {
     const link = findByTestId(tree, 'nav-calendar-link');
     expect(link).toBeDefined();
     expect(link?.props['href']).toBe('/calendar');
-    expect(flatStrings(link)).toBe('Calendar');
+    expect(link?.props['aria-label']).toBe('Calendar');
   });
 
   it('marks the Calendar tab active when on /calendar', () => {

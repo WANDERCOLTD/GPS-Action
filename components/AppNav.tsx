@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * @build-unit BU-requests-foundation BU-sticky-nav BU-calendar-view
+ * @build-unit BU-requests-foundation BU-sticky-nav BU-calendar-view BU-icon-nav
  * @spec architecture/decision-log.md (D054, D061, D065, D073)
  * @spec architecture/admin-surface.md
  *
@@ -9,22 +9,29 @@
  * layout inside the sticky `<header>`. Active link is derived from
  * `usePathname()` rather than a per-page `active` prop (D065).
  *
- *   Feed | Calendar? | Requests | Data | Settings
+ *   [home] | [calendar-clock]? | [inbox] | [bar-chart-3] | [settings]
  *
  * The Calendar tab is gated by the `calendar_enabled` feature flag
  * (BU-calendar-view / D073). The flag is resolved in the layout (server
  * component) and passed down so this client component never reads from
  * the database.
  *
+ * BU-icon-nav (2026-04-30): tabs are icons-only. Each `<Link>` keeps
+ * the prior text label as `aria-label` so screen readers continue to
+ * announce "Feed", "Calendar", "Requests", "Data", "Settings". Sighted
+ * users learn the icons; tooltips on long-press are deferred (see brief).
+ *
  * Per D061 every link is an explicit interactive element with a
  * canonical testid (F14 'nav' area). All testids preserved verbatim
- * across the BU-sticky-nav consolidation.
+ * across BU-sticky-nav and BU-icon-nav.
+ *
  */
 
 import * as React from 'react';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Home, CalendarClock, Inbox, BarChart3, Settings } from 'lucide-react';
 
 interface AppNavProps {
   /** Unread Notification count (BU-requests-vetting / D057). Renders a red dot when > 0. */
@@ -46,7 +53,17 @@ function deriveActive(pathname: string | null): ActiveKey {
   return null;
 }
 
+/**
+ * Each tab's hit area. Icon sits centred inside ≥44×44 px to satisfy
+ * mobile touch-target guidance (WCAG 2.5.5 / Apple HIG). Padding +
+ * line-height keep the active background highlight visually stable.
+ */
 const linkStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minWidth: 44,
+  minHeight: 44,
   padding: 'var(--space-2) var(--space-3)',
   color: 'var(--colour-text-link)',
   textDecoration: 'none',
@@ -55,6 +72,7 @@ const linkStyle: CSSProperties = {
   borderRadius: 'var(--radius-sm)',
   flexShrink: 0,
   whiteSpace: 'nowrap',
+  position: 'relative',
 };
 
 const activeStyle: CSSProperties = {
@@ -62,6 +80,9 @@ const activeStyle: CSSProperties = {
   background: 'var(--colour-surface-sunken)',
   fontWeight: 600,
 };
+
+const ICON_SIZE = 22;
+const ICON_STROKE = 2;
 
 export function AppNav({ unreadNotificationCount = 0, calendarEnabled = false }: AppNavProps) {
   const active = deriveActive(usePathname());
@@ -82,37 +103,38 @@ export function AppNav({ unreadNotificationCount = 0, calendarEnabled = false }:
     >
       <Link
         href="/feed"
+        aria-label="Feed"
         data-testid="nav-feed-link"
         style={active === 'feed' ? activeStyle : linkStyle}
       >
-        Feed
+        <Home size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
       </Link>
       {calendarEnabled && (
         <Link
           href="/calendar"
+          aria-label="Calendar"
           data-testid="nav-calendar-link"
           style={active === 'calendar' ? activeStyle : linkStyle}
         >
-          Calendar
+          <CalendarClock size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
         </Link>
       )}
       <Link
         href="/requests"
+        aria-label="Requests"
         data-testid="nav-requests-link"
-        style={{
-          ...(active === 'requests' ? activeStyle : linkStyle),
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 'var(--space-1)',
-        }}
+        style={active === 'requests' ? activeStyle : linkStyle}
       >
-        Requests
+        <Inbox size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
         {unreadNotificationCount > 0 && (
           <span
             data-testid="nav-requests-unread-dot"
             data-count={unreadNotificationCount}
             aria-label={`${unreadNotificationCount} unread notifications`}
             style={{
+              position: 'absolute',
+              top: 4,
+              right: 4,
               display: 'inline-block',
               minWidth: 16,
               height: 16,
@@ -132,17 +154,19 @@ export function AppNav({ unreadNotificationCount = 0, calendarEnabled = false }:
       </Link>
       <Link
         href="/data"
+        aria-label="Data"
         data-testid="nav-data-link"
         style={active === 'data' ? activeStyle : linkStyle}
       >
-        Data
+        <BarChart3 size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
       </Link>
       <Link
         href="/settings"
+        aria-label="Settings"
         data-testid="nav-settings-link"
         style={active === 'settings' ? activeStyle : linkStyle}
       >
-        Settings
+        <Settings size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
       </Link>
     </nav>
   );
