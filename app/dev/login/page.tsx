@@ -6,16 +6,27 @@
  * Plain and functional — not a production UI.
  */
 
+import { notFound } from 'next/navigation';
 import { createCaller } from '@/server/routers/_app';
+import { isDemoMode } from '@/shared/demo-mode';
 import { loginAs } from './actions';
 
 export const metadata = {
   title: 'Dev Login — GPS Action',
 };
 
+// Defence-in-depth: layout already 404s in production, but build-time
+// static generation evaluates the page before the layout's runtime guard,
+// and the dev tRPC router isn't registered when NODE_ENV='production' —
+// so calling caller.dev!.listUsers() fails the prerender. Bail early
+// with the same condition the layout uses.
 export default async function DevLoginPage() {
+  if (process.env.NODE_ENV === 'production' && !isDemoMode()) {
+    notFound();
+  }
+
   const caller = createCaller({ user: null, activeRoles: [], activeScopes: [] });
-  // dev router is always present here — guarded by app/dev/layout.tsx
+  // dev router is always present here — guarded above + by app/dev/layout.tsx
   const { users } = await caller.dev!.listUsers();
 
   if (users.length === 0) {
