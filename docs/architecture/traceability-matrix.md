@@ -58,6 +58,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-feed-card-clamp | 1 | — | D052, D061, D064, D073 |
 | BU-feed-filter | 2 | — | — |
 | BU-healthcheck | 3 | — | D037 |
+| BU-icon-nav | 1 | — | D054, D061, D065, D073 |
 | BU-link-first-composer | 7 | SCN-18, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D073 |
 | BU-link-share | 5 | SCN-19 | D045, D048, D060, D061, D062, D064, D069, D073 |
 | BU-post-hero-demo | 6 | SCN-19 | D045, D048, D060, D062, D064, D069, D073 |
