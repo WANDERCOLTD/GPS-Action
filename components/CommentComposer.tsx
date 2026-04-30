@@ -67,8 +67,10 @@ export const CommentComposer: FC<CommentComposerProps> = ({
         displayName: 'You',
         roles: [],
         isNewMember: false,
+        avatarUrl: null,
       },
       reactions: [],
+      systemKind: null,
     };
     onOptimisticInsert(optimisticComment);
     setBody('');

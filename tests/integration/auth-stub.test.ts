@@ -108,6 +108,7 @@ describe('resolveUser', () => {
       id: 'user-1',
       email: 'test@test.com',
       displayName: 'Test',
+      avatarUrl: null,
       phoneNumber: null,
       verifiedAt: new Date(),
       lastSeenAt: null,

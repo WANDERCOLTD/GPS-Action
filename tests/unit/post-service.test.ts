@@ -53,6 +53,10 @@ function makePost(overrides: Record<string, unknown> = {}) {
     heroImageUrl: null,
     signal: null,
     sharedToNetworkAt: null,
+    status: 'published' as const,
+    publishedAt: now,
+    reviewRequestId: null,
+    reviewedByUserId: null,
     groupTags: [],
     eventAt: null,
     eventEndsAt: null,
@@ -115,6 +119,8 @@ describe('listPosts', () => {
       },
       reactions: [],
       commentCount: 0,
+      reviewedByUserId: null,
+      reviewedBy: null,
     });
   });
 

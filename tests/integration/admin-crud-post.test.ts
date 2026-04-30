@@ -41,6 +41,7 @@ function adminContext(): TRPCContext {
       id: 'admin-1',
       email: 'admin@test.com',
       displayName: 'Admin',
+      avatarUrl: null,
       phoneNumber: null,
       verifiedAt: new Date(),
       lastSeenAt: null,

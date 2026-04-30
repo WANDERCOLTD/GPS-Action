@@ -1,9 +1,10 @@
 /**
- * @build-unit BU-composer BU-fab-intent-picker BU-tick-or-cross BU-link-first-composer
+ * @build-unit BU-composer BU-fab-intent-picker BU-tick-or-cross BU-link-first-composer BU-publish-router
  * @spec product/design-philosophy.md
  * @spec product/scenarios.md (SCN-18, SCN-24, SCN-25)
- * @spec architecture/decision-log.md (D044, D062, D069)
+ * @spec architecture/decision-log.md (D044, D062, D069, D072)
  * @spec build/session-briefs/bu-link-first-composer.md
+ * @spec build/session-briefs/bu-publish-router.md
  *
  * Compose page — server component that renders the post form shell.
  * Redirects unauthenticated users to /dev/login. Reads ?intent= from
@@ -16,8 +17,12 @@
  * title duplicating the banner heading.
  *
  * BU-tick-or-cross: reads `WHATSAPP_NETWORK_CHANNEL_URL` server-side
- * and passes it to <PostForm /> so the post-publish handoff modal
- * has the channel deep-link without re-validating in the client.
+ * and passes it to <PostForm /> so the publish modal can dispatch
+ * the share_to_gps_whatsapp action without re-validating in client.
+ *
+ * BU-publish-router (D072): also passes `kindConfigBySlug` (the four
+ * publish-modal config columns) so `<PostPublishModal>` knows which
+ * cards to render per kind without an extra round-trip.
  *
  * BU-link-first-composer: also reads ?linkUrl= and ?title= as prefill
  * params from the FAB starter card / paste-and-go shortcut. When
@@ -31,7 +36,11 @@
 import { redirect } from 'next/navigation';
 import { createTRPCContext } from '@/server/routers/context';
 import { createCaller } from '@/server/routers/_app';
-import { PostForm, type KindMapEntry } from '@/components/PostForm';
+import {
+  PostForm,
+  type KindMapEntry,
+  type PublishModalKindConfigBySlug,
+} from '@/components/PostForm';
 import { createPostAction } from '@/app/compose/actions';
 import { whatsappNetworkChannelUrlOrNull } from '@/shared/env/whatsapp-network-channel';
 import { getSiteOrigin } from '@/shared/site-origin';
@@ -86,8 +95,14 @@ export default async function ComposePage({ searchParams }: PageProps) {
   const caller = createCaller(ctx);
   const kinds = await caller.postKind.listActive();
   const kindMap: Record<string, KindMapEntry> = {};
+  const kindConfigBySlug: PublishModalKindConfigBySlug = {};
   for (const k of kinds) {
     kindMap[k.slug] = { id: k.id, isAlertEligible: k.isAlertEligible, displayName: k.displayName };
+    kindConfigBySlug[k.slug] = {
+      actionSlugs: k.actionSlugs,
+      reviewMode: k.reviewMode,
+      canSelfPublish: k.canSelfPublish,
+    };
   }
 
   // D070: surface missing reference data with a specific error rather
@@ -119,6 +134,7 @@ export default async function ComposePage({ searchParams }: PageProps) {
         onSubmit={createPostAction}
         intent={intent}
         kindMap={kindMap}
+        kindConfigBySlug={kindConfigBySlug}
         networkChannelUrl={networkChannelUrl}
         siteOrigin={siteOrigin}
         prefilledLinkUrl={prefilledLinkUrl || undefined}

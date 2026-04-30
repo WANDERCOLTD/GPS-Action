@@ -1,10 +1,10 @@
 ---
 slug: bu-publish-router
 status: shipped
-shipped_in: '#142'
+shipped_in: '#146'
 phase: 2
 priority: high
-note: 'Brief landed in #142 (D072). Implementation lives in feat/bu-publish-router-20260428 (Phase 1 build, separate PR). Phases 2 (drafts inbox) and 3 (reviewer kind-review queue) are separate BUs that build on this foundation.'
+note: 'Brief landed in #142 (D072). Phase 1 implementation shipped in #146. Phases 2 (bu-drafts-inbox — bundles autosave + /drafts page) and 3 (bu-reviewer-kind-review-queue) are separate BUs that build on this foundation.'
 ---
 
 # SESSION BRIEF · bu-publish-router — universal pre-publish modal + post lifecycle
@@ -282,6 +282,16 @@ operations, no breaking changes to existing readers.
 - **`<SendToNetworkConfirm />` deprecation shim** — it's deleted
   outright. No file remains. Existing tests are updated, not
   parallel-routed.
+- **Autosave: stage 1 only.** D072 §8 calls for a three-stage
+  gradient (client-only IndexedDB → server-promote-after-inactivity
+  → server-only-autosave-thereafter). Phase 1 ships **stage 1 only**:
+  the IndexedDB cache wrapper, the `useAutosaveDraft` hook, and the
+  `<DraftSavedIndicator>` mounted in the compose form's header. So
+  refresh-during-compose now restores the typed text (loss prevented),
+  and members see "Editing… → Saved · 2s" honestly. Stages 2 and 3
+  (the server-side autosave) land in `bu-drafts-inbox` (Phase 2)
+  alongside the `/drafts` recall surface, because server-side
+  autosave without a way to come back to drafts is invisible work.
 
 ---
 
@@ -476,9 +486,12 @@ operations, no breaking changes to existing readers.
 After this BU lands, log Phase 2 and Phase 3 as proper briefs ready
 to start:
 
-- **`bu-drafts-inbox`** (Phase 2) — `/drafts` page, drafts list with
-  in-review pills, continue-editing flow, discard from list. Brief
-  stub at `docs/build/session-briefs/bu-drafts-inbox.md` (status:
+- **`bu-drafts-inbox`** (Phase 2) — `/drafts` page + the server-side
+  half of D072 §8 autosave (server-promote on 60s inactivity +
+  server-only autosave thereafter), drafts list with in-review pills,
+  continue-editing, and discard. Phase 1 already shipped client-side
+  IndexedDB autosave + the indicator; Phase 2 extends both ends. Stub
+  at `docs/build/session-briefs/bu-drafts-inbox.md` (status:
   planned).
 - **`bu-reviewer-kind-review-queue`** (Phase 3) — reviewer-side queue
   UI for pending kind_review requests, click-through to edit-and-

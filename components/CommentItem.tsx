@@ -1,20 +1,28 @@
 /**
- * @build-unit BU-comments BU-reactions
- * @spec architecture/decision-log.md (D052)
+ * @build-unit BU-comments BU-reactions BU-publish-router
+ * @spec architecture/decision-log.md (D052, D072)
  * @spec product/scenarios.md (SCN-20)
  *
  * Single comment render. Author display name + role chips +
  * "new member" chip + body (paragraph-split) + relative timestamp
  * + reaction pill below body (when reactions enabled).
  *
+ * D072 — when `systemKind === 'post_review_attribution'` the comment
+ * renders with a system-author treatment: the reviewer's avatar IS
+ * the comment avatar (closes the badge↔comment loop), the body is
+ * single-line and italicised, the article anchors at
+ * `post-${postId}-review-comment` so the byline badge can scroll to
+ * it. Author cannot delete (UI-side rule); admin can.
+ *
  * No edit / delete UI in MVP per D052.
  */
 
 import type { FC } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import type { SystemRole } from '@prisma/client';
+import type { CommentSystemKind, SystemRole } from '@prisma/client';
 import type { FeedReaction, FeedReactionEmoji } from '@/components/PostCard';
 import { ReactionPill } from '@/components/ReactionPill';
+import { UserAvatar } from '@/components/UserAvatar';
 
 export interface CommentForView {
   id: string;
@@ -25,8 +33,11 @@ export interface CommentForView {
     displayName: string;
     roles: SystemRole[];
     isNewMember: boolean;
+    avatarUrl: string | null;
   };
   reactions: FeedReaction[];
+  /** D072 — non-null marks the comment as system-authored. */
+  systemKind: CommentSystemKind | null;
 }
 
 function formatRole(role: string): string {
@@ -42,6 +53,8 @@ interface CommentItemProps {
   canReact: boolean;
   onAddReaction: (commentId: string, emoji: FeedReactionEmoji) => Promise<void>;
   onRemoveReaction: (commentId: string, emoji: FeedReactionEmoji) => Promise<void>;
+  /** Required for the system-comment anchor id when systemKind is set. */
+  postId?: string;
 }
 
 export const CommentItem: FC<CommentItemProps> = ({
@@ -50,7 +63,13 @@ export const CommentItem: FC<CommentItemProps> = ({
   canReact,
   onAddReaction,
   onRemoveReaction,
+  postId,
 }) => {
+  const isReviewAttribution = comment.systemKind === 'post_review_attribution';
+  if (isReviewAttribution) {
+    return <ReviewAttributionComment comment={comment} postId={postId} />;
+  }
+
   const paragraphs = comment.body.split('\n\n');
   const relativeTime = formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true });
 
@@ -105,3 +124,46 @@ export const CommentItem: FC<CommentItemProps> = ({
     </article>
   );
 };
+
+interface ReviewAttributionCommentProps {
+  comment: CommentForView;
+  postId?: string;
+}
+
+function ReviewAttributionComment({ comment, postId }: ReviewAttributionCommentProps) {
+  const anchorId = postId ? `post-${postId}-review-comment` : undefined;
+  return (
+    <article
+      id={anchorId}
+      data-testid="comment-system-review-attribution"
+      data-comment-id={comment.id}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-3)',
+        padding: 'var(--space-3) var(--space-4)',
+        marginBottom: 'var(--space-3)',
+        borderRadius: 'var(--radius-md)',
+        background:
+          'color-mix(in srgb, var(--colour-text-secondary) 6%, var(--colour-surface-raised))',
+        borderLeft: '3px solid var(--colour-success)',
+      }}
+    >
+      <UserAvatar
+        userId={comment.author.id}
+        displayName={comment.author.displayName}
+        avatarUrl={comment.author.avatarUrl}
+        size={28}
+      />
+      <span
+        style={{
+          fontSize: 'var(--text-sm)',
+          color: 'var(--colour-text-secondary)',
+          fontStyle: 'italic',
+        }}
+      >
+        {comment.body}
+      </span>
+    </article>
+  );
+}

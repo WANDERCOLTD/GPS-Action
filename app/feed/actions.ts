@@ -68,6 +68,8 @@ export async function loadMorePosts(
           mine: r.mine,
         })),
         commentCount: p.commentCount,
+        reviewedByUserId: p.reviewedByUserId,
+        reviewedBy: p.reviewedBy,
       }),
     ),
     nextCursor: result.nextCursor

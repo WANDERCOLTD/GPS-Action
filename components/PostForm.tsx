@@ -1,14 +1,15 @@
 'use client';
 
 /**
- * @build-unit BU-composer BU-link-share BU-fab-intent-picker BU-am-link-collapse BU-post-hero-demo BU-tick-or-cross BU-event-time
+ * @build-unit BU-composer BU-link-share BU-fab-intent-picker BU-am-link-collapse BU-post-hero-demo BU-tick-or-cross BU-event-time BU-publish-router
  * @spec product/design-philosophy.md
  * @spec architecture/api-contract.md
- * @spec architecture/decision-log.md (D060, D062, D064, D069, D073)
- * @spec product/scenarios.md (SCN-19)
+ * @spec architecture/decision-log.md (D060, D062, D064, D069, D072, D073)
+ * @spec product/scenarios.md (SCN-19, SCN-26, SCN-27)
  * @spec build/session-briefs/bu-am-link-collapse.md
  * @spec build/session-briefs/bu-post-hero-demo.md
  * @spec build/session-briefs/bu-tick-or-cross.md
+ * @spec build/session-briefs/bu-publish-router.md
  * @spec docs/adrs/0001-post-event-time-fields.md
  *
  * Post creation form. Client component — manages form state, calls
@@ -28,9 +29,7 @@
  *
  * BU-tick-or-cross: when kind === 'tick_or_cross', a required ✅/❌
  * segmented toggle renders above the title and Publish stays disabled
- * until a choice is made. Submit appends `signal` to FormData. The
- * post-publish handoff modal is mounted by the page on success
- * (compose/page.tsx), not by this form.
+ * until a choice is made. Submit appends `signal` to FormData.
  *
  * BU-event-time / D073: when the active kind is time-bearing per
  * `kindIsTimeBearing` (meeting / event / happening_now), an
@@ -38,9 +37,23 @@
  * toggle, with start date+time, optional end date+time, and an
  * optional location. The composer's server action assembles UTC
  * Dates from the FormData strings via shared/format-event-time.
+ *
+ * BU-publish-router (D072): submit no longer redirects. It creates
+ * the post as a draft via createPostAction and opens the universal
+ * <PostPublishModal>; the modal owns publish / save / send-for-review
+ * / discard from there. The legacy handoff branch + the inline
+ * <SendToNetworkConfirm /> mount are gone — share_to_gps_whatsapp is
+ * a registry handler the modal dispatches.
  */
 
-import { useState, useTransition, type CSSProperties, type ReactNode } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import {
   AlertTriangle,
   Link as LinkIcon,
@@ -57,14 +70,24 @@ import {
 import { useRouter } from 'next/navigation';
 import type { CreatePostResult } from '@/app/compose/actions';
 import { kindIsTimeBearing } from '@/shared/post-kinds';
+import {
+  publishPostAction,
+  sendPostForReviewAction,
+  saveDraftAction,
+  discardPostAction,
+} from '@/app/compose/actions';
 import { HeroImagePicker } from './HeroImagePicker';
 import { KindPickerSheet, TILES, type Tile } from './KindPickerSheet';
-import { SendToNetworkConfirm } from './SendToNetworkConfirm';
+import { PostPublishModal, type PublishModalKindConfig } from './PostPublishModal';
+import { DiscardConfirmSheet } from './DiscardConfirmSheet';
+import { UndoSnackbar } from './UndoSnackbar';
 import {
   EventFieldsBlock,
   EMPTY_EVENT_FIELDS_STATE,
   type EventFieldsState,
 } from './EventFieldsBlock';
+import { DraftSavedIndicator } from './DraftSavedIndicator';
+import { useAutosaveDraft } from '@/shared/autosave/use-autosave-draft';
 
 export interface KindMapEntry {
   id: string;
@@ -72,12 +95,20 @@ export interface KindMapEntry {
   displayName: string;
 }
 
+/**
+ * D072 — publish-modal config keyed by PostKind.slug. Server-rendered
+ * at page load time so the modal opens without an extra round-trip.
+ */
+export type PublishModalKindConfigBySlug = Record<string, PublishModalKindConfig>;
+
 interface PostFormProps {
-  onSubmit: (formData: FormData) => Promise<CreatePostResult | void>;
+  onSubmit: (formData: FormData) => Promise<CreatePostResult>;
   /** Intent label from the FAB picker (?intent=...). null = no preselection. */
   intent?: string | null;
   /** Active PostKind set keyed by slug (server-resolved at page render time). */
   kindMap: Record<string, KindMapEntry>;
+  /** D072 — publish-modal config per kind, server-rendered at page load. */
+  kindConfigBySlug: PublishModalKindConfigBySlug;
   /** GPS Network channel URL (BU-tick-or-cross / D069). Null when unset. */
   networkChannelUrl?: string | null;
   /** Canonical origin for the post URL embedded in the handoff message. */
@@ -230,6 +261,7 @@ export function PostForm({
   onSubmit,
   intent = null,
   kindMap,
+  kindConfigBySlug,
   networkChannelUrl = null,
   siteOrigin = '',
   prefilledTitle = '',
@@ -238,7 +270,14 @@ export function PostForm({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
-  const [handoff, setHandoff] = useState<CreatePostResult['handoff'] | null>(null);
+  const [draft, setDraft] = useState<CreatePostResult['draft'] | null>(null);
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [undoState, setUndoState] = useState<{ postId: string } | null>(null);
+  // BU-publish-router (D072 §8 stage 1) — controlled title + body so the
+  // IndexedDB autosave can mirror them. The other text fields stay
+  // uncontrolled in Phase 1; Phase 2's bu-drafts-inbox extends this.
+  const [title, setTitle] = useState(prefilledTitle);
+  const [body, setBody] = useState('');
   // currentIntent is initialised from the prop but mutable — tapping the
   // banner opens KindPickerSheet which calls setCurrentIntent.
   const [currentIntent, setCurrentIntent] = useState<string | null>(intent);
@@ -274,6 +313,36 @@ export function PostForm({
   const isTimeBearing = kindIsTimeBearing(activeKindSlug ?? null);
   const submitDisabled = isPending || (isTickOrCross && signal === null);
 
+  // ── BU-publish-router (D072 §8 stage 1) — IndexedDB autosave ──────────
+  // Phase 1 ships only the client-side layer: every change writes to
+  // IndexedDB after a 500ms debounce; reload re-hydrates. Server-side
+  // autosave + the /drafts recall surface land in bu-drafts-inbox.
+  const draftSnapshot = useMemo(
+    () => ({ title, body, signal, currentIntent, selectedKind }),
+    [title, body, signal, currentIntent, selectedKind],
+  );
+  const autosave = useAutosaveDraft({
+    key: 'compose-draft-current',
+    value: draftSnapshot,
+    enabled: draft === null, // suspend once a server-side post exists
+  });
+
+  // Hydrate cached draft on first load. Runs once; subsequent changes
+  // come from the user, not the cache.
+  useEffect(() => {
+    if (!autosave.hasHydrated || !autosave.hydrated) return;
+    const cached = autosave.hydrated as Partial<typeof draftSnapshot>;
+    if (typeof cached.title === 'string' && cached.title.length > 0) {
+      setTitle(cached.title);
+    }
+    if (typeof cached.body === 'string' && cached.body.length > 0) {
+      setBody(cached.body);
+    }
+    if (cached.signal === 'promote' || cached.signal === 'remove') {
+      setSignal(cached.signal);
+    }
+  }, [autosave.hasHydrated]);
+
   function handleIntentSwitch(slug: string): void {
     setCurrentIntent(slug);
     if (slug === 'undecided') {
@@ -291,25 +360,93 @@ export function PostForm({
     if (meta.urgent && resolvedKindId && kindMap[selectedKind]?.isAlertEligible) {
       formData.set('urgency', 'true');
     }
+    if (activeKindSlug) formData.set('kindSlug', activeKindSlug);
     if (isTickOrCross && signal) formData.set('signal', signal);
     startTransition(async () => {
       const result = await onSubmit(formData);
-      if (result?.errors) {
+      if (result.errors) {
         setErrors(result.errors);
         return;
       }
-      if (result?.handoff) {
-        // BU-tick-or-cross: open the GPS Network handoff modal in place
-        // of the redirect. Modal closes → router push to /feed.
-        setHandoff(result.handoff);
+      if (result.draft) {
+        // D072 — every kind goes through the universal publish modal.
+        // The IndexedDB cache is now stale (the post is a real DB row);
+        // drop it so a refresh doesn't re-hydrate the typed text on top
+        // of an already-saved draft.
+        await autosave.clear();
+        setDraft(result.draft);
         return;
       }
-      // Other kinds: server action already redirected; no-op here.
     });
   }
 
-  function handleHandoffClose() {
-    setHandoff(null);
+  function closeAndGoFeed(): void {
+    setDraft(null);
+    router.push('/feed');
+  }
+
+  async function handleModalPublish(): Promise<void> {
+    if (!draft) return;
+    const result = await publishPostAction({ postId: draft.postId });
+    if (!result.ok) {
+      setErrors({ _form: [`Couldn't publish: ${result.reason}`] });
+    }
+  }
+
+  async function handleModalSendForReview(alsoPublishToFeed: boolean): Promise<void> {
+    if (!draft) return;
+    const result = await sendPostForReviewAction({
+      postId: draft.postId,
+      alsoPublishToFeed,
+    });
+    if (!result.ok) {
+      setErrors({ _form: [`Couldn't send for review: ${result.reason}`] });
+    }
+  }
+
+  async function handleModalSaveDraft(): Promise<void> {
+    if (!draft) return;
+    const result = await saveDraftAction({ postId: draft.postId });
+    if (!result.ok) {
+      setErrors({ _form: [`Couldn't save draft: ${result.reason}`] });
+    }
+  }
+
+  function handleModalDiscard(): void {
+    setDiscardOpen(true);
+  }
+
+  async function confirmDiscard(): Promise<void> {
+    setDiscardOpen(false);
+    // No server-side post yet → discarding only the in-progress IndexedDB
+    // draft. Clear the cache and reset the controlled fields so the
+    // form is empty.
+    if (!draft) {
+      await autosave.clear();
+      setTitle('');
+      setBody('');
+      setSignal(null);
+      return;
+    }
+    const result = await discardPostAction({ postId: draft.postId });
+    if (!result.ok) {
+      setErrors({ _form: [`Couldn't discard: ${result.reason}`] });
+      return;
+    }
+    setDraft(null);
+    setUndoState({ postId: result.postId });
+  }
+
+  async function handleUndo(): Promise<void> {
+    if (!undoState) return;
+    const { restorePostAction } = await import('@/app/compose/actions');
+    await restorePostAction({ postId: undoState.postId });
+    setUndoState(null);
+    router.push(`/post/${undoState.postId}`);
+  }
+
+  function handleUndoTimeout(): void {
+    setUndoState(null);
     router.push('/feed');
   }
 
@@ -320,6 +457,24 @@ export function PostForm({
       data-intent={currentIntent ?? 'none'}
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}
     >
+      {/* BU-publish-router (D072 §8) — calm, honest autosave indicator
+          in the form header. The "View all drafts" link stays disabled
+          until bu-drafts-inbox lands. Discard menu item opens the same
+          confirm sheet the publish modal uses. */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <DraftSavedIndicator
+          state={
+            autosave.status === 'editing'
+              ? 'editing'
+              : autosave.status === 'failed'
+                ? 'failed'
+                : 'saved'
+          }
+          lastSavedAt={autosave.lastSavedAt}
+          onDiscardClick={() => setDiscardOpen(true)}
+        />
+      </div>
+
       {/* Intent banner — visual differentiation per FAB tile, also a
           tappable trigger to switch kinds without losing typed content. */}
       {currentIntent && (
@@ -404,7 +559,8 @@ export function PostForm({
           minLength={3}
           maxLength={200}
           placeholder={meta.titlePlaceholder || undefined}
-          defaultValue={prefilledTitle || undefined}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           className="gps-input"
           style={{
             width: '100%',
@@ -450,6 +606,8 @@ export function PostForm({
           maxLength={10000}
           rows={10}
           placeholder={meta.bodyPlaceholder || undefined}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
           className="gps-input"
           style={{
             width: '100%',
@@ -800,27 +958,51 @@ export function PostForm({
         </a>
       </div>
 
-      {handoff && networkChannelUrl && (
-        <SendToNetworkConfirm
-          postId={handoff.postId}
-          signal={handoff.signal}
-          title={handoff.title}
-          body={handoff.body}
-          channelUrl={networkChannelUrl}
-          originUrl={siteOrigin}
-          onClose={handleHandoffClose}
+      {draft &&
+        (() => {
+          const kindConfig = draft.kindSlug ? kindConfigBySlug[draft.kindSlug] : undefined;
+          if (!kindConfig) return null;
+          return (
+            <PostPublishModal
+              post={{
+                id: draft.postId,
+                title: draft.title,
+                body: draft.body,
+                signal: draft.signal,
+                kindSlug: draft.kindSlug,
+              }}
+              kindConfig={kindConfig}
+              actionContext={{
+                originUrl: siteOrigin,
+                channelUrl: networkChannelUrl ?? undefined,
+                onMarkSharedToNetwork: async (postId) => {
+                  const { markPostSharedToNetworkAction } = await import('@/app/post/[id]/actions');
+                  await markPostSharedToNetworkAction(postId);
+                },
+              }}
+              onPublish={handleModalPublish}
+              onSendForReview={handleModalSendForReview}
+              onSaveDraft={handleModalSaveDraft}
+              onDiscard={handleModalDiscard}
+              onClose={closeAndGoFeed}
+            />
+          );
+        })()}
+
+      <DiscardConfirmSheet
+        open={discardOpen}
+        onConfirm={confirmDiscard}
+        onCancel={() => setDiscardOpen(false)}
+      />
+
+      {undoState && (
+        <UndoSnackbar
+          message="Draft discarded"
+          durationMs={10000}
+          onUndo={handleUndo}
+          onTimeout={handleUndoTimeout}
+          purpose="discard-draft"
         />
-      )}
-      {handoff && !networkChannelUrl && (
-        <div
-          role="alert"
-          data-testid="compose-send-to-network-missing-config"
-          style={{ display: 'none' }}
-        >
-          {/* Channel URL not configured — modal cannot open. The post is still
-              saved; the card-side retry CTA can drive the handoff once the
-              env var is set. Hidden node retained for tests. */}
-        </div>
       )}
     </form>
   );

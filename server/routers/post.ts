@@ -1,7 +1,7 @@
 /**
- * @build-unit BU-feed BU-composer BU-tick-or-cross BU-event-time
+ * @build-unit BU-feed BU-composer BU-tick-or-cross BU-event-time BU-publish-router
  * @spec architecture/api-contract.md
- * @spec architecture/decision-log.md (D045, D069, D073)
+ * @spec architecture/decision-log.md (D045, D069, D072, D073)
  *
  * Post tRPC router. Exposes:
  *  - post.list        — feed listing
@@ -9,9 +9,13 @@
  *  - post.update      — edit-page mutation (BU-event-time / D073)
  *  - post.listUpcoming — agenda query for bu-calendar-view (D073)
  *  - post.markSharedToNetwork — BU-tick-or-cross handoff confirm
+ *  - publish-router lifecycle verbs (publish / sendForReview /
+ *    saveDraft / discard / restore / autosaveDraft) called from
+ *    app/compose/actions.ts (BU-publish-router / D072).
  */
 
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 import { router, publicProcedure, authedProcedure } from '@/server/lib/trpc';
 import {
   listPosts,
@@ -19,6 +23,12 @@ import {
   updatePost,
   listUpcoming,
   markSharedToNetwork,
+  publishPost,
+  sendPostForReview,
+  saveDraft,
+  discardPost,
+  restorePost,
+  autosaveDraft,
 } from '@/server/services/post';
 import { postCreateSchema, postUpdateSchema } from '@/shared/validation/post';
 import { FEED_FILTERS, type FeedFilter } from '@/shared/feed-filters';
@@ -104,4 +114,127 @@ export const postRouter = router({
     .mutation(async ({ ctx, input }) => {
       return markSharedToNetwork(input.postId, ctx.user.id);
     }),
+
+  // BU-publish-router / D072. Lifecycle verbs the publish modal calls.
+  // Each lifts the corresponding service result; the service returns
+  // a discriminated `{ ok, reason }` so the router can map to TRPCError
+  // codes consistently.
+  publish: authedProcedure
+    .input(z.object({ postId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const result = await publishPost({ postId: input.postId, callerId: ctx.user.id });
+      if (!result.ok) throw mapLifecycleError(result.reason);
+      return { postId: result.postId, publishedAt: result.publishedAt };
+    }),
+
+  sendForReview: authedProcedure
+    .input(
+      z.object({
+        postId: z.string().uuid(),
+        alsoPublishToFeed: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const result = await sendPostForReview({
+        postId: input.postId,
+        callerId: ctx.user.id,
+        alsoPublishToFeed: input.alsoPublishToFeed,
+      });
+      if (!result.ok) throw mapLifecycleError(result.reason);
+      return {
+        postId: result.postId,
+        reviewRequestId: result.reviewRequestId,
+        publishedAt: result.publishedAt,
+      };
+    }),
+
+  saveDraft: authedProcedure
+    .input(z.object({ postId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const result = await saveDraft({ postId: input.postId, callerId: ctx.user.id });
+      if (!result.ok) throw mapLifecycleError(result.reason);
+      return { ok: true as const };
+    }),
+
+  discard: authedProcedure
+    .input(z.object({ postId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const result = await discardPost({ postId: input.postId, callerId: ctx.user.id });
+      if (!result.ok) throw mapLifecycleError(result.reason);
+      return { postId: result.postId, deletedAt: result.deletedAt };
+    }),
+
+  restore: authedProcedure
+    .input(z.object({ postId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const result = await restorePost({ postId: input.postId, callerId: ctx.user.id });
+      if (!result.ok) throw mapLifecycleError(result.reason);
+      return { postId: result.postId };
+    }),
+
+  autosaveDraft: authedProcedure
+    .input(
+      z.object({
+        postId: z.string().uuid(),
+        fields: z
+          .object({
+            title: z.string().max(200).optional(),
+            body: z.string().max(10000).optional(),
+            visibility: z.enum(['public', 'authenticated_only']).optional(),
+            linkUrl: z.string().nullable().optional(),
+            linkTitle: z.string().nullable().optional(),
+            linkDescription: z.string().nullable().optional(),
+            linkImageUrl: z.string().nullable().optional(),
+            linkSiteName: z.string().nullable().optional(),
+            heroImageUrl: z.string().nullable().optional(),
+            signal: z.enum(['promote', 'remove']).nullable().optional(),
+            kindId: z.string().nullable().optional(),
+            urgency: z.boolean().optional(),
+          })
+          .strict(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const result = await autosaveDraft({
+        postId: input.postId,
+        callerId: ctx.user.id,
+        fields: input.fields,
+      });
+      if (!result.ok) throw mapLifecycleError(result.reason);
+      return { updatedAt: result.updatedAt };
+    }),
 });
+
+type LifecycleErrorReason =
+  | 'not_found'
+  | 'not_owner'
+  | 'discarded'
+  | 'already_published'
+  | 'already_in_review'
+  | 'already_discarded'
+  | 'no_kind'
+  | 'in_review'
+  | 'no_fields'
+  | 'not_discarded';
+
+function mapLifecycleError(reason: LifecycleErrorReason): TRPCError {
+  switch (reason) {
+    case 'not_found':
+      return new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
+    case 'not_owner':
+      return new TRPCError({ code: 'FORBIDDEN', message: 'Not the post author' });
+    case 'in_review':
+      return new TRPCError({
+        code: 'CONFLICT',
+        message: 'In review — edits paused',
+      });
+    case 'discarded':
+    case 'already_discarded':
+    case 'already_published':
+    case 'already_in_review':
+    case 'not_discarded':
+    case 'no_kind':
+    case 'no_fields':
+      return new TRPCError({ code: 'BAD_REQUEST', message: reason });
+  }
+}

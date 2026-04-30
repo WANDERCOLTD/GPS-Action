@@ -152,6 +152,7 @@ export const CommentList: FC<CommentListProps> = ({
             <CommentItem
               key={comment.id}
               comment={comment}
+              postId={postId}
               reactionsEnabled={reactionsEnabled}
               canReact={canReact}
               onAddReaction={onAddReactionToComment}

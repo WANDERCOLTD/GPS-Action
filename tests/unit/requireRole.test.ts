@@ -18,6 +18,7 @@ const fakeUser: User = {
   id: 'user-1',
   email: 'test@example.com',
   displayName: 'Test User',
+  avatarUrl: null,
   phoneNumber: null,
   verifiedAt: new Date(),
   lastSeenAt: null,

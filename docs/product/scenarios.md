@@ -1473,3 +1473,178 @@ action`, Eddie can change the chip in the composer.
   to David's quiet-Friday-night reaction in SCN-3)
 - D062 (PostKind taxonomy — `thought` is one of the 9 seeded kinds)
 - BU-link-first-composer (the BU implementing this scenario)
+
+### Scenario 26 — Sharon publishes a tick_or_cross post via the universal modal
+
+_Sharon Cohen, writers lead, 4 years in. Tuesday morning at her
+desk. Sky News op-ed open in another tab._
+
+Sharon spotted a Sky News piece this morning that's misleading
+about the Manchester council debate. She wants the network to
+amplify the rebuttal thread that's already running on X.
+
+She opens GPS Action, taps the FAB **+**, types the URL into the
+starter, taps Continue. The composer opens with the link-share
+preview already populated. She switches the kind chip from
+`link_share` to `tick_or_cross` — this isn't just "worth reading,"
+it's a coordinated push.
+
+The ✅ / ❌ toggle appears above the title. She picks ✅. Title:
+"Sky News op-ed misrepresents the Manchester debate". Body: two
+short paragraphs explaining what's missing and pointing to the
+rebuttal thread.
+
+She taps **Publish**. The screen dims and a modal slides up — not
+the old "Open the WhatsApp channel" prompt, something different.
+Cards stacked: a primary one labelled "Post & share to ✅ on GPS
+WhatsApp", below it "Post to feed only", below that "Send to
+reviewers" with an "Also post to feed" checkbox unticked, and
+"Save as draft" at the bottom. A small "Discard" sits in the
+corner.
+
+She taps the primary card. Two things happen in the same instant:
+the post appears at the top of the feed (someone's already added
+🎯 by the time she scrolls down), and a new tab opens to the GPS
+Network channel. The modal stays open with a follow-up prompt:
+"Did you send it?" Two buttons — "I sent it" and "Not yet".
+
+The message has been copied to her clipboard already. She switches
+to the WhatsApp tab, pastes (Cmd-V), hits send. Switches back to
+GPS Action, taps "I sent it." The modal closes; she's back on
+/feed; her post now shows the green "Sent to GPS Network" pill.
+
+Total time from opening the app to sent: under 90 seconds. No
+moment where she had to wonder "wait, did the post already
+publish?" — the modal made the order explicit.
+
+**What the scenario surfaces:**
+
+- The kind-specific primary card (`Post & share to ✅ on GPS
+WhatsApp`) combines publish + the WhatsApp handoff into one tap.
+  Sharon doesn't have to separately publish, then separately share
+  — D072 §5 calls this the 80% path for tick_or_cross authors.
+- The other cards are visible without being prominent. Sharon
+  could have routed through "Send to reviewers" if she'd wanted a
+  second pair of eyes — the option exists, it doesn't get in the
+  way.
+- The "Did you send it?" follow-up is honest: the app can't verify
+  the WhatsApp paste actually landed, so it asks. The "Sent to
+  GPS Network" pill is the result of her self-report, not a
+  pretended-knowledge claim.
+- One conceptual modal across every PostKind. Sharon's muscle
+  memory for tick_or_cross transfers to call_to_action,
+  link_share, etc. — the buttons live in the same places.
+
+**Friction found:**
+
+- The kind chip isn't obvious enough as a switch. Sharon found it
+  but a less-experienced member might not realise they can change
+  kind without restarting. Slice 2 candidate: surface a "switch
+  kind" affordance more prominently when the form has content.
+- "Did you send it?" arriving in the modal (not as a separate
+  toast) is discoverable but the timing matters — if Sharon
+  closes the modal before the WhatsApp tab loads she could lose
+  the prompt. Modal stays open until explicitly dismissed; that's
+  the right tradeoff.
+
+**Related:**
+
+- SCN-18 (Eddie's first post — the simpler non-tick_or_cross flow)
+- SCN-19 (Sharon's earlier link-share scenario — same FAB entry,
+  different submit path)
+- D069 (the original tick_or_cross handoff this BU generalises)
+- D072 (the publish router architecture this scenario walks)
+- BU-publish-router (Phase 1 BU implementing this scenario)
+
+### Scenario 27 — Eddie sends his first post for review; Bette refines and publishes
+
+_Eddie Morales, member, 2 months in. Thursday evening, kitchen
+table, reading glasses on. Bette Rosenthal, writers lead, the same
+network, on her laptop the next morning._
+
+Eddie's been drafting a call-to-action about the antisemitism
+statistics report. He's nervous — it's his first action post, and
+he knows the wording matters. He doesn't trust himself to get the
+ask right.
+
+He composes in `/compose?intent=call_to_action`. Title, three
+paragraphs of body, a link to the CST report. He taps **Publish**.
+The modal slides up. Three options stand out: "Post to feed only,"
+"Send to reviewers" with an "Also post to feed" checkbox unticked
+(the default for call_to_action — D072 §2), and "Save as draft."
+
+Eddie taps **Send to reviewers** with the checkbox unticked.
+"Sending…" briefly, then a confirmation: his post is in the
+reviewer queue, status: draft, not yet in the feed. The form
+clears; a banner says "Your post will appear here when a reviewer
+publishes it." Eddie closes the app.
+
+Next morning Bette opens her queue (Phase 3 surface — for now,
+imagine it as the existing requests workspace). She sees Eddie's
+post sitting in the kind_review queue with priority `normal` —
+inherited from the call_to_action kind config. She opens it,
+reads. The ask is right but the framing is too defensive. She
+edits two sentences, tightens one paragraph, leaves Eddie's link
+verbatim, picks **Publish**.
+
+The post lands on /feed. The byline shows Eddie's name first
+(authorship preserved); next to his role chip sits a small ringed
+avatar — Bette's face, with a tiny ✓ in the corner. Pinned at the
+top of the comments thread is a calm system note: "Bette Rosenthal
+helped review and shape this post." Bette's avatar is on the
+comment too, closing the loop visually.
+
+Eddie gets the notification: "Bette Rosenthal reviewed and
+published your post." He opens the post. Sub-byline under his
+name: a slightly larger badge, "Reviewed by Bette Rosenthal." He
+taps the badge — the page scrolls to the pinned comment. He reads
+Bette's edits, sees what changed, comments back: "Thank you, this
+reads much better." Closes the app.
+
+**What the scenario surfaces:**
+
+- "Send to reviewers" as the third card is discoverable for new
+  authors who don't know the workflow exists. Eddie didn't need to
+  hunt for "is there a way to ask someone to look at this first?"
+  — the option was right there.
+- Priority inheritance (`call_to_action` → priority=normal,
+  tick_or_cross → priority=high, cultural → high) means high-
+  stakes kinds bubble up the reviewer queue without authors
+  needing to think about it.
+- Three-tier attribution (badge + sub-byline + auto-comment) makes
+  the review _visible_ rather than abstract. Members understand
+  who vouched for what without legal-style "approved by" badges.
+  The reviewer's face is the badge.
+- Original authorship is preserved. Eddie wrote it, Bette
+  refined it. Bylines say so honestly.
+
+**Friction found:**
+
+- Eddie's first time, he might assume "Send to reviewers" delays
+  the post indefinitely. The "Your post will appear here when a
+  reviewer publishes it" banner is the antidote, but for high-
+  trust authors who don't actually need review the choice between
+  "Post to feed only" and "Send to reviewers" is a tiny extra tap.
+  Acceptable friction — the option exists, the default is to
+  publish directly when canSelfPublish is true.
+- Reviewer queue UI doesn't ship in this BU (Phase 3). Until then,
+  the kind_review Request lives in the existing requests
+  workspace; Bette can claim and resolve it through that surface,
+  but the dedicated review-and-edit workflow comes later.
+- "Reviewed by Bette" implies endorsement. Some posts may want
+  "Reviewed and published by Bette" or even an attribution shape
+  that names the reviewer's role ("Reviewed by Bette · Writers
+  lead"). Pilot will reveal whether the simple form is enough.
+
+**Related:**
+
+- SCN-21, SCN-22 (the existing vetting reviewer flow — different
+  RequestType but the same claim-and-resolve aesthetic)
+- D072 (the publish router architecture, including the §6 three-
+  tier attribution pattern)
+- BU-publish-router (Phase 1 BU shipping the schema, the modal,
+  and the attribution surfaces)
+- BU-reviewer-kind-review-queue (Phase 3 — the dedicated reviewer
+  surface for these requests)
+- BU-drafts-inbox (Phase 2 — the author-side recall of saved
+  drafts and pending review requests)

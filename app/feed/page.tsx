@@ -94,6 +94,8 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
         mine: r.mine,
       })),
       commentCount: p.commentCount,
+      reviewedByUserId: p.reviewedByUserId,
+      reviewedBy: p.reviewedBy,
     }),
   );
 

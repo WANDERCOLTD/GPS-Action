@@ -1,6 +1,6 @@
 /**
- * @build-unit BU-comments BU-requests-vetting
- * @spec architecture/decision-log.md (D052, D056, D057)
+ * @build-unit BU-comments BU-requests-vetting BU-publish-router
+ * @spec architecture/decision-log.md (D052, D056, D057, D072)
  * @spec product/scenarios.md (SCN-20, SCN-21, SCN-22)
  * @spec product/analytics-events.md
  *
@@ -17,7 +17,7 @@
  * Request comments emits Notification rows for each matched reviewer.
  */
 
-import type { CommentAudience, SystemRole } from '@prisma/client';
+import type { CommentAudience, CommentSystemKind, SystemRole } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
 import { listReactionsForComments, type ReactionAggregate } from '@/server/services/reaction';
@@ -31,6 +31,8 @@ export interface CommentAuthor {
   displayName: string;
   roles: SystemRole[];
   isNewMember: boolean;
+  /** D072 — for the post_review_attribution comment, the avatar IS the badge. */
+  avatarUrl: string | null;
 }
 
 export interface CommentListItem {
@@ -42,6 +44,8 @@ export interface CommentListItem {
   reactions: ReactionAggregate[];
   /** Audience marker — only meaningful for Request comments (D056). */
   audience?: CommentAudience;
+  /** D072 — non-null marks a system-authored comment with special rendering. */
+  systemKind: CommentSystemKind | null;
 }
 
 interface CreateCommentInput {
@@ -140,6 +144,7 @@ export async function listCommentsForPost(
           id: true,
           displayName: true,
           createdAt: true,
+          avatarUrl: true,
           roleGrants: {
             where: {
               revokedAt: null,
@@ -168,8 +173,10 @@ export async function listCommentsForPost(
       displayName: row.author.displayName,
       roles: row.author.roleGrants.map((g) => g.role),
       isNewMember: now - row.author.createdAt.getTime() < NEW_MEMBER_WINDOW_MS,
+      avatarUrl: row.author.avatarUrl,
     },
     reactions: reactionsByComment.get(row.id) ?? [],
+    systemKind: row.systemKind,
   }));
 }
 
@@ -323,6 +330,7 @@ export async function listCommentsForRequest(
           id: true,
           displayName: true,
           createdAt: true,
+          avatarUrl: true,
           roleGrants: {
             where: { revokedAt: null, role: { in: ['admin', 'queue_manager'] } },
             select: { role: true },
@@ -350,8 +358,67 @@ export async function listCommentsForRequest(
       displayName: c.author.displayName,
       roles: c.author.roleGrants.map((g) => g.role),
       isNewMember: now - c.author.createdAt.getTime() < NEW_MEMBER_WINDOW_MS,
+      avatarUrl: c.author.avatarUrl,
     },
     reactions: reactionsByComment.get(c.id) ?? [],
     audience: c.audience,
+    systemKind: c.systemKind,
   }));
+}
+
+// ── Auto-comment for review attribution (BU-publish-router / D072) ───────
+
+const REVIEW_PUBLISHED_CREATES_COMMENT_KEY = 'review_published_creates_comment';
+
+/**
+ * Insert the pinned `post_review_attribution` comment when a reviewer
+ * verdicts a post `publish` via the kind-review flow. Authored by the
+ * reviewer themselves (their avatar is the comment avatar — closes the
+ * three-tier loop per D072 §6). Suppressed when the
+ * `review_published_creates_comment` SystemSetting is `'false'` so an
+ * env can opt out without a code change.
+ *
+ * Returns `null` when the system setting disables the auto-comment, or
+ * when the reviewer / post can't be resolved (the verdict still
+ * proceeds; the comment is non-load-bearing). Never throws.
+ */
+export async function createPostReviewAttributionComment(input: {
+  postId: string;
+  reviewerId: string;
+}): Promise<{ id: string } | null> {
+  const setting = await prisma.systemSetting.findUnique({
+    where: { key: REVIEW_PUBLISHED_CREATES_COMMENT_KEY },
+    select: { value: true },
+  });
+  if (setting?.value === 'false') return null;
+
+  const reviewer = await prisma.user.findUnique({
+    where: { id: input.reviewerId },
+    select: { displayName: true, deletedAt: true },
+  });
+  if (!reviewer || reviewer.deletedAt) return null;
+
+  const body = `${reviewer.displayName} helped review and shape this post.`;
+
+  const created = await prisma.comment.create({
+    data: {
+      postId: input.postId,
+      authorId: input.reviewerId,
+      body,
+      audience: 'all',
+      systemKind: 'post_review_attribution',
+    },
+    select: { id: true },
+  });
+
+  await auditLog({
+    action: 'comment.system_review_attribution.add',
+    entityType: 'comment',
+    entityId: created.id,
+    userId: input.reviewerId,
+    changes: { postId: input.postId, systemKind: 'post_review_attribution' },
+    context: { source: 'kind_review_verdict' },
+  });
+
+  return created;
 }

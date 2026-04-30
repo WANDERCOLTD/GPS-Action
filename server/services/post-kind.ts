@@ -1,6 +1,6 @@
 /**
- * @build-unit BU-fab-intent-picker
- * @spec architecture/decision-log.md (D062)
+ * @build-unit BU-fab-intent-picker BU-publish-router
+ * @spec architecture/decision-log.md (D062, D072)
  *
  * PostKind service — read access for the composer (kind picker, alert
  * eligibility lookup) and reviewer surfaces. Replaces the old
@@ -13,7 +13,7 @@
  * Layer boundary: services → db + lib + shared only.
  */
 
-import type { PostKind } from '@prisma/client';
+import type { PostKind, ReviewMode, RequestPriority } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 
 export interface PostKindSummary {
@@ -23,6 +23,14 @@ export interface PostKindSummary {
   icon: string | null;
   isAlertEligible: boolean;
   sortOrder: number;
+  /** D072 — kind-specific publish-modal action slugs. */
+  actionSlugs: string[];
+  /** D072 — drives the publish modal's preselected default. */
+  reviewMode: ReviewMode;
+  /** D072 — when false, the "Post to feed" base card is hidden. */
+  canSelfPublish: boolean;
+  /** D072 — priority a kind_review Request inherits from this kind. */
+  reviewPriority: RequestPriority;
 }
 
 function mapKind(row: PostKind): PostKindSummary {
@@ -33,6 +41,10 @@ function mapKind(row: PostKind): PostKindSummary {
     icon: row.icon,
     isAlertEligible: row.isAlertEligible,
     sortOrder: row.sortOrder,
+    actionSlugs: row.actionSlugs,
+    reviewMode: row.reviewMode,
+    canSelfPublish: row.canSelfPublish,
+    reviewPriority: row.reviewPriority,
   };
 }
 

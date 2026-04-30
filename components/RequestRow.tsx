@@ -27,6 +27,7 @@ const TYPE_LABELS: Record<RequestType, string> = {
   incident: 'Incident',
   content_submission: 'Content submission',
   link_submission: 'Link submission',
+  kind_review: 'Post review',
 };
 
 const STATUS_LABELS: Record<string, string> = {

@@ -38,6 +38,7 @@ const TYPE_LABELS: Record<RequestType, string> = {
   incident: 'Incident',
   content_submission: 'Content submission',
   link_submission: 'Link submission',
+  kind_review: 'Post review',
 };
 
 export default async function RequestsPage() {
