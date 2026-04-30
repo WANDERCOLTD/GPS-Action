@@ -270,7 +270,11 @@ export function PostPublishModal({
               data-card-primary="false"
               style={cardStyle(false, working !== null)}
             >
-              <ActionCardBody icon={FileEdit} label="Save as draft" />
+              <ActionCardBody
+                icon={FileEdit}
+                label="Save as draft"
+                hint="A drafts inbox to find them again is coming soon."
+              />
             </button>
 
             <button

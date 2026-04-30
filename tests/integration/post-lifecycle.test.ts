@@ -17,8 +17,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@/server/db/client', () => ({
-  prisma: {
+vi.mock('@/server/db/client', () => {
+  const prismaMock: Record<string, unknown> = {
     post: {
       findUnique: vi.fn(),
       update: vi.fn(),
@@ -34,8 +34,13 @@ vi.mock('@/server/db/client', () => ({
     auditLog: {
       create: vi.fn().mockResolvedValue({ id: 'audit-1' }),
     },
-  },
-}));
+  };
+  // $transaction passthrough — invoke the callback with the same mock,
+  // so transactional services exercise the same vi.fn() instances and
+  // existing assertions on prisma.* still work.
+  prismaMock.$transaction = vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => fn(prismaMock));
+  return { prisma: prismaMock };
+});
 
 vi.mock('@/server/services/audit', () => ({
   auditLog: vi.fn().mockResolvedValue(undefined),

@@ -17,7 +17,14 @@
  * post (any role) / coordinator within region / director everywhere.
  */
 
-import type { PostStatus, PostVisibility, Signal, SystemRole } from '@prisma/client';
+import type {
+  PostStatus,
+  PostVisibility,
+  Prisma,
+  RequestPriority,
+  Signal,
+  SystemRole,
+} from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import type { PostCreateInput, PostUpdateInput } from '@/shared/validation/post';
 import { isAllowedHeroImageUrl } from '@/shared/seed-images';
@@ -695,8 +702,11 @@ async function getOwnedPost(
   return { ok: true, post };
 }
 
-async function isReviewRequestOpen(reviewRequestId: string): Promise<boolean> {
-  const req = await prisma.request.findUnique({
+async function isReviewRequestOpen(
+  reviewRequestId: string,
+  db: Prisma.TransactionClient | typeof prisma = prisma,
+): Promise<boolean> {
+  const req = await db.request.findUnique({
     where: { id: reviewRequestId },
     select: { status: true, deletedAt: true },
   });
@@ -777,26 +787,44 @@ export async function sendPostForReview(
   const post = found.post;
 
   if (post.deletedAt) return { ok: false, reason: 'discarded' };
-  if (post.reviewRequestId && (await isReviewRequestOpen(post.reviewRequestId))) {
-    return { ok: false, reason: 'already_in_review' };
-  }
   if (!post.kindId) return { ok: false, reason: 'no_kind' };
 
-  // Defer Request creation to request.ts to keep cross-entity logic
-  // owned by the entity that's the subject of the verdict.
-  const created = await createKindReviewRequest({
-    postId: post.id,
-    callerId: input.callerId,
+  const publishedAt = input.alsoPublishToFeed ? new Date() : null;
+
+  // Critical section: the open-review check, Request creation, and the
+  // Post linkage all happen inside one transaction so the modal can't
+  // observe (or create) an orphan Request when two clicks race or the
+  // post.update step fails. Audit-log writes stay outside — logs aren't
+  // part of the integrity boundary.
+  const result:
+    | { kind: 'ok'; reviewRequestId: string; priority: RequestPriority }
+    | { kind: 'already_in_review' } = await prisma.$transaction(async (tx) => {
+    if (post.reviewRequestId && (await isReviewRequestOpen(post.reviewRequestId, tx))) {
+      return { kind: 'already_in_review' as const };
+    }
+
+    // Defer Request creation to request.ts to keep cross-entity logic
+    // owned by the entity that's the subject of the verdict.
+    const created = await createKindReviewRequest({
+      postId: post.id,
+      callerId: input.callerId,
+      tx,
+    });
+
+    await tx.post.update({
+      where: { id: post.id },
+      data: {
+        reviewRequestId: created.id,
+        ...(publishedAt ? { status: 'published' as const, publishedAt } : {}),
+      },
+    });
+
+    return { kind: 'ok' as const, reviewRequestId: created.id, priority: created.priority };
   });
 
-  const publishedAt = input.alsoPublishToFeed ? new Date() : null;
-  await prisma.post.update({
-    where: { id: post.id },
-    data: {
-      reviewRequestId: created.id,
-      ...(publishedAt ? { status: 'published' as const, publishedAt } : {}),
-    },
-  });
+  if (result.kind === 'already_in_review') {
+    return { ok: false, reason: 'already_in_review' };
+  }
 
   await auditLog({
     action: 'post_sent_for_review',
@@ -804,8 +832,8 @@ export async function sendPostForReview(
     entityId: post.id,
     userId: input.callerId,
     changes: {
-      reviewRequestId: created.id,
-      priority: created.priority,
+      reviewRequestId: result.reviewRequestId,
+      priority: result.priority,
       alsoPublishToFeed: input.alsoPublishToFeed,
       publishedAt: publishedAt ? publishedAt.toISOString() : null,
     },
@@ -815,7 +843,7 @@ export async function sendPostForReview(
   return {
     ok: true,
     postId: post.id,
-    reviewRequestId: created.id,
+    reviewRequestId: result.reviewRequestId,
     publishedAt,
   };
 }

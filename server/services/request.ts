@@ -388,6 +388,14 @@ export async function resolveRequest(input: {
 export interface CreateKindReviewRequestInput {
   postId: string;
   callerId: string;
+  /**
+   * Optional Prisma transaction client. When provided the read + write
+   * happen inside the supplied tx; the audit-log write still runs on
+   * the global client outside the tx (logs aren't part of the integrity
+   * boundary). Used by `sendPostForReview` so the Request creation +
+   * Post linkage land atomically.
+   */
+  tx?: Prisma.TransactionClient;
 }
 
 export interface CreateKindReviewRequestResult {
@@ -398,10 +406,12 @@ export interface CreateKindReviewRequestResult {
 export async function createKindReviewRequest(
   input: CreateKindReviewRequestInput,
 ): Promise<CreateKindReviewRequestResult> {
+  const db = input.tx ?? prisma;
+
   // Inherit priority from the post's kind. Falls back to 'normal'
   // when the post has no kind or the kind row is gone — same defensive
   // posture the urgent flow uses.
-  const post = await prisma.post.findUnique({
+  const post = await db.post.findUnique({
     where: { id: input.postId },
     select: {
       id: true,
@@ -414,7 +424,7 @@ export async function createKindReviewRequest(
   }
   const priority: RequestPriority = post.kind?.reviewPriority ?? 'normal';
 
-  const created = await prisma.request.create({
+  const created = await db.request.create({
     data: {
       type: 'kind_review',
       status: 'unclaimed',
