@@ -71,6 +71,10 @@ export interface PostListItem {
   linkDescription: string | null;
   linkImageUrl: string | null;
   linkSiteName: string | null;
+  /** D075 — Activist Mailer flag. True for posts whose linkUrl is an AM
+   * email-action (auto-set at submit when the URL matches an allowed AM
+   * domain; member can manually override). */
+  isActivistMailer: boolean;
   /** Intent kind (D062 revised — FK). Slug + display surfaced for clients. */
   kindId: string | null;
   kindSlug: string | null;
@@ -132,6 +136,11 @@ function filterToWhere(filter: FeedFilter | undefined): Record<string, unknown> 
       return {};
     case 'urgent':
       return { urgency: true };
+    case 'activist_mailer':
+      // D075 — flag-driven filter. Independent of kind: any post
+      // (link_share, call_to_action, even thought) can be flagged AM
+      // by the author at compose time or by the AM-domain auto-detect.
+      return { isActivistMailer: true };
     case 'tick_or_cross':
     case 'happening_now':
     case 'meeting':
@@ -233,6 +242,7 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
     linkDescription: post.linkDescription,
     linkImageUrl: post.linkImageUrl,
     linkSiteName: post.linkSiteName,
+    isActivistMailer: post.isActivistMailer,
     kindId: post.kindId,
     kindSlug: post.kind?.slug ?? null,
     kindDisplayName: post.kind?.displayName ?? null,
@@ -335,6 +345,7 @@ export async function createPost(
       linkDescription: input.linkDescription?.trim() || null,
       linkImageUrl: input.linkImageUrl?.trim() || null,
       linkSiteName: input.linkSiteName?.trim() || null,
+      isActivistMailer: input.isActivistMailer ?? false,
       kindId: input.kindId?.trim() || null,
       urgency,
       heroImageUrl,
@@ -1010,6 +1021,7 @@ export interface AutosaveDraftFields {
   linkDescription?: string | null;
   linkImageUrl?: string | null;
   linkSiteName?: string | null;
+  isActivistMailer?: boolean;
   heroImageUrl?: string | null;
   signal?: Signal | null;
   kindId?: string | null;
@@ -1038,6 +1050,7 @@ const AUTOSAVE_FIELD_KEYS: ReadonlyArray<keyof AutosaveDraftFields> = [
   'linkDescription',
   'linkImageUrl',
   'linkSiteName',
+  'isActivistMailer',
   'heroImageUrl',
   'signal',
   'kindId',

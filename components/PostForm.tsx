@@ -90,6 +90,7 @@ import {
 } from './EventFieldsBlock';
 import { DraftSavedIndicator } from './DraftSavedIndicator';
 import { useAutosaveDraft } from '@/shared/autosave/use-autosave-draft';
+import { isActivistMailerDomain } from '@/shared/validation/am-domain';
 
 export interface KindMapEntry {
   id: string;
@@ -292,6 +293,14 @@ export function PostForm({
   const [linkSiteName, setLinkSiteName] = useState('');
   const [linkMetaLoading, setLinkMetaLoading] = useState(false);
   const [titleEdited, setTitleEdited] = useState(prefilledTitle.length > 0);
+  // D075 — Activist Mailer flag. Auto-set when linkUrl is a recognised
+  // AM domain; manual toggle thereafter wins. `amTouched` flips the
+  // moment the member changes the checkbox themselves so URL re-detect
+  // doesn't override their explicit choice.
+  const [isActivistMailer, setIsActivistMailer] = useState<boolean>(
+    isActivistMailerDomain(prefilledLinkUrl),
+  );
+  const [amTouched, setAmTouched] = useState(false);
   // currentIntent is initialised from the prop but mutable — tapping the
   // banner opens KindPickerSheet which calls setCurrentIntent.
   const [currentIntent, setCurrentIntent] = useState<string | null>(intent);
@@ -387,6 +396,14 @@ export function PostForm({
       clearTimeout(t);
     };
   }, [linkUrl, titleEdited]);
+
+  // D075 — auto-detect AM domain on URL change. Only flips the flag
+  // when the member hasn't manually touched the checkbox; once they
+  // have, their explicit choice is sticky.
+  useEffect(() => {
+    if (amTouched) return;
+    setIsActivistMailer(linkUrl ? isActivistMailerDomain(linkUrl) : false);
+  }, [linkUrl, amTouched]);
 
   function handleIntentSwitch(slug: string): void {
     setCurrentIntent(slug);
@@ -653,8 +670,48 @@ export function PostForm({
                 linkImageUrl={linkImageUrl || null}
                 linkSiteName={linkSiteName || null}
                 size="small"
+                isAmAction={isActivistMailer}
               />
             </div>
+          )}
+          {/* D075 — Activist Mailer flag. Surfaces only when there's a
+              link to flag. Auto-checks when the URL is on the AM
+              allow-list; member can toggle either way after that. */}
+          {linkUrl.trim() && (
+            <label
+              data-testid="compose-am-flag"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                marginTop: 'var(--space-3)',
+                fontSize: 'var(--text-sm)',
+                fontFamily: 'var(--font-ui)',
+                color: 'var(--colour-text-primary)',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                name="isActivistMailer"
+                value="true"
+                checked={isActivistMailer}
+                onChange={(e) => {
+                  setIsActivistMailer(e.target.checked);
+                  setAmTouched(true);
+                }}
+                data-testid="compose-am-flag-input"
+              />
+              <img
+                src="/brands/activist-mailer.webp"
+                alt=""
+                aria-hidden="true"
+                width={20}
+                height={20}
+                style={{ display: 'inline-block' }}
+              />
+              <span>This is an Activist Mailer email action</span>
+            </label>
           )}
         </div>
       )}

@@ -68,6 +68,7 @@ export async function loadMorePosts(
           mine: r.mine,
         })),
         commentCount: p.commentCount,
+        isActivistMailer: p.isActivistMailer,
         feedCommentPeekEnabled: p.feedCommentPeekEnabled,
         topComment: p.topComment
           ? {

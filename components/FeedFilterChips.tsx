@@ -19,6 +19,7 @@ import {
   FEED_FILTERS,
   FEED_FILTER_LABELS,
   FEED_FILTER_TONES,
+  FEED_FILTER_ICONS,
   type FeedFilter,
 } from '@/shared/feed-filters';
 
@@ -71,6 +72,7 @@ export function FeedFilterChips({ active }: FeedFilterChipsProps) {
           // back to the default ghost.
           const tone = FEED_FILTER_TONES[filter];
           const className = isActive ? `gps-chip gps-chip--${tone}` : 'gps-chip';
+          const iconUrl = FEED_FILTER_ICONS[filter];
           return (
             <Link
               key={filter}
@@ -81,6 +83,16 @@ export function FeedFilterChips({ active }: FeedFilterChipsProps) {
               aria-current={isActive ? 'page' : undefined}
               className={className}
             >
+              {iconUrl ? (
+                <img
+                  src={iconUrl}
+                  alt=""
+                  aria-hidden="true"
+                  width={14}
+                  height={14}
+                  style={{ display: 'inline-block', marginRight: 4 }}
+                />
+              ) : null}
               {FEED_FILTER_LABELS[filter]}
             </Link>
           );

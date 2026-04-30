@@ -5038,3 +5038,97 @@ default; existing rows pick up `true` automatically.
 - D052 — Comments primitive
 - D062 — PostKind as managed table (the table this ADR extends)
 - D070 — Reference data ships in migrations (the seed defaults ride this rule)
+
+---
+
+# D075 — Activist Mailer flag on Post + AM feed filter
+
+**Status:** decided · 2026-04-30
+
+## Context
+
+Activist Mailer URLs were detected at _render time_ in `LinkPreviewCard`
+via host-match against `ACTIVIST_MAILER_ALLOWED_DOMAINS` (D060,
+BU-am-link-collapse). That worked for the visual treatment ("Send
+email →" button on the link card) but had three limits:
+
+1. **No filter.** Filtering the feed by AM URLs would mean a SQL
+   `LIKE` against `linkUrl` per allowed domain — slow and untyped.
+2. **No author override.** A member who pastes their own org's mailer
+   URL (not on the allow-list) couldn't get the AM treatment; a member
+   pasting a generic-looking URL that _is_ an AM action couldn't
+   manually flag it as such.
+3. **Retroactive reclassification.** Changing `am-domain.ts`'s
+   allow-list reclassified all historical posts — undesirable for
+   provenance.
+
+## Decision
+
+Add a persisted boolean flag to `Post`:
+
+```
+isActivistMailer  Boolean  @default(false)
+```
+
+Plus a single composite index `(isActivistMailer, createdAt DESC)` for
+the feed filter.
+
+The form auto-sets the flag at submit time when `linkUrl` matches
+`ACTIVIST_MAILER_ALLOWED_DOMAINS` (using the existing
+`isActivistMailerDomain` helper). The author can manually toggle the
+checkbox either way; once they touch it, the auto-detect is sticky on
+their explicit choice — URL changes don't override it.
+
+The `LinkPreviewCard`'s `isAmAction` prop now reads `post.isActivistMailer`
+on the feed card path. The host-match fallback inside the card stays
+for use sites that don't have a stored flag (e.g. the live preview
+inside the compose form).
+
+A new feed filter `activist_mailer` slots in the chip strip:
+
+```
+All · ⚡ Urgent · AM · ✅❌ · Now · Meetings · Events
+```
+
+The chip carries the Activist Mailer logo (saved at
+`/public/brands/activist-mailer.webp`) ahead of the text label;
+active palette is `gps-chip--primary` (green) to match the
+"Send email →" CTA colour.
+
+## Consequences
+
+- New column on `Post`. Migration is idempotent (`ADD COLUMN IF NOT
+EXISTS DEFAULT false`) and backfills via SQL regex matching the
+  canonical `activistmailer.com` domain plus the dev / test
+  `activist-mailer.example.com` domain plus a fallback
+  `activistMailerUrl IS NOT NULL` rule for legacy seed posts that
+  used the deprecated dedicated field. All idempotent per D070.
+- Single index supports the filter; query is a one-liner equality
+  check against the boolean column.
+- Form submit sends `isActivistMailer=true` as a hidden form field
+  when checked. The compose action reads it and passes it to the
+  service; the schema accepts it as an optional boolean.
+- Read path: feed query projects the column into `PostListItem`;
+  `PostCard` reads it onto its `FeedPost` interface; `LinkPreviewCard`
+  receives it as `isAmAction`.
+
+## Alternatives considered
+
+- **Detect at query time** with a SQL LIKE per allowed domain: slow,
+  not indexable, retroactive reclassification on allow-list change.
+  Rejected.
+- **Store the URL match decision in a join table** (one row per AM
+  domain × post): flexible but overkill for what's a single boolean
+  classifier. Rejected.
+
+## Related
+
+- D060 — Link share preview card (the ancestor of "AM as link with a
+  domain match"; D075 elevates the match to a flag)
+- D062 — `PostKind` as managed table (similar approach: kind is data
+  on the post, not derived at render)
+- D070 — Reference data ships in migrations (the AM-domain backfill
+  rides this rule)
+- BU-am-link-collapse — removed the dedicated `activistMailerUrl`
+  field in favour of host-match on `linkUrl`. D075 is the next step:
+  persist the classification on the post.

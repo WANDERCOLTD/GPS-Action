@@ -75,6 +75,9 @@ export interface FeedPost {
   linkDescription: string | null;
   linkImageUrl: string | null;
   linkSiteName: string | null;
+  /** D075 — flagged-AM bit. Drives the "Send email →" CTA on the link
+   * card and surfaces the post under the AM filter on /feed. */
+  isActivistMailer: boolean;
   /** Intent kind (BU-fab-intent-picker / D062 revised — FK + display fields). */
   kindSlug: string | null;
   kindDisplayName: string | null;
@@ -414,11 +417,10 @@ export const PostCard: FC<PostCardProps> = ({
   });
   const detailHref = `/post/${post.id}`;
 
-  // Primary CTA = the AM URL when present, else the linkUrl. Renders as the
-  // top-of-card visual, just below the header (D060 §3 puts AM first when both
-  // are set; D066 generalises this to a primary/secondary Action[] model).
-  // Secondary CTA = the linkUrl, but only when an AM URL is also set; the
-  // legacy "both populated" path keeps its supporting-context slot at the bottom.
+  // Primary CTA = the AM URL when present, else the linkUrl. D075:
+  // `isAmAction` now reads the persisted `post.isActivistMailer` flag
+  // instead of host-matching at render time, so a member's manual AM
+  // toggle in compose carries through to what the card shows.
   const primaryCta = post.activistMailerUrl ? (
     <LinkPreviewCard
       linkUrl={post.activistMailerUrl}
@@ -437,6 +439,7 @@ export const PostCard: FC<PostCardProps> = ({
       linkImageUrl={post.linkImageUrl}
       linkSiteName={post.linkSiteName}
       size="small"
+      isAmAction={post.isActivistMailer}
     />
   ) : null;
 

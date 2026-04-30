@@ -82,6 +82,8 @@ export async function createPostAction(formData: FormData): Promise<CreatePostRe
     linkDescription: formData.get('linkDescription')?.toString() || undefined,
     linkImageUrl: formData.get('linkImageUrl')?.toString() || undefined,
     linkSiteName: formData.get('linkSiteName')?.toString() || undefined,
+    // D074 — AM flag posted as the literal "true" / "false" string.
+    isActivistMailer: formData.get('isActivistMailer')?.toString() === 'true' ? true : undefined,
     kindId: formData.get('kindId')?.toString() || undefined,
     urgency: formData.get('urgency')?.toString() === 'true' ? true : undefined,
     heroImageUrl: formData.get('heroImageUrl')?.toString() || undefined,

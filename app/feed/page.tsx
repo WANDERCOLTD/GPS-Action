@@ -94,6 +94,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
         mine: r.mine,
       })),
       commentCount: p.commentCount,
+      isActivistMailer: p.isActivistMailer,
       feedCommentPeekEnabled: p.feedCommentPeekEnabled,
       topComment: p.topComment
         ? {

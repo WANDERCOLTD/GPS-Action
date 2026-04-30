@@ -73,6 +73,7 @@ const basePost = {
   linkDescription: null,
   linkImageUrl: null,
   linkSiteName: null,
+  isActivistMailer: false,
   kindSlug: null,
   kindDisplayName: null,
   urgency: false,
