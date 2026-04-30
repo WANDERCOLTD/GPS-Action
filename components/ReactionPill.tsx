@@ -14,10 +14,10 @@
  * state pattern from PR #47. Per design-philosophy.md principle 3
  * — no celebration, no streaks, no "+1 reaction" toast.
  *
- * Built on `@radix-ui/react-popover`. Radix handles the iOS-Safari
- * outside-click semantics correctly (no synth-click "flash" bug),
- * positions the tray relative to the trigger across viewport widths,
- * and traps focus when the tray is open.
+ * Built on `@radix-ui/react-popover` for the tray. Radix gives us
+ * positioning across viewport widths (Floating UI under the hood,
+ * with built-in collision detection), focus trap, ESC-to-close, and
+ * ARIA semantics for free.
  */
 
 import { useOptimistic, useState, useTransition } from 'react';

@@ -404,11 +404,7 @@ export const PostCard: FC<PostCardProps> = ({
     ) : null;
 
   return (
-    <article
-      className="gps-card"
-      data-testid="post-card-article"
-      data-post-id={post.id}
-    >
+    <article className="gps-card" data-testid="post-card-article" data-post-id={post.id}>
       <div
         style={{
           display: 'flex',
@@ -643,74 +639,78 @@ export const PostCard: FC<PostCardProps> = ({
             </div>
           )}
 
-          {/* Bottom row: comment count on the left, reactions cluster
-          right-justified with its own border (per design ask). */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 'var(--space-3)',
-              marginTop: 'var(--space-3)',
-              flexWrap: 'wrap',
-            }}
-          >
-            {post.commentCount > 0 ? (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-1)',
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--colour-text-secondary)',
-                }}
-                data-testid="post-card-comment-count"
-                data-post-id={post.id}
-              >
-                <MessageSquare size={14} aria-hidden="true" />
-                <span>
-                  {post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}
-                </span>
-              </div>
-            ) : (
-              <span /> /* spacer so flex-justify-between still right-aligns the cluster */
-            )}
-
-            {reactionsEnabled && (
-              <div
-                data-testid="feed-card-reaction-cluster"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '2px var(--space-1)',
-                  border: '1px solid var(--colour-border-subtle)',
-                  borderRadius: 'var(--radius-pill)',
-                  background: 'var(--colour-surface-raised)',
-                }}
-              >
-                <ReactionPill
-                  reactions={post.reactions}
-                  onAdd={(emoji) => onAddReaction(post.id, emoji)}
-                  onRemove={(emoji) => onRemoveReaction(post.id, emoji)}
-                  canReact={canReact}
-                />
-              </div>
-            )}
-          </div>
-
           {/* Secondary linkUrl card (legacy edge case: both AM + link populated).
           Stays at the bottom as supporting context per D060 §3. */}
           {secondaryCta}
         </div>
 
-        {/* Right rail of share affordances — WhatsApp (lead) + socials.
-        Mirrors the detail page's horizontal share-bar but in vertical card form. */}
-        <PostShareGroup
-          postId={post.id}
-          postTitle={post.title}
-          postBody={post.body}
-          variant="card-rail"
-        />
+        {/* Right rail. Two clusters:
+            - outbound shares (WhatsApp + socials) at the top
+            - inbound interactions (reactions + comments) below a divider
+            The whole bottom row is gone — engagement actions live in the
+            rail (TikTok-pattern) so the body has more vertical space. */}
+        <aside
+          data-testid="post-card-rail"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            flexShrink: 0,
+          }}
+        >
+          <PostShareGroup
+            postId={post.id}
+            postTitle={post.title}
+            postBody={post.body}
+            variant="card-rail"
+          />
+
+          {(reactionsEnabled || post.commentCount > 0) && (
+            <div
+              aria-hidden="true"
+              style={{
+                width: '60%',
+                height: 1,
+                background: 'var(--colour-border-subtle)',
+                margin: 'var(--space-1) 0',
+              }}
+            />
+          )}
+
+          {reactionsEnabled && (
+            <div data-testid="feed-card-reaction-cluster">
+              <ReactionPill
+                reactions={post.reactions}
+                onAdd={(emoji) => onAddReaction(post.id, emoji)}
+                onRemove={(emoji) => onRemoveReaction(post.id, emoji)}
+                canReact={canReact}
+              />
+            </div>
+          )}
+
+          {post.commentCount > 0 && (
+            <Link
+              href={`${detailHref}#comments`}
+              data-testid="post-card-comment-count"
+              data-post-id={post.id}
+              aria-label={`${post.commentCount} ${post.commentCount === 1 ? 'comment' : 'comments'}`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2,
+                color: 'var(--colour-text-secondary)',
+                textDecoration: 'none',
+                fontSize: 'var(--text-xs)',
+                lineHeight: 1.1,
+              }}
+            >
+              <MessageSquare size={18} aria-hidden="true" />
+              <span>{post.commentCount}</span>
+            </Link>
+          )}
+        </aside>
       </div>
     </article>
   );
