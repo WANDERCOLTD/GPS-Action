@@ -1,6 +1,7 @@
 ---
 slug: bu-feed-card-affordances
-status: in-progress
+status: shipped
+shipped_in: '#147'
 phase: 2
 priority: medium
 note: 'Spun out from bu-publish-router (PR #146). Two themes: feed-card tap targets + the project-wide arrow-link styling pass.'

@@ -92,6 +92,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-link-first-composer** — bu-link-first-composer | ✅ Merged | #135 |
 | **bu-feed-card-clamp** — bu-feed-card-clamp | ✅ Merged | #141 |
 | **bu-publish-router** — bu-publish-router | ✅ Merged | #146 |
+| **bu-feed-card-affordances** — bu-feed-card-affordances | ✅ Merged | #147 |
 | **bu-event-time** — BU-event-time | ✅ Merged | #150 |
 | **bu-calendar-view** — BU-calendar-view | ✅ Merged | #151 |
 | **bu-icon-nav** — BU-icon-nav | ✅ Merged | #152 |

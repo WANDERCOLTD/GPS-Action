@@ -594,16 +594,29 @@ export async function listUpcoming(input: ListUpcomingInput): Promise<{ posts: P
           },
         },
       },
-      kind: { select: { slug: true, displayName: true, isAlertEligible: true } },
+      kind: {
+        select: {
+          slug: true,
+          displayName: true,
+          isAlertEligible: true,
+          feedCommentPeekEnabled: true,
+        },
+      },
       // D072 — reviewer profile for the three-tier attribution badge.
       reviewedBy: { select: { id: true, displayName: true, avatarUrl: true } },
     },
   });
 
   const postIds = posts.map((p) => p.id);
-  const [reactionsByPost, commentCountsByPost] = await Promise.all([
+  // D074 — only fetch peek comments for posts whose kind has the peek
+  // enabled. Same pattern as listPosts above.
+  const peekablePostIds = posts
+    .filter((p) => p.kind?.feedCommentPeekEnabled === true)
+    .map((p) => p.id);
+  const [reactionsByPost, commentCountsByPost, topCommentsByPost] = await Promise.all([
     listReactionsForPosts({ postIds, callerId: input.callerId }),
     listCommentCountsForPosts({ postIds }),
+    listTopCommentsForPosts({ postIds: peekablePostIds }),
   ]);
 
   const mapped: PostListItem[] = posts.map((post) => ({
@@ -617,6 +630,7 @@ export async function listUpcoming(input: ListUpcomingInput): Promise<{ posts: P
     linkDescription: post.linkDescription,
     linkImageUrl: post.linkImageUrl,
     linkSiteName: post.linkSiteName,
+    isActivistMailer: post.isActivistMailer,
     kindId: post.kindId,
     kindSlug: post.kind?.slug ?? null,
     kindDisplayName: post.kind?.displayName ?? null,
@@ -637,6 +651,8 @@ export async function listUpcoming(input: ListUpcomingInput): Promise<{ posts: P
     },
     reactions: reactionsByPost.get(post.id) ?? [],
     commentCount: commentCountsByPost.get(post.id) ?? 0,
+    feedCommentPeekEnabled: post.kind?.feedCommentPeekEnabled ?? true,
+    topComment: topCommentsByPost.get(post.id) ?? null,
     reviewedByUserId: post.reviewedByUserId,
     reviewedBy: post.reviewedBy
       ? {

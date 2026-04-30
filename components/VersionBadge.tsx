@@ -89,7 +89,7 @@ export function VersionBadge() {
     <button
       type="button"
       onClick={forceReload}
-      data-testid="version-badge"
+      data-testid="nav-version-badge"
       data-app-env={env}
       title="Tap to hard-reload (cache-bust)"
       aria-label={`v${version} ${palette.label} ${sha} — tap to hard-reload`}
