@@ -32,6 +32,19 @@ const inputSchema = z.object({
   url: z.string().url(),
 });
 
+// SSRF guard. Blocks hostnames that resolve to internal / cloud-metadata
+// / link-local addresses by string match — the most common SSRF targets.
+// Not a complete defence (DNS rebinding still possible if an attacker
+// owns the auth domain) but combined with an auth check at the action
+// layer this raises the bar to "authenticated user with their own
+// domain" — out of scope for our threat model.
+const BLOCKED_HOSTNAME_RE =
+  /^(localhost|0(\.|$)|127\.|10\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)|.+\.local$|^\[?(::1|fe80:|fc00:|fd00:|::ffff:)/i;
+
+function isBlockedHostname(hostname: string): boolean {
+  return BLOCKED_HOSTNAME_RE.test(hostname);
+}
+
 export interface LinkMetadata {
   title: string | null;
   description: string | null;
@@ -44,6 +57,21 @@ export type LinkMetadataResult = { ok: true; data: LinkMetadata } | { ok: false;
 export async function fetchLinkMetadata(input: { url: string }): Promise<LinkMetadataResult> {
   const parsed = inputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, reason: 'invalid_url' };
+
+  // SSRF guard at the URL layer. Reject anything pointing at internal,
+  // loopback, link-local, or RFC1918 ranges before we ever open a socket.
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(parsed.data.url);
+  } catch {
+    return { ok: false, reason: 'invalid_url' };
+  }
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+    return { ok: false, reason: 'protocol_blocked' };
+  }
+  if (isBlockedHostname(parsedUrl.hostname)) {
+    return { ok: false, reason: 'host_blocked' };
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);

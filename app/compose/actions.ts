@@ -306,9 +306,22 @@ export async function autosaveDraftAction(
 
 /**
  * Fetch OG/Twitter/HTML metadata for a URL pasted into the link-first
- * compose form. Wraps the pure `fetchLinkMetadata` service so the
- * client only needs to invoke a server action.
+ * compose form. Wraps the pure `fetchLinkMetadata` service.
+ *
+ * **Auth-gated**: anonymous callers cannot trigger this. The server
+ * action otherwise turns the dev server into an open URL fetcher
+ * (SSRF: any unauthenticated visitor could ask the server to load
+ * arbitrary URLs — including internal services, cloud-metadata
+ * endpoints, etc.). Authenticated callers are presumed to be members
+ * of the network, raising the bar to "we trust them not to attack."
+ *
+ * Defence-in-depth: the underlying service also rejects internal /
+ * loopback / link-local / RFC1918 hostnames at the URL-parse layer.
  */
 export async function fetchLinkMetadataAction(input: { url: string }): Promise<LinkMetadataResult> {
+  const ctx = await createTRPCContext();
+  if (!ctx.user) {
+    return { ok: false, reason: 'unauthorized' };
+  }
   return fetchLinkMetadata(input);
 }

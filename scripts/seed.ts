@@ -361,7 +361,9 @@ const SEED_POSTS: SeedPost[] = [
     linkTitle: 'What it means to be visibly Jewish in Britain in 2026',
     linkDescription:
       'A reflective long-read on identity, generational change, and the questions younger British Jews are asking that their parents never had to.',
-    linkImageUrl: 'https://i.guim.co.uk/img/media/article-share-2026.jpg',
+    // Self-hosted seed image — the previous Guardian hotlink returned
+    // 401 (hotlinking protection) and surfaced as a broken preview tile.
+    linkImageUrl: '/seed-images/05.svg',
     linkSiteName: 'The Guardian',
   },
   {

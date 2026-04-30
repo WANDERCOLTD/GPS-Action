@@ -26,6 +26,13 @@ interface FeedFilterChipsProps {
   active: FeedFilter;
 }
 
+// Right-edge gradient mask on the scroll container so members on
+// narrow viewports can see at a glance that the chip strip scrolls
+// horizontally — the scrollbar is hidden on iPhone, so without an
+// affordance an Events / Meetings chip cut off at the edge looks
+// indistinguishable from "no more chips". The mask only kicks in
+// when content overflows; on wide screens the mask region is empty
+// and invisible.
 const rowStyle: CSSProperties = {
   display: 'flex',
   gap: 'var(--space-2)',
@@ -34,6 +41,8 @@ const rowStyle: CSSProperties = {
   scrollbarWidth: 'none',
   marginBottom: 'var(--space-6)',
   paddingBottom: 'var(--space-1)',
+  WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 24px), transparent 100%)',
+  maskImage: 'linear-gradient(to right, black calc(100% - 24px), transparent 100%)',
 };
 
 const srOnlyStyle: CSSProperties = {

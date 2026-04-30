@@ -95,8 +95,13 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
           await onAdd(emoji);
         }
         setCommitted((prev) => applyOptimistic(prev, action));
-      } catch {
-        // Failure: optimistic rolls back to `committed`.
+      } catch (e) {
+        // Failure: optimistic rolls back to `committed`. Log so the
+        // demo / production console at least surfaces a trail when a
+        // tap doesn't stick — silent rollback was previously
+        // indistinguishable from "tap didn't register".
+
+        console.error('[ReactionPill] toggle failed', { emoji, kind: action.kind, error: e });
       }
     });
   }
