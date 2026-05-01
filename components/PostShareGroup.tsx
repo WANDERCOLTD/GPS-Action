@@ -1,6 +1,7 @@
 /**
- * @build-unit BU-share-rail-on-detail
+ * @build-unit BU-share-rail-on-detail BU-postcard-share-polish
  * @spec build/session-briefs/bu-whatsapp-share.md
+ * @spec build/session-briefs/bu-postcard-share-polish.md
  *
  * The full set of share affordances for a post: WhatsApp (lead) plus
  * the X / Instagram / Facebook social rail. Used on both the PostCard
@@ -11,7 +12,10 @@
  * Two layout variants:
  *   - `card-rail`  — vertical column. WhatsApp at the top (compact
  *                    circular button), socials beneath. Sits in the
- *                    PostCard's right rail.
+ *                    PostCard's right rail. The rail itself
+ *                    `align-self: flex-start` + `margin-left: auto`
+ *                    so it pins flush to the card's right inner edge
+ *                    instead of drifting toward centre.
  *   - `detail-bar` — horizontal row. WhatsApp on the left as a labelled
  *                    pill (the prominent lead affordance), socials to
  *                    the right as compact circles. Sits between the
