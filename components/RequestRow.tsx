@@ -15,8 +15,9 @@ import type { MouseEvent as ReactMouseEvent, KeyboardEvent as ReactKeyboardEvent
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { ClaimButton, ResolveForm } from '@/components/RequestActionButtons';
+import { UserAvatar } from '@/components/UserAvatar';
 import type { RequestListItem } from '@/server/services/request';
-import type { RequestType } from '@prisma/client';
+import type { RequestPriority, RequestType } from '@prisma/client';
 
 const TYPE_LABELS: Record<RequestType, string> = {
   vetting: 'Vetting application',
@@ -28,6 +29,37 @@ const TYPE_LABELS: Record<RequestType, string> = {
   content_submission: 'Content submission',
   link_submission: 'Link submission',
   kind_review: 'Post review',
+};
+
+// Tone mapping for the type chip — shares the project's gps-chip palette
+// (filter strip, kind chips, role chips) so the requests row reads with
+// the same visual language as a PostCard's kind chip.
+const TYPE_TONES: Record<RequestType, string> = {
+  vetting: 'gps-chip--info',
+  flag: 'gps-chip--warning',
+  outcome_review: 'gps-chip--info',
+  dedup_merge: 'gps-chip--neutral',
+  edit_request: 'gps-chip--neutral',
+  incident: 'gps-chip--urgent',
+  content_submission: 'gps-chip--primary',
+  link_submission: 'gps-chip--primary',
+  kind_review: 'gps-chip--info',
+};
+
+// Priority chip — surfaced for any value other than 'normal' so the
+// queue-ordering signal is legible in the row. Distinct from the
+// `urgency` boolean (which gates alerts); both can render together
+// when the highest-stakes Requests are urgent + priority=urgent.
+const PRIORITY_TONES: Record<Exclude<RequestPriority, 'normal'>, string> = {
+  urgent: 'gps-chip--urgent',
+  high: 'gps-chip--warning',
+  low: 'gps-chip--neutral',
+};
+
+const PRIORITY_LABELS: Record<Exclude<RequestPriority, 'normal'>, string> = {
+  urgent: 'urgent',
+  high: 'high',
+  low: 'low',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -123,8 +155,13 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
         cursor: 'pointer',
       }}
     >
+      {/* Top row — type chip + (priority chip slot) + urgent badge.
+       * Status chip + timestamp move to the metadata row at the bottom
+       * so the eye reads:
+       *   chips → byline → primary content → metadata
+       * matching the PostCard hierarchy on /feed. */}
       <div
-        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}
+        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}
       >
         {row.urgency && (
           <span
@@ -141,7 +178,90 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
             {row.kindDisplayName ?? 'Urgent'}
           </span>
         )}
-        <strong style={{ fontSize: 'var(--text-sm)' }}>{TYPE_LABELS[row.type]}</strong>
+        <span
+          data-testid="requests-row-type-chip"
+          data-type={row.type}
+          className={`gps-chip gps-chip--static ${TYPE_TONES[row.type]}`}
+          style={{
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            fontWeight: 700,
+          }}
+        >
+          {TYPE_LABELS[row.type]}
+        </span>
+        {row.priority !== 'normal' && (
+          <span
+            data-testid="requests-row-priority-chip"
+            data-priority={row.priority}
+            className={`gps-chip gps-chip--static ${PRIORITY_TONES[row.priority]}`}
+            style={{
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              fontWeight: 700,
+            }}
+          >
+            {PRIORITY_LABELS[row.priority]}
+          </span>
+        )}
+      </div>
+      {row.createdBy && (
+        <div
+          data-testid="requests-row-submitter-byline"
+          data-user-id={row.createdBy.id}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--colour-text-secondary)',
+          }}
+        >
+          <UserAvatar
+            userId={row.createdBy.id}
+            displayName={row.createdBy.displayName}
+            avatarUrl={row.createdBy.avatarUrl}
+            size={22}
+          />
+          <span>
+            <strong style={{ color: 'var(--colour-text-primary)' }}>
+              {row.createdBy.displayName}
+            </strong>
+            <span style={{ marginLeft: 'var(--space-1)' }}>submitted this</span>
+          </span>
+        </div>
+      )}
+      {/* Primary content — promoted to var(--text-base) primary text so
+       * the actual "what is this request about" is the most readable
+       * line in the row. Falls back to the type label so an empty card
+       * never looks blank. */}
+      <div
+        data-testid="requests-row-summary"
+        data-empty={ctxText ? undefined : true}
+        style={{
+          fontSize: 'var(--text-base)',
+          color: 'var(--colour-text-primary)',
+          lineHeight: 1.4,
+          marginTop: 'var(--space-1)',
+        }}
+      >
+        {ctxText || TYPE_LABELS[row.type]}
+      </div>
+      {/* Metadata row — timestamp + status + claimed-by, all subdued. */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-2)',
+          flexWrap: 'wrap',
+          fontSize: 'var(--text-xs)',
+          color: 'var(--colour-text-secondary)',
+          marginTop: 'var(--space-1)',
+        }}
+      >
+        <time dateTime={row.createdAt.toISOString()} suppressHydrationWarning>
+          {formatDistanceToNow(row.createdAt, { addSuffix: true })}
+        </time>
         <span
           className={`gps-chip gps-chip--static ${statusToneClass(row.status)}`}
           style={{
@@ -151,31 +271,15 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
         >
           {STATUS_LABELS[row.status] ?? row.status}
         </span>
-        <span
-          style={{
-            marginLeft: 'auto',
-            fontSize: 'var(--text-xs)',
-            color: 'var(--colour-text-secondary)',
-          }}
-        >
-          {formatDistanceToNow(row.createdAt, { addSuffix: true })}
-        </span>
+        {row.claimedBy && (
+          <span>
+            Picked up by{' '}
+            <strong style={{ color: 'var(--colour-text-primary)' }}>
+              {row.claimedBy.displayName}
+            </strong>
+          </span>
+        )}
       </div>
-      {ctxText && (
-        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--colour-text-secondary)' }}>
-          {ctxText}
-        </div>
-      )}
-      {row.claimedBy && (
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--colour-text-secondary)' }}>
-          Picked up by <strong>{row.claimedBy.displayName}</strong>
-        </div>
-      )}
-      {row.createdBy && (
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--colour-text-secondary)' }}>
-          Submitted by <strong>{row.createdBy.displayName}</strong>
-        </div>
-      )}
       {row.resolutionNotes && (
         <div
           style={{

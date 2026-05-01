@@ -67,13 +67,25 @@ export interface RequestListItem {
   urgencyExpiresAt: Date | null;
   kindSlug: string | null;
   kindDisplayName: string | null;
-  claimedBy: { id: string; displayName: string } | null;
-  createdBy: { id: string; displayName: string } | null;
+  /**
+   * BU-requests-card-lift — avatarUrl exposed so RequestRow can render
+   * an avatar bubble in the submitter byline. `claimedBy` mirrors for
+   * symmetry (and because the "Picked up by" line on the row will
+   * eventually want the same avatar treatment).
+   */
+  claimedBy: { id: string; displayName: string; avatarUrl: string | null } | null;
+  createdBy: { id: string; displayName: string; avatarUrl: string | null } | null;
+  /**
+   * BU-requests-card-lift — queue-ordering priority enum. The row
+   * surfaces a priority chip for any value other than `normal`.
+   * Distinct from the `urgency` boolean which gates alerts.
+   */
+  priority: RequestPriority;
 }
 
 type RequestWithJoins = Request & {
-  claimedBy: { id: string; displayName: string } | null;
-  createdBy: { id: string; displayName: string } | null;
+  claimedBy: { id: string; displayName: string; avatarUrl: string | null } | null;
+  createdBy: { id: string; displayName: string; avatarUrl: string | null } | null;
   kind: { slug: string; displayName: string } | null;
 };
 
@@ -96,12 +108,13 @@ function mapRequest(row: RequestWithJoins): RequestListItem {
     kindDisplayName: row.kind?.displayName ?? null,
     claimedBy: row.claimedBy,
     createdBy: row.createdBy,
+    priority: row.priority,
   };
 }
 
 const REQUEST_INCLUDE = {
-  claimedBy: { select: { id: true, displayName: true } },
-  createdBy: { select: { id: true, displayName: true } },
+  claimedBy: { select: { id: true, displayName: true, avatarUrl: true } },
+  createdBy: { select: { id: true, displayName: true, avatarUrl: true } },
   kind: { select: { slug: true, displayName: true } },
 } as const;
 
