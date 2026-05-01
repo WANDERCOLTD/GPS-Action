@@ -207,7 +207,7 @@ BU ships a new glyph, update this register in the same commit.
 | Concept                     | Glyph                     | Component(s)                                                              |
 | --------------------------- | ------------------------- | ------------------------------------------------------------------------- |
 | Comment count               | `message-square`          | `PostCard`, `CommentList` (Discussion tab — BU-icon-strips re-use)        |
-| Event time                  | `calendar`                | `PostCard`                                                                |
+| Event time                  | `calendar`                | `PostCard`, `NearMeView` (Date sort — BU-icon-strips re-use)              |
 | Event kind / Events filter  | `calendar-days`           | `KindPickerSheet`, `FeedFilterChips` (Events chip — BU-icon-strips)       |
 | Location                    | `map-pin`                 | `PostCard`                                                                |
 | External link               | `external-link`           | `LinkPreviewCard`                                                         |
@@ -223,6 +223,7 @@ BU ships a new glyph, update this register in the same commit.
 | Filter chip — Happening now | `radio`                   | `FeedFilterChips` (BU-icon-strips)                                        |
 | Filter chip — Meetings      | `users`                   | `FeedFilterChips` (BU-icon-strips)                                        |
 | Comments tab — Activity     | `activity`                | `CommentList` (BU-icon-strips)                                            |
+| Sort affordance — Distance  | `ruler-dimension-line`    | `NearMeView` (BU-icon-strips — map-scale-bar look)                        |
 
 ### Person vs group (the `user` / `users` carve)
 
@@ -258,9 +259,9 @@ even if conceptually adjacent.
 Cross-cutting components that wrap glyphs but don't introduce one of
 their own.
 
-| Primitive         | Purpose                                                                                                      | Component             |
-| ----------------- | ------------------------------------------------------------------------------------------------------------ | --------------------- |
-| `IconChipTooltip` | Long-press / hover label for icon-only chips and nav links. Adopted by AppNav, FeedFilterChips, CommentList. | `IconChipTooltip.tsx` |
+| Primitive         | Purpose                                                                                                                                | Component             |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `IconChipTooltip` | Long-press / hover label for icon-only chips and nav links. Adopted by AppNav, FeedFilterChips, CommentList, NearMeView (sort toggle). | `IconChipTooltip.tsx` |
 
 ### Locked, not yet shipped (BU-search-surface)
 
