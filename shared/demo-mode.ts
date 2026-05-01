@@ -15,6 +15,12 @@
  * Safety rail: throws at module load if DEMO_MODE=1 is set on a real
  * production Vercel project (VERCEL_ENV=production). Demo deployments
  * must use a Vercel project distinct from any future real-prod project.
+ *
+ * Escape valve: setting DEMO_MODE_ON_PRODUCTION=1 alongside DEMO_MODE=1
+ * silences the rail. Use only when this Vercel project IS the demo
+ * project and a separate "real prod" project does not (and will not)
+ * exist. Both flags must be set together — accidentally enabling demo
+ * via a single env var is the failure mode the rail is preventing.
  */
 
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on']);
@@ -29,15 +35,22 @@ function demoModeEnabled(): boolean {
   return value !== undefined && TRUE_VALUES.has(value);
 }
 
+function demoModeOnProductionAcknowledged(): boolean {
+  const value = readFlag('DEMO_MODE_ON_PRODUCTION');
+  return value !== undefined && TRUE_VALUES.has(value);
+}
+
 function isRealProductionVercel(): boolean {
   return readFlag('VERCEL_ENV') === 'production';
 }
 
-if (demoModeEnabled() && isRealProductionVercel()) {
+if (demoModeEnabled() && isRealProductionVercel() && !demoModeOnProductionAcknowledged()) {
   throw new Error(
     '[demo-mode] DEMO_MODE=1 is set on a Vercel project where VERCEL_ENV=production. ' +
       'Demo deployments must run on a separate Vercel project (preview env or a project ' +
-      'whose VERCEL_ENV is not "production"). Refusing to start.',
+      'whose VERCEL_ENV is not "production"). To override (e.g. when this project IS the ' +
+      'demo project and there is no separate real-prod project), also set ' +
+      'DEMO_MODE_ON_PRODUCTION=1. Refusing to start.',
   );
 }
 
