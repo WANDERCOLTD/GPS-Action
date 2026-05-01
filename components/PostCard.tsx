@@ -1,17 +1,29 @@
 'use client';
 
 /**
- * @build-unit BU-feed BU-comments BU-feed-card-clamp BU-event-time
+ * @build-unit BU-feed BU-comments BU-feed-card-clamp BU-event-time BU-postcard-share-polish
  * @spec product/design-philosophy.md
  * @spec architecture/decision-log.md (D052, D061, D064, D073)
  * @spec build/session-briefs/bu-feed-card-clamp.md
+ * @spec build/session-briefs/bu-postcard-share-polish.md
  * @spec docs/adrs/0001-post-event-time-fields.md
  *
  * Single post card for the feed. Renders author, timestamp, title,
  * body paragraphs, the reaction pill, comment-count link, and an
  * optional Activist Mailer button.
  *
- * Two layouts:
+ * Card layout (top → bottom):
+ *  1. Byline row (avatar · name · roles · timestamp · share rail on the
+ *     right edge)
+ *  2. Hero / video / link-preview
+ *  3. Body text
+ *  4. Dedicated full-width reaction row (BU-postcard-share-polish) —
+ *     subtle top border, `var(--space-3)` padding, sits beneath the
+ *     body so reactions get full card width instead of being squeezed
+ *     into the right rail.
+ *
+ * Two body-layout variants (orthogonal to the reaction-row placement
+ * above, which is the same in both):
  *  - `full`    — original render: full-width 16:9 hero above title,
  *                body paragraphs unclamped. Used on the detail page
  *                and anywhere a long-form read is the goal.
@@ -468,11 +480,9 @@ export const PostCard: FC<PostCardProps> = ({
           {secondaryCta}
         </div>
 
-        {/* Right rail. Two clusters:
-            - outbound shares (WhatsApp + socials) at the top
-            - inbound interactions (reactions + comments) below a divider
-            The whole bottom row is gone — engagement actions live in the
-            rail (TikTok-pattern) so the body has more vertical space. */}
+        {/* Right rail — outbound shares only (WhatsApp + socials).
+            BU-postcard-share-polish: reactions moved to a dedicated
+            full-width row below the card body (see end of this article). */}
         <aside
           data-testid="post-card-rail"
           style={{
@@ -489,29 +499,6 @@ export const PostCard: FC<PostCardProps> = ({
             postBody={post.body}
             variant="card-rail"
           />
-
-          {(reactionsEnabled || post.commentCount > 0) && (
-            <div
-              aria-hidden="true"
-              style={{
-                width: '60%',
-                height: 1,
-                background: 'var(--colour-border-subtle)',
-                margin: 'var(--space-1) 0',
-              }}
-            />
-          )}
-
-          {reactionsEnabled && (
-            <div data-testid="feed-card-reaction-cluster">
-              <ReactionPill
-                reactions={post.reactions}
-                onAdd={(emoji) => onAddReaction(post.id, emoji)}
-                onRemove={(emoji) => onRemoveReaction(post.id, emoji)}
-                canReact={canReact}
-              />
-            </div>
-          )}
 
           {post.commentCount > 0 && (
             <Link
@@ -536,6 +523,32 @@ export const PostCard: FC<PostCardProps> = ({
           )}
         </aside>
       </div>
+
+      {/* BU-postcard-share-polish — dedicated full-width reaction row,
+          separated from the body by a subtle top border. The reaction
+          pill itself stays horizontal (post-#166); we only moved its
+          container out of the right rail so it can use full card width
+          and breathe. CommentItem and the post-detail page keep their
+          original placement. */}
+      {reactionsEnabled && (
+        <div
+          data-testid="feed-card-reaction-cluster"
+          style={{
+            marginTop: 'var(--space-3)',
+            paddingTop: 'var(--space-3)',
+            paddingBottom: 'var(--space-3)',
+            borderTop: '1px solid var(--colour-border-subtle)',
+            width: '100%',
+          }}
+        >
+          <ReactionPill
+            reactions={post.reactions}
+            onAdd={(emoji) => onAddReaction(post.id, emoji)}
+            onRemove={(emoji) => onRemoveReaction(post.id, emoji)}
+            canReact={canReact}
+          />
+        </div>
+      )}
     </article>
   );
 };
