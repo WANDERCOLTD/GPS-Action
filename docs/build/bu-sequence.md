@@ -124,6 +124,7 @@ by hand — run `npm run trackers`):
 - **bu-prod-auth** _[high]_ — bu-prod-auth
 - **bu-vercel-prep** _[high]_ — bu-vercel-prep
 - **bu-drafts-inbox** _[medium]_ — bu-drafts-inbox
+- **bu-post-location-input** _[medium]_ — BU-post-location-input
 - **bu-reviewer-kind-review-queue** _[medium]_ — bu-reviewer-kind-review-queue
 - **bu-search-surface** _[medium]_ — BU-search-surface
 - **bu-composer-link-first** _[low]_ — BU-composer-link-first
