@@ -30,6 +30,21 @@ const TYPE_LABELS: Record<RequestType, string> = {
   kind_review: 'Post review',
 };
 
+// Tone mapping for the type chip — shares the project's gps-chip palette
+// (filter strip, kind chips, role chips) so the requests row reads with
+// the same visual language as a PostCard's kind chip.
+const TYPE_TONES: Record<RequestType, string> = {
+  vetting: 'gps-chip--info',
+  flag: 'gps-chip--warning',
+  outcome_review: 'gps-chip--info',
+  dedup_merge: 'gps-chip--neutral',
+  edit_request: 'gps-chip--neutral',
+  incident: 'gps-chip--urgent',
+  content_submission: 'gps-chip--primary',
+  link_submission: 'gps-chip--primary',
+  kind_review: 'gps-chip--info',
+};
+
 const STATUS_LABELS: Record<string, string> = {
   unclaimed: 'new',
   claimed: 'in discussion',
@@ -141,7 +156,18 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
             {row.kindDisplayName ?? 'Urgent'}
           </span>
         )}
-        <strong style={{ fontSize: 'var(--text-sm)' }}>{TYPE_LABELS[row.type]}</strong>
+        <span
+          data-testid="requests-row-type-chip"
+          data-type={row.type}
+          className={`gps-chip gps-chip--static ${TYPE_TONES[row.type]}`}
+          style={{
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            fontWeight: 700,
+          }}
+        >
+          {TYPE_LABELS[row.type]}
+        </span>
         <span
           className={`gps-chip gps-chip--static ${statusToneClass(row.status)}`}
           style={{
