@@ -61,18 +61,80 @@ in review.
 | Feed | Tick-or-cross | **Keep `✅❌` emoji** — deliberate semantic exception. The chip's identity *is* the tick-and-cross visual; no single lucide line icon mirrors that pair, and the alternatives (Gavel / Scale / Stamp) shift the meaning toward "judgement" or "verdict" rather than the literal yes/no decision. | Promote / Report |
 | Feed | Now | `Radio` | Happening now |
 | Feed | Meetings | `Users` | Meetings |
-| Feed | Events | `Ticket` — universal "live event" mental model. (`CalendarDays` already represents the Event PostKind in `KindPickerSheet`; using it again on the chip would conflate kind-picker semantics with filter semantics. `Megaphone` reserved for AM. `Flag` taken by the disabled "Flag a problem post" kind.) | Events |
-| Comments | Discussion | `MessageSquare` | Discussion |
+| Feed | Events | `CalendarDays` — **re-uses the Event PostKind glyph** from `KindPickerSheet`. Per Rule 2 of the glyph register (one concept, one glyph), the kind chip and the filter chip should share visual identity. Distinct from PostCard's `Calendar` (singular), which the register reserves for "Event time" (the *time* of an event, a sub-concept). | Events |
+| Comments | Discussion | `MessageSquare` — **re-uses** the registered "Comment count" glyph from PostCard (Rule 2). | Discussion |
 | Comments | Activity | `Activity` | Activity |
 | Comments | All | *(no icon — same outlier rule as Feed/All)* | — |
 | Near-me | Distance | `Ruler` | Sort by distance |
-| Near-me | Date | `CalendarDays` | Sort by date |
+| Near-me | Date | `Calendar` — **re-uses** the registered "Event time" glyph from PostCard (Rule 2). NOT `CalendarDays` (which this BU is using for the Events kind/filter — different concept). | Sort by date |
 
 **CommentList geometry: keep underline tabs (locked).** Underline tabs
 say "you are in this view"; chip pills say "filter the list." Comments
 tabs switch the *meaning* of the comment list (Discussion vs Activity
 vs All), so they should retain the tab idiom — only the text→icon
 swap happens here, not a geometry change.
+
+---
+
+## Glyph register update (same-commit requirement)
+
+Per the glyph register's Rule 4 (in `docs/product/design-philosophy.md`),
+new lucide glyphs land in the register **in the same commit** that
+ships them. This BU's implementation PR must therefore patch
+`docs/product/design-philosophy.md`. Concrete additions:
+
+### New rows in "In-content glyphs (shipped)"
+
+| Concept | Glyph | Component(s) |
+|---|---|---|
+| Filter chip — Urgent | `zap` | `FeedFilterChips` |
+| Filter chip — Now | `radio` | `FeedFilterChips` |
+| Filter chip — Meetings *(group, plural)* | `users` | `FeedFilterChips` |
+| Filter chip — Events / Event kind | `calendar-days` | `FeedFilterChips`, `KindPickerSheet` *(retro-fit register entry — already shipped, was missing)* |
+| Comments tab — Activity | `activity` | `CommentList` |
+| Sort affordance — Distance | `ruler` | `NearMeView` |
+| Tooltip primitive | *(no glyph itself — uses host chip's glyph)* | `IconChipTooltip` |
+
+### New rows in "Re-uses (no new glyph)"
+
+| Concept | Glyph | Component(s) | Re-uses from |
+|---|---|---|---|
+| Comments tab — Discussion | `message-square` | `CommentList` | "Comment count" (PostCard) |
+| Sort affordance — Date | `calendar` | `NearMeView` | "Event time" (PostCard) |
+
+### New "Exceptions (deliberate non-lucide)" subsection
+
+| Concept | Glyph | Why exception |
+|---|---|---|
+| Filter chip — Activist Mailer | brand `<img>` (`/brands/activist-mailer.webp`) | Partner brand identity per share-taxonomy. |
+| Filter chip — Tick-or-cross | `✅❌` emoji | The chip's identity *is* the tick-and-cross visual; no single lucide line icon mirrors the literal yes/no pair. |
+
+### New "Reservations" subsection
+
+| Glyph | Reserved for | Notes |
+|---|---|---|
+| `megaphone` | Activist Mailer (lucide fallback if brand glyph ever swapped) | Must not be used elsewhere. |
+
+### New distinction in "In-content glyphs"
+
+| Concept | Glyph | Notes |
+|---|---|---|
+| Person *(singular, individual)* | `user` | Already locked for BU-search-surface People group label. |
+| Group *(plural, multiple people)* | `users` | This BU. Distinct concept from `user`. |
+
+---
+
+## Pre-existing register inconsistency to flag (not blocking)
+
+The register currently lists `calendar` (PostCard, Event time) but does
+**not** list `calendar-days` (KindPickerSheet, Event kind), even though
+both are shipped. This BU normalises by registering `calendar-days` as
+the canonical "Event kind / filter" glyph and keeping `calendar` for
+"Event time" — two carved sub-concepts. If Paul wants strict Rule 2
+compliance (collapse to one glyph), KindPickerSheet would need to
+migrate from `calendar-days` → `calendar`; that's out of scope for this
+BU but the register entry above flags the carve so the decision is
+explicit.
 
 ---
 
@@ -107,9 +169,15 @@ swap happens here, not a geometry change.
   for the chips that get one — `tick_or_cross` and `activist_mailer`
   are absent from this map by design. `FEED_FILTER_ICONS` keeps its
   AM brand-glyph URL.)
-- `app/calendar/NearMeView.tsx` (MODIFY — sort toggle: text → icons).
+- `app/calendar/NearMeView.tsx` (MODIFY — sort toggle: text → icons.
+  Distance = `Ruler` (new); Date = `Calendar` (re-use registered
+  Event-time glyph)).
 - `components/CommentList.tsx` (MODIFY — text → icons within the
-  existing underline-tab geometry, pending open-question decision).
+  existing underline-tab geometry. Discussion = `MessageSquare`
+  (re-use); Activity = `Activity` (new); All = text).
+- `docs/product/design-philosophy.md` (MODIFY — patch the glyph
+  register per the "Glyph register update" section above. CI will
+  reject the PR otherwise per Rule 4.)
 - Tests:
   - Unit: each strip renders correct `aria-label` per item (verbatim
     from prior text label).
