@@ -482,7 +482,15 @@ export const PostCard: FC<PostCardProps> = ({
 
         {/* Right rail — outbound shares only (WhatsApp + socials).
             BU-postcard-share-polish: reactions moved to a dedicated
-            full-width row below the card body (see end of this article). */}
+            full-width row below the card body (see end of this article).
+            The rail anchors flush against the card's right inner edge:
+            the parent is a flex row, so `margin-left: auto` pushes the
+            rail past any leftover gap, and `align-self: flex-start`
+            keeps it pinned to the top of the row even when the byline
+            content grows taller (e.g. wraps roles onto a second line).
+            Mobile collision: the byline content wrapper has
+            `flex: 1, minWidth: 0` so its text wraps before crowding
+            the 32px-wide rail — no need to shrink the rail icons. */}
         <aside
           data-testid="post-card-rail"
           style={{
@@ -491,6 +499,8 @@ export const PostCard: FC<PostCardProps> = ({
             alignItems: 'center',
             gap: 'var(--space-2)',
             flexShrink: 0,
+            alignSelf: 'flex-start',
+            marginLeft: 'auto',
           }}
         >
           <PostShareGroup
