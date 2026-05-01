@@ -17,7 +17,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ClaimButton, ResolveForm } from '@/components/RequestActionButtons';
 import { UserAvatar } from '@/components/UserAvatar';
 import type { RequestListItem } from '@/server/services/request';
-import type { RequestType } from '@prisma/client';
+import type { RequestPriority, RequestType } from '@prisma/client';
 
 const TYPE_LABELS: Record<RequestType, string> = {
   vetting: 'Vetting application',
@@ -44,6 +44,22 @@ const TYPE_TONES: Record<RequestType, string> = {
   content_submission: 'gps-chip--primary',
   link_submission: 'gps-chip--primary',
   kind_review: 'gps-chip--info',
+};
+
+// Priority chip — surfaced for any value other than 'normal' so the
+// queue-ordering signal is legible in the row. Distinct from the
+// `urgency` boolean (which gates alerts); both can render together
+// when the highest-stakes Requests are urgent + priority=urgent.
+const PRIORITY_TONES: Record<Exclude<RequestPriority, 'normal'>, string> = {
+  urgent: 'gps-chip--urgent',
+  high: 'gps-chip--warning',
+  low: 'gps-chip--neutral',
+};
+
+const PRIORITY_LABELS: Record<Exclude<RequestPriority, 'normal'>, string> = {
+  urgent: 'urgent',
+  high: 'high',
+  low: 'low',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -174,6 +190,20 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
         >
           {TYPE_LABELS[row.type]}
         </span>
+        {row.priority !== 'normal' && (
+          <span
+            data-testid="requests-row-priority-chip"
+            data-priority={row.priority}
+            className={`gps-chip gps-chip--static ${PRIORITY_TONES[row.priority]}`}
+            style={{
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              fontWeight: 700,
+            }}
+          >
+            {PRIORITY_LABELS[row.priority]}
+          </span>
+        )}
       </div>
       {row.createdBy && (
         <div
