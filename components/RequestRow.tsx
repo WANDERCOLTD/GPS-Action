@@ -139,8 +139,13 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
         cursor: 'pointer',
       }}
     >
+      {/* Top row — type chip + (priority chip slot) + urgent badge.
+       * Status chip + timestamp move to the metadata row at the bottom
+       * so the eye reads:
+       *   chips → byline → primary content → metadata
+       * matching the PostCard hierarchy on /feed. */}
       <div
-        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}
+        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}
       >
         {row.urgency && (
           <span
@@ -169,24 +174,6 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
         >
           {TYPE_LABELS[row.type]}
         </span>
-        <span
-          className={`gps-chip gps-chip--static ${statusToneClass(row.status)}`}
-          style={{
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-          }}
-        >
-          {STATUS_LABELS[row.status] ?? row.status}
-        </span>
-        <span
-          style={{
-            marginLeft: 'auto',
-            fontSize: 'var(--text-xs)',
-            color: 'var(--colour-text-secondary)',
-          }}
-        >
-          {formatDistanceToNow(row.createdAt, { addSuffix: true })}
-        </span>
       </div>
       {row.createdBy && (
         <div
@@ -214,16 +201,55 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
           </span>
         </div>
       )}
-      {ctxText && (
-        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--colour-text-secondary)' }}>
-          {ctxText}
-        </div>
-      )}
-      {row.claimedBy && (
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--colour-text-secondary)' }}>
-          Picked up by <strong>{row.claimedBy.displayName}</strong>
-        </div>
-      )}
+      {/* Primary content — promoted to var(--text-base) primary text so
+       * the actual "what is this request about" is the most readable
+       * line in the row. Falls back to the type label so an empty card
+       * never looks blank. */}
+      <div
+        data-testid="requests-row-summary"
+        data-empty={ctxText ? undefined : true}
+        style={{
+          fontSize: 'var(--text-base)',
+          color: 'var(--colour-text-primary)',
+          lineHeight: 1.4,
+          marginTop: 'var(--space-1)',
+        }}
+      >
+        {ctxText || TYPE_LABELS[row.type]}
+      </div>
+      {/* Metadata row — timestamp + status + claimed-by, all subdued. */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-2)',
+          flexWrap: 'wrap',
+          fontSize: 'var(--text-xs)',
+          color: 'var(--colour-text-secondary)',
+          marginTop: 'var(--space-1)',
+        }}
+      >
+        <time dateTime={row.createdAt.toISOString()} suppressHydrationWarning>
+          {formatDistanceToNow(row.createdAt, { addSuffix: true })}
+        </time>
+        <span
+          className={`gps-chip gps-chip--static ${statusToneClass(row.status)}`}
+          style={{
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+          }}
+        >
+          {STATUS_LABELS[row.status] ?? row.status}
+        </span>
+        {row.claimedBy && (
+          <span>
+            Picked up by{' '}
+            <strong style={{ color: 'var(--colour-text-primary)' }}>
+              {row.claimedBy.displayName}
+            </strong>
+          </span>
+        )}
+      </div>
       {row.resolutionNotes && (
         <div
           style={{
