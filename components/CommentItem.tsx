@@ -1,11 +1,14 @@
 /**
- * @build-unit BU-comments BU-reactions BU-publish-router
+ * @build-unit BU-comments BU-reactions BU-publish-router BU-comments-card-lift
  * @spec architecture/decision-log.md (D052, D072)
  * @spec product/scenarios.md (SCN-20)
  *
- * Single comment render. Author display name + role chips +
- * "new member" chip + body (paragraph-split) + relative timestamp
- * + reaction pill below body (when reactions enabled).
+ * Single comment render. Card-style article (raised surface, subtle
+ * border, padded) with the author's avatar on the left and the
+ * byline + body + reactions stacked on the right — same idiom as
+ * PostCard so the discussion thread reads as a thread of mini-cards
+ * rather than a flat list. Byline carries the display name + role
+ * chips + "new member" chip + relative timestamp.
  *
  * D072 — when `systemKind === 'post_review_attribution'` the comment
  * renders with a system-author treatment: the reviewer's avatar IS
@@ -78,49 +81,66 @@ export const CommentItem: FC<CommentItemProps> = ({
       data-testid="comment-item"
       data-comment-id={comment.id}
       style={{
-        padding: 'var(--space-3) 0',
-        borderBottom: '1px solid var(--colour-border-subtle)',
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 'var(--space-3)',
+        padding: 'var(--space-3) var(--space-4)',
+        marginBottom: 'var(--space-2)',
+        background: 'var(--colour-surface-raised)',
+        border: '1px solid var(--colour-border-subtle)',
+        borderRadius: 'var(--radius-md)',
       }}
     >
-      <div
-        className="gps-row gps-row--tight"
-        style={{ flexWrap: 'wrap', marginBottom: 'var(--space-1)' }}
-      >
-        <strong style={{ fontSize: 'var(--text-sm)' }}>{comment.author.displayName}</strong>
-        {comment.author.roles.map((role) => (
-          <span key={role} className="gps-chip gps-chip--static gps-chip--info">
-            {formatRole(role)}
-          </span>
-        ))}
-        {comment.author.isNewMember && (
-          <span className="gps-chip gps-chip--static" style={{ opacity: 0.85 }}>
-            new member
-          </span>
-        )}
-        <time
-          className="gps-meta"
-          dateTime={comment.createdAt}
-          suppressHydrationWarning
-          style={{ marginLeft: 'auto', fontSize: 'var(--text-xs)' }}
+      <UserAvatar
+        userId={comment.author.id}
+        displayName={comment.author.displayName}
+        avatarUrl={comment.author.avatarUrl}
+        size={36}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          className="gps-row gps-row--tight"
+          style={{ flexWrap: 'wrap', marginBottom: 'var(--space-1)' }}
         >
-          {relativeTime}
-        </time>
+          <strong style={{ fontSize: 'var(--text-sm)' }}>{comment.author.displayName}</strong>
+          {comment.author.roles.map((role) => (
+            <span key={role} className="gps-chip gps-chip--static gps-chip--info">
+              {formatRole(role)}
+            </span>
+          ))}
+          {comment.author.isNewMember && (
+            <span className="gps-chip gps-chip--static" style={{ opacity: 0.85 }}>
+              new member
+            </span>
+          )}
+          <time
+            className="gps-meta"
+            dateTime={comment.createdAt}
+            suppressHydrationWarning
+            style={{ marginLeft: 'auto', fontSize: 'var(--text-xs)' }}
+          >
+            {relativeTime}
+          </time>
+        </div>
+        <div style={{ fontSize: 'var(--text-base)', color: 'var(--colour-text-primary)' }}>
+          {paragraphs.map((paragraph, i) => (
+            <p key={i} style={i > 0 ? { marginTop: 'var(--space-2)' } : undefined}>
+              {paragraph}
+            </p>
+          ))}
+        </div>
+        {reactionsEnabled && (
+          <div style={{ marginTop: 'var(--space-2)' }}>
+            <ReactionPill
+              reactions={comment.reactions}
+              onAdd={(emoji) => onAddReaction(comment.id, emoji)}
+              onRemove={(emoji) => onRemoveReaction(comment.id, emoji)}
+              canReact={canReact}
+            />
+          </div>
+        )}
       </div>
-      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--colour-text-primary)' }}>
-        {paragraphs.map((paragraph, i) => (
-          <p key={i} style={i > 0 ? { marginTop: 'var(--space-2)' } : undefined}>
-            {paragraph}
-          </p>
-        ))}
-      </div>
-      {reactionsEnabled && (
-        <ReactionPill
-          reactions={comment.reactions}
-          onAdd={(emoji) => onAddReaction(comment.id, emoji)}
-          onRemove={(emoji) => onRemoveReaction(comment.id, emoji)}
-          canReact={canReact}
-        />
-      )}
     </article>
   );
 };

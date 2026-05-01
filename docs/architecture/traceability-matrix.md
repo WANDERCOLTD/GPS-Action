@@ -28,7 +28,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-17 | System auto-comments on a closing campaign | 0 | — | — | parked |
 | SCN-18 | Eddie writes his first post (the demo flow) | 2 | BU-composer, BU-fab-intent-picker, BU-feed, BU-link-first-composer, BU-publish-router, BU-tick-or-cross | D044, D062, D069, D072 | ✓ shipped |
 | SCN-19 | Sharon shares a Guardian article with a preview card | 2 | BU-am-link-collapse, BU-composer, BU-event-time, BU-fab-intent-picker, BU-link-share, BU-post-hero-demo, BU-publish-router, BU-tick-or-cross | D060, D061, D062, D064, D069, D072, D073 | ✓ shipped |
-| SCN-20 | Eddie reads the Sky News post and writes his first comment | 11 | BU-comments, BU-event-time, BU-feed-card-affordances, BU-one-click-polish, BU-publish-router, BU-reactions, BU-requests-vetting, BU-tick-or-cross | D045, D050, D052, D056, D057, D069, D072, D073 | ✓ shipped |
+| SCN-20 | Eddie reads the Sky News post and writes his first comment | 11 | BU-comments, BU-comments-card-lift, BU-event-time, BU-feed-card-affordances, BU-one-click-polish, BU-publish-router, BU-reactions, BU-requests-vetting, BU-tick-or-cross | D045, D050, D052, D056, D057, D069, D072, D073 | ✓ shipped |
 | SCN-21 | Eddie tracks his vetting application from submission to outcome | 6 | BU-comments, BU-publish-router, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D052, D054, D055, D056, D057, D058, D061, D072 | ✓ shipped |
 | SCN-22 | Sharon picks up and resolves Eddie's vetting application | 6 | BU-comments, BU-publish-router, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D052, D054, D055, D056, D057, D058, D061, D072 | ✓ shipped |
 | SCN-23 | Maya raises an urgent alert at the school gate | 3 | BU-publish-router, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D054, D055, D056, D057, D058, D072 | ✓ shipped |
@@ -51,6 +51,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-am-link-collapse | 4 | SCN-19, SCN-26, SCN-27 | D060, D061, D062, D064, D069, D072, D073 |
 | BU-calendar-view | 9 | — | D003, D036, D054, D061, D065, D073 |
 | BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057, D061, D064, D069, D072, D073 |
+| BU-comments-card-lift | 1 | SCN-20 | D052, D072 |
 | BU-composer | 8 | SCN-18, SCN-19, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D060, D061, D062, D064, D069, D072, D073 |
 | BU-demo-mode | 2 | — | — |
 | BU-error-boundary | 2 | — | D003, D037, D065, D073 |
