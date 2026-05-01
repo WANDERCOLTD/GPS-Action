@@ -47,6 +47,26 @@ export async function updatePostAction(
     ? eventInputToUtc(eventEndsAtDate, eventEndsAtTime || null)
     : null;
 
+  // BU-post-location-input. The edit form geocodes its postcode
+  // client-side and stamps `latitude` / `longitude` on the FormData
+  // when it succeeds. `isOnline` arrives as the literal "true" or
+  // "false" string (the form sets one of those when the kind is
+  // time-bearing; absent for non-time-bearing posts where we want to
+  // leave the existing flag alone).
+  const isOnlineRaw = formData.get('isOnline')?.toString();
+  const latitudeRaw = formData.get('latitude')?.toString();
+  const longitudeRaw = formData.get('longitude')?.toString();
+  const isOnlineParsed =
+    isOnlineRaw === 'true' ? true : isOnlineRaw === 'false' ? false : undefined;
+  const latitudeParsed =
+    latitudeRaw && latitudeRaw.trim() !== '' && !isNaN(Number(latitudeRaw))
+      ? Number(latitudeRaw)
+      : undefined;
+  const longitudeParsed =
+    longitudeRaw && longitudeRaw.trim() !== '' && !isNaN(Number(longitudeRaw))
+      ? Number(longitudeRaw)
+      : undefined;
+
   const raw = {
     id: postId,
     title: formData.get('title')?.toString() ?? undefined,
@@ -61,6 +81,9 @@ export async function updatePostAction(
     eventAt: eventAtUtc,
     eventEndsAt: eventEndsAtUtc,
     locationText: locationTextRaw.trim() ? locationTextRaw : '',
+    latitude: latitudeParsed,
+    longitude: longitudeParsed,
+    isOnline: isOnlineParsed,
   };
 
   const parsed = postUpdateSchema.safeParse(raw);

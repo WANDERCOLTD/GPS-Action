@@ -25,12 +25,14 @@
 import { useState, useTransition, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { kindIsTimeBearing } from '@/shared/post-kinds';
+import { geocodeUkPostcode } from '@/shared/geo';
 import { HeroImagePicker } from './HeroImagePicker';
 import {
   EventFieldsBlock,
   EMPTY_EVENT_FIELDS_STATE,
   type EventFieldsState,
 } from './EventFieldsBlock';
+import { PostLocationFieldsBlock, type PostLocationFieldsState } from './PostLocationFieldsBlock';
 import type { UpdatePostResult } from '@/app/post/[id]/edit/actions';
 
 interface InitialPost {
@@ -46,6 +48,10 @@ interface InitialPost {
   heroImageUrl: string | null;
   kindSlug: string | null;
   kindDisplayName: string | null;
+  /** BU-post-location-input. Pre-fill the isOnline toggle from the
+   * existing Post; the postcode field always opens empty (we don't
+   * reverse-geocode). */
+  isOnline: boolean;
 }
 
 interface EditPostFormProps {
@@ -79,11 +85,50 @@ export function EditPostForm({ post, initialEventFields, onSubmit }: EditPostFor
   const [eventFields, setEventFields] = useState<EventFieldsState>(
     initialEventFields ?? EMPTY_EVENT_FIELDS_STATE,
   );
+  // BU-post-location-input. Postcode opens empty (no reverse-geocode);
+  // isOnline pre-fills from the current Post value. Online wins at
+  // submit if both are set — the server clears coords either way.
+  const [locationFields, setLocationFields] = useState<PostLocationFieldsState>({
+    postcode: '',
+    isOnline: post.isOnline,
+  });
+  const [postcodeError, setPostcodeError] = useState<string | null>(null);
 
   const isTimeBearing = kindIsTimeBearing(post.kindSlug);
 
   function handleSubmit(formData: FormData): void {
     startTransition(async () => {
+      // BU-post-location-input. Resolve the postcode → coords (or
+      // honour isOnline) before the server action runs. Same rules
+      // as the composer: a typed postcode AND ticked "online" → online
+      // wins, coords cleared. An empty postcode preserves the
+      // existing coords (server skips lat/lng when neither was set).
+      if (isTimeBearing) {
+        setPostcodeError(null);
+        if (locationFields.isOnline) {
+          formData.set('isOnline', 'true');
+          formData.delete('postcode');
+        } else {
+          // Explicitly mark online=false so the server action distinguishes
+          // "user untoggled it" from "field absent".
+          formData.set('isOnline', 'false');
+          const trimmed = locationFields.postcode.trim();
+          if (trimmed) {
+            const coords = await geocodeUkPostcode(trimmed);
+            if (!coords) {
+              setPostcodeError(
+                "Postcode not recognised — check spelling, or tick 'This is online'",
+              );
+              return;
+            }
+            formData.set('latitude', String(coords.lat));
+            formData.set('longitude', String(coords.lng));
+          }
+        }
+      } else {
+        formData.delete('postcode');
+        formData.delete('isOnline');
+      }
       const result = await onSubmit(formData);
       if (result?.errors) {
         setErrors(result.errors);
@@ -202,6 +247,22 @@ export function EditPostForm({ post, initialEventFields, onSubmit }: EditPostFor
             eventEndsAt: errors['eventEndsAt'],
             locationText: errors['locationText'],
           }}
+        />
+      )}
+
+      {/* BU-post-location-input — postcode + "this is online" toggle.
+          Postcode opens empty (we don't reverse-geocode existing
+          coords); leaving it blank preserves the previously-saved
+          coords. Online wins when both are set. */}
+      {isTimeBearing && (
+        <PostLocationFieldsBlock
+          value={locationFields}
+          onChange={(next) => {
+            setLocationFields(next);
+            if (postcodeError) setPostcodeError(null);
+          }}
+          geocodeError={postcodeError}
+          disabled={isPending}
         />
       )}
 
