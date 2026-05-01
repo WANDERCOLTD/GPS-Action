@@ -5200,3 +5200,87 @@ coordinates (geolocation API or postcodes.io postcode lookup).
 - D070 — Reference data in migrations (no new reference rows here,
   only column adds).
 - bu-calendar-near-me brief — the implementation contract.
+
+# D077 — Post-share counter table (`PostShare`) for verified per-post share counts
+
+**Status:** decided · 2026-05-01
+
+## Context
+
+The existing share-out flow logs a `post_shared_out` analytics event
+to stdout via `POST /api/analytics/share-intent` (D067 / BU-whatsapp-
+share). There is no persistence: counts can't be displayed, the
+"you've shared this" personal indicator can't be computed, and admins
+can't audit reach for any post.
+
+The product brief **bu-post-share-counter** wants a verified counter
+that ticks only when the member confirms "I sent it" — the existing
+`PostPublishModal` "Did you send?" pattern, lifted into a reusable
+`<ShareConfirmDialog />` and wired to every share button. Counts are
+aggregates of _people_ who confirmed a send, broken down by
+destination channel.
+
+Eight design decisions were resolved during spec assembly (idempotency,
+privacy, enum strictness, headline number, skip handling, logged-out
+gating, abuse limits, display threshold). They are the decision
+section of the brief and shape this ADR's schema.
+
+## Decision
+
+Add a sidecar `PostShare` table keyed by the composite
+`(postId, userId, destination)`, plus a strict `ShareDestination`
+enum that mirrors the existing `post_shared_out` analytics property.
+Schema and field-shape table live in **ADR-0003**.
+
+The headline number is verified-only
+(`COUNT WHERE confirmedAt IS NOT NULL`); the intent total is
+exposed inside the breakdown tooltip for transparency. `userId` is
+stored raw — aggregate-only public exposure; the personal "you've
+shared on X" surface is gated to `currentUser.id === viewer.id`.
+
+The endpoint `POST /api/analytics/share-intent` is upgraded from a
+stdout stub to a DB write via a new service
+`server/services/post-share.ts`. Re-tapping within 30s is a noop
+(soft service-layer rate limit); re-tapping after 30s upserts the
+existing row. The unique constraint guarantees correctness either
+way.
+
+## Consequences
+
+- One additive forward-only migration (new enum, new table, three
+  indexes). No backfill — counts start empty on migration day.
+- `listPosts` and `listUpcoming` projections gain
+  `shareCounts: { total, perChannel }` via a single GROUP BY join —
+  no N+1.
+- `Post` and `User` schemas are unchanged. Cascade-on-delete from
+  both parents.
+- The build splits into four sequential, individually shippable
+  phases (foundation, verified-send, counter UI, polish).
+- Rollback path is clean: drop the table and enum; no parent schema
+  is touched.
+
+## Alternatives considered
+
+- JSON column on `Post` — rejected (atomic increment problems, not
+  queryable per-user, enum drift invisible).
+- Reuse `Notification` — rejected (push-out semantics ≠
+  read-aggregation semantics; cascade rules are backwards).
+- Hashed `userId` — rejected (loses the personal indicator UX value;
+  recovers raw `userId` semantics with extra steps once the server
+  shares its hashing secret).
+
+## Related
+
+- ADR-0003 — full schema, field-shape table, options matrix.
+- D016 — Self-dispatch via copy-and-deeplink (the share-out mechanic
+  this counter measures).
+- D047 — Honest tracking only (no inflated reach numbers). The
+  verified-vs-intent split is this principle made literal.
+- D067 — WhatsApp share analytics stub (the endpoint this ADR
+  upgrades from stdout to DB write).
+- D076 / ADR-0002 — Post location coords (sister additive-table
+  precedent in the same release window).
+- bu-post-share-counter brief — the implementation contract (4
+  phases).
+- bu-whatsapp-share — the BU that shipped the analytics stub this
+  decision replaces.
