@@ -3,7 +3,7 @@ slug: bu-icon-strips
 status: stub
 phase: 2
 priority: medium
-note: "Unify the word-bearing chip/tab strips below the AppNav level — FeedFilterChips, CommentList tabs, NearMeView sort — to icons-only with a shared long-press / hover tooltip primitive. Closes the tooltip TODO from BU-icon-nav. All icon picks locked 2026-05-01. Spawned from a /feed visual-consistency review."
+note: "Unify the word-bearing chip/tab strips below the AppNav level — FeedFilterChips, CommentList tabs, NearMeView sort — to icons (mostly) with a shared long-press / hover tooltip primitive. Two deliberate non-lucide exceptions on the Feed chip strip: AM brand glyph and the ✅❌ emoji on tick-or-cross. Closes the tooltip TODO from BU-icon-nav. All picks locked 2026-05-01. Spawned from a /feed visual-consistency review."
 ---
 
 # SESSION BRIEF · bu-icon-strips — Unify second/third-order chip strips to icons-only
@@ -58,10 +58,10 @@ in review.
 | Feed | All | *(no icon — text "All" stays as the deliberate "off" outlier)* | — |
 | Feed | Urgent | `Zap` | Urgent |
 | Feed | AM | **Brand glyph stays** (deliberate partner-brand exception per share-taxonomy). Lucide `Megaphone` is reserved for AM and **must not be used elsewhere** in the app, in case we ever swap brand glyph → lucide. | Activist Mailer |
-| Feed | Tick-or-cross | `Gavel` — surfaces "Promote or Report" verdict threads (NOT a vote — it's a moderation decision on shared content) | Promote / Report |
+| Feed | Tick-or-cross | **Keep `✅❌` emoji** — deliberate semantic exception. The chip's identity *is* the tick-and-cross visual; no single lucide line icon mirrors that pair, and the alternatives (Gavel / Scale / Stamp) shift the meaning toward "judgement" or "verdict" rather than the literal yes/no decision. | Promote / Report |
 | Feed | Now | `Radio` | Happening now |
 | Feed | Meetings | `Users` | Meetings |
-| Feed | Events | `Flag` (Megaphone reserved for AM; `CalendarDays` collides with AppNav Calendar) | Events |
+| Feed | Events | `Ticket` — universal "live event" mental model. (`CalendarDays` already represents the Event PostKind in `KindPickerSheet`; using it again on the chip would conflate kind-picker semantics with filter semantics. `Megaphone` reserved for AM. `Flag` taken by the disabled "Flag a problem post" kind.) | Events |
 | Comments | Discussion | `MessageSquare` | Discussion |
 | Comments | Activity | `Activity` | Activity |
 | Comments | All | *(no icon — same outlier rule as Feed/All)* | — |
@@ -97,13 +97,16 @@ swap happens here, not a geometry change.
   long-press, controlled-disclosure, no portal-state leaks).
 - `components/AppNav.tsx` (MODIFY — adopt `IconChipTooltip`; no other
   visual changes).
-- `components/FeedFilterChips.tsx` (MODIFY — swap emoji/text labels
-  for lucide icons per the table; AM brand glyph stays; "All" stays
-  as text).
-- `shared/feed-filters.ts` (MODIFY — replace `FEED_FILTER_LABELS`'s
-  emoji prefixes with plain words; introduce `FEED_FILTER_LUCIDE` map
-  pointing at lucide icon component names. Keep `FEED_FILTER_ICONS`
-  for the AM brand glyph URL — that's the deliberate exception.)
+- `components/FeedFilterChips.tsx` (MODIFY — render lucide icons per
+  the table. Two deliberate exceptions: AM keeps its brand `<img>`,
+  tick-or-cross keeps the `✅❌` emoji. "All" stays as plain text.)
+- `shared/feed-filters.ts` (MODIFY — `FEED_FILTER_LABELS` keeps "All"
+  / "Urgent" / "Now" / "Meetings" / "Events" as plain words, drops
+  the `⚡` prefix, retains `✅❌` verbatim for tick-or-cross. Introduce
+  `FEED_FILTER_LUCIDE` map pointing at lucide icon component names
+  for the chips that get one — `tick_or_cross` and `activist_mailer`
+  are absent from this map by design. `FEED_FILTER_ICONS` keeps its
+  AM brand-glyph URL.)
 - `app/calendar/NearMeView.tsx` (MODIFY — sort toggle: text → icons).
 - `components/CommentList.tsx` (MODIFY — text → icons within the
   existing underline-tab geometry, pending open-question decision).
