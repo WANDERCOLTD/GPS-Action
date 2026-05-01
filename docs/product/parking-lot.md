@@ -1851,3 +1851,28 @@ sessions but each is denser.
 
 **Owner:** Paul. Promote to a session brief once BU-flag path is
 decided.
+
+---
+
+## Geocoding pipeline for post locations (Path B — follow-up to bu-calendar-near-me)
+
+**Surfaced:** 2026-05-01 during bu-calendar-near-me (Path A).
+
+bu-calendar-near-me ships with hand-coded coords on seeded events.
+New posts created via the composer with a `location_text` value get
+no coords today, so they don't appear in `/calendar?view=near` until
+this BU lands.
+
+**Scope when picked up:**
+
+- Composer location field: free-text + an explicit `is_online` toggle.
+  When `is_online=false` and the user submits, geocode the location_text:
+  - UK postcode → postcodes.io
+  - Other (street + city) → Nominatim/OSM (rate-limited; respect 1 req/s)
+- Write `latitude`, `longitude` back to the Post on save.
+- Backfill flow for existing user-authored posts (admin tool? scheduled job?).
+- Privacy: members may not want coords; consider a "show on Near me" opt-in toggle in composer.
+- Failure mode: if geocoding fails, post saves without coords; user is shown a soft warning.
+- Edit page: same flow when location_text changes.
+
+**Status:** PARKED — pre-build decisions still open (Nominatim ToS / opt-in default / coordinate precision rounding for privacy).

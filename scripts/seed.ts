@@ -144,6 +144,14 @@ interface SeedPost {
   // BU-tick-or-cross / D069: 'promote' or 'remove' verdict — only set
   // when kindSlug === 'tick_or_cross'.
   signal?: 'promote' | 'remove';
+  // BU-calendar-near-me / D076 / ADR-0002: hand-coded structured
+  // location. `latitude` + `longitude` populate the Near-me view
+  // (Path A — composer geocoding deferred to a follow-up BU). Leave
+  // unset when the event is online. `isOnline=true` excludes the
+  // post from distance-based views.
+  latitude?: number;
+  longitude?: number;
+  isOnline?: boolean;
 }
 
 const SEED_POSTS: SeedPost[] = [
@@ -466,6 +474,9 @@ const SEED_POSTS: SeedPost[] = [
     eventStartMinute: 0,
     eventDurationMinutes: 90,
     locationText: 'Cheddar Road, Bristol — outside the school gate',
+    // Bristol — Cheddar Road area, BS3.
+    latitude: 51.4537,
+    longitude: -2.5919,
   },
   {
     seedKey: 'event-letter-writing-workshop',
@@ -483,6 +494,7 @@ const SEED_POSTS: SeedPost[] = [
     eventStartMinute: 0,
     eventDurationMinutes: 120,
     locationText: 'Online via Zoom — link posted in the Writers group',
+    isOnline: true,
   },
   {
     seedKey: 'meeting-rapid-response-weekly',
@@ -500,6 +512,7 @@ const SEED_POSTS: SeedPost[] = [
     eventStartMinute: 0,
     eventDurationMinutes: 60,
     locationText: 'Online — Zoom link in the Rapid Response group',
+    isOnline: true,
   },
   {
     seedKey: 'event-manchester-meetup-burton',
@@ -517,6 +530,9 @@ const SEED_POSTS: SeedPost[] = [
     eventStartMinute: 0,
     eventDurationMinutes: 180,
     locationText: 'Nelly’s, Burton Road, West Didsbury',
+    // Manchester — Burton Road, West Didsbury (M20).
+    latitude: 53.4225,
+    longitude: -2.2305,
   },
   {
     seedKey: 'meeting-school-board-curriculum',
@@ -534,6 +550,9 @@ const SEED_POSTS: SeedPost[] = [
     eventStartMinute: 30,
     eventDurationMinutes: 120,
     locationText: 'Barnet Council, Hendon NW9 — committee room 2',
+    // Barnet Council offices, Hendon NW9.
+    latitude: 51.5851,
+    longitude: -0.2363,
   },
   {
     seedKey: 'event-yom-haatzmaut-picnic',
@@ -552,6 +571,9 @@ const SEED_POSTS: SeedPost[] = [
     eventDurationMinutes: 240,
     locationText: 'Hampstead Heath — meet by the bandstand',
     heroImageUrl: '/seed-images/01.svg',
+    // Hampstead Heath bandstand area, NW London.
+    latitude: 51.5608,
+    longitude: -0.1644,
   },
   {
     seedKey: 'happening-now-school-gate-bristol',
@@ -569,6 +591,9 @@ const SEED_POSTS: SeedPost[] = [
     eventStartMinute: 0,
     eventDurationMinutes: 90,
     locationText: 'Bristol City Hall, College Green',
+    // Bristol City Hall, College Green BS1.
+    latitude: 51.4533,
+    longitude: -2.597,
   },
   {
     seedKey: 'meeting-writers-summer-planning',
@@ -586,6 +611,7 @@ const SEED_POSTS: SeedPost[] = [
     eventStartMinute: 30,
     eventDurationMinutes: 90,
     locationText: 'Online via Zoom — link in the Writers group',
+    isOnline: true,
   },
 
   // ── BU-tick-or-cross demo posts (D069) ────────────────────────────────
@@ -1095,6 +1121,12 @@ async function main(): Promise<void> {
           eventAt,
           eventEndsAt,
           locationText,
+          // BU-calendar-near-me / D076 / ADR-0002 — Path A hand-coded
+          // coords on event-bearing seed posts. `isOnline=true` excludes
+          // the post from `/calendar?view=near` regardless of coords.
+          latitude: post.latitude ?? null,
+          longitude: post.longitude ?? null,
+          isOnline: post.isOnline ?? false,
           // D072 — demo posts ship as published-and-live. Drafts are
           // an authenticated-author state; seed has no need for them.
           status: 'published',

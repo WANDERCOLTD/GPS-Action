@@ -49,26 +49,27 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-admin-bulk-ops | 8 | — | — |
 | BU-admin-crud | 21 | — | — |
 | BU-am-link-collapse | 4 | SCN-19, SCN-26, SCN-27 | D060, D061, D062, D064, D069, D072, D073 |
-| BU-calendar-view | 9 | — | D003, D036, D054, D061, D065, D073 |
+| BU-calendar-near-me | 6 | — | D045, D048, D060, D064, D069, D072, D073, D076 |
+| BU-calendar-view | 9 | — | D003, D036, D054, D061, D065, D073, D076 |
 | BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057, D061, D064, D069, D072, D073 |
 | BU-comments-card-lift | 1 | SCN-20 | D052, D072 |
-| BU-composer | 8 | SCN-18, SCN-19, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D060, D061, D062, D064, D069, D072, D073 |
+| BU-composer | 8 | SCN-18, SCN-19, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D060, D061, D062, D064, D069, D072, D073, D076 |
 | BU-demo-mode | 2 | — | — |
 | BU-error-boundary | 2 | — | D003, D037, D065, D073 |
-| BU-event-time | 13 | SCN-19, SCN-20, SCN-26, SCN-27 | D045, D048, D052, D060, D061, D062, D064, D069, D070, D072, D073 |
+| BU-event-time | 13 | SCN-19, SCN-20, SCN-26, SCN-27 | D045, D048, D052, D060, D061, D062, D064, D069, D070, D072, D073, D076 |
 | BU-fab-intent-picker | 8 | SCN-18, SCN-19, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D060, D061, D062, D064, D069, D070, D072, D073 |
-| BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060, D061, D064, D069, D072, D073 |
+| BU-feed | 7 | SCN-18 | D003, D045, D048, D050, D052, D060, D061, D064, D069, D072, D073, D076 |
 | BU-feed-card-affordances | 8 | SCN-3, SCN-20 | D044, D050, D052, D061, D062 |
 | BU-feed-card-clamp | 1 | — | D052, D061, D064, D073 |
 | BU-feed-filter | 2 | — | — |
 | BU-healthcheck | 3 | — | D037 |
 | BU-icon-nav | 1 | — | D054, D061, D065, D073 |
 | BU-link-first-composer | 7 | SCN-18, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D072, D073 |
-| BU-link-share | 5 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D061, D062, D064, D069, D072, D073 |
+| BU-link-share | 5 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D061, D062, D064, D069, D072, D073, D076 |
 | BU-one-click-polish | 4 | SCN-3, SCN-20 | D050, D052 |
-| BU-post-hero-demo | 6 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D062, D064, D069, D072, D073 |
+| BU-post-hero-demo | 6 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D062, D064, D069, D072, D073, D076 |
 | BU-postcard-share-polish | 2 | — | D052, D061, D064, D073 |
-| BU-publish-router | 21 | SCN-18, SCN-19, SCN-20, SCN-21, SCN-22, SCN-23, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D052, D054, D055, D056, D057, D058, D060, D062, D064, D069, D072, D073 |
+| BU-publish-router | 21 | SCN-18, SCN-19, SCN-20, SCN-21, SCN-22, SCN-23, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D052, D054, D055, D056, D057, D058, D060, D062, D064, D069, D072, D073, D076 |
 | BU-reactions | 9 | SCN-3, SCN-20 | D036, D050, D052, D069, D072 |
 | BU-requests-foundation | 6 | SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D065, D072, D073 |
 | BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061, D072 |
@@ -77,7 +78,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-seed | 1 | — | D038 |
 | BU-share-rail-on-detail | 4 | — | D067 |
 | BU-sticky-nav | 5 | — | D003, D054, D061, D065, D073 |
-| BU-tick-or-cross | 11 | SCN-18, SCN-19, SCN-20, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D052, D060, D062, D064, D069, D070, D072, D073 |
+| BU-tick-or-cross | 11 | SCN-18, SCN-19, SCN-20, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D052, D060, D062, D064, D069, D070, D072, D073, D076 |
 | BU-versioning | 3 | — | D003, D065, D073 |
 | BU-whatsapp-share | 2 | — | D065, D067 |
 | bu-capabilities-mockup | 1 | — | — |
@@ -111,4 +112,5 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D070 | Reference data ships in migrations, not seeds; CI gate fails the merge if a code-referenced row is missing | 2 |
 | D072 | Post lifecycle, publish router, and per-kind action registry | 21 |
 | D073 | Structured event-time fields on `Post` (`event_at`, `event_ends_at`, `location_text`) | 22 |
+| D076 | Post location coordinates + online flag (`latitude`, `longitude`, `isOnline`) | 7 |
 

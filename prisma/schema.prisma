@@ -819,6 +819,16 @@ model Post {
   eventEndsAt  DateTime?
   locationText String?
 
+  // BU-calendar-near-me / D076 / ADR-0002. Structured event location
+  // coordinates + online-event flag. `latitude` / `longitude` populated
+  // by hand-coded seed entries (Path A); composer-side geocoding
+  // (Path B) is deferred to a follow-up BU. `isOnline` lets online-only
+  // events opt out of distance-based views (e.g. /calendar?view=near).
+  // Storage: WGS84 decimal degrees as Float.
+  latitude  Float?
+  longitude Float?
+  isOnline  Boolean @default(false)
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -841,6 +851,11 @@ model Post {
   @@index([status, publishedAt(sort: Desc)])
   // D075 — feed AM filter
   @@index([isActivistMailer, createdAt(sort: Desc)])
+  // BU-calendar-near-me / D076: composite index on (latitude, longitude)
+  // for the near-me query. Plain B-tree is fine at MVP scale even
+  // though most rows are NULL; promote to PostGIS / GiST later if the
+  // table grows and we need real geospatial queries.
+  @@index([latitude, longitude])
 }
 
 // ─── Reaction ────────────────────────────────────────────────────────────────

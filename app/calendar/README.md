@@ -1,6 +1,6 @@
 # `app/calendar` — Calendar tab
 
-**Build Units:** BU-calendar-view (D073), BU-month-nav
+**Build Units:** BU-calendar-view (D073), BU-month-nav, BU-calendar-near-me (D076)
 **Status:** ships behind the `calendar_enabled` feature flag.
 
 ## What lives here
@@ -8,12 +8,13 @@
 | File                 | Responsibility                                                                                                    |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `page.tsx`           | Server route. Reads `?view`, calls `post.listUpcoming`, gates on the flag.                                        |
-| `view.ts`            | URL-contract helper — parse / canonicalise the `?view=agenda\|month` literal.                                     |
-| `CalendarToggle.tsx` | Segmented Agenda / Month control. Pure server-rendered `<Link>` chips.                                            |
+| `view.ts`            | URL-contract helper — `?view=agenda\|month\|near` + `?sort=distance\|date` for the near view.                     |
+| `CalendarToggle.tsx` | Segmented Agenda / Month / Near-me control. Icon chips (List · CalendarDays · MapPin); aria-label keeps wording.  |
 | `AgendaView.tsx`     | Day-grouped flat list (Today · Tomorrow · weekday-date). Plus "Earlier today" mini-header. Empty + footer states. |
 | `MonthView.tsx`      | Month grid + below-grid day panel. Wraps `MonthGrid` with selection state.                                        |
 | `MonthGrid.tsx`      | Pure presentational 7×N grid. Day cells with dot overlays; today ringed.                                          |
-| `CalendarRow.tsx`    | Compact, date-prominent post row. Used by both Agenda and the month panel.                                        |
+| `NearMeView.tsx`     | Distance-sorted list of in-person events. Browser geolocation OR postcodes.io postcode lookup.                    |
+| `CalendarRow.tsx`    | Compact, date-prominent post row. Used by Agenda, the month panel, and Near-me.                                   |
 
 ## URL contract
 
@@ -21,9 +22,25 @@
 - `/calendar?view=agenda` → agenda (explicit)
 - `/calendar?view=month` → month grid + day panel
 - `/calendar?view=month&month=YYYY-MM` → month grid pinned to that month
+- `/calendar?view=near` → in-person events sorted by distance
+- `/calendar?view=near&sort=date` → near-me, but sorted by event start instead
 
 Unknown / missing `view` falls back to `agenda`. Back-button preserves
 state because each chip is a plain `<Link>`.
+
+### Near-me (BU-calendar-near-me / D076)
+
+The third tab shows in-person event-bearing posts ordered by Haversine
+distance from the caller's location. The user supplies their location
+either via `navigator.geolocation` ("Use my location" button) or by
+typing a UK postcode (resolved via `postcodes.io` in `shared/geo.ts`).
+Online events (`Post.isOnline = true`) and posts with NULL coordinates
+are excluded server-side. Sort defaults to `distance`; `?sort=date`
+flips it to event-start ascending.
+
+Today, coordinates on event posts are hand-coded in the seed (Path A —
+see ADR-0002). The composer-side geocoding pipeline (Path B) is parked
+for a follow-up BU.
 
 ### Month anchor (BU-month-nav)
 
