@@ -127,7 +127,6 @@ by hand — run `npm run trackers`):
 - **bu-drafts-inbox** _[medium]_ — bu-drafts-inbox
 - **bu-post-share-counter** _[medium]_ — bu-post-share-counter
 - **bu-reviewer-kind-review-queue** _[medium]_ — bu-reviewer-kind-review-queue
-- **bu-search-surface** _[medium]_ — BU-search-surface
 - **bu-composer-link-first** _[low]_ — BU-composer-link-first
 <!-- AUTOGEN:planned:end -->
 

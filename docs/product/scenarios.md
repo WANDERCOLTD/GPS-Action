@@ -45,6 +45,8 @@ Scenarios feed session briefs. Every Claude Code session building a feature gets
 
 **Admin / operational scenarios** 16. Coordinator dispatches a Boost/Remove post to WhatsApp 17. System auto-comments on a closing campaign
 
+**Later additions** 18. Eddie writes his first post · 19. Sharon shares a Guardian article with a preview card · 20. Eddie reads the Sky News post and writes his first comment · 21. Eddie tracks his vetting application · 22. Sharon resolves Eddie's vetting application · 23. Maya raises an urgent alert at the school gate · 24. Sharon pastes a Guardian link into the FAB · 25. Eddie types a thought into the FAB · 26. Sharon publishes a tick_or_cross post · 27. Eddie sends his first post for review; Bette refines and publishes · 28. Sharon shares a post, then confirms she sent it · 29. Eddie sees the share count on someone else's post · 30. Bette views her own post and notices a missing channel · 31. Sharon searches for Hendon
+
 ---
 
 ## Member scenarios
@@ -1856,3 +1858,126 @@ IS NOT NULL`).
   "no exclude-author rule" is that principle applied)
 - bu-post-share-counter brief (Phase 4 — author personal indicator,
   empty + loading states)
+
+---
+
+### Scenario 31 — Sharon searches for Hendon
+
+<!-- @no-code-yet -->
+
+_Sharon, member, writers group lead. Friday lunchtime, at her desk,
+laptop open but searching from her phone because the post she
+half-remembers reading was on the train this morning._
+
+Sharon remembers seeing something about a Hendon school-gate
+incident two days ago. She wants to find it again — Maya posted it,
+she thinks. She opens GPS Action on her phone. The feed is on the
+**⚡ Urgent** chip from earlier in the morning.
+
+She taps the magnifier icon in the AppNav header (right of the nav
+links). The screen replaces with a clean overlay: back arrow at top
+left, "Search" title, refresh button on the right. The input is
+already focused, the iOS keyboard is up. Below the input sits a
+small removable chip: `× Urgent`. The current filter has come with
+her.
+
+She types `hen`. Nothing yet — min 2 chars, but the debounce hasn't
+fired. She types `d`. Now: results appear, grouped.
+
+```
+Posts (3 of 14)
+  • Hendon school-gate leafleting — Maya, 2d ago
+  • Hendon synagogue parking concern — David, 1w ago
+  • Hendon ward councillor response — Grant, 2w ago
+  See all 14 posts →
+
+People (2)
+  • Hendon Coordinator — Rachel Levine
+  • Hendon Writers — Bette Rosenthal
+
+Regions (1)
+  • Hendon · 247 members
+```
+
+The Posts group is at the top — what she came for, what most
+members come for. People next, then Regions. No Partner orgs in this
+result set, so that section is hidden. Comments don't appear at all
+— she'd expected them to maybe show, but they're not part of this
+release.
+
+The first post is the one she remembers. She taps it. The post
+detail page opens — she's reading Maya's account of the leafleting
+within four taps of opening the app.
+
+**A second search, two minutes later.** She comes back, magnifier
+again. This time the scope chip `× Urgent` is still there from
+before — annoying. She taps the X. The chip disappears, the same
+results re-render, broader: 17 posts now instead of 14, including
+non-urgent ones from last month. She picks the one she wanted to
+forward to her sister.
+
+**Trying for a person.** She types `bett` — Bette Rosenthal's row
+appears under People, second of two. She taps. Bette's profile
+opens. Done.
+
+**Trying for a typo.** Later she types `henden` (typo). Plain
+`ILIKE` returns nothing — empty results page, honest copy:
+
+> Nothing matching that yet. Try a region name or a person.
+
+She corrects to `hendon`. Results return. Decision: if pilot shows
+members typo-fail this often, the team will ship `pg_trgm` for
+typo-tolerance (Decision #1 in the brief — index strategy is open
+at build time).
+
+**A logged-out share.** Sharon copy-pastes the URL of her search
+results — `/search?q=hendon&type=posts&filter=urgent` — into
+WhatsApp to her sister, who isn't a member. Her sister taps. The
+page renders the same Posts group, but with members-only posts
+filtered out — the visibility predicate is reused from `listPosts`
+(Decision #5). Her sister sees the public Sky News post Maya wrote
+about Hendon coverage, and a "Sign in to see more" prompt below it.
+Sharon's sister isn't surprised — she's seen this pattern on other
+member apps.
+
+**What the scenario surfaces:**
+
+- Filter scope (`× Urgent`) inherits into the search overlay; the
+  chip is removable in one tap. Members can widen without backing
+  out.
+- Posts-first ranking matches the most common intent ("find that
+  post I half-remember"). People second covers the "find a
+  coordinator" case. Regions are useful but third.
+- Empty groups (Partner orgs) are hidden, not shown with "(0)" —
+  result page stays scannable.
+- Comments are absent and the absence isn't surfaced. Members who
+  expected comment search may be mildly surprised; brief decision
+  #2 parks this for a later BU after privacy review.
+- URL-addressable results are forwarded freely; visibility filter
+  protects members-only content from logged-out viewers without
+  breaking the link.
+- Typo-tolerance is a build-time tradeoff — `ILIKE` ships fast,
+  `pg_trgm` ships kinder. Open question #1 in the brief.
+
+**Friction found:**
+
+- The scope chip persisting between separate search sessions feels
+  sticky. Should the chip be cleared when the overlay is closed,
+  or remembered? Sharon wanted both at different moments. Pilot
+  question.
+- "See all 14 posts" → full-results page is a separate route. Back
+  button needs two pops to return to feed (full-results →
+  typeahead overlay → feed). Acceptable but worth verifying members
+  don't get lost.
+- iOS keyboard covers part of the result list when the keyboard is
+  up. `visualViewport.resize` listener is in scope to mitigate, but
+  on older iOS versions the autoshift is imperfect.
+
+**Related:**
+
+- BU-search-surface (this is the companion scenario)
+- BU-feed-filter (the chip strip whose `Urgent` selection comes
+  through as the scope chip)
+- D018 — inbound sharing endpoint (URL-addressable result pages)
+- Research: `docs/product/research/search-surfaces.md` (the design
+  rationale)
