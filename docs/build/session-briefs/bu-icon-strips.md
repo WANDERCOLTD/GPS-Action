@@ -3,7 +3,7 @@ slug: bu-icon-strips
 status: stub
 phase: 2
 priority: medium
-note: "Stub. Unify the four word-bearing chip/tab strips below the AppNav level — FeedFilterChips, CommentList tabs, NearMeView sort — to icons-only with a shared long-press / hover tooltip primitive. Closes the tooltip TODO from BU-icon-nav. Spawned from a /feed visual-consistency review on 2026-05-01."
+note: "Unify the word-bearing chip/tab strips below the AppNav level — FeedFilterChips, CommentList tabs, NearMeView sort — to icons-only with a shared long-press / hover tooltip primitive. Closes the tooltip TODO from BU-icon-nav. All icon picks locked 2026-05-01. Spawned from a /feed visual-consistency review."
 ---
 
 # SESSION BRIEF · bu-icon-strips — Unify second/third-order chip strips to icons-only
@@ -57,35 +57,22 @@ in review.
 |---|---|---|---|
 | Feed | All | *(no icon — text "All" stays as the deliberate "off" outlier)* | — |
 | Feed | Urgent | `Zap` | Urgent |
-| Feed | AM | **Brand glyph stays** (deliberate partner-brand exception per share-taxonomy) | Activist Mailer |
+| Feed | AM | **Brand glyph stays** (deliberate partner-brand exception per share-taxonomy). Lucide `Megaphone` is reserved for AM and **must not be used elsewhere** in the app, in case we ever swap brand glyph → lucide. | Activist Mailer |
+| Feed | Tick-or-cross | `Gavel` — surfaces "Promote or Report" verdict threads (NOT a vote — it's a moderation decision on shared content) | Promote / Report |
 | Feed | Now | `Radio` | Happening now |
 | Feed | Meetings | `Users` | Meetings |
+| Feed | Events | `Flag` (Megaphone reserved for AM; `CalendarDays` collides with AppNav Calendar) | Events |
 | Comments | Discussion | `MessageSquare` | Discussion |
 | Comments | Activity | `Activity` | Activity |
 | Comments | All | *(no icon — same outlier rule as Feed/All)* | — |
 | Near-me | Distance | `Ruler` | Sort by distance |
 | Near-me | Date | `CalendarDays` | Sort by date |
 
-## Open picks (decide before starting)
-
-- **Feed / Tick-or-cross.** Candidates: `ThumbsUp` (paired with
-  `ThumbsDown`?), `Vote`, `ListChecks`, `Gavel`, `Scale`. The chip
-  surfaces "boost or remove" verdict threads — feels closer to *vote*
-  than *checklist*. **Lean: `Vote`.**
-- **Feed / Events.** Candidates: `Megaphone`, `Flag`, `CalendarDays`.
-  `CalendarDays` collides with the AppNav Calendar icon → confusion.
-  **Lean: `Megaphone`** (activist-coded, distinct from nav).
-- **CommentList geometry.** Today: underline tabs, not pills. Two
-  options:
-  (a) Convert to pill chips so all three strips share one geometry.
-  (b) Keep underline tabs as a *deliberate* geometric difference —
-  chips = "filter a list," tabs = "switch view of the same list" — and
-  only swap text→icon within the existing tab idiom.
-  **Lean: (b).** The chip geometry implies "any of these can be on,"
-  whereas underline tabs say "you are in this view." Comments tabs
-  switch the meaning of the comment list (Discussion vs Activity vs
-  All); they're not filters in the same sense as feed filters.
-  Decide before build.
+**CommentList geometry: keep underline tabs (locked).** Underline tabs
+say "you are in this view"; chip pills say "filter the list." Comments
+tabs switch the *meaning* of the comment list (Discussion vs Activity
+vs All), so they should retain the tab idiom — only the text→icon
+swap happens here, not a geometry change.
 
 ---
 
@@ -166,19 +153,12 @@ in review.
 
 ## Open questions to surface
 
-1. **Tick-or-cross icon.** `Vote` vs `ThumbsUp` vs `ListChecks` — Paul
-   to confirm. Lean: `Vote`.
-2. **Events icon.** `Megaphone` vs `Flag` — confirm. Lean: `Megaphone`.
-3. **CommentList geometry.** Keep underline tabs (option b) or convert
-   to pills (option a)? Lean: (b).
-4. **Discoverability for newer members.** Same concern as BU-icon-nav.
-   Tooltips help, but a member who never long-presses won't see them.
-   Two mitigations: (a) accept the cost; (b) ship a one-time first-run
-   coachmark on `/feed` highlighting the chip strip. Recommend (a) —
-   keep it quiet, members will explore.
-5. **AM brand glyph size.** Today it's 14px to sit next to text.
+1. **AM brand glyph size.** Today it's 14px to sit next to text.
    Without text neighbours, should it scale up to match the lucide
    icon size (likely 16–18px)? Probably yes; confirm during build.
+2. **Discoverability for newer members.** Same concern as BU-icon-nav.
+   Tooltips help, but a member who never long-presses won't see them.
+   Accepted cost — keep it quiet, members will explore. (No coachmark.)
 
 ---
 
