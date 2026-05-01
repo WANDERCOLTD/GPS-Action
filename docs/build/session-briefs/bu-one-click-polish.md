@@ -1,6 +1,7 @@
 ---
 slug: bu-one-click-polish
-status: planned
+status: shipped
+shipped_in: "#161"
 priority: medium
 phase: 2
 ---
