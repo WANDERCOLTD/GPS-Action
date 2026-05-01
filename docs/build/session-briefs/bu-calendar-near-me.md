@@ -1,8 +1,9 @@
 ---
 slug: bu-calendar-near-me
-status: planned
+status: shipped
 phase: 2
 priority: medium
+shipped_in: "#169"
 note: "Path A — hand-coded coords on seeded events. Path B (composer-side geocoding) is parked. Builds on bu-calendar-view + bu-event-time."
 ---
 
