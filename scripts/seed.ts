@@ -141,6 +141,9 @@ interface SeedPost {
   // review-attribution UI (badge in feed, sub-byline on detail, pinned
   // auto-comment in thread) for the named reviewer.
   reviewedByKey?: string;
+  // BU-tick-or-cross / D069: 'promote' or 'remove' verdict — only set
+  // when kindSlug === 'tick_or_cross'.
+  signal?: 'promote' | 'remove';
 }
 
 const SEED_POSTS: SeedPost[] = [
@@ -583,6 +586,42 @@ const SEED_POSTS: SeedPost[] = [
     eventStartMinute: 30,
     eventDurationMinutes: 90,
     locationText: 'Online via Zoom — link in the Writers group',
+  },
+
+  // ── BU-tick-or-cross demo posts (D069) ────────────────────────────────
+  // ✅ promote / ❌ remove — quick verdict posts that route to the GPS
+  // Network WhatsApp channel. These exist so the ✅❌ chip on /feed
+  // surfaces real content in dev + on the Vercel demo deploy.
+  {
+    seedKey: 'tick-bbc-correction',
+    authorKey: 'bette',
+    title: 'BBC issued a correction on the Manchester report — promote',
+    body: `BBC News updated the online article with a correction footnote acknowledging the misattributed quote. Worth signal-boosting so the corrected version gets the same reach as the original.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['rapid-response'],
+    daysAgo: 1,
+    kindSlug: 'tick_or_cross',
+    urgency: false,
+    signal: 'promote',
+    linkUrl: 'https://www.bbc.co.uk/news/uk-manchester-correction-2026',
+    linkTitle: 'Correction: Manchester community report',
+    linkDescription:
+      'Following further review, this article has been updated to correct an attribution error in the original.',
+    linkSiteName: 'BBC News',
+  },
+  {
+    seedKey: 'cross-fake-petition',
+    authorKey: 'cary',
+    title: 'Fake petition circulating on social — remove',
+    body: `A petition styled to look like one of ours is circulating on Twitter and Facebook. It is NOT from us. The wording is similar but the signatories list is fabricated and the sponsoring organisation does not exist. Please flag and unshare wherever you see it.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['rapid-response'],
+    daysAgo: 0,
+    kindSlug: 'tick_or_cross',
+    urgency: true,
+    signal: 'remove',
   },
 ];
 
@@ -1061,6 +1100,8 @@ async function main(): Promise<void> {
           status: 'published',
           publishedAt: createdAt,
           reviewedByUserId: reviewerId,
+          // D069 — tick_or_cross verdict (promote / remove); null otherwise.
+          signal: post.signal ?? null,
         },
       });
       postsCreated++;
