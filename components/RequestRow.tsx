@@ -15,6 +15,7 @@ import type { MouseEvent as ReactMouseEvent, KeyboardEvent as ReactKeyboardEvent
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { ClaimButton, ResolveForm } from '@/components/RequestActionButtons';
+import { UserAvatar } from '@/components/UserAvatar';
 import type { RequestListItem } from '@/server/services/request';
 import type { RequestType } from '@prisma/client';
 
@@ -187,6 +188,32 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
           {formatDistanceToNow(row.createdAt, { addSuffix: true })}
         </span>
       </div>
+      {row.createdBy && (
+        <div
+          data-testid="requests-row-submitter-byline"
+          data-user-id={row.createdBy.id}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--colour-text-secondary)',
+          }}
+        >
+          <UserAvatar
+            userId={row.createdBy.id}
+            displayName={row.createdBy.displayName}
+            avatarUrl={row.createdBy.avatarUrl}
+            size={22}
+          />
+          <span>
+            <strong style={{ color: 'var(--colour-text-primary)' }}>
+              {row.createdBy.displayName}
+            </strong>
+            <span style={{ marginLeft: 'var(--space-1)' }}>submitted this</span>
+          </span>
+        </div>
+      )}
       {ctxText && (
         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--colour-text-secondary)' }}>
           {ctxText}
@@ -195,11 +222,6 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
       {row.claimedBy && (
         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--colour-text-secondary)' }}>
           Picked up by <strong>{row.claimedBy.displayName}</strong>
-        </div>
-      )}
-      {row.createdBy && (
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--colour-text-secondary)' }}>
-          Submitted by <strong>{row.createdBy.displayName}</strong>
         </div>
       )}
       {row.resolutionNotes && (
