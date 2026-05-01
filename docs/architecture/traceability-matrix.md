@@ -39,6 +39,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-28 | Sharon shares a post, then confirms she sent it | 0 | — | — | parked |
 | SCN-29 | Eddie sees the share count on someone else's post | 0 | — | — | parked |
 | SCN-30 | Bette views her own post and notices a missing channel | 0 | — | — | parked |
+| SCN-31 | Sharon searches for Hendon | 0 | — | — | parked |
 
 ## Build Units
 
