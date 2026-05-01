@@ -14,18 +14,24 @@
  * state pattern from PR #47. Per design-philosophy.md principle 3
  * — no celebration, no streaks, no "+1 reaction" toast.
  *
- * Layout (BU-feed-card-affordances): vertical for the feed card's
- * right rail. The 🙂+ "add" button is the anchor — tapping it opens
- * the 8-emoji picker tray. Beneath, top-3 reactions stack one-per-
- * row as small `emoji <count>` quick-toggle buttons; tapping a row
- * toggles the member's reaction for that emoji directly without
- * going through the picker. A `+M` expander appears when more than
- * three emojis have reactions; tapping reveals the rest inline.
+ * Layout (BU-comments-card-lift): horizontal rail for both empty and
+ * populated states. The 🙂+ "add" button is the anchor — tapping it
+ * opens the 8-emoji picker tray. Beside / beneath it, top-3 reactions
+ * sit inline as small `emoji <count>` quick-toggle buttons; tapping
+ * a button toggles the member's reaction for that emoji directly
+ * without going through the picker. A `+M` expander appears when
+ * more than three emojis have reactions; tapping reveals the rest
+ * inline. The row wraps so it stays contained in narrow card rails.
  *
  * BU-one-click-polish — empty state shows a 4-emoji quick-rail
  * (👍 ❤️ ✅ 💪) instead of just the 🙂+ button. Tapping any of them
  * fires the standard add path; once the post has any reactions, the
  * rail collapses back into the existing populated layout.
+ *
+ * BU-comments-card-lift — the empty-state quick-rail emoji render in
+ * a "ghost" style (low-opacity, transparent ground) so they read as
+ * gentle suggestions rather than active state. They lift to full
+ * opacity + sunken background on hover/focus/active.
  *
  * Built on `@radix-ui/react-popover` for the tray. Radix gives us
  * positioning across viewport widths (Floating UI under the hood,
@@ -81,6 +87,10 @@ function applyOptimistic(state: FeedReaction[], action: OptimisticAction): FeedR
 export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove, canReact }) => {
   const [trayOpen, setTrayOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  // BU-comments-card-lift — track which ghost button is currently
+  // lifted (hover or focus). Inline styles can't carry pseudo-class
+  // rules so we mirror :hover/:focus state in React.
+  const [liftedEmoji, setLiftedEmoji] = useState<FeedReactionEmoji | null>(null);
   const [, startTransition] = useTransition();
   // Local state — committed truth for this client. Initialised from
   // server-rendered props; updated on successful mutation. Prop drift
@@ -117,15 +127,7 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
 
   return (
     <Popover.Root open={trayOpen} onOpenChange={setTrayOpen}>
-      <div
-        data-testid="reaction-pill-container"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 2,
-        }}
-      >
+      <div data-testid="reaction-pill-container" style={containerStyle}>
         <Popover.Trigger asChild>
           <button
             type="button"
@@ -142,18 +144,22 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
         </Popover.Trigger>
 
         {!hasAny && canReact && (
-          <div data-testid="reaction-pill-quickrail" style={stackStyle}>
+          <div data-testid="reaction-pill-quickrail" style={quickRailContainerStyle}>
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 toggle('thumbsup');
               }}
+              onMouseEnter={() => setLiftedEmoji('thumbsup')}
+              onMouseLeave={() => setLiftedEmoji(null)}
+              onFocus={() => setLiftedEmoji('thumbsup')}
+              onBlur={() => setLiftedEmoji(null)}
               aria-label="React: Acknowledged"
               title="Acknowledged"
               data-testid="post-reaction-quickrail-thumbsup"
               data-emoji="thumbsup"
-              style={quickRailButtonStyle}
+              style={ghostRailStyle(liftedEmoji === 'thumbsup')}
             >
               <span aria-hidden="true">{REACTION_GLYPH['thumbsup']}</span>
             </button>
@@ -163,11 +169,15 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
                 e.stopPropagation();
                 toggle('heart');
               }}
+              onMouseEnter={() => setLiftedEmoji('heart')}
+              onMouseLeave={() => setLiftedEmoji(null)}
+              onFocus={() => setLiftedEmoji('heart')}
+              onBlur={() => setLiftedEmoji(null)}
               aria-label="React: Solidarity"
               title="Solidarity"
               data-testid="post-reaction-quickrail-heart"
               data-emoji="heart"
-              style={quickRailButtonStyle}
+              style={ghostRailStyle(liftedEmoji === 'heart')}
             >
               <span aria-hidden="true">{REACTION_GLYPH['heart']}</span>
             </button>
@@ -177,11 +187,15 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
                 e.stopPropagation();
                 toggle('target');
               }}
+              onMouseEnter={() => setLiftedEmoji('target')}
+              onMouseLeave={() => setLiftedEmoji(null)}
+              onFocus={() => setLiftedEmoji('target')}
+              onBlur={() => setLiftedEmoji(null)}
               aria-label="React: Agreed"
               title="Agreed"
               data-testid="post-reaction-quickrail-target"
               data-emoji="target"
-              style={quickRailButtonStyle}
+              style={ghostRailStyle(liftedEmoji === 'target')}
             >
               <span aria-hidden="true">{REACTION_GLYPH['target']}</span>
             </button>
@@ -191,11 +205,15 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
                 e.stopPropagation();
                 toggle('strong');
               }}
+              onMouseEnter={() => setLiftedEmoji('strong')}
+              onMouseLeave={() => setLiftedEmoji(null)}
+              onFocus={() => setLiftedEmoji('strong')}
+              onBlur={() => setLiftedEmoji(null)}
               aria-label="React: Strength"
               title="Strength"
               data-testid="post-reaction-quickrail-strong"
               data-emoji="strong"
-              style={quickRailButtonStyle}
+              style={ghostRailStyle(liftedEmoji === 'strong')}
             >
               <span aria-hidden="true">{REACTION_GLYPH['strong']}</span>
             </button>
@@ -203,7 +221,7 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
         )}
 
         {hasAny && (
-          <div data-testid="reaction-pill-stack" style={stackStyle}>
+          <div data-testid="reaction-pill-stack" style={populatedContainerStyle}>
             {visible.map((r) => (
               <button
                 key={r.emoji}
@@ -299,17 +317,47 @@ function triggerStyle(canReact: boolean): CSSProperties {
   };
 }
 
-const stackStyle: CSSProperties = {
+// BU-comments-card-lift — horizontal layout for both empty and
+// populated states. The outer container holds the 🙂+ trigger and
+// the rail/stack on a single wrapping row.
+export const containerStyle: CSSProperties = {
   display: 'flex',
-  flexDirection: 'column',
+  flexDirection: 'row',
+  flexWrap: 'wrap',
   alignItems: 'center',
-  gap: 2,
+  gap: 4,
 };
 
-// BU-one-click-polish — empty-state quick-rail buttons. Same vertical
-// dimensions as `emojiRowStyle` so the rail aligns with the populated
-// stack visually (no layout shift when the first reaction lands).
-const quickRailButtonStyle: CSSProperties = {
+// BU-comments-card-lift — empty-state quick-rail container. Horizontal
+// row that wraps onto subsequent lines on narrow rails so the picker
+// emoji never get pushed off-canvas.
+export const quickRailContainerStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: 4,
+};
+
+// BU-comments-card-lift — populated-state container mirrors the
+// quick-rail. Reactions sit inline next to the trigger on the same
+// horizontal row, wrapping as the count grows.
+export const populatedContainerStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: 4,
+};
+
+// BU-comments-card-lift — empty-state quick-rail buttons. Ghost
+// styling: low default opacity + transparent ground so they read as
+// gentle suggestions rather than active state. On hover/focus they
+// lift to full opacity + sunken background. Inline styles can't
+// carry :hover/:focus, so the caller passes `lifted` from React state.
+export const quickRailButtonDefaultOpacity = 0.55;
+
+export const quickRailButtonStyle: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -322,7 +370,18 @@ const quickRailButtonStyle: CSSProperties = {
   lineHeight: 1.1,
   color: 'var(--colour-text-secondary)',
   minHeight: 22,
+  opacity: quickRailButtonDefaultOpacity,
+  transition: 'opacity 120ms ease-out, background-color 120ms ease-out',
 };
+
+export function ghostRailStyle(lifted: boolean): CSSProperties {
+  if (!lifted) return quickRailButtonStyle;
+  return {
+    ...quickRailButtonStyle,
+    opacity: 1,
+    background: 'var(--colour-surface-sunken)',
+  };
+}
 
 function emojiRowStyle(mine: boolean): CSSProperties {
   return {
