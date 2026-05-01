@@ -1,6 +1,7 @@
 ---
 slug: bu-comments-card-lift
-status: planned
+status: shipped
+shipped_in: "#166"
 priority: medium
 phase: 2
 ---
