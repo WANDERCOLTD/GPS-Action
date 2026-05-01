@@ -36,6 +36,9 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-25 | Eddie types a thought straight into the FAB | 1 | BU-composer, BU-fab-intent-picker, BU-link-first-composer, BU-publish-router, BU-tick-or-cross | D044, D062, D069, D072 | ✓ shipped |
 | SCN-26 | Sharon publishes a tick_or_cross post via the universal modal | 1 | BU-am-link-collapse, BU-composer, BU-event-time, BU-fab-intent-picker, BU-link-share, BU-post-hero-demo, BU-publish-router, BU-tick-or-cross | D060, D062, D064, D069, D072, D073 | ✓ shipped |
 | SCN-27 | Eddie sends his first post for review; Bette refines and publishes | 1 | BU-am-link-collapse, BU-composer, BU-event-time, BU-fab-intent-picker, BU-link-share, BU-post-hero-demo, BU-publish-router, BU-tick-or-cross | D060, D062, D064, D069, D072, D073 | ✓ shipped |
+| SCN-28 | Sharon shares a post, then confirms she sent it | 0 | — | — | parked |
+| SCN-29 | Eddie sees the share count on someone else's post | 0 | — | — | parked |
+| SCN-30 | Bette views her own post and notices a missing channel | 0 | — | — | parked |
 
 ## Build Units
 

@@ -1648,3 +1648,211 @@ reads much better." Closes the app.
   surface for these requests)
 - BU-drafts-inbox (Phase 2 — the author-side recall of saved
   drafts and pending review requests)
+
+---
+
+### Scenario 28 — Sharon shares a post, then confirms she sent it
+
+<!-- @no-code-yet -->
+
+_Sharon, member, writers group lead. Tuesday lunchtime, on her
+sofa with the dog._
+
+Sharon publishes a post about the council surgery on Wednesday.
+From the post-detail page, she taps the WhatsApp share button on
+the right rail. WhatsApp opens with the post title + URL pre-filled.
+She picks the "Save Bristol" community group, sends the message,
+and switches back to GPS Action.
+
+The page detects she's returned (Page Visibility API). A small
+dialog slides up from the bottom: **"Did you send it?"** with three
+buttons: **"I sent it"** / _"Not yet"_ / _"Skip"_.
+
+She taps "I sent it." The server records the confirmed share. The
+pill at the bottom of the post — which had been hidden because
+nobody had shared yet — appears as `↗ 1`. Her own view of the post
+now shows a thin contextual strip above the byline:
+
+> _↗ Your post — shared 1 time on WhatsApp_
+
+Sharon closes the app, satisfied. The motion took ~5 seconds. No
+celebration animation, no badge, no leaderboard. Just an honest
+mark that the share happened.
+
+**What the scenario surfaces:**
+
+- The "Did you send it?" dialog is the **same** copy and state
+  machine the `PostPublishModal` already uses on the
+  `tick_or_cross` publish flow. Lifting it into a reusable
+  `<ShareConfirmDialog />` is the Phase 2 deliverable.
+- Page Visibility API is the trigger — when Sharon switches back
+  from WhatsApp to GPS Action, the dialog appears. False-positives
+  (e.g. switching tabs for unrelated reasons) are gated by requiring
+  a recent intent write (within ~60s).
+- The pill only appears once `total > 0`. Honest empty state.
+- The author personal strip ("Your post — shared N times") is the
+  Phase 4 polish; it shows on the author's own view only.
+
+**Friction found:**
+
+- If Sharon ignores the dialog (closes the page), the row stays as
+  intent-only. The counter doesn't tick. That's correct — we count
+  _people who say yes_, not taps. But it means the headline number
+  is always lower than the tap count. The intent total is exposed
+  inside the breakdown tooltip for transparency.
+- The 30-second rate limit means if Sharon double-taps the
+  WhatsApp button by accident, only one row is created. UX-invisible
+  (the second tap returns 200 OK with `noop: true`).
+
+**Related:**
+
+- SCN-29 (Eddie sees the public counter on someone else's post)
+- SCN-30 (Bette views her own post and sees the personal strip)
+- D016 (self-dispatch via copy-and-deeplink, not WhatsApp Business
+  API — the share-out mechanic this builds on)
+- D047 (honest tracking — no inflated reach numbers; the verified-
+  vs-intent split is this principle made literal)
+- D067 (the existing WhatsApp share analytics stub this scenario's
+  build replaces with real persistence)
+- D077 (the `PostShare` schema decision; ADR-0003)
+- bu-post-share-counter brief (parent — 4 phases)
+
+---
+
+### Scenario 29 — Eddie sees the share count on someone else's post
+
+<!-- @no-code-yet -->
+
+_Eddie, member, ~3 months in. Friday morning on the bus, on his
+phone._
+
+Eddie scrolls `/feed` and sees Maya's "URGENT — school gate" post.
+The reaction row at the bottom of the card now reads:
+
+> 🙂+ ❤️ 12 💬 5 ↗ 47
+
+The `↗ 47` is new — Eddie taps it. An inline panel expands below
+the card (mobile) / a small tooltip appears (desktop):
+
+> Shared 47 times
+> ─────────────
+> WhatsApp 24
+> X 14
+> Email 6
+> Other 3
+> ─────────────
+> Intent total 64
+
+Eddie sees the "Intent total" disclosure — 17 of 64 taps weren't
+confirmed. Honest. He registers the implication: the reach number
+is real, not inflated.
+
+He taps the WhatsApp share button on the post-detail page, opens
+WhatsApp, sends the URL to his Hendon group, switches back to GPS
+Action. The "Did you send?" dialog slides up; he taps "I sent it."
+The counter ticks to `↗ 48`. His own view of the post now shows
+the personal strip — _"You shared this on: WhatsApp"_.
+
+He closes the app. Total time elapsed: ~12 seconds.
+
+**What the scenario surfaces:**
+
+- The breakdown panel is **per-channel**, not per-user. No member
+  names appear publicly. (Honest reach without surveillance.)
+- The "Intent total" line is a deliberate transparency choice
+  (resolved decision #5). Members see both numbers; the headline
+  is verified.
+- The pill is hidden from logged-out viewers — the server-side
+  gate means `shareCounts` simply isn't returned in `listPosts`
+  for unauthenticated requests.
+- The pill animates by +1 when Eddie's confirm lands. Cache
+  invalidation runs within ~5s of confirmation.
+
+**Friction found:**
+
+- The "Other" bucket exists for `copy_link` and the catch-all
+  `other` destination. Some members may wonder what it means; the
+  enum is strict (resolved decision #4) and the bucket name should
+  read as "private channels we can't classify."
+- On smaller screens the breakdown panel's per-channel rows wrap
+  awkwardly if the totals are 5+ digits. Acceptable for MVP — the
+  network won't have posts with hundreds of thousands of shares
+  for a while.
+- Question parked into the brief's open-questions section: should
+  the breakdown sort by count (highest first) or by enum order?
+  Defaulting to count.
+
+**Related:**
+
+- SCN-28 (Sharon's first-ever share confirm — the source of the
+  rows in Eddie's view)
+- SCN-30 (Bette's author-eye view of the same numbers)
+- D047 (honest tracking)
+- bu-post-share-counter brief (Phase 3 — counter UI)
+
+---
+
+### Scenario 30 — Bette views her own post and notices a missing channel
+
+<!-- @no-code-yet -->
+
+_Bette, writers lead. Sunday afternoon, on her laptop with a coffee._
+
+Bette opens her published post about the Ofcom complaint. Above
+the byline, a thin contextual strip reads:
+
+> _↗ Your post — shared 47 times across 4 channels_
+> _You shared this on: WhatsApp · X_
+
+She notices "X" but not "Email" — and she has a draft email
+template ready to send to her local writers group. She taps the
+email share button on the right rail; her mail client opens with
+the subject and post URL pre-filled. She sends, switches back to
+GPS Action, and taps "I sent it" on the dialog.
+
+The personal strip updates: _"You shared this on: WhatsApp · X ·
+Email"_. The public counter on the post ticks from `↗ 47` to
+`↗ 48` (Bette's email share IS included in aggregates regardless
+of being a self-share — there's no "exclude author" rule, because
+the actual reach is real).
+
+She closes the laptop, goes back to the kitchen.
+
+**What the scenario surfaces:**
+
+- The author personal strip's two-line shape: _aggregate first
+  ("shared N times across M channels"), personal second ("You
+  shared this on: …")_. The aggregate is shared with every
+  member; the personal line is private to the author's own view.
+- The strip is the Phase 4 polish surface. It composes both
+  pieces of state — the public counter (Phase 3) and a per-user
+  filter (`PostShare WHERE userId = viewer.id AND confirmedAt
+IS NOT NULL`).
+- Author-self-share counts toward the public aggregate. Resolved
+  decision #1 ("counts of people, not taps") means Bette's
+  whatsapp/x/email rows count once each — no inflation, no
+  double-counting if she WhatsApps twice in a week (the 30-second
+  rate limit + the upsert-on-tuple together prevent it).
+- The personal strip surfaces a useful nudge: Bette spotted the
+  missing channel and acted. Not "you should share more," not
+  "you've only done X% of channels." Just an honest list.
+
+**Friction found:**
+
+- "Across 4 channels" is a small information density risk. Could
+  read as gameification. Pilot will reveal whether the phrasing
+  feels neutral or competitive. Alternative: "shared 47 times"
+  alone, with the per-channel breakdown only on tap.
+- For a post with no shares at all (`total === 0`), the personal
+  strip should NOT show. Mirrors the public pill's hide-when-zero
+  behaviour. Open question — the brief's defaults say yes, hide.
+
+**Related:**
+
+- SCN-28 (the share-then-confirm motion that generated Bette's
+  WhatsApp + X rows in the first place)
+- SCN-29 (the public counter Eddie sees on a post that isn't his)
+- D047 (honest tracking — no inflated reach numbers; this scenario's
+  "no exclude-author rule" is that principle applied)
+- bu-post-share-counter brief (Phase 4 — author personal indicator,
+  empty + loading states)
