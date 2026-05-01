@@ -102,6 +102,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-comments-card-lift** — BU-comments-card-lift | ✅ Merged | #166 |
 | **bu-postcard-share-polish** — bu-postcard-share-polish | ✅ Merged | #167 |
 | **bu-calendar-near-me** — BU-calendar-near-me | ✅ Merged | #169 |
+| **bu-post-location-input** — BU-post-location-input | ✅ Merged | #171 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |
@@ -124,7 +125,6 @@ by hand — run `npm run trackers`):
 - **bu-prod-auth** _[high]_ — bu-prod-auth
 - **bu-vercel-prep** _[high]_ — bu-vercel-prep
 - **bu-drafts-inbox** _[medium]_ — bu-drafts-inbox
-- **bu-post-location-input** _[medium]_ — BU-post-location-input
 - **bu-reviewer-kind-review-queue** _[medium]_ — bu-reviewer-kind-review-queue
 - **bu-search-surface** _[medium]_ — BU-search-surface
 - **bu-composer-link-first** _[low]_ — BU-composer-link-first

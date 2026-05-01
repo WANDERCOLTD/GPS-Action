@@ -1,8 +1,9 @@
 ---
 slug: bu-post-location-input
-status: planned
+status: shipped
 phase: 2
 priority: medium
+shipped_in: "#171"
 note: "Slice of the parking-lot 'Geocoding pipeline for post locations (Path B)' entry — UK postcode-only via postcodes.io. No Nominatim fallback, no backfill flow, no privacy opt-in toggle. Builds on bu-calendar-near-me (which added the columns and the `geocodeUkPostcode` helper)."
 ---
 
