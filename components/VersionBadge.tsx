@@ -88,7 +88,7 @@ export function VersionBadge() {
   return (
     <button
       type="button"
-      onClick={forceReload}
+      onClick={handleReloadClick}
       data-testid="nav-version-badge"
       data-app-env={env}
       title="Tap to hard-reload (cache-bust)"
@@ -115,15 +115,45 @@ export function VersionBadge() {
   );
 }
 
-function forceReload(): void {
-  // Append a unique `_cb` (cache-buster) query param so the browser
-  // sees a different URL and fetches HTML + chunk manifest fresh.
-  // Preserves any existing query params and hash. Strips the previous
-  // `_cb` if present so the URL doesn't grow indefinitely on repeat
-  // taps.
+async function forceReload(): Promise<void> {
+  // Maximum-strength reload for iOS Safari, which is sticky about
+  // serving cached JS chunks even after a soft refresh. Steps:
+  //
+  //   1. Clear Cache API entries (PWA / SW caches; defensive — we
+  //      don't ship a service worker today, but a future PWA setup
+  //      would benefit).
+  //   2. Unregister any registered service workers (defensive again).
+  //   3. Append a unique `_cb` query param so the URL is novel and
+  //      can't be served from disk cache.
+  //   4. `location.replace()` (not `.href = ...`) so the navigation
+  //      bypasses Safari's back-forward cache and forces a real
+  //      network round-trip.
   if (typeof window === 'undefined') return;
+
+  if ('caches' in window) {
+    try {
+      const keys = await window.caches.keys();
+      await Promise.all(keys.map((k) => window.caches.delete(k)));
+    } catch {
+      // Cache API failures are non-fatal — keep going.
+    }
+  }
+
+  if ('serviceWorker' in navigator) {
+    try {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    } catch {
+      // SW unregister failures are non-fatal — keep going.
+    }
+  }
+
   const url = new URL(window.location.href);
   url.searchParams.delete('_cb');
   url.searchParams.set('_cb', String(Date.now()));
-  window.location.href = url.toString();
+  window.location.replace(url.toString());
+}
+
+function handleReloadClick(): void {
+  void forceReload();
 }
