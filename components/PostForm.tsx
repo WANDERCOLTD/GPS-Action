@@ -70,6 +70,7 @@ import {
 import { useRouter } from 'next/navigation';
 import type { CreatePostResult } from '@/app/compose/actions';
 import { kindIsTimeBearing } from '@/shared/post-kinds';
+import { geocodeUkPostcode } from '@/shared/geo';
 import {
   publishPostAction,
   sendPostForReviewAction,
@@ -88,6 +89,11 @@ import {
   EMPTY_EVENT_FIELDS_STATE,
   type EventFieldsState,
 } from './EventFieldsBlock';
+import {
+  PostLocationFieldsBlock,
+  EMPTY_POST_LOCATION_FIELDS_STATE,
+  type PostLocationFieldsState,
+} from './PostLocationFieldsBlock';
 import { DraftSavedIndicator } from './DraftSavedIndicator';
 import { useAutosaveDraft } from '@/shared/autosave/use-autosave-draft';
 import { isActivistMailerDomain } from '@/shared/validation/am-domain';
@@ -322,6 +328,13 @@ export function PostForm({
   // survive kind toggles. The block renders only when the active
   // kind is time-bearing per kindIsTimeBearing.
   const [eventFields, setEventFields] = useState<EventFieldsState>(EMPTY_EVENT_FIELDS_STATE);
+  // BU-post-location-input: postcode + isOnline. Lifted up so values
+  // survive kind toggles, mirroring eventFields. Postcode geocodes at
+  // submit (no per-keystroke fetch); failure surfaces inline below.
+  const [locationFields, setLocationFields] = useState<PostLocationFieldsState>(
+    EMPTY_POST_LOCATION_FIELDS_STATE,
+  );
+  const [postcodeError, setPostcodeError] = useState<string | null>(null);
 
   const resolvedKindId = selectedKind ? kindMap[selectedKind]?.id : undefined;
   const activeKindSlug = isUndecided ? selectedKind : currentIntent;
@@ -424,6 +437,36 @@ export function PostForm({
     if (activeKindSlug) formData.set('kindSlug', activeKindSlug);
     if (isTickOrCross && signal) formData.set('signal', signal);
     startTransition(async () => {
+      // BU-post-location-input: when the active kind is time-bearing,
+      // resolve postcode → coords (or honour the isOnline override)
+      // before the server action runs. Failure stops submission and
+      // surfaces an inline error so the member can correct or tick
+      // "This is online".
+      if (isTimeBearing) {
+        setPostcodeError(null);
+        if (locationFields.isOnline) {
+          formData.set('isOnline', 'true');
+          formData.delete('postcode');
+        } else {
+          const trimmed = locationFields.postcode.trim();
+          if (trimmed) {
+            const coords = await geocodeUkPostcode(trimmed);
+            if (!coords) {
+              setPostcodeError(
+                "Postcode not recognised — check spelling, or tick 'This is online'",
+              );
+              return;
+            }
+            formData.set('latitude', String(coords.lat));
+            formData.set('longitude', String(coords.lng));
+          }
+        }
+      } else {
+        // Non-time-bearing kinds don't carry location state — strip
+        // any stale postcode/isOnline values defensively.
+        formData.delete('postcode');
+        formData.delete('isOnline');
+      }
       const result = await onSubmit(formData);
       if (result.errors) {
         setErrors(result.errors);
@@ -841,6 +884,23 @@ export function PostForm({
             eventEndsAt: errors['eventEndsAt'],
             locationText: errors['locationText'],
           }}
+        />
+      )}
+
+      {/* BU-post-location-input — postcode + "this is online" toggle.
+          Same time-bearing gate as EventFieldsBlock. The postcode is
+          geocoded via shared/geo.ts at submit; failure surfaces
+          inline. When `isOnline` is true the postcode is disabled
+          and the server clears any existing coords. */}
+      {isTimeBearing && (
+        <PostLocationFieldsBlock
+          value={locationFields}
+          onChange={(next) => {
+            setLocationFields(next);
+            if (postcodeError) setPostcodeError(null);
+          }}
+          geocodeError={postcodeError}
+          disabled={isPending}
         />
       )}
 

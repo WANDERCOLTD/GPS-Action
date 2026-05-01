@@ -73,6 +73,24 @@ export async function createPostAction(formData: FormData): Promise<CreatePostRe
   const eventEndsAtUtc = eventInputToUtc(eventEndsAtDate || null, eventEndsAtTime || null);
   const locationTextRaw = formData.get('locationText')?.toString() ?? '';
 
+  // BU-post-location-input. The composer geocodes a UK postcode
+  // client-side and sets `latitude` / `longitude` on the FormData when
+  // it succeeds; `isOnline` rides as the literal "true" string when
+  // the toggle is checked. Server-side defence-in-depth lives in the
+  // service layer (forces coords to null when isOnline=true).
+  const isOnlineRaw = formData.get('isOnline')?.toString();
+  const latitudeRaw = formData.get('latitude')?.toString();
+  const longitudeRaw = formData.get('longitude')?.toString();
+  const isOnlineParsed = isOnlineRaw === 'true' ? true : undefined;
+  const latitudeParsed =
+    latitudeRaw && latitudeRaw.trim() !== '' && !isNaN(Number(latitudeRaw))
+      ? Number(latitudeRaw)
+      : undefined;
+  const longitudeParsed =
+    longitudeRaw && longitudeRaw.trim() !== '' && !isNaN(Number(longitudeRaw))
+      ? Number(longitudeRaw)
+      : undefined;
+
   const raw = {
     title: formData.get('title')?.toString() ?? '',
     body: formData.get('body')?.toString() ?? '',
@@ -91,6 +109,9 @@ export async function createPostAction(formData: FormData): Promise<CreatePostRe
     eventAt: eventAtUtc ?? undefined,
     eventEndsAt: eventEndsAtUtc ?? undefined,
     locationText: locationTextRaw.trim() ? locationTextRaw : undefined,
+    latitude: latitudeParsed,
+    longitude: longitudeParsed,
+    isOnline: isOnlineParsed,
   };
 
   const parsed = postCreateSchema.safeParse(raw);

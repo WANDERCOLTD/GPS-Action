@@ -117,6 +117,7 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
           heroImageUrl: post.heroImageUrl,
           kindSlug: post.kindSlug,
           kindDisplayName: post.kindDisplayName,
+          isOnline: post.isOnline,
         }}
         initialEventFields={initialEventFields}
         onSubmit={onSubmit}

@@ -345,6 +345,14 @@ export async function createPost(
 
   const locationText = input.locationText?.trim() || null;
 
+  // BU-post-location-input. Defence-in-depth: when `isOnline` is true
+  // we force coords to null even if the caller supplied them. This
+  // matches the composer's UI rule (online wins) and ensures a seed
+  // / direct-service caller can't bypass it.
+  const isOnline = input.isOnline === true;
+  const latitude = isOnline ? null : (input.latitude ?? null);
+  const longitude = isOnline ? null : (input.longitude ?? null);
+
   const post = await prisma.post.create({
     data: {
       title: input.title,
@@ -365,6 +373,9 @@ export async function createPost(
       eventAt: input.eventAt ?? null,
       eventEndsAt: input.eventEndsAt ?? null,
       locationText,
+      latitude,
+      longitude,
+      isOnline,
     },
     select: { id: true },
   });
@@ -388,6 +399,8 @@ export async function createPost(
       hasEventAt: Boolean(input.eventAt),
       hasEventEndsAt: Boolean(input.eventEndsAt),
       hasLocationText: Boolean(locationText),
+      hasCoords: latitude !== null && longitude !== null,
+      isOnline,
     },
     context: { source: 'composer' },
   });
@@ -526,6 +539,21 @@ export async function updatePost(
   if (input.eventAt !== undefined) data['eventAt'] = input.eventAt ?? null;
   if (input.eventEndsAt !== undefined) data['eventEndsAt'] = input.eventEndsAt ?? null;
   if (input.locationText !== undefined) data['locationText'] = input.locationText?.trim() || null;
+
+  // BU-post-location-input. Coords + isOnline. Defence-in-depth: when
+  // isOnline=true is supplied, force latitude/longitude to null
+  // regardless of whether the caller passed coords. Mirrors createPost.
+  // Each field is optional; `undefined` means "leave alone", `null`
+  // (or "" through Zod) clears.
+  if (input.isOnline === true) {
+    data['isOnline'] = true;
+    data['latitude'] = null;
+    data['longitude'] = null;
+  } else {
+    if (input.isOnline === false) data['isOnline'] = false;
+    if (input.latitude !== undefined) data['latitude'] = input.latitude ?? null;
+    if (input.longitude !== undefined) data['longitude'] = input.longitude ?? null;
+  }
 
   await prisma.post.update({
     where: { id: input.id },
