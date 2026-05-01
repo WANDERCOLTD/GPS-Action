@@ -259,7 +259,13 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
             side="left"
             align="start"
             sideOffset={6}
-            collisionPadding={8}
+            // 16px safe gutter from each viewport edge — matches the
+            // tray's own `maxWidth: calc(100vw - --space-8)`. Radix
+            // Popover (Floating UI under the hood) uses this for
+            // collision detection: if `side="left"` would overflow the
+            // viewport, it flips to the right, then top/bottom, etc.
+            collisionPadding={16}
+            avoidCollisions
             onOpenAutoFocus={(e) => e.preventDefault()}
             style={{ zIndex: 220 }}
           >

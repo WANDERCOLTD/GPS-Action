@@ -43,12 +43,18 @@ export const ReactionTray: FC<ReactionTrayProps> = ({ selected, onToggle, disabl
       style={{
         display: 'flex',
         flexWrap: 'wrap',
+        justifyContent: 'center',
         gap: 'var(--space-1)',
         padding: 'var(--space-2)',
         background: 'var(--colour-surface-raised)',
         border: '1px solid var(--colour-border-subtle)',
         borderRadius: 'var(--radius-md)',
         boxShadow: 'var(--shadow-sm)',
+        // Never exceed the viewport width minus a safe gutter on each
+        // side. `--space-8` = 32px → 16px gutter L+R. Combined with
+        // `flexWrap: wrap`, this guarantees every emoji button stays on-
+        // screen at any viewport down to ~320px (iPhone SE).
+        maxWidth: 'calc(100vw - var(--space-8))',
       }}
     >
       {EMOJI_LIST.map((e) => {
@@ -75,6 +81,14 @@ export const ReactionTray: FC<ReactionTrayProps> = ({ selected, onToggle, disabl
               cursor: disabled ? 'not-allowed' : 'pointer',
               opacity: disabled ? 0.6 : 1,
               fontFamily: 'var(--font-ui)',
+              // Touch target: ≥36×36 px so wrapped rows stay tappable
+              // on small screens. The picker may wrap to 2-3 rows on a
+              // 320px viewport — each button must still be hittable.
+              minWidth: 36,
+              minHeight: 36,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             <span aria-hidden="true">{e.glyph}</span>
