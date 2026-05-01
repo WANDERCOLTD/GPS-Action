@@ -1,8 +1,9 @@
 /**
- * @build-unit BU-feed BU-composer BU-link-share BU-post-hero-demo BU-tick-or-cross BU-event-time BU-publish-router
+ * @build-unit BU-feed BU-composer BU-link-share BU-post-hero-demo BU-tick-or-cross BU-event-time BU-publish-router BU-calendar-near-me
  * @spec product/post-creation-flow.md
- * @spec architecture/decision-log.md (D045, D048, D060, D064, D069, D072, D073)
+ * @spec architecture/decision-log.md (D045, D048, D060, D064, D069, D072, D073, D076)
  * @spec docs/adrs/0001-post-event-time-fields.md
+ * @spec docs/adrs/0002-post-location-coords.md
  *
  * Post service — business logic for listing and creating posts.
  * Handles visibility filtering, soft-delete exclusion, cursor
@@ -29,6 +30,7 @@ import { prisma } from '@/server/db/client';
 import type { PostCreateInput, PostUpdateInput } from '@/shared/validation/post';
 import { isAllowedHeroImageUrl } from '@/shared/seed-images';
 import { todayStartLondonUtc } from '@/shared/format-event-time';
+import { haversineKm } from '@/shared/geo';
 import { auditLog } from '@/server/services/audit';
 import { listReactionsForPosts, type ReactionAggregate } from '@/server/services/reaction';
 import {
@@ -93,6 +95,11 @@ export interface PostListItem {
   eventAt: Date | null;
   eventEndsAt: Date | null;
   locationText: string | null;
+  /** BU-calendar-near-me / D076 / ADR-0002. Optional WGS84 coordinates +
+   * online-event flag. Both coords null ⇒ no location pin yet. */
+  latitude: number | null;
+  longitude: number | null;
+  isOnline: boolean;
   createdAt: Date;
   author: PostAuthor;
   /** Per BU-reactions / D050 — empty array when none. */
@@ -255,6 +262,9 @@ export async function listPosts(input: ListPostsInput): Promise<ListPostsResult>
     eventAt: post.eventAt,
     eventEndsAt: post.eventEndsAt,
     locationText: post.locationText,
+    latitude: post.latitude,
+    longitude: post.longitude,
+    isOnline: post.isOnline,
     createdAt: post.createdAt,
     author: {
       id: post.author.id,
@@ -643,6 +653,9 @@ export async function listUpcoming(input: ListUpcomingInput): Promise<{ posts: P
     eventAt: post.eventAt,
     eventEndsAt: post.eventEndsAt,
     locationText: post.locationText,
+    latitude: post.latitude,
+    longitude: post.longitude,
+    isOnline: post.isOnline,
     createdAt: post.createdAt,
     author: {
       id: post.author.id,
@@ -662,6 +675,156 @@ export async function listUpcoming(input: ListUpcomingInput): Promise<{ posts: P
         }
       : null,
   }));
+
+  return { posts: mapped };
+}
+
+// ── listNearby ──────────────────────────────────────────────────────────
+//
+// BU-calendar-near-me / D076 / ADR-0002. Returns event-bearing posts
+// with structured coords, ordered by Haversine distance from the
+// caller-supplied lat/lng. Mirrors `listUpcoming`'s visibility filter
+// and date-from cutoff (today 00:00 Europe/London by default).
+//
+// Filter:
+//  - `eventAt >= from` (default: today London)
+//  - `isOnline = false`
+//  - `latitude IS NOT NULL` (coords required for distance)
+//
+// Sort: ascending by Haversine distance. Distance is computed in
+// JS — no PostGIS dependency at MVP scale (we only return up to MAX_LIMIT
+// rows). The wire shape adds `distanceKm: number` to each item.
+
+export interface NearbyPost extends PostListItem {
+  /** Haversine distance from the caller's coords, kilometers. */
+  distanceKm: number;
+}
+
+interface ListNearbyInput {
+  callerId: string | null;
+  lat: number;
+  lng: number;
+  from?: Date;
+  kindSlugs?: readonly string[];
+  limit?: number;
+}
+
+export async function listNearby(input: ListNearbyInput): Promise<{ posts: NearbyPost[] }> {
+  const limit = Math.min(input.limit ?? MAX_LIMIT, MAX_LIMIT);
+  const from = input.from ?? todayStartLondonUtc();
+  const visibilityFilter: PostVisibility[] = input.callerId
+    ? ['public', 'authenticated_only']
+    : ['public'];
+
+  const kindFilter =
+    input.kindSlugs && input.kindSlugs.length > 0
+      ? { kind: { slug: { in: [...input.kindSlugs] } } }
+      : {};
+
+  const posts = await prisma.post.findMany({
+    where: {
+      deletedAt: null,
+      visibility: { in: visibilityFilter },
+      eventAt: { gte: from },
+      isOnline: false,
+      latitude: { not: null },
+      ...kindFilter,
+    },
+    orderBy: [{ eventAt: 'asc' }, { id: 'asc' }],
+    take: MAX_LIMIT,
+    include: {
+      author: {
+        select: {
+          id: true,
+          displayName: true,
+          roleGrants: {
+            where: {
+              revokedAt: null,
+              role: { in: ['admin', 'queue_manager'] },
+            },
+            select: { role: true },
+          },
+        },
+      },
+      kind: {
+        select: {
+          slug: true,
+          displayName: true,
+          isAlertEligible: true,
+          feedCommentPeekEnabled: true,
+        },
+      },
+      reviewedBy: { select: { id: true, displayName: true, avatarUrl: true } },
+    },
+  });
+
+  const postIds = posts.map((p) => p.id);
+  const peekablePostIds = posts
+    .filter((p) => p.kind?.feedCommentPeekEnabled === true)
+    .map((p) => p.id);
+  const [reactionsByPost, commentCountsByPost, topCommentsByPost] = await Promise.all([
+    listReactionsForPosts({ postIds, callerId: input.callerId }),
+    listCommentCountsForPosts({ postIds }),
+    listTopCommentsForPosts({ postIds: peekablePostIds }),
+  ]);
+
+  const mapped: NearbyPost[] = posts
+    .filter(
+      (post): post is typeof post & { latitude: number; longitude: number } =>
+        post.latitude !== null && post.longitude !== null,
+    )
+    .map((post) => ({
+      id: post.id,
+      title: post.title,
+      body: post.body,
+      visibility: post.visibility,
+      activistMailerUrl: post.activistMailerUrl,
+      linkUrl: post.linkUrl,
+      linkTitle: post.linkTitle,
+      linkDescription: post.linkDescription,
+      linkImageUrl: post.linkImageUrl,
+      linkSiteName: post.linkSiteName,
+      isActivistMailer: post.isActivistMailer,
+      kindId: post.kindId,
+      kindSlug: post.kind?.slug ?? null,
+      kindDisplayName: post.kind?.displayName ?? null,
+      isAlertEligibleKind: post.kind?.isAlertEligible ?? false,
+      urgency: post.urgency,
+      heroImageUrl: post.heroImageUrl,
+      signal: post.signal,
+      sharedToNetworkAt: post.sharedToNetworkAt,
+      groupTags: post.groupTags,
+      eventAt: post.eventAt,
+      eventEndsAt: post.eventEndsAt,
+      locationText: post.locationText,
+      latitude: post.latitude,
+      longitude: post.longitude,
+      isOnline: post.isOnline,
+      createdAt: post.createdAt,
+      author: {
+        id: post.author.id,
+        displayName: post.author.displayName,
+        roles: post.author.roleGrants.map((g) => g.role),
+      },
+      reactions: reactionsByPost.get(post.id) ?? [],
+      commentCount: commentCountsByPost.get(post.id) ?? 0,
+      feedCommentPeekEnabled: post.kind?.feedCommentPeekEnabled ?? true,
+      topComment: topCommentsByPost.get(post.id) ?? null,
+      reviewedByUserId: post.reviewedByUserId,
+      reviewedBy: post.reviewedBy
+        ? {
+            id: post.reviewedBy.id,
+            displayName: post.reviewedBy.displayName,
+            avatarUrl: post.reviewedBy.avatarUrl,
+          }
+        : null,
+      distanceKm: haversineKm(
+        { lat: input.lat, lng: input.lng },
+        { lat: post.latitude, lng: post.longitude },
+      ),
+    }))
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .slice(0, limit);
 
   return { posts: mapped };
 }

@@ -116,6 +116,10 @@ describe('listPosts', () => {
       eventAt: null,
       eventEndsAt: null,
       locationText: null,
+      // BU-calendar-near-me / D076
+      latitude: null,
+      longitude: null,
+      isOnline: false,
       createdAt: post.createdAt,
       author: {
         id: 'user-1',

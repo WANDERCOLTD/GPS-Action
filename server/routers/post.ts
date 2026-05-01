@@ -1,13 +1,14 @@
 /**
- * @build-unit BU-feed BU-composer BU-tick-or-cross BU-event-time BU-publish-router
+ * @build-unit BU-feed BU-composer BU-tick-or-cross BU-event-time BU-publish-router BU-calendar-near-me
  * @spec architecture/api-contract.md
- * @spec architecture/decision-log.md (D045, D069, D072, D073)
+ * @spec architecture/decision-log.md (D045, D069, D072, D073, D076)
  *
  * Post tRPC router. Exposes:
  *  - post.list        — feed listing
  *  - post.create      — composer mutation
  *  - post.update      — edit-page mutation (BU-event-time / D073)
  *  - post.listUpcoming — agenda query for bu-calendar-view (D073)
+ *  - post.listNearby   — distance-sorted query for bu-calendar-near-me (D076)
  *  - post.markSharedToNetwork — BU-tick-or-cross handoff confirm
  *  - publish-router lifecycle verbs (publish / sendForReview /
  *    saveDraft / discard / restore / autosaveDraft) called from
@@ -22,6 +23,7 @@ import {
   createPost,
   updatePost,
   listUpcoming,
+  listNearby,
   markSharedToNetwork,
   publishPost,
   sendPostForReview,
@@ -92,6 +94,31 @@ export const postRouter = router({
         to: input?.to,
         kindSlugs: input?.kindSlugs,
         limit: input?.limit,
+      });
+    }),
+
+  // BU-calendar-near-me / D076. Returns event-bearing posts with
+  // structured coords, sorted by Haversine distance from `lat`/`lng`.
+  // Excludes online events (`isOnline=true`) and posts with no
+  // coordinates. Visibility honoured server-side.
+  listNearby: publicProcedure
+    .input(
+      z.object({
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+        from: isoOrDate.optional(),
+        kindSlugs: z.array(z.string().min(1)).optional(),
+        limit: z.number().int().min(1).max(50).optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      return listNearby({
+        callerId: ctx.user?.id ?? null,
+        lat: input.lat,
+        lng: input.lng,
+        from: input.from,
+        kindSlugs: input.kindSlugs,
+        limit: input.limit,
       });
     }),
 
