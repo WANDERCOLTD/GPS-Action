@@ -1137,13 +1137,47 @@ async function main(): Promise<void> {
         },
       });
       postsCreated++;
-    } else if (reviewerId && existing.reviewedByUserId !== reviewerId) {
-      // D072 — backfill the reviewer link on an existing post when the
-      // seed declaration changes (idempotent for re-runs).
-      await prisma.post.update({
+    } else {
+      // BU-post-location-input. Idempotent backfill for the new
+      // location columns (`latitude`, `longitude`, `isOnline`) so a
+      // seed re-run after schema changes propagates the declared
+      // values onto pre-existing rows. The previous behaviour only
+      // ever updated `reviewedByUserId`; we now also reconcile any
+      // declared lat/lng/isOnline drift. We intentionally do NOT
+      // overwrite member-authored coords (the seed only owns posts
+      // it created; deterministic IDs guarantee that).
+      const declaredLat = post.latitude ?? null;
+      const declaredLng = post.longitude ?? null;
+      const declaredOnline = post.isOnline ?? false;
+      const declaredReviewer = reviewerId;
+
+      // Read the current row state so we can build a minimal `data`
+      // patch — running seed twice in a row with no declarative
+      // changes still issues zero updates.
+      const current = await prisma.post.findUnique({
         where: { id: postId },
-        data: { reviewedByUserId: reviewerId },
+        select: {
+          latitude: true,
+          longitude: true,
+          isOnline: true,
+          reviewedByUserId: true,
+        },
       });
+      if (current) {
+        const data: Record<string, unknown> = {};
+        if (current.latitude !== declaredLat) data['latitude'] = declaredLat;
+        if (current.longitude !== declaredLng) data['longitude'] = declaredLng;
+        if (current.isOnline !== declaredOnline) data['isOnline'] = declaredOnline;
+        if (declaredReviewer && current.reviewedByUserId !== declaredReviewer) {
+          data['reviewedByUserId'] = declaredReviewer;
+        }
+        if (Object.keys(data).length > 0) {
+          await prisma.post.update({
+            where: { id: postId },
+            data,
+          });
+        }
+      }
     }
 
     // D072 demo — when the post is reviewed, also seed the pinned
