@@ -1,9 +1,11 @@
 'use client';
 
 /**
- * @build-unit BU-comments
+ * @build-unit BU-comments BU-icon-strips
  * @spec architecture/decision-log.md (D052)
  * @spec product/scenarios.md (SCN-20)
+ * @spec docs/build/session-briefs/bu-icon-strips.md
+ * @spec docs/product/design-philosophy.md (Glyph register)
  *
  * Discussion thread on a post detail page. Filter tabs (Discussion
  * default, Activity, All — the latter two empty in MVP until system
@@ -14,15 +16,47 @@
  * from PR #47: optimistic comments live in `optimistic`, server-
  * confirmed comments live in `committed`. On success the optimistic
  * row is replaced by the real one (id swap); on failure it's removed.
+ *
+ * BU-icon-strips: filter tabs render lucide icons (Discussion =
+ * `MessageSquare`, re-using the PostCard "Comment count" glyph;
+ * Activity = `Activity`) within the existing underline-tab geometry.
+ * "All" stays as text — same outlier rule as Feed/All. Each tab is
+ * wrapped in IconChipTooltip so the human-readable name is revealed
+ * on hover (300ms) / long-press (600ms).
  */
 
 import { useState } from 'react';
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
+import { Activity, MessageSquare } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { CommentItem, type CommentForView } from '@/components/CommentItem';
 import { CommentComposer } from '@/components/CommentComposer';
+import { IconChipTooltip } from '@/components/IconChipTooltip';
 import type { FeedReactionEmoji } from '@/components/PostCard';
 
 type Filter = 'discussion' | 'activity' | 'all';
+
+const TAB_ICONS: Partial<Record<Filter, LucideIcon>> = {
+  discussion: MessageSquare,
+  activity: Activity,
+};
+
+const TAB_LABELS: Record<Filter, string> = {
+  discussion: 'Discussion',
+  activity: 'Activity',
+  all: 'All',
+};
+
+const TAB_ICON_SIZE = 16;
+const TAB_ICON_STROKE = 2;
+
+function renderTabContent(filter: Filter, label: string): ReactNode {
+  const Icon = TAB_ICONS[filter];
+  if (Icon) {
+    return <Icon size={TAB_ICON_SIZE} strokeWidth={TAB_ICON_STROKE} aria-hidden="true" />;
+  }
+  return label;
+}
 
 interface CommentListProps {
   postId: string;
@@ -90,31 +124,38 @@ export const CommentList: FC<CommentListProps> = ({
           borderBottom: '1px solid var(--colour-border-subtle)',
         }}
       >
-        {(['discussion', 'activity', 'all'] as const).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            role="tab"
-            aria-selected={filter === tab}
-            onClick={() => setFilter(tab)}
-            data-testid="comment-filter-tab"
-            data-filter-name={tab}
-            style={{
-              padding: 'var(--space-2) var(--space-3)',
-              background: 'transparent',
-              border: 'none',
-              borderBottom:
-                filter === tab ? '2px solid var(--colour-text-link)' : '2px solid transparent',
-              color: filter === tab ? 'var(--colour-text-primary)' : 'var(--colour-text-secondary)',
-              fontFamily: 'var(--font-ui)',
-              fontSize: 'var(--text-sm)',
-              cursor: 'pointer',
-              textTransform: 'capitalize',
-            }}
-          >
-            {tab}
-          </button>
-        ))}
+        {(['discussion', 'activity', 'all'] as const).map((tab) => {
+          const label = TAB_LABELS[tab];
+          return (
+            <IconChipTooltip key={tab} label={label}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={filter === tab}
+                aria-label={label}
+                onClick={() => setFilter(tab)}
+                data-testid="comment-filter-tab"
+                data-filter-name={tab}
+                style={{
+                  padding: 'var(--space-2) var(--space-3)',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom:
+                    filter === tab ? '2px solid var(--colour-text-link)' : '2px solid transparent',
+                  color:
+                    filter === tab ? 'var(--colour-text-primary)' : 'var(--colour-text-secondary)',
+                  fontFamily: 'var(--font-ui)',
+                  fontSize: 'var(--text-sm)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                }}
+              >
+                {renderTabContent(tab, label)}
+              </button>
+            </IconChipTooltip>
+          );
+        })}
       </div>
 
       {/* Thread body — BU-one-click-polish removed the "No replies yet"
