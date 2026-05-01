@@ -91,6 +91,7 @@ import {
 import { DraftSavedIndicator } from './DraftSavedIndicator';
 import { useAutosaveDraft } from '@/shared/autosave/use-autosave-draft';
 import { isActivistMailerDomain } from '@/shared/validation/am-domain';
+import { suggestTitleFromBody } from '@/shared/suggest-title-from-body';
 
 export interface KindMapEntry {
   id: string;
@@ -792,6 +793,18 @@ export function PostForm({
           placeholder={meta.bodyPlaceholder || undefined}
           value={body}
           onChange={(e) => setBody(e.target.value)}
+          onBlur={() => {
+            // BU-one-click-polish — when the title is empty and the
+            // member hasn't manually typed in it, fill it from the
+            // body's first sentence. No prompt, no modal: same
+            // behaviour as the link-paste auto-title.
+            if (!titleEdited && title.length === 0) {
+              const suggestion = suggestTitleFromBody(body);
+              if (suggestion.length > 0) {
+                setTitle(suggestion);
+              }
+            }
+          }}
           className="gps-input"
           style={{
             width: '100%',

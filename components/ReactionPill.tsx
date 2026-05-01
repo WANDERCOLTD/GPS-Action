@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * @build-unit BU-reactions BU-feed-card-affordances
+ * @build-unit BU-reactions BU-feed-card-affordances BU-one-click-polish
  * @spec architecture/decision-log.md (D050, D052)
  * @spec product/scenarios.md (SCN-3, SCN-20)
  * @spec product/design-philosophy.md
@@ -21,6 +21,11 @@
  * toggles the member's reaction for that emoji directly without
  * going through the picker. A `+M` expander appears when more than
  * three emojis have reactions; tapping reveals the rest inline.
+ *
+ * BU-one-click-polish — empty state shows a 4-emoji quick-rail
+ * (👍 ❤️ ✅ 💪) instead of just the 🙂+ button. Tapping any of them
+ * fires the standard add path; once the post has any reactions, the
+ * rail collapses back into the existing populated layout.
  *
  * Built on `@radix-ui/react-popover` for the tray. Radix gives us
  * positioning across viewport widths (Floating UI under the hood,
@@ -136,6 +141,67 @@ export const ReactionPill: FC<ReactionPillProps> = ({ reactions, onAdd, onRemove
           </button>
         </Popover.Trigger>
 
+        {!hasAny && canReact && (
+          <div data-testid="reaction-pill-quickrail" style={stackStyle}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggle('thumbsup');
+              }}
+              aria-label="React: Acknowledged"
+              title="Acknowledged"
+              data-testid="post-reaction-quickrail-thumbsup"
+              data-emoji="thumbsup"
+              style={quickRailButtonStyle}
+            >
+              <span aria-hidden="true">{REACTION_GLYPH['thumbsup']}</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggle('heart');
+              }}
+              aria-label="React: Solidarity"
+              title="Solidarity"
+              data-testid="post-reaction-quickrail-heart"
+              data-emoji="heart"
+              style={quickRailButtonStyle}
+            >
+              <span aria-hidden="true">{REACTION_GLYPH['heart']}</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggle('target');
+              }}
+              aria-label="React: Agreed"
+              title="Agreed"
+              data-testid="post-reaction-quickrail-target"
+              data-emoji="target"
+              style={quickRailButtonStyle}
+            >
+              <span aria-hidden="true">{REACTION_GLYPH['target']}</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggle('strong');
+              }}
+              aria-label="React: Strength"
+              title="Strength"
+              data-testid="post-reaction-quickrail-strong"
+              data-emoji="strong"
+              style={quickRailButtonStyle}
+            >
+              <span aria-hidden="true">{REACTION_GLYPH['strong']}</span>
+            </button>
+          </div>
+        )}
+
         {hasAny && (
           <div data-testid="reaction-pill-stack" style={stackStyle}>
             {visible.map((r) => (
@@ -232,6 +298,24 @@ const stackStyle: CSSProperties = {
   flexDirection: 'column',
   alignItems: 'center',
   gap: 2,
+};
+
+// BU-one-click-polish — empty-state quick-rail buttons. Same vertical
+// dimensions as `emojiRowStyle` so the rail aligns with the populated
+// stack visually (no layout shift when the first reaction lands).
+const quickRailButtonStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '1px 6px',
+  borderRadius: 'var(--radius-pill)',
+  background: 'transparent',
+  border: '1px solid transparent',
+  cursor: 'pointer',
+  fontSize: '14px',
+  lineHeight: 1.1,
+  color: 'var(--colour-text-secondary)',
+  minHeight: 22,
 };
 
 function emojiRowStyle(mine: boolean): CSSProperties {

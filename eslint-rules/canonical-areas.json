@@ -21,6 +21,7 @@
     "settings",
     "intent",
     "capabilities",
-    "calendar"
+    "calendar",
+    "dev"
   ]
 }

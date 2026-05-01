@@ -1226,6 +1226,58 @@ async function main(): Promise<void> {
     console.warn(`  ✓ Comments already seeded (${existingComments} present); skipping`);
   }
 
+  // ── Demo warmth on the tick-bbc-correction post ─────────────────────
+  // Idempotent via deterministic seedUuid ids — the bulk seed above is
+  // one-shot (skips entirely once any comment exists), so on a re-seeded
+  // dev DB those warm comments would never land. This block is fire-
+  // and-forget per id: each comment is created if absent.
+  //
+  // Counterpart: `cross-fake-petition` deliberately gets ZERO comments so
+  // the empty-state demo path keeps working.
+  const tickPostId = seedUuid('post', 'tick-bbc-correction');
+  const tickPostRow = await prisma.post.findUnique({
+    where: { id: tickPostId },
+    select: { id: true, createdAt: true },
+  });
+  if (tickPostRow) {
+    const tickWarmComments: { authorKey: string; body: string }[] = [
+      {
+        authorKey: 'cary',
+        body: "Thanks for spotting the correction. I'll boost on Twitter and our Bluesky. Worth confirming the original framing has been updated everywhere — sometimes only the lead article gets the update.",
+      },
+      {
+        authorKey: 'eddie',
+        body: 'Shared in the Manchester WhatsApp group. People have been asking about this all week.',
+      },
+      {
+        authorKey: 'ingrid',
+        body: 'Boosted. The correction wording is solid — credit to whoever drafted the complaint that landed it.',
+      },
+    ];
+    let warmCreated = 0;
+    for (let i = 0; i < tickWarmComments.length; i += 1) {
+      const tw = tickWarmComments[i]!;
+      const commentId = seedUuid('comment', `tick-bbc-correction:warm-${i + 1}`);
+      const exists = await prisma.comment.findUnique({ where: { id: commentId } });
+      if (exists) continue;
+      const authorId = userIds[tw.authorKey];
+      if (!authorId) continue;
+      // Stagger by 5 minutes so the order is stable + chronological.
+      const createdAt = new Date(tickPostRow.createdAt.getTime() + (i + 1) * 5 * 60 * 1000);
+      await prisma.comment.create({
+        data: {
+          id: commentId,
+          postId: tickPostId,
+          authorId,
+          body: tw.body,
+          createdAt,
+        },
+      });
+      warmCreated += 1;
+    }
+    console.warn(`  ✓ tick-bbc-correction warm comments (${warmCreated} new)`);
+  }
+
   console.warn('✓ Seed complete.');
 }
 

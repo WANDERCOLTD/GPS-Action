@@ -24,6 +24,8 @@ import { LoggedInAs } from '@/components/auth/LoggedInAs';
 import { AppNav } from '@/components/AppNav';
 import { HeaderLogo } from '@/components/HeaderLogo';
 import { HeaderRefreshButton } from '@/components/HeaderRefreshButton';
+import { DevBannerToggle } from '@/components/DevBannerToggle';
+import { DevBannerWrapper } from '@/components/DevBannerWrapper';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { IntentFab } from '@/components/IntentFab';
 import { VersionBadge } from '@/components/VersionBadge';
@@ -108,7 +110,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               borderBottom: '1px solid var(--colour-border-subtle)',
             }}
           >
-            <LoggedInAs user={ctx.user} />
+            <DevBannerWrapper>
+              <LoggedInAs user={ctx.user} />
+            </DevBannerWrapper>
             {ctx.user && (
               <div
                 style={{
@@ -123,6 +127,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   unreadNotificationCount={unreadNotificationCount}
                   calendarEnabled={calendarEnabled}
                 />
+                <DevBannerToggle />
                 <HeaderRefreshButton />
               </div>
             )}

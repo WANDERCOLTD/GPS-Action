@@ -67,6 +67,7 @@ The first segment must come from this approved list:
 | `intent`       | FAB intent picker — single FAB + tile grid (BU-fab-intent-picker — D044, D062)                                  |
 | `capabilities` | SRS capabilities mockup at `/capabilities` — static showcase tiles (`app/capabilities/`)                        |
 | `calendar`     | Calendar tab — agenda view, month grid, day panel (BU-calendar-view — D073)                                     |
+| `dev`          | Dev-only affordances on the demo path — banner toggle, dev tools (BU-one-click-polish)                          |
 
 To add a new area:
 

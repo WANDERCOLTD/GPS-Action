@@ -34,6 +34,14 @@ interface CommentComposerProps {
   onCommit: (optimistic: CommentForView, realId: string) => void;
   /** Called when the server fails; lets the parent roll back. */
   onRollback: (optimisticId: string) => void;
+  /**
+   * BU-one-click-polish — when true, the composer renders inline as an
+   * always-focusable input (no "Add a comment…" expand button). Used
+   * on the empty-state path so the keyboard opens on the first tap
+   * without an intermediate affordance. Submit + cancel only appear
+   * once the member has typed something.
+   */
+  inlineEmptyState?: boolean;
 }
 
 export const CommentComposer: FC<CommentComposerProps> = ({
@@ -42,8 +50,9 @@ export const CommentComposer: FC<CommentComposerProps> = ({
   onOptimisticInsert,
   onCommit,
   onRollback,
+  inlineEmptyState = false,
 }) => {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(inlineEmptyState);
   const [body, setBody] = useState('');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -113,6 +122,20 @@ export const CommentComposer: FC<CommentComposerProps> = ({
     );
   }
 
+  // BU-one-click-polish — when in the empty-state inline mode, suppress
+  // the submit / cancel cluster until the member has typed something.
+  // Removes the visual chrome that made the empty state feel heavy.
+  const showActions = !inlineEmptyState || trimmed.length > 0;
+  // Empty-state inputs render at row=1 so the surface looks like a
+  // single-line input until the keyboard opens; auto-grows as the
+  // member types via `gps-input` styling. Standard composers stay at 4.
+  const inputRows = inlineEmptyState && trimmed.length === 0 ? 1 : 4;
+  // The always-rendered empty-state input gets its own testid so test
+  // code can target it without disturbing the existing populated-thread
+  // composer behaviour. testids are static string literals at the JSX
+  // site (per F14), so the two paths render distinct textareas below.
+  const inputPlaceholder = inlineEmptyState ? 'Add a comment…' : 'Share a reply…';
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -124,23 +147,42 @@ export const CommentComposer: FC<CommentComposerProps> = ({
         gap: 'var(--space-2)',
       }}
     >
-      <textarea
-        autoFocus
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        placeholder="Share a reply…"
-        data-testid="comment-composer-input"
-        rows={4}
-        className="gps-input"
-        style={{
-          width: '100%',
-          resize: 'vertical',
-          fontFamily: 'var(--font-ui)',
-          fontSize: 'var(--text-sm)',
-          padding: 'var(--space-3)',
-          borderColor: overCap ? 'var(--colour-danger)' : undefined,
-        }}
-      />
+      {inlineEmptyState ? (
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder={inputPlaceholder}
+          data-testid="post-comment-empty-input"
+          rows={inputRows}
+          className="gps-input"
+          style={{
+            width: '100%',
+            resize: 'vertical',
+            fontFamily: 'var(--font-ui)',
+            fontSize: 'var(--text-sm)',
+            padding: 'var(--space-3)',
+            borderColor: overCap ? 'var(--colour-danger)' : undefined,
+          }}
+        />
+      ) : (
+        <textarea
+          autoFocus
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder={inputPlaceholder}
+          data-testid="comment-composer-input"
+          rows={inputRows}
+          className="gps-input"
+          style={{
+            width: '100%',
+            resize: 'vertical',
+            fontFamily: 'var(--font-ui)',
+            fontSize: 'var(--text-sm)',
+            padding: 'var(--space-3)',
+            borderColor: overCap ? 'var(--colour-danger)' : undefined,
+          }}
+        />
+      )}
       <div
         style={{
           display: 'flex',
@@ -161,29 +203,33 @@ export const CommentComposer: FC<CommentComposerProps> = ({
             {error}
           </span>
         )}
-        <span style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--space-2)' }}>
-          <button
-            type="button"
-            onClick={() => {
-              setBody('');
-              setExpanded(false);
-              setError(null);
-            }}
-            disabled={isPending}
-            data-testid="comment-composer-cancel"
-            className="gps-btn gps-btn--secondary gps-btn--sm"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            data-testid="comment-composer-submit"
-            className="gps-btn gps-btn--primary gps-btn--sm"
-          >
-            {isPending ? 'Posting…' : 'Post'}
-          </button>
-        </span>
+        {showActions && (
+          <span style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--space-2)' }}>
+            {!inlineEmptyState && (
+              <button
+                type="button"
+                onClick={() => {
+                  setBody('');
+                  setExpanded(false);
+                  setError(null);
+                }}
+                disabled={isPending}
+                data-testid="comment-composer-cancel"
+                className="gps-btn gps-btn--secondary gps-btn--sm"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              data-testid="comment-composer-submit"
+              className="gps-btn gps-btn--primary gps-btn--sm"
+            >
+              {isPending ? 'Posting…' : 'Post'}
+            </button>
+          </span>
+        )}
       </div>
     </form>
   );
