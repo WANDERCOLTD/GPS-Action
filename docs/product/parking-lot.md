@@ -1876,3 +1876,74 @@ this BU lands.
 - Edit page: same flow when location_text changes.
 
 **Status:** PARKED — pre-build decisions still open (Nominatim ToS / opt-in default / coordinate precision rounding for privacy).
+
+---
+
+## Feed read/unread state
+
+**Surfaced:** 2026-05-01 in conversation. **Status:** PARKED — capturing
+the design space; no decision yet.
+
+### What exists today
+
+Notifications (`Notification` table) are **Request-scoped** only —
+they fire on Request claim/resolve/system-comment events and feed the
+red-dot badge next to the **Requests** tab in `AppNav`. The schema
+comment explicitly says "Future types may reference posts; currently
+only Request-related notifications."
+
+**Posts have no read/unread tracking.** No `seenAt`, no
+`lastReadAt`, no `viewedBy` join, no per-post markers in the feed.
+
+`User.lastSeenAt` exists but is "is this user active?" presence — not
+"when did they last look at the feed?". Different semantics.
+
+### Why parked
+
+Anxiety amplification is a real risk (per the design philosophy: "no
+endless-scroll urgency, permission to close"). Naïve implementations
+— red-dot count badges on every tab — directly conflict with that
+principle. The right pattern needs care.
+
+### Design space
+
+| Pattern                           | What                                                                                                                       | Verdict                                                                                                              |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **A. "New since last visit"**     | `User.lastFeedVisitAt` column. Posts with `createdAt > lastFeedVisitAt` get a soft visual cue (border accent, "New" pill). | Cheap, calm. Coarse — once you've opened the feed, all "news" is read regardless of which posts you actually opened. |
+| **B. Per-post read receipts**     | Join table `PostView (userId, postId, viewedAt)`. Mark read on detail open or scroll-into-view.                            | Precise. More writes (every view = a row); join grows with users × posts. Privacy considerations.                    |
+| **C. Per-tab unread count badge** | Number on `Feed` / `Calendar` icons.                                                                                       | **Anxiety-inducing.** Conflicts with the design philosophy. Reject.                                                  |
+| **D. Manual "Catch up" surface**  | "12 new since last visit" link at top of feed; clicking jumps to the divider between new and already-seen. Dismissable.    | Calm pull, not push. Slack/Linear-ish. Pairs naturally with A.                                                       |
+| **E. Notification expansion**     | Add `NotificationType.post_*` so posts can fire notifications (mention, reply, reaction-on-yours).                         | Heavier. Better suited to "events about _your_ content" than to feed read state. Likely a separate BU.               |
+
+### Recommended shape (when picked up)
+
+**A + D combined**, no count badges anywhere.
+
+1. `User.lastFeedVisitAt: DateTime?` (with ADR).
+2. Server stamps it on every `GET /feed`.
+3. Feed UI: posts since `lastFeedVisitAt` get a soft accent (left-border or "New" pill on byline). No count.
+4. Optional "Catch up" affordance at top of feed when >5 new — dismissable. Scrolls to a divider line.
+5. Skip B (per-post receipts) — privacy + storage cost not yet warranted.
+6. Skip C (badge counts) — design-philosophy violation.
+7. E handled separately when reactions/comments-on-yours notifications are scoped.
+
+### Effort estimate
+
+`bu-feed-new-marker` would be ~3-4 hrs:
+
+| Component                           | Time   |
+| ----------------------------------- | ------ |
+| Schema + ADR                        | 30 min |
+| Server: stamp on /feed GET          | 15 min |
+| Feed UI: `isNew` flag + soft accent | 1 hr   |
+| Optional "Catch up" link            | 1 hr   |
+| Tests                               | 1 hr   |
+
+### Open questions before promoting to a brief
+
+1. Should `lastFeedVisitAt` update on **every** feed visit, or only when the user has actually scrolled to the bottom (signalling "I've seen what's there")?
+2. Filter chip interaction — does opening `/feed?filter=urgent` count as visiting the feed for read-state purposes, or only `/feed` (no filter)?
+3. Does opening a post detail page count as "reading" that post specifically (in addition to the coarse feed-visit signal)? If yes, that's a hybrid of A + B.
+4. Should the "New" marker stick around for some grace period (e.g., 24 h after first sight) so a quick scan doesn't immediately mark everything read?
+
+**Promote when:** members start asking "where's the bit I haven't seen yet?", or feed volume grows past ~30 posts/week per group.
