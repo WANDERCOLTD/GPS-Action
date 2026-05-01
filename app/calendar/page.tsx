@@ -1,15 +1,17 @@
 /**
  * @build-unit BU-calendar-view
  * @build-unit BU-month-nav
- * @spec architecture/decision-log.md (D036, D073)
+ * @build-unit BU-calendar-near-me
+ * @spec architecture/decision-log.md (D036, D073, D076)
  * @spec docs/build/session-briefs/bu-calendar-view.md
  * @spec docs/build/session-briefs/bu-month-nav.md
+ * @spec docs/build/session-briefs/bu-calendar-near-me.md
  *
- * `/calendar` route — agenda + month surfaces for time-bearing posts.
- * Server component. Reads `?view=agenda|month` from the URL
- * (default: `agenda`) and renders the matching subview. Gated by the
- * `calendar_enabled` feature flag — when off, the route redirects to
- * `/feed` (the AppNav tab is also hidden).
+ * `/calendar` route — agenda + month + near-me surfaces for
+ * time-bearing posts. Server component. Reads `?view=agenda|month|near`
+ * from the URL (default: `agenda`) and renders the matching subview.
+ * Gated by the `calendar_enabled` feature flag — when off, the route
+ * redirects to `/feed` (the AppNav tab is also hidden).
  *
  * Visibility rules: anonymous callers see public events only;
  * authenticated callers see public + authenticated_only. Same rules
@@ -37,14 +39,19 @@ import { EVENT_TIMEZONE, todayStartLondonUtc } from '@/shared/format-event-time'
 import { CalendarToggle } from './CalendarToggle';
 import { AgendaView, type AgendaPost } from './AgendaView';
 import { MonthView, type MonthPost } from './MonthView';
-import { parseCalendarView, type CalendarView } from './view';
+import { NearMeView, type NearMeCandidate } from './NearMeView';
+import { parseCalendarView, parseNearSort, type CalendarView } from './view';
 
 export const metadata = {
   title: 'Calendar — GPS Action',
 };
 
 interface CalendarPageProps {
-  searchParams: Promise<{ view?: string | string[]; month?: string | string[] }>;
+  searchParams: Promise<{
+    view?: string | string[];
+    month?: string | string[];
+    sort?: string | string[];
+  }>;
 }
 
 /** Wire-shape mapper: tRPC `listUpcoming` returns Date instances; the
@@ -81,6 +88,44 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
 
   const ctx = await createTRPCContext();
   const caller = createCaller(ctx);
+
+  // BU-calendar-near-me / D076 — third tab. Server fetches the same
+  // listUpcoming candidate set the agenda uses, then narrows to the
+  // in-person rows with structured coords. Distance ordering happens
+  // client-side once the user supplies their location (geolocation
+  // API or postcode lookup) — `listNearby` is reserved for callers
+  // that already have coords.
+  if (view === 'near') {
+    const nearSort = parseNearSort(params.sort);
+    const result = await caller.post.listUpcoming({
+      from: todayStartLondonUtc(now).toISOString(),
+      limit: 50,
+    });
+    const candidates: NearMeCandidate[] = result.posts
+      .filter(
+        (p): p is typeof p & { latitude: number; longitude: number } =>
+          !p.isOnline && p.latitude !== null && p.longitude !== null && p.eventAt !== null,
+      )
+      .map((p) => ({
+        id: p.id,
+        title: p.title,
+        body: p.body,
+        kindSlug: p.kindSlug,
+        kindDisplayName: p.kindDisplayName,
+        urgency: p.urgency,
+        eventAt: (p.eventAt as Date).toISOString(),
+        eventEndsAt: p.eventEndsAt ? p.eventEndsAt.toISOString() : null,
+        locationText: p.locationText,
+        latitude: p.latitude,
+        longitude: p.longitude,
+      }));
+    return (
+      <main style={mainStyle}>
+        <CalendarToggle active="near" />
+        <NearMeView posts={candidates} initialSort={nearSort} />
+      </main>
+    );
+  }
 
   if (view === 'month') {
     // Resolve the month anchor:
