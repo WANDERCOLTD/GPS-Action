@@ -58,6 +58,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | Brief | Status | PR |
 |---|---|---|
 | **bu-composer** — BU-composer | ✅ Merged | — |
+| **bu-icon-strips** — bu-icon-strips | ✅ Merged | — |
 | **f15-require-design-tokens** — F15 | ✅ Merged | — |
 | **erd-slice-1** — ERD Slice 1 | ✅ Merged | #1 |
 | **f06-eslint-rules** — F06 | ✅ Merged | #2 |
