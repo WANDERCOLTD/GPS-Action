@@ -3,10 +3,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 describe('isDemoMode', () => {
   const originalDemoMode = process.env.DEMO_MODE;
   const originalVercelEnv = process.env.VERCEL_ENV;
+  const originalDemoOnProd = process.env.DEMO_MODE_ON_PRODUCTION;
 
   beforeEach(() => {
     delete process.env.DEMO_MODE;
     delete process.env.VERCEL_ENV;
+    delete process.env.DEMO_MODE_ON_PRODUCTION;
     vi.resetModules();
   });
 
@@ -15,6 +17,8 @@ describe('isDemoMode', () => {
     else delete process.env.DEMO_MODE;
     if (originalVercelEnv !== undefined) process.env.VERCEL_ENV = originalVercelEnv;
     else delete process.env.VERCEL_ENV;
+    if (originalDemoOnProd !== undefined) process.env.DEMO_MODE_ON_PRODUCTION = originalDemoOnProd;
+    else delete process.env.DEMO_MODE_ON_PRODUCTION;
   });
 
   async function load(): Promise<typeof import('@/shared/demo-mode')> {
@@ -65,5 +69,21 @@ describe('isDemoMode', () => {
   it('does not throw when DEMO_MODE is unset on a real-prod Vercel project', async () => {
     process.env.VERCEL_ENV = 'production';
     await expect(load()).resolves.toBeDefined();
+  });
+
+  it('does not throw when DEMO_MODE=1 + VERCEL_ENV=production + DEMO_MODE_ON_PRODUCTION=1', async () => {
+    process.env.DEMO_MODE = '1';
+    process.env.VERCEL_ENV = 'production';
+    process.env.DEMO_MODE_ON_PRODUCTION = '1';
+    await expect(load()).resolves.toBeDefined();
+    const { isDemoMode } = await load();
+    expect(isDemoMode()).toBe(true);
+  });
+
+  it('still throws when DEMO_MODE_ON_PRODUCTION is set to a falsy value', async () => {
+    process.env.DEMO_MODE = '1';
+    process.env.VERCEL_ENV = 'production';
+    process.env.DEMO_MODE_ON_PRODUCTION = '0';
+    await expect(load()).rejects.toThrow(/DEMO_MODE=1.*VERCEL_ENV=production/);
   });
 });
