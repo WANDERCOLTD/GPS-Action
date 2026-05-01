@@ -170,6 +170,14 @@ export const postCreateSchema = z
     eventAt: eventDateTimeSchema,
     eventEndsAt: eventDateTimeSchema,
     locationText: z.string().trim().max(500).optional(),
+    // BU-post-location-input. Optional structured coords sourced from
+    // postcode geocoding at the composer/edit boundary. Latitude must
+    // be in [-90, 90]; longitude in [-180, 180]. `null` clears, an
+    // explicit `true` for `isOnline` forces both coords to null
+    // server-side (defence in depth — the form action also clears).
+    latitude: z.number().min(-90).max(90).nullable().optional(),
+    longitude: z.number().min(-180).max(180).nullable().optional(),
+    isOnline: z.boolean().optional(),
   })
   .superRefine((val, ctx) => {
     // BU-event-time / D073. Cross-field invariant: when both timestamps
@@ -220,6 +228,12 @@ export const postUpdateSchema = z
     eventAt: eventDateTimeSchema,
     eventEndsAt: eventDateTimeSchema,
     locationText: z.string().trim().max(500).optional(),
+    // BU-post-location-input. Same shape as create — `null` clears,
+    // an explicit `true` for `isOnline` forces both coords to null
+    // server-side (defence in depth).
+    latitude: z.number().min(-90).max(90).nullable().optional(),
+    longitude: z.number().min(-180).max(180).nullable().optional(),
+    isOnline: z.boolean().optional(),
   })
   .superRefine((val, ctx) => {
     if (val.eventAt && val.eventEndsAt && val.eventEndsAt < val.eventAt) {
