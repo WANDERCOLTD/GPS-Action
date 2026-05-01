@@ -204,20 +204,64 @@ BU ships a new glyph, update this register in the same commit.
 
 ### In-content glyphs (shipped)
 
-| Concept              | Glyph                     | Component(s)                                                              |
-| -------------------- | ------------------------- | ------------------------------------------------------------------------- |
-| Comment count        | `message-square`          | `PostCard`                                                                |
-| Event time           | `calendar`                | `PostCard`                                                                |
-| Location             | `map-pin`                 | `PostCard`                                                                |
-| External link        | `external-link`           | `LinkPreviewCard`                                                         |
-| In-app refresh       | `refresh-cw` / `loader-2` | `HeaderRefreshButton`                                                     |
-| Modal/sheet dismiss  | `x`                       | `IntentFabSheet`, `PostPublishModal`                                      |
-| FAB primary          | `plus`                    | `IntentFab`                                                               |
-| Clipboard paste      | `clipboard-paste`         | `IntentFab`, `IntentFabSheet`                                             |
-| Send / publish       | `send`                    | `PostPublishModal`                                                        |
-| Save as draft / edit | `file-edit`               | `PostPublishModal`                                                        |
-| Reviewer queue inbox | `inbox`                   | `PostPublishModal` (same glyph as Requests tab — both = "incoming queue") |
-| Dev banner toggle    | `eye` / `eye-off`         | `DevBannerToggle`                                                         |
+| Concept                     | Glyph                     | Component(s)                                                              |
+| --------------------------- | ------------------------- | ------------------------------------------------------------------------- |
+| Comment count               | `message-square`          | `PostCard`, `CommentList` (Discussion tab — BU-icon-strips re-use)        |
+| Event time                  | `calendar`                | `PostCard`, `NearMeView` (Date sort — BU-icon-strips re-use)              |
+| Event kind / Events filter  | `calendar-days`           | `KindPickerSheet`, `FeedFilterChips` (Events chip — BU-icon-strips)       |
+| Location                    | `map-pin`                 | `PostCard`                                                                |
+| External link               | `external-link`           | `LinkPreviewCard`                                                         |
+| In-app refresh              | `refresh-cw` / `loader-2` | `HeaderRefreshButton`                                                     |
+| Modal/sheet dismiss         | `x`                       | `IntentFabSheet`, `PostPublishModal`                                      |
+| FAB primary                 | `plus`                    | `IntentFab`                                                               |
+| Clipboard paste             | `clipboard-paste`         | `IntentFab`, `IntentFabSheet`                                             |
+| Send / publish              | `send`                    | `PostPublishModal`                                                        |
+| Save as draft / edit        | `file-edit`               | `PostPublishModal`                                                        |
+| Reviewer queue inbox        | `inbox`                   | `PostPublishModal` (same glyph as Requests tab — both = "incoming queue") |
+| Dev banner toggle           | `eye` / `eye-off`         | `DevBannerToggle`                                                         |
+| Filter chip — Urgent        | `zap`                     | `FeedFilterChips` (BU-icon-strips)                                        |
+| Filter chip — Happening now | `radio`                   | `FeedFilterChips` (BU-icon-strips)                                        |
+| Filter chip — Meetings      | `users`                   | `FeedFilterChips` (BU-icon-strips)                                        |
+| Comments tab — Activity     | `activity`                | `CommentList` (BU-icon-strips)                                            |
+| Sort affordance — Distance  | `ruler-dimension-line`    | `NearMeView` (BU-icon-strips — map-scale-bar look)                        |
+
+### Person vs group (the `user` / `users` carve)
+
+Lucide ships both `user` (single silhouette) and `users` (group). Per
+Rule 2 these are kept as distinct concepts and **must not be swapped**:
+
+| Concept                          | Glyph   |
+| -------------------------------- | ------- |
+| Person — singular, an individual | `user`  |
+| Group — plural, multiple people  | `users` |
+
+### Exceptions (deliberate non-lucide glyphs)
+
+A handful of chip slots use non-lucide visuals on purpose. New
+exceptions require a one-line rationale below.
+
+| Concept                       | Glyph                                          | Why exception                                                                                               |
+| ----------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Filter chip — Activist Mailer | brand `<img>` (`/brands/activist-mailer.webp`) | Partner-brand identity (per share-taxonomy). `FeedFilterChips`.                                             |
+| Filter chip — Tick-or-cross   | `✅❌` emoji                                   | The chip's identity _is_ the literal yes/no pair; no single lucide line icon mirrors it. `FeedFilterChips`. |
+
+### Reservations
+
+Glyphs reserved for a specific concept and **not to be used elsewhere**,
+even if conceptually adjacent.
+
+| Glyph       | Reserved for                                                    | Notes                                                                   |
+| ----------- | --------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `megaphone` | Activist Mailer (lucide fallback if the brand glyph ever swaps) | Don't burn it on rallies / events / amplification UI on other surfaces. |
+
+### Primitives
+
+Cross-cutting components that wrap glyphs but don't introduce one of
+their own.
+
+| Primitive         | Purpose                                                                                                                                | Component             |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `IconChipTooltip` | Long-press / hover label for icon-only chips and nav links. Adopted by AppNav, FeedFilterChips, CommentList, NearMeView (sort toggle). | `IconChipTooltip.tsx` |
 
 ### Locked, not yet shipped (BU-search-surface)
 

@@ -26,6 +26,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 const { AppNav } = await import('@/components/AppNav');
+const { IconChipTooltip } = await import('@/components/IconChipTooltip');
 
 type AnyElement = ReactElement<Record<string, unknown>>;
 
@@ -220,6 +221,37 @@ describe('AppNav', () => {
     const tree = AppNav({ calendarEnabled: true }) as AnyElement;
     expect(isActive(findByTestId(tree, 'nav-calendar-link'))).toBe(true);
     expect(isActive(findByTestId(tree, 'nav-feed-link'))).toBe(false);
+  });
+
+  // ── BU-icon-strips: tooltip primitive wraps every nav link ──────────────
+
+  it.each([
+    ['nav-feed-link', 'Feed'],
+    ['nav-requests-link', 'Requests'],
+    ['nav-data-link', 'Data'],
+    ['nav-settings-link', 'Settings'],
+  ])('%s is wrapped in IconChipTooltip with label %s', (testId, expectedLabel) => {
+    usePathnameMock.mockReturnValue('/feed');
+    const tree = AppNav({}) as AnyElement;
+    const tooltips = flatChildren(tree).filter((e) => e.type === IconChipTooltip);
+    const wrapping = tooltips.find((t) => {
+      const child = t.props.children as AnyElement | undefined;
+      return child?.props?.['data-testid'] === testId;
+    });
+    expect(wrapping).toBeDefined();
+    expect(wrapping?.props.label).toBe(expectedLabel);
+  });
+
+  it('Calendar tab is wrapped in IconChipTooltip when calendarEnabled', () => {
+    usePathnameMock.mockReturnValue('/feed');
+    const tree = AppNav({ calendarEnabled: true }) as AnyElement;
+    const tooltips = flatChildren(tree).filter((e) => e.type === IconChipTooltip);
+    const wrapping = tooltips.find((t) => {
+      const child = t.props.children as AnyElement | undefined;
+      return child?.props?.['data-testid'] === 'nav-calendar-link';
+    });
+    expect(wrapping).toBeDefined();
+    expect(wrapping?.props.label).toBe('Calendar');
   });
 
   it('marks the Calendar tab active on a /calendar/* sub-path', () => {

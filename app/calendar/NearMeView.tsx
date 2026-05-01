@@ -1,10 +1,12 @@
 'use client';
 
 /**
- * @build-unit BU-calendar-near-me
+ * @build-unit BU-calendar-near-me BU-icon-strips
  * @spec architecture/decision-log.md (D076)
  * @spec docs/adrs/0002-post-location-coords.md
  * @spec docs/build/session-briefs/bu-calendar-near-me.md
+ * @spec docs/build/session-briefs/bu-icon-strips.md
+ * @spec docs/product/design-philosophy.md (Glyph register)
  *
  * Near-me view — lists in-person event-bearing posts ordered by
  * Haversine distance from the caller's location. Caller location is
@@ -21,7 +23,11 @@
  * Sort toggle (Date / Distance) is URL-driven via `?sort=` so the back
  * button restores it. Default is `distance` ascending. Sort + located
  * coords are independent — flipping sort doesn't invalidate the
- * resolved coords.
+ * resolved coords. Per BU-icon-strips, the sort buttons render
+ * lucide icons (Distance = `RulerDimensionLine`, the map-scale-bar
+ * glyph; Date = `Calendar`, re-using PostCard's "Event time" entry
+ * per Rule 2 of the glyph register) and are wrapped in
+ * `IconChipTooltip` for the human-readable label.
  *
  * Data flow: the page passes the entire candidate list (in-person
  * events, eventAt set, sorted by date by default). When coords land,
@@ -36,7 +42,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import Link from 'next/link';
-import { LocateFixed, MapPin } from 'lucide-react';
+import { Calendar, LocateFixed, MapPin, RulerDimensionLine } from 'lucide-react';
+import { IconChipTooltip } from '@/components/IconChipTooltip';
 import { CalendarRow, type CalendarRowPost } from './CalendarRow';
 import type { NearSort } from './view';
 import { haversineKm, geocodeUkPostcode, type LatLng } from '@/shared/geo';
@@ -172,30 +179,43 @@ const emptyWrapStyle: CSSProperties = {
   borderRadius: 'var(--radius-md)',
 };
 
+const SORT_ICON_SIZE = 16;
+const SORT_ICON_STROKE = 2;
+
 function renderSortToggle(active: NearSort, onChange: (sort: NearSort) => void): ReactNode {
   return (
     <div data-testid="calendar-near-sort-toggle" style={sortRowStyle}>
       <span style={sortLabelStyle}>Sort:</span>
-      <button
-        type="button"
-        data-testid="calendar-near-sort-distance"
-        data-sort="distance"
-        aria-pressed={active === 'distance'}
-        onClick={() => onChange('distance')}
-        className={active === 'distance' ? 'gps-chip gps-chip--active' : 'gps-chip'}
-      >
-        Distance
-      </button>
-      <button
-        type="button"
-        data-testid="calendar-near-sort-date"
-        data-sort="date"
-        aria-pressed={active === 'date'}
-        onClick={() => onChange('date')}
-        className={active === 'date' ? 'gps-chip gps-chip--active' : 'gps-chip'}
-      >
-        Date
-      </button>
+      <IconChipTooltip label="Sort by distance">
+        <button
+          type="button"
+          data-testid="calendar-near-sort-distance"
+          data-sort="distance"
+          aria-pressed={active === 'distance'}
+          aria-label="Sort by distance"
+          onClick={() => onChange('distance')}
+          className={active === 'distance' ? 'gps-chip gps-chip--active' : 'gps-chip'}
+        >
+          <RulerDimensionLine
+            size={SORT_ICON_SIZE}
+            strokeWidth={SORT_ICON_STROKE}
+            aria-hidden="true"
+          />
+        </button>
+      </IconChipTooltip>
+      <IconChipTooltip label="Sort by date">
+        <button
+          type="button"
+          data-testid="calendar-near-sort-date"
+          data-sort="date"
+          aria-pressed={active === 'date'}
+          aria-label="Sort by date"
+          onClick={() => onChange('date')}
+          className={active === 'date' ? 'gps-chip gps-chip--active' : 'gps-chip'}
+        >
+          <Calendar size={SORT_ICON_SIZE} strokeWidth={SORT_ICON_STROKE} aria-hidden="true" />
+        </button>
+      </IconChipTooltip>
     </div>
   );
 }

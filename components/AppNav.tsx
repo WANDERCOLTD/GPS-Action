@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * @build-unit BU-requests-foundation BU-sticky-nav BU-calendar-view BU-icon-nav
+ * @build-unit BU-requests-foundation BU-sticky-nav BU-calendar-view BU-icon-nav BU-icon-strips
  * @spec architecture/decision-log.md (D054, D061, D065, D073)
  * @spec architecture/admin-surface.md
  *
@@ -19,7 +19,13 @@
  * BU-icon-nav (2026-04-30): tabs are icons-only. Each `<Link>` keeps
  * the prior text label as `aria-label` so screen readers continue to
  * announce "Feed", "Calendar", "Requests", "Data", "Settings". Sighted
- * users learn the icons; tooltips on long-press are deferred (see brief).
+ * users learn the icons.
+ *
+ * BU-icon-strips (2026-05-01): each link is wrapped in
+ * `IconChipTooltip` to reveal the tab name on hover (300ms) /
+ * long-press (600ms). AppNav is the canary surface; the same
+ * primitive is then re-used across `FeedFilterChips`,
+ * `CommentList` filter tabs, and `NearMeView` sort.
  *
  * Per D061 every link is an explicit interactive element with a
  * canonical testid (F14 'nav' area). All testids preserved verbatim
@@ -32,6 +38,7 @@ import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, CalendarClock, Inbox, BarChart3, Settings } from 'lucide-react';
+import { IconChipTooltip } from '@/components/IconChipTooltip';
 
 interface AppNavProps {
   /** Unread Notification count (BU-requests-vetting / D057). Renders a red dot when > 0. */
@@ -101,73 +108,83 @@ export function AppNav({ unreadNotificationCount = 0, calendarEnabled = false }:
         minWidth: 0,
       }}
     >
-      <Link
-        href="/feed"
-        aria-label="Feed"
-        data-testid="nav-feed-link"
-        style={active === 'feed' ? activeStyle : linkStyle}
-      >
-        <Home size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
-      </Link>
-      {calendarEnabled && (
+      <IconChipTooltip label="Feed">
         <Link
-          href="/calendar"
-          aria-label="Calendar"
-          data-testid="nav-calendar-link"
-          style={active === 'calendar' ? activeStyle : linkStyle}
+          href="/feed"
+          aria-label="Feed"
+          data-testid="nav-feed-link"
+          style={active === 'feed' ? activeStyle : linkStyle}
         >
-          <CalendarClock size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          <Home size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
         </Link>
-      )}
-      <Link
-        href="/requests"
-        aria-label="Requests"
-        data-testid="nav-requests-link"
-        style={active === 'requests' ? activeStyle : linkStyle}
-      >
-        <Inbox size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
-        {unreadNotificationCount > 0 && (
-          <span
-            data-testid="nav-requests-unread-dot"
-            data-count={unreadNotificationCount}
-            aria-label={`${unreadNotificationCount} unread notifications`}
-            style={{
-              position: 'absolute',
-              top: 4,
-              right: 4,
-              display: 'inline-block',
-              minWidth: 16,
-              height: 16,
-              lineHeight: '16px',
-              padding: '0 5px',
-              borderRadius: 'var(--radius-pill)',
-              background: 'var(--colour-urgent)',
-              color: 'var(--colour-urgent-contrast)',
-              fontSize: 'var(--text-2xs)',
-              fontWeight: 700,
-              textAlign: 'center' as const,
-            }}
+      </IconChipTooltip>
+      {calendarEnabled && (
+        <IconChipTooltip label="Calendar">
+          <Link
+            href="/calendar"
+            aria-label="Calendar"
+            data-testid="nav-calendar-link"
+            style={active === 'calendar' ? activeStyle : linkStyle}
           >
-            {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
-          </span>
-        )}
-      </Link>
-      <Link
-        href="/data"
-        aria-label="Data"
-        data-testid="nav-data-link"
-        style={active === 'data' ? activeStyle : linkStyle}
-      >
-        <BarChart3 size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
-      </Link>
-      <Link
-        href="/settings"
-        aria-label="Settings"
-        data-testid="nav-settings-link"
-        style={active === 'settings' ? activeStyle : linkStyle}
-      >
-        <Settings size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
-      </Link>
+            <CalendarClock size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          </Link>
+        </IconChipTooltip>
+      )}
+      <IconChipTooltip label="Requests">
+        <Link
+          href="/requests"
+          aria-label="Requests"
+          data-testid="nav-requests-link"
+          style={active === 'requests' ? activeStyle : linkStyle}
+        >
+          <Inbox size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          {unreadNotificationCount > 0 && (
+            <span
+              data-testid="nav-requests-unread-dot"
+              data-count={unreadNotificationCount}
+              aria-label={`${unreadNotificationCount} unread notifications`}
+              style={{
+                position: 'absolute',
+                top: 4,
+                right: 4,
+                display: 'inline-block',
+                minWidth: 16,
+                height: 16,
+                lineHeight: '16px',
+                padding: '0 5px',
+                borderRadius: 'var(--radius-pill)',
+                background: 'var(--colour-urgent)',
+                color: 'var(--colour-urgent-contrast)',
+                fontSize: 'var(--text-2xs)',
+                fontWeight: 700,
+                textAlign: 'center' as const,
+              }}
+            >
+              {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+            </span>
+          )}
+        </Link>
+      </IconChipTooltip>
+      <IconChipTooltip label="Data">
+        <Link
+          href="/data"
+          aria-label="Data"
+          data-testid="nav-data-link"
+          style={active === 'data' ? activeStyle : linkStyle}
+        >
+          <BarChart3 size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
+        </Link>
+      </IconChipTooltip>
+      <IconChipTooltip label="Settings">
+        <Link
+          href="/settings"
+          aria-label="Settings"
+          data-testid="nav-settings-link"
+          style={active === 'settings' ? activeStyle : linkStyle}
+        >
+          <Settings size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
+        </Link>
+      </IconChipTooltip>
     </nav>
   );
 }
