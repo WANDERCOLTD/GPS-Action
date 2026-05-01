@@ -218,4 +218,58 @@ describe('postCreateSchema', () => {
       expect(result.success).toBe(false);
     });
   });
+
+  // ── Coords + isOnline (BU-post-location-input) ────────────────────────
+
+  describe('latitude / longitude / isOnline', () => {
+    it('accepts valid UK-shaped coords + isOnline=false', () => {
+      const result = postCreateSchema.safeParse({
+        ...validInput,
+        latitude: 53.4808,
+        longitude: -2.2426,
+        isOnline: false,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts isOnline=true with no coords', () => {
+      const result = postCreateSchema.safeParse({
+        ...validInput,
+        isOnline: true,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts both fields omitted entirely', () => {
+      const result = postCreateSchema.safeParse(validInput);
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects latitude outside [-90, 90]', () => {
+      const result = postCreateSchema.safeParse({
+        ...validInput,
+        latitude: 91,
+        longitude: 0,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects longitude outside [-180, 180]', () => {
+      const result = postCreateSchema.safeParse({
+        ...validInput,
+        latitude: 0,
+        longitude: 181,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('accepts null coords (explicit clear)', () => {
+      const result = postCreateSchema.safeParse({
+        ...validInput,
+        latitude: null,
+        longitude: null,
+      });
+      expect(result.success).toBe(true);
+    });
+  });
 });

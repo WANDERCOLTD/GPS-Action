@@ -540,6 +540,21 @@ export async function updatePost(
   if (input.eventEndsAt !== undefined) data['eventEndsAt'] = input.eventEndsAt ?? null;
   if (input.locationText !== undefined) data['locationText'] = input.locationText?.trim() || null;
 
+  // BU-post-location-input. Coords + isOnline. Defence-in-depth: when
+  // isOnline=true is supplied, force latitude/longitude to null
+  // regardless of whether the caller passed coords. Mirrors createPost.
+  // Each field is optional; `undefined` means "leave alone", `null`
+  // (or "" through Zod) clears.
+  if (input.isOnline === true) {
+    data['isOnline'] = true;
+    data['latitude'] = null;
+    data['longitude'] = null;
+  } else {
+    if (input.isOnline === false) data['isOnline'] = false;
+    if (input.latitude !== undefined) data['latitude'] = input.latitude ?? null;
+    if (input.longitude !== undefined) data['longitude'] = input.longitude ?? null;
+  }
+
   await prisma.post.update({
     where: { id: input.id },
     data,
