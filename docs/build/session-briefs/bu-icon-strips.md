@@ -65,7 +65,7 @@ in review.
 | Comments | Discussion | `MessageSquare` — **re-uses** the registered "Comment count" glyph from PostCard (Rule 2). | Discussion |
 | Comments | Activity | `Activity` | Activity |
 | Comments | All | *(no icon — same outlier rule as Feed/All)* | — |
-| Near-me | Distance | `Ruler` | Sort by distance |
+| Near-me | Distance | `RulerDimensionLine` — the dimension-line glyph mirrors a map scale bar (`├────┤`), reading immediately as "distance on a map" rather than the generic measurement of `Ruler`. | Sort by distance |
 | Near-me | Date | `Calendar` — **re-uses** the registered "Event time" glyph from PostCard (Rule 2). NOT `CalendarDays` (which this BU is using for the Events kind/filter — different concept). | Sort by date |
 
 **CommentList geometry: keep underline tabs (locked).** Underline tabs
@@ -92,7 +92,7 @@ ships them. This BU's implementation PR must therefore patch
 | Filter chip — Meetings *(group, plural)* | `users` | `FeedFilterChips` |
 | Filter chip — Events / Event kind | `calendar-days` | `FeedFilterChips`, `KindPickerSheet` *(retro-fit register entry — already shipped, was missing)* |
 | Comments tab — Activity | `activity` | `CommentList` |
-| Sort affordance — Distance | `ruler` | `NearMeView` |
+| Sort affordance — Distance | `ruler-dimension-line` | `NearMeView` |
 | Tooltip primitive | *(no glyph itself — uses host chip's glyph)* | `IconChipTooltip` |
 
 ### New rows in "Re-uses (no new glyph)"
@@ -170,8 +170,8 @@ explicit.
   are absent from this map by design. `FEED_FILTER_ICONS` keeps its
   AM brand-glyph URL.)
 - `app/calendar/NearMeView.tsx` (MODIFY — sort toggle: text → icons.
-  Distance = `Ruler` (new); Date = `Calendar` (re-use registered
-  Event-time glyph)).
+  Distance = `RulerDimensionLine` (new — map-scale-bar look); Date =
+  `Calendar` (re-use registered Event-time glyph)).
 - `components/CommentList.tsx` (MODIFY — text → icons within the
   existing underline-tab geometry. Discussion = `MessageSquare`
   (re-use); Activity = `Activity` (new); All = text).
