@@ -5132,3 +5132,71 @@ EXISTS DEFAULT false`) and backfills via SQL regex matching the
 - BU-am-link-collapse — removed the dedicated `activistMailerUrl`
   field in favour of host-match on `linkUrl`. D075 is the next step:
   persist the classification on the post.
+
+# D076 — Post location coordinates + online flag (`latitude`, `longitude`, `isOnline`)
+
+**Status:** decided · 2026-05-01
+
+## Context
+
+bu-calendar-near-me adds a third tab to `/calendar` that orders
+event-bearing posts by distance from the caller's location. To do
+that we need real coordinates on each in-person event plus a way to
+mark online events so they're excluded from distance views. The
+existing `locationText` (D073 / ADR-0001) is free-text and not
+queryable for distance.
+
+The composer does not yet geocode user-typed locations — Path B (the
+geocoding pipeline) is parked as a follow-up BU. This decision
+lands the schema columns the demo path uses today (Path A: hand-coded
+coords on the eight event-bearing seed posts).
+
+## Decision
+
+Add three columns to `Post`:
+
+```
+latitude   Float?
+longitude  Float?
+isOnline   Boolean  @default(false)
+```
+
+Plus a composite index `(latitude, longitude)`.
+
+Storage convention: WGS84 decimal degrees in Float columns. Distance
+is computed app-side via Haversine in `shared/geo.ts`; no PostGIS
+dependency at MVP scale.
+
+The Near-me query filters on `isOnline: false AND latitude IS NOT NULL`
+and orders by Haversine distance once the user supplies their own
+coordinates (geolocation API or postcodes.io postcode lookup).
+
+## Consequences
+
+- Three additive columns on `Post`. Forward-only migration with no
+  backfill required (defaults handle every existing row).
+- Path A ships immediately: seed-data update covers the eight
+  event-bearing posts.
+- Path B (composer geocoding) inherits the column shape when it lands;
+  no schema churn needed.
+- `shared/geo.ts` exposes `haversineKm` + `geocodeUkPostcode` (the
+  postcode lookup is a client-side fetch and is not exposed through
+  any server-side boundary).
+
+## Alternatives considered
+
+- Sidecar `PostLocation` table — premature for two columns of the
+  same shape that already neighbour `locationText`.
+- Single PostGIS `point` column — limited Prisma support; Haversine
+  in TS is six lines and works without a DB extension.
+
+## Related
+
+- ADR-0002 — full reasoning + field shape table.
+- D041 — Region as optional tag only (lat/lng is member-level, not
+  server-bounded; same spirit).
+- D073 / ADR-0001 — Structured event-time fields (the precedent for
+  this additive-column pattern).
+- D070 — Reference data in migrations (no new reference rows here,
+  only column adds).
+- bu-calendar-near-me brief — the implementation contract.
