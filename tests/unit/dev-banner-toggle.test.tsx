@@ -132,7 +132,9 @@ describe('DevBannerToggle component', () => {
     });
 
     const { DevBannerToggle } = await import('@/components/DevBannerToggle');
-    const tree = (DevBannerToggle as unknown as () => AnyElement | null)();
+    const tree = (DevBannerToggle as unknown as (props: { enabled: boolean }) => AnyElement | null)(
+      { enabled: true },
+    );
     expect(tree).not.toBeNull();
     expect(tree?.props['data-testid']).toBe('dev-banner-toggle');
     expect(tree?.props['data-visible']).toBe('false');
@@ -155,7 +157,9 @@ describe('DevBannerToggle component', () => {
     });
 
     const { DevBannerToggle } = await import('@/components/DevBannerToggle');
-    const tree = (DevBannerToggle as unknown as () => AnyElement | null)();
+    const tree = (DevBannerToggle as unknown as (props: { enabled: boolean }) => AnyElement | null)(
+      { enabled: true },
+    );
     expect(tree).not.toBeNull();
     expect(tree?.props['data-visible']).toBe('true');
     expect(tree?.props['aria-label']).toContain('Hide dev banner');

@@ -127,7 +127,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   unreadNotificationCount={unreadNotificationCount}
                   calendarEnabled={calendarEnabled}
                 />
-                <DevBannerToggle />
+                <DevBannerToggle enabled={process.env.NODE_ENV !== 'production' || isDemoMode()} />
                 <HeaderRefreshButton />
               </div>
             )}
