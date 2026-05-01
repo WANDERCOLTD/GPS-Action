@@ -117,20 +117,11 @@ export const CommentList: FC<CommentListProps> = ({
         ))}
       </div>
 
-      {/* Thread body */}
-      {visibleComments.length === 0 && filter === 'discussion' && (
-        <p
-          data-testid="comment-thread-empty"
-          style={{
-            color: 'var(--colour-text-secondary)',
-            fontSize: 'var(--text-sm)',
-            padding: 'var(--space-4) 0',
-            textAlign: 'center',
-          }}
-        >
-          No replies yet. Add the first.
-        </p>
-      )}
+      {/* Thread body — BU-one-click-polish removed the "No replies yet"
+          paragraph for the discussion filter. The composer's inline-empty
+          mode (rendered below) is the empty state now. The activity
+          filter keeps its empty-state copy because there is no parallel
+          inline affordance for system events. */}
 
       {visibleComments.length === 0 && filter === 'activity' && (
         <p
@@ -162,7 +153,10 @@ export const CommentList: FC<CommentListProps> = ({
         </div>
       )}
 
-      {/* Composer at the bottom */}
+      {/* Composer at the bottom. BU-one-click-polish — when there are no
+          comments yet, render the composer in inline-empty mode so the
+          input is always present and tap-to-focus opens the keyboard
+          without an intermediate "Add a comment…" button. */}
       {canComment && (
         <CommentComposer
           postId={postId}
@@ -170,6 +164,7 @@ export const CommentList: FC<CommentListProps> = ({
           onOptimisticInsert={handleOptimisticInsert}
           onCommit={handleCommit}
           onRollback={handleRollback}
+          inlineEmptyState={all.length === 0}
         />
       )}
     </div>

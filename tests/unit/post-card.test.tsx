@@ -207,15 +207,14 @@ describe('PostCard variant', () => {
       }
     });
 
-    it('renders the comment-peek empty CTA in the compact variant when no top comment exists', () => {
+    it('does NOT render an empty comment-peek CTA when no top comment exists (BU-one-click-polish)', () => {
       const tree = renderCard({ variant: 'compact' });
-      // D074 — the old `Read post →` ArrowLink is gone; the comment-peek
-      // row replaces it as the visible nav affordance, so its testid is
-      // what we now assert. With no comments seeded by the test, the
-      // empty CTA renders.
-      const peek = findByTestId(tree, 'post-card-comment-peek-empty');
-      expect(peek).toBeDefined();
-      expect(peek?.props.href).toBe('/post/post-1#comments');
+      // BU-one-click-polish removed the "Be the first to respond →"
+      // empty-state link. The card's title and thumbnail remain Links
+      // to /post/[id], and the detail page now renders an always-on
+      // inline comment input on the empty path.
+      expect(findByTestId(tree, 'post-card-comment-peek-empty')).toBeUndefined();
+      expect(findByTestId(tree, 'post-card-comment-peek')).toBeUndefined();
     });
 
     it('does not attach an article-level onClick (the inner Links carry navigation)', () => {

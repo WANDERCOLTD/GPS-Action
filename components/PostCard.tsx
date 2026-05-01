@@ -169,18 +169,6 @@ const peekRowStyle: CSSProperties = {
   minWidth: 0,
 };
 
-const peekRowEmptyStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 'var(--space-2)',
-  marginTop: 'var(--space-3)',
-  padding: 'var(--space-2) 0',
-  borderTop: '1px solid var(--colour-border-subtle)',
-  fontSize: 'var(--text-sm)',
-  color: 'var(--colour-text-link)',
-  textDecoration: 'none',
-};
-
 const excerptStyle: CSSProperties = {
   flex: 1,
   minWidth: 0,
@@ -448,45 +436,32 @@ export const PostCard: FC<PostCardProps> = ({
             </div>
           )}
 
-          {/* D074 — comment peek row. Doubles as the nav affordance to the
-          detail page (replaces the old "Read post →" link, which is now
-          redundant: the title is a Link, the thumbnail is a Link, and
-          this peek itself is a Link). Suppressed entirely when the kind
-          opts out via PostKind.feedCommentPeekEnabled (cultural,
-          tick_or_cross). When enabled with no top comment, falls back to
-          a gentle empty CTA. */}
-          {variant === 'compact' &&
-            post.feedCommentPeekEnabled &&
-            (post.topComment ? (
-              <Link
-                href={`${detailHref}#comments`}
-                data-testid="post-card-comment-peek"
-                data-post-id={post.id}
-                style={peekRowStyle}
-              >
-                <MessageSquare size={14} aria-hidden="true" style={{ flexShrink: 0 }} />
-                <strong style={{ flexShrink: 0 }}>{post.topComment.authorDisplayName}</strong>
-                <span aria-hidden="true" style={{ opacity: 0.6, flexShrink: 0 }}>
-                  ·
-                </span>
-                <span style={excerptStyle}>{post.topComment.excerpt}</span>
-                <span aria-hidden="true" style={{ opacity: 0.6, flexShrink: 0 }}>
-                  · {formatDistanceToNow(new Date(post.topComment.createdAt), { addSuffix: false })}{' '}
-                  →
-                </span>
-              </Link>
-            ) : (
-              <Link
-                href={`${detailHref}#comments`}
-                data-testid="post-card-comment-peek-empty"
-                data-post-id={post.id}
-                style={peekRowEmptyStyle}
-              >
-                <MessageSquare size={14} aria-hidden="true" />
-                <span>Be the first to respond</span>
-                <span aria-hidden="true">→</span>
-              </Link>
-            ))}
+          {/* D074 — comment peek row. Renders only when a top comment
+              exists so the row stays honest content (a real reply
+              excerpt) rather than a generic empty CTA. BU-one-click-
+              polish removed the "Be the first to respond →" empty state:
+              the post detail page now exposes an always-rendered comment
+              input on the empty-thread path, so an extra empty-state
+              hint on the feed card was redundant. The card itself, the
+              title, and the thumbnail all already nav to detail. */}
+          {variant === 'compact' && post.feedCommentPeekEnabled && post.topComment && (
+            <Link
+              href={`${detailHref}#comments`}
+              data-testid="post-card-comment-peek"
+              data-post-id={post.id}
+              style={peekRowStyle}
+            >
+              <MessageSquare size={14} aria-hidden="true" style={{ flexShrink: 0 }} />
+              <strong style={{ flexShrink: 0 }}>{post.topComment.authorDisplayName}</strong>
+              <span aria-hidden="true" style={{ opacity: 0.6, flexShrink: 0 }}>
+                ·
+              </span>
+              <span style={excerptStyle}>{post.topComment.excerpt}</span>
+              <span aria-hidden="true" style={{ opacity: 0.6, flexShrink: 0 }}>
+                · {formatDistanceToNow(new Date(post.topComment.createdAt), { addSuffix: false })} →
+              </span>
+            </Link>
+          )}
 
           {/* Secondary linkUrl card (legacy edge case: both AM + link populated).
           Stays at the bottom as supporting context per D060 §3. */}
