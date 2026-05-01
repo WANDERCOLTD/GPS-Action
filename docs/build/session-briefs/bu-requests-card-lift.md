@@ -1,6 +1,7 @@
 ---
 slug: bu-requests-card-lift
-status: planned
+status: shipped
+shipped_in: '#163'
 phase: 2
 priority: medium
 note: 'Visual-weight lift for /requests rows so they read with the same care as PostCard rows on /feed. No behaviour changes — restructure existing fields plus surface priority.'
