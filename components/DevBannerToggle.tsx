@@ -21,7 +21,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { CSSProperties, FC } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { isDemoMode } from '@/shared/demo-mode';
 
 const STORAGE_KEY = 'gps:dev-banner-visible';
 
@@ -87,8 +86,18 @@ const buttonStyle: CSSProperties = {
   cursor: 'pointer',
 };
 
-export const DevBannerToggle: FC = () => {
-  const isDevSurface = process.env.NODE_ENV !== 'production' || isDemoMode();
+interface DevBannerToggleProps {
+  /**
+   * Whether this surface should render the toggle. Decided server-side
+   * (NODE_ENV !== 'production' || isDemoMode()) and passed in — this
+   * client component can't read isDemoMode() because it relies on a
+   * non-public env var that isn't bundled into the client.
+   */
+  enabled: boolean;
+}
+
+export const DevBannerToggle: FC<DevBannerToggleProps> = ({ enabled }) => {
+  const isDevSurface = enabled;
   const [visible, setVisible] = useState<boolean>(false);
   const [hydrated, setHydrated] = useState<boolean>(false);
 
