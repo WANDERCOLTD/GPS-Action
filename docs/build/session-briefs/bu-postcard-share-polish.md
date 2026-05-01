@@ -1,6 +1,7 @@
 ---
 slug: bu-postcard-share-polish
-status: in-progress
+status: shipped
+shipped_in: "#167"
 phase: 2
 priority: low
 ---
