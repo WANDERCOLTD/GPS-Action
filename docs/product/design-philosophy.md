@@ -186,9 +186,67 @@ a longer message. Rare case, worth the friction.
 
 ---
 
+## Glyph register (icon re-use)
+
+`lucide-react` is the project-wide icon family. This register is the single
+source of truth for picks across the app. **Re-use before introducing.** When a
+BU ships a new glyph, update this register in the same commit.
+
+### AppNav tabs (BU-icon-nav, shipped #152)
+
+| Tab      | Glyph            |
+| -------- | ---------------- |
+| Feed     | `home`           |
+| Calendar | `calendar-clock` |
+| Requests | `inbox`          |
+| Data     | `bar-chart-3`    |
+| Settings | `settings`       |
+
+### In-content glyphs (shipped)
+
+| Concept              | Glyph                     | Component(s)                                                              |
+| -------------------- | ------------------------- | ------------------------------------------------------------------------- |
+| Comment count        | `message-square`          | `PostCard`                                                                |
+| Event time           | `calendar`                | `PostCard`                                                                |
+| Location             | `map-pin`                 | `PostCard`                                                                |
+| External link        | `external-link`           | `LinkPreviewCard`                                                         |
+| In-app refresh       | `refresh-cw` / `loader-2` | `HeaderRefreshButton`                                                     |
+| Modal/sheet dismiss  | `x`                       | `IntentFabSheet`, `PostPublishModal`                                      |
+| FAB primary          | `plus`                    | `IntentFab`                                                               |
+| Clipboard paste      | `clipboard-paste`         | `IntentFab`, `IntentFabSheet`                                             |
+| Send / publish       | `send`                    | `PostPublishModal`                                                        |
+| Save as draft / edit | `file-edit`               | `PostPublishModal`                                                        |
+| Reviewer queue inbox | `inbox`                   | `PostPublishModal` (same glyph as Requests tab — both = "incoming queue") |
+| Dev banner toggle    | `eye` / `eye-off`         | `DevBannerToggle`                                                         |
+
+### Locked, not yet shipped (BU-search-surface)
+
+| Concept                                | Glyph            | New / Re-use         |
+| -------------------------------------- | ---------------- | -------------------- |
+| Search trigger (AppNav header)         | `search`         | New                  |
+| Overlay header back                    | `chevron-left`   | New                  |
+| Posts group label (optional)           | `message-square` | Re-use (PostCard)    |
+| Regions group label (optional)         | `map-pin`        | Re-use (PostCard)    |
+| People group label (optional)          | `user`           | New                  |
+| Partner orgs group label (optional)    | `building-2`     | New (gated on §3.30) |
+| Recently-viewed item marker (optional) | `clock`          | New                  |
+
+### Rules
+
+1. **Re-use before introducing.** Search this register before picking. If the
+   concept already has a glyph, use it.
+2. **One concept, one glyph.** "Person" → `user` everywhere. Don't ship
+   `user-circle` for the same concept on a different surface.
+3. **Match `strokeWidth` and size to `AppNav`.** Visual weight uniform across
+   surfaces; no oversized icons in body content.
+4. **Update this register in the same commit that ships a new glyph.** A BU
+   that introduces a new icon without updating the register is incomplete.
+
+---
+
 ## What this document is NOT
 
-- **Not a style guide.** Colours, typography, spacing — `styles/tokens.css`.
+- **Not a style guide for tokens.** Colours, typography, spacing — `styles/tokens.css`. (Glyph register above is the exception — kept here so it's read before any UI work.)
 - **Not a copy library.** Specific blessed phrases — `docs/product/copy-library.md` _(to be written)_.
 - **Not component guidance.** Reusable primitives — Storybook.
 - **Not an accessibility reference.** WCAG 2.2 AA rules — `docs/process/accessibility-guide.md` _(to be written)_.
