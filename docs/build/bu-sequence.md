@@ -100,6 +100,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-one-click-polish** — BU-one-click-polish | ✅ Merged | #161 |
 | **bu-requests-card-lift** — bu-requests-card-lift | ✅ Merged | #163 |
 | **bu-comments-card-lift** — BU-comments-card-lift | ✅ Merged | #166 |
+| **bu-postcard-share-polish** — bu-postcard-share-polish | ✅ Merged | #167 |
 | **bu-calendar-near-me** — BU-calendar-near-me | ✅ Merged | #169 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
