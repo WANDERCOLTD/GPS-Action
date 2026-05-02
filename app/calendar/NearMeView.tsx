@@ -1,17 +1,20 @@
 'use client';
 
 /**
- * @build-unit BU-calendar-near-me BU-icon-strips
+ * @build-unit BU-calendar-near-me BU-icon-strips BU-postcode-or-place
  * @spec architecture/decision-log.md (D076)
  * @spec docs/adrs/0002-post-location-coords.md
  * @spec docs/build/session-briefs/bu-calendar-near-me.md
  * @spec docs/build/session-briefs/bu-icon-strips.md
+ * @spec docs/build/session-briefs/bu-postcode-or-place.md
  * @spec docs/product/design-philosophy.md (Glyph register)
  *
  * Near-me view — lists in-person event-bearing posts ordered by
  * Haversine distance from the caller's location. Caller location is
  * either: (a) browser geolocation (navigator.geolocation) or
- * (b) a typed UK postcode resolved via postcodes.io.
+ * (b) a typed UK postcode OR town/city/area, resolved via the
+ * chained `resolveLocation` helper (postcodes.io for postcode shape,
+ * Nominatim via our /api/geocode/place server proxy for free text).
  *
  * State machine:
  *
@@ -46,7 +49,7 @@ import { Calendar, LocateFixed, MapPin, RulerDimensionLine } from 'lucide-react'
 import { IconChipTooltip } from '@/components/IconChipTooltip';
 import { CalendarRow, type CalendarRowPost } from './CalendarRow';
 import type { NearSort } from './view';
-import { haversineKm, geocodeUkPostcode, type LatLng } from '@/shared/geo';
+import { haversineKm, resolveLocation, MIN_PLACE_QUERY_LENGTH, type LatLng } from '@/shared/geo';
 
 export interface NearMeCandidate extends CalendarRowPost {
   /** Required for distance sort. The page filters out NULL-coord posts upstream. */
@@ -170,6 +173,13 @@ const errorStyle: CSSProperties = {
   marginTop: 'var(--space-2)',
 };
 
+const attributionStyle: CSSProperties = {
+  fontSize: 'var(--text-2xs)',
+  color: 'var(--colour-text-secondary)',
+  margin: 0,
+  marginTop: 'var(--space-3)',
+};
+
 const emptyWrapStyle: CSSProperties = {
   padding: 'var(--space-6) var(--space-4)',
   textAlign: 'center',
@@ -255,8 +265,8 @@ export function sortNearMePosts(
   return decorated;
 }
 
-interface PostcodeFormProps {
-  onPostcode: (coords: LatLng) => void;
+interface LocationFormProps {
+  onLocation: (coords: LatLng) => void;
 }
 
 /**
@@ -264,24 +274,34 @@ interface PostcodeFormProps {
  * panel can be rendered as a plain element by tests without invoking
  * `useState`. `useState` only fires when this component itself is
  * rendered, which the unit tests skip via type-walking the tree.
+ *
+ * BU-postcode-or-place: accepts a UK postcode OR a town / city / area
+ * via one field. The submit button stays inert below the
+ * `MIN_PLACE_QUERY_LENGTH` threshold (3 chars per locked decision Q6).
+ *
+ * Existing `data-testid` values keep the `…postcode…` segment
+ * verbatim (F14 stability rule); only the visible UX is upgraded.
  */
-function PostcodeForm({ onPostcode }: PostcodeFormProps) {
-  const [postcode, setPostcode] = React.useState('');
+function LocationForm({ onLocation }: LocationFormProps) {
+  const [query, setQuery] = React.useState('');
   const [error, setError] = React.useState<string | null>(null);
   const [resolving, setResolving] = React.useState(false);
 
+  const trimmed = query.trim();
+  const tooShort = trimmed.length < MIN_PLACE_QUERY_LENGTH;
+
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
-    if (postcode.trim() === '') return;
+    if (tooShort) return;
     setError(null);
     setResolving(true);
-    const coords = await geocodeUkPostcode(postcode);
+    const coords = await resolveLocation(query);
     setResolving(false);
     if (!coords) {
-      setError('Could not find that postcode. Check the spelling and try again.');
+      setError("Couldn't find that location. Try a UK postcode, town or city.");
       return;
     }
-    onPostcode(coords);
+    onLocation(coords);
   }
 
   return (
@@ -295,17 +315,17 @@ function PostcodeForm({ onPostcode }: PostcodeFormProps) {
           data-testid="calendar-near-postcode-input"
           type="text"
           inputMode="text"
-          autoComplete="postal-code"
-          placeholder="e.g. M1 4BT"
-          value={postcode}
-          onChange={(e) => setPostcode(e.target.value)}
+          autoComplete="off"
+          placeholder="UK postcode, town or city"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           style={inputStyle}
-          aria-label="UK postcode"
+          aria-label="UK postcode, town or city"
         />
         <button
           type="submit"
           data-testid="calendar-near-postcode-submit"
-          disabled={resolving || postcode.trim() === ''}
+          disabled={resolving || tooShort}
           style={buttonStyle}
         >
           Find
@@ -331,8 +351,8 @@ function renderPromptPanel(
       <h2 style={promptHeaderStyle}>Find events near you</h2>
       <p style={promptCopyStyle}>
         {permissionDenied
-          ? 'We need a location to find nearby events. Try a postcode instead.'
-          : 'Allow your location, or type a UK postcode to find in-person events sorted by distance.'}
+          ? 'We need a location to find nearby events. Try a UK postcode, town or city instead.'
+          : 'Allow your location, or type a UK postcode, town or city to find in-person events sorted by distance.'}
       </p>
       <div style={buttonRowStyle}>
         {!permissionDenied && (
@@ -347,8 +367,11 @@ function renderPromptPanel(
             <span>Use my location</span>
           </button>
         )}
-        <PostcodeForm onPostcode={onPostcode} />
+        <LocationForm onLocation={onPostcode} />
       </div>
+      <p data-testid="calendar-near-attribution" style={attributionStyle}>
+        Locations resolved via OpenStreetMap.
+      </p>
     </div>
   );
 }
