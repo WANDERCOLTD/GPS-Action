@@ -6,7 +6,7 @@ priority: medium
 ---
 # SESSION BRIEF · BU-search-surface — App-wide member search
 
-_Brief version: 0.4 (ready) · Author: Paul + Claude · Created: 2026-04-27 · Decisions locked: 2026-05-01_
+_Brief version: 0.5 (ready) · Author: Paul + Claude · Created: 2026-04-27 · Decisions locked: 2026-05-01 · Promoted to D078 / ADR-0004: 2026-05-02_
 _Priority: Phase 2 follow-up to BU-feed-filter._
 _Pairs with: `feat/feed-filter-and-search` (filter chips ship first; search is the second surface)._
 
@@ -32,18 +32,24 @@ Companion scenario: **SCN-31** in `docs/product/scenarios.md`.
 
 ---
 
-## Decisions captured (2026-05-01)
+## Decisions captured (2026-05-01) — promoted to D078 / ADR-0004 (2026-05-02)
 
-| # | Decision | Note |
-|---|----------|------|
-| 1 | **Backend = native Postgres.** No third-party (Algolia / Meilisearch). | No infra add. |
-| 2 | **Comment search excluded from v1.** Comments are non-vetted member text — privacy review required before indexing. Park for a later BU. | |
-| 3 | **All regions, no default narrowing.** Search defaults to app-wide; no auto "in your regions" scope. | Matches current feed behaviour — members already see all regions. |
-| 4 | **Per-entity ranking: Posts → People → Regions → Partner orgs.** Default order when results match multiple types. Comments excluded (per #2). | Posts are the primary content; people-find is the second-most-asked use case. |
-| 5 | **Permissioned visibility: reuse `listPosts` visibility filter.** Members-only posts must not surface to logged-out viewers; the existing visibility predicate is the source of truth. Search MUST NOT bypass it. | Server-enforced — share a single visibility predicate between `listPosts` and `search.query`. |
-| 6 | **Index strategy = `pg_trgm` + GIN from day one.** `CREATE EXTENSION pg_trgm` in a migration, GIN indexes (`gin_trgm_ops`) on the searched columns: `posts.title`, `posts.body`, `users.display_name`, `regions.name`, `partner_orgs.name`. | Picks typo tolerance up-front (`henden` → `hendon`) instead of shipping `ILIKE` and re-doing this work later. Needs a small ADR for the extension. |
-| 7 | **Scope chip inherits from filter only in v1.** No "in this thread" / per-post scope, because comment search is excluded (#2). Revisit when comment search ships. | The chip is the small `× Urgent` pill below the search input — auto-set when search is opened from a filtered feed; tap-X widens to app-wide. |
-| 8 | **Recently-viewed source = `localStorage` (last 5 posts).** Client-side, no schema change. Doesn't sync across devices — acceptable for v1. | Surfaces only inside the search overlay's zero-query empty state. No `/history` route, no profile section in v1. |
+Canonical reference: **D078** in `docs/architecture/decision-log.md`
+captures all 9 sub-decisions; **ADR-0004** in `docs/adrs/` covers
+the schema-touching subset (`pg_trgm` extension + GIN indexes).
+Cite individual decisions as `D078 §N` from commits and PRs.
+
+| # | Decision | Cite | Note |
+|---|----------|------|------|
+| 1 | **Backend = native Postgres.** No third-party (Algolia / Meilisearch). | D078 §1, ADR-0004 | No infra add. |
+| 2 | **Comment search excluded from v1.** Comments are non-vetted member text — privacy review required before indexing. Park for a later BU. | D078 §2 | |
+| 3 | **All regions, no default narrowing.** Search defaults to app-wide; no auto "in your regions" scope. | D078 §3 | Matches current feed behaviour — members already see all regions. |
+| 4 | **Per-entity ranking: Posts → People → Regions → Partner orgs.** Default order when results match multiple types. Comments excluded (per #2). | D078 §4 | Posts are the primary content; people-find is the second-most-asked use case. |
+| 5 | **Permissioned visibility: reuse `listPosts` visibility filter.** Members-only posts must not surface to logged-out viewers; the existing visibility predicate is the source of truth. Search MUST NOT bypass it. | D078 §5 | Server-enforced — share a single visibility predicate between `listPosts` and `search.query`. |
+| 6 | **Index strategy = `pg_trgm` + GIN from day one.** `CREATE EXTENSION pg_trgm` in a migration, GIN indexes (`gin_trgm_ops`) on the searched columns: `posts.title`, `posts.body`, `users.display_name`, `regions.name`. (Partner-orgs index gated on §9.) | D078 §6, ADR-0004 | Picks typo tolerance up-front (`henden` → `hendon`) instead of shipping `ILIKE` and re-doing this work later. |
+| 7 | **Scope chip inherits from filter only in v1.** No "in this thread" / per-post scope, because comment search is excluded (#2). Revisit when comment search ships. | D078 §7 | The chip is the small `× Urgent` pill below the search input — auto-set when search is opened from a filtered feed; tap-X widens to app-wide. |
+| 8 | **Recently-viewed source = `localStorage` (last 5 posts).** Client-side, no schema change. Doesn't sync across devices — acceptable for v1. | D078 §8 | Surfaces only inside the search overlay's zero-query empty state. No `/history` route, no profile section in v1. |
+| 9 | **Partner orgs entity deferred to §3.30 BU.** The Partner orgs result group renders empty/hidden until partner-orgs ships as an entity. | D078 §9 | Added 2026-05-02 — search v1 ships without partner-orgs as a result entity; group label and trigram index gated on §3.30. |
 
 ---
 

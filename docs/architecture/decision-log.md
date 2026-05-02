@@ -5284,3 +5284,69 @@ way.
   phases).
 - bu-whatsapp-share — the BU that shipped the analytics stub this
   decision replaces.
+
+# D078 — App-wide member search: 9 design decisions for `bu-search-surface`
+
+**Status:** decided · 2026-05-01 (decisions 1–8) · 2026-05-02 (decision 9)
+
+## Context
+
+The product brief **bu-search-surface** wants a magnifier in the
+sticky `AppNav` that opens a full-screen `/search` overlay,
+returning grouped results (Posts · People · Regions ·
+Partner orgs) for a free-text query, with an URL-addressable full-
+results page for forwards. Research at
+`docs/product/research/search-surfaces.md` defends the design.
+
+Eight design decisions were resolved during brief assembly on
+2026-05-01; a ninth (partner orgs deferral) was added on 2026-05-02
+during ADR/D-promotion. They shape both the brief's build list and
+ADR-0004 (the schema-touching subset). This entry captures them
+canonically so commits and PRs can cite individual decisions as
+`D078 §N`.
+
+## Decision
+
+The nine sub-decisions, in brief-table order:
+
+| § | Decision | Notes |
+|---|----------|-------|
+| 1 | **Backend = native Postgres.** No third-party (Algolia, Meilisearch, etc.). Mechanism is `pg_trgm` + GIN — see ADR-0004. | Forecloses vendor sync pipelines. |
+| 2 | **Comment search excluded from v1.** Privacy review required before indexing non-vetted member text. | Park for a later BU. |
+| 3 | **All regions, no default narrowing.** Search is app-wide; no auto "in your regions" scope. | Matches feed default. |
+| 4 | **Per-entity ranking: Posts → People → Regions → Partner orgs.** Fixed group order in the response shape. | Posts dominate query intent. |
+| 5 | **Permissioned visibility: reuse `listPosts` visibility filter.** Members-only posts must not surface to logged-out viewers. Server-enforced. | Single shared visibility predicate between `listPosts` and `search.query`. |
+| 6 | **Index strategy = `pg_trgm` + GIN from day one.** Indexes on `posts.title`, `posts.body`, `users.display_name`, `regions.name`; partner-orgs deferred (§9). Similarity threshold 0.3 default, tuneable from pilot. | Picks typo tolerance up-front. ADR-0004. |
+| 7 | **Scope chip inherits filter only in v1.** No "in this thread" / per-post scope (would require comment search per §2). | Revisit when comment search ships. |
+| 8 | **Recently-viewed source = `localStorage` (last 5 posts).** Surfaces only inside the search overlay's zero-query empty state. | No `/history` route, no profile section in v1. |
+| 9 | **Partner orgs entity deferred to §3.30 BU.** The Partner orgs result group renders empty/hidden until partner-orgs ships as an entity. | Decision added 2026-05-02 — search v1 ships without partner-orgs as a result entity; group label and trigram index gated on §3.30. |
+
+## Consequences
+
+- **Schema:** ADR-0004 governs the `pg_trgm` extension + GIN index
+  set. Migration is forward-only and additive.
+- **Service interface:** `server/routers/search.ts` exposes
+  `search.query({ q, scope?, filter?, type?, cursor? })` returning
+  the 4-group shape (Posts · People · Regions · Partner orgs;
+  Partner orgs returned empty until §9 lifts).
+- **Visibility:** §5 forces a single shared predicate. Code review
+  must reject any search query that bypasses `listPosts`'s
+  visibility WHERE clause.
+- **Pre-build prerequisites cleared:** §9 captures the only open
+  cross-BU dependency. The brief is unblocked for a build session.
+- **Cite-ability:** Future PRs and commits can refer to e.g.
+  `D078 §5` (visibility) or `D078 §6` (`pg_trgm`) as a stable
+  reference.
+
+## Related
+
+- ADR-0004 — `pg_trgm` extension + GIN indexes (the schema-touching
+  subset of §6).
+- bu-search-surface brief — the implementation contract.
+- D018 — inbound sharing endpoint (URL-addressable shape that the
+  full-results page aligns with).
+- D061 — global tap pattern (constrains overlay back-button
+  behaviour).
+- §3.30 partner orgs (referenced in §9; not yet a numbered ADR/D).
+- `docs/product/research/search-surfaces.md` — design rationale.
+- SCN-31 — Sharon searches for Hendon (companion scenario).
