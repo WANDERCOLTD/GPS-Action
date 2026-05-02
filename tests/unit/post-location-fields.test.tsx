@@ -1,19 +1,22 @@
 /**
- * Unit tests for the postcode + isOnline submit pipeline.
+ * Unit tests for the location + isOnline submit pipeline.
  *
- * @build-unit BU-post-location-input
+ * @build-unit BU-post-location-input BU-postcode-or-place
  * @spec product/parking-lot.md ("Geocoding pipeline for post locations (Path B)")
+ * @spec docs/build/session-briefs/bu-postcode-or-place.md
  *
  * The composer + edit form share an identical pipeline at submit:
  *
  *  1. Time-bearing kind only.
- *  2. If `isOnline=true`, postcode is ignored, coords cleared
+ *  2. If `isOnline=true`, the location field is ignored, coords cleared
  *     server-side.
- *  3. Otherwise, geocode the typed postcode via shared/geo.
- *     Success → set latitude/longitude on the FormData.
- *     Failure → surface the inline error and abort submit.
- *  4. Edit-form-specific: empty postcode + unticked online means
- *     "leave existing coords alone" (the form sends no lat/lng).
+ *  3. Otherwise, resolve the typed location via `resolveLocation`
+ *     (postcodes.io for postcode shape, Nominatim via our server
+ *     proxy for free-text town/city/area). Success → set
+ *     latitude/longitude on the FormData. Failure → surface the
+ *     inline error and abort submit.
+ *  4. Edit-form-specific: empty input + unticked online means "leave
+ *     existing coords alone" (the form sends no lat/lng).
  *
  * These tests exercise the four critical paths without mounting
  * the full forms (which depend on the tRPC + Next router context).
@@ -22,7 +25,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { geocodeUkPostcode } from '@/shared/geo';
+import { resolveLocation } from '@/shared/geo';
 
 /**
  * Minimal reproduction of the composer/edit submit pipeline. Both
@@ -60,11 +63,12 @@ async function runLocationPipeline(args: {
   }
   const trimmed = args.postcode.trim();
   if (trimmed) {
-    const coords = await geocodeUkPostcode(trimmed);
+    const coords = await resolveLocation(trimmed);
     if (!coords) {
       return {
         ok: false,
-        error: "Postcode not recognised — check spelling, or tick 'This is online'",
+        error:
+          "Couldn't find that location — try a UK postcode, town or city, or tick 'This is online'",
       };
     }
     args.formData.set('latitude', String(coords.lat));
@@ -126,7 +130,7 @@ describe('post location submit pipeline', () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error).toMatch(/Postcode not recognised/);
+      expect(result.error).toMatch(/Couldn't find that location/);
     }
     expect(fd.get('latitude')).toBeNull();
     expect(fd.get('longitude')).toBeNull();

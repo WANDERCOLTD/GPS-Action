@@ -1,31 +1,38 @@
 'use client';
 
 /**
- * @build-unit BU-post-location-input
+ * @build-unit BU-post-location-input BU-postcode-or-place
  * @spec product/parking-lot.md ("Geocoding pipeline for post locations (Path B)")
  * @spec docs/adrs/0002-post-location-coords.md
+ * @spec docs/build/session-briefs/bu-postcode-or-place.md
  *
- * Shared postcode + isOnline block used by the composer and the
+ * Shared location + isOnline block used by the composer and the
  * /post/[id]/edit form. Renders two inputs:
  *
- *  - **Postcode** (`<input type="text">`) — UK format, free-form,
- *    geocoded via `geocodeUkPostcode` at submit time.
+ *  - **Location** (`<input type="text">`) — accepts a UK postcode OR
+ *    a town / city / area name. Resolved via `resolveLocation` at
+ *    submit time (postcodes.io for full UK postcodes; Nominatim via
+ *    our /api/geocode/place server proxy for free text). UK-biased.
  *  - **This is online** (`<input type="checkbox">`) — when checked,
- *    the postcode field is disabled and any existing coords get
+ *    the location field is disabled and any existing coords get
  *    cleared on save.
  *
- * Geocoding runs at submit (caller's responsibility) so the user
- * sees no friction while typing — postcodes.io is fast but
- * client-side, and we don't want to fire on every keystroke.
+ * Resolution runs at submit (caller's responsibility) so the user
+ * sees no friction while typing — the resolvers are fast but
+ * networked, and we don't want to fire on every keystroke.
  *
  * State is lifted to the parent so values survive kind toggles
  * (mirrors the EventFieldsBlock pattern).
+ *
+ * The FormData field name `postcode` is preserved verbatim
+ * (server-action contract); UI labels its as "UK postcode, town or
+ * city" since that's what the field now accepts.
  *
  * Names submitted via FormData:
  *  - postcode (free text or "")
  *  - isOnline ("true" or absent)
  *
- * The parent form action geocodes the postcode and sets
+ * The parent form action resolves the location and sets
  * `latitude`, `longitude`, `isOnline` accordingly before invoking
  * the create / update server action.
  */
@@ -73,6 +80,13 @@ const errorStyle: CSSProperties = {
   fontFamily: 'var(--font-ui)',
 };
 
+const attributionStyle: CSSProperties = {
+  marginTop: 'var(--space-2)',
+  fontSize: 'var(--text-2xs)',
+  color: 'var(--colour-text-secondary)',
+  fontFamily: 'var(--font-ui)',
+};
+
 export function PostLocationFieldsBlock({
   value,
   onChange,
@@ -110,7 +124,7 @@ export function PostLocationFieldsBlock({
 
       <div style={{ marginTop: 'var(--space-2)' }}>
         <label htmlFor="postcode" data-testid="compose-postcode-label" style={labelStyle}>
-          UK postcode{' '}
+          UK postcode, town or city{' '}
           <span style={{ color: 'var(--colour-text-secondary)', fontWeight: 400 }}>(optional)</span>
         </label>
         <input
@@ -118,9 +132,9 @@ export function PostLocationFieldsBlock({
           name="postcode"
           type="text"
           inputMode="text"
-          autoComplete="postal-code"
-          maxLength={20}
-          placeholder="e.g. M1 4BT"
+          autoComplete="off"
+          maxLength={100}
+          placeholder="e.g. M1 4BT, or Manchester"
           value={value.postcode}
           onChange={(e) => patch({ postcode: e.target.value })}
           disabled={postcodeDisabled}
@@ -139,6 +153,9 @@ export function PostLocationFieldsBlock({
             {geocodeError}
           </p>
         )}
+        <p data-testid="compose-location-attribution" style={attributionStyle}>
+          Locations resolved via OpenStreetMap.
+        </p>
       </div>
 
       <label
