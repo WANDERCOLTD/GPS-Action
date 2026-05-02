@@ -1,6 +1,6 @@
 ---
 slug: bu-postcode-or-place
-status: stub
+status: shipped
 phase: 2
 priority: medium
 note: "Plan-locked brief, ready to build. Extends BU-post-location-input + BU-calendar-near-me's single field from postcode-only to 'postcode OR town/city/area' with one input. Server-proxied Nominatim (OpenStreetMap) behind a chained resolver (postcodes.io → Nominatim, UK-biased). All 6 open questions answered 2026-05-02. See engineering-roadmap B17 for the Mapbox swap trigger."
