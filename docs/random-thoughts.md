@@ -56,6 +56,7 @@ After rejection, **Status** flips to `rejected · YYYY-MM-DD — <reason>`.
 
 _Most recent first. Populated as entries are added._
 
+- RT-002 — multi-column post cards on `/feed` in responsive mode: how does sorting (newest-first) read in a grid, and does the existing chip filter strip still work above it?
 - RT-001 — feed-card UX pattern: best modern practice for expand/collapse, with PRIMARY CTA + title/small image as the anchor (2-column chips on the table).
 
 ---
@@ -113,3 +114,13 @@ Reuse note: keep `LinkPreviewCard` as-is, parameterise image size; give `PostCar
 
 - **Recommended destination:** parking-lot
 - **Reason:** real and well-formed, but blocks on Q1 — if primary CTA isn't always link-shaped, the chip needs a typed CTA slot which is the parked Multi-CTA `Action[]` work. File alongside "Multi-CTA model" as its render-side sibling; promote to brief when Multi-CTA triggers, or sooner if Paul picks Candidate A as a standalone win.
+
+---
+
+## RT-002 — 2026-05-02
+
+**Thought:** how would sorting work? will filtering be OK?
+
+**Context:** triggered by the prior conversation thread — exploring multi-column post cards on `/feed` in responsive mode (recommended: 2-column at ≥920px via CSS Grid `grid-template-columns: repeat(2, minmax(0, 1fr))` + `align-items: start`, single-col on mobile). Paul's follow-up Qs: in a 2-column grid, how does the existing newest-first sort read (top-row left-then-right vs column-major), and does the existing chip filter strip (BU-feed-filter, shipped #115: All / Urgent / Happening now / Meetings / Events) still work cleanly above a 2-col grid?
+
+**Status:** new (awaiting agent investigation)
