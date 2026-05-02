@@ -170,16 +170,24 @@ Hero images, Versioning, Sticky nav, WhatsApp share. F14 testid rule
 is now enforced. See `docs/build/bu-sequence.md` for the canonical
 ship list.
 
-**In flight:** BU-feed-filter (`feat/feed-filter-and-search`) — chip
-strip replaces the `<h1>Feed</h1>` on `/feed`. URL-driven, single-
-active. Five chips: All · ⚡ Urgent · Happening now · Meetings · Events.
+**In flight:** BU-search-surface — app-wide member search. Magnifier
+in `AppNav` opens a full-screen `/search` overlay; typeahead returns
+grouped results (Posts · People · Regions · Partner orgs); URL-
+addressable full-results page. Backend: native Postgres with
+`pg_trgm` + GIN. 8 pre-build decisions locked 2026-05-01; brief at
+`docs/build/session-briefs/bu-search-surface.md` (status: ready).
+Companion scenario: SCN-31 — Sharon searches for Hendon. Branch
+will be `feat/search-surface-<YYYYMMDD>` when a build session starts.
+
+**Recently shipped:** BU-feed-filter (#115 — chip strip on `/feed`),
+BU-icon-nav (#152), BU-icon-strips (#174).
 
 **Next BU candidates (unshipped briefs):**
 
-- BU-search-surface — app-wide member search overlay (magnifier in
-  `AppNav` → full-screen `/search`). Pre-build decisions still open.
-  Research at `docs/product/research/search-surfaces.md`. Brief stub
-  at `docs/build/session-briefs/bu-search-surface.md`.
+- BU-drafts-inbox — author-side recall of saved drafts and pending
+  review requests.
+- BU-post-share-counter — verified vs intent share metrics
+  (brief shipped, ADR-0003 / D077).
 
 User decision needed before starting any new BU. The wider Phase 2/3
 queue lives in `bu-sequence.md`; parking-lot has product candidates
