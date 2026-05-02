@@ -123,4 +123,36 @@ Reuse note: keep `LinkPreviewCard` as-is, parameterise image size; give `PostCar
 
 **Context:** triggered by the prior conversation thread — exploring multi-column post cards on `/feed` in responsive mode (recommended: 2-column at ≥920px via CSS Grid `grid-template-columns: repeat(2, minmax(0, 1fr))` + `align-items: start`, single-col on mobile). Paul's follow-up Qs: in a 2-column grid, how does the existing newest-first sort read (top-row left-then-right vs column-major), and does the existing chip filter strip (BU-feed-filter, shipped #115: All / Urgent / Happening now / Meetings / Events) still work cleanly above a 2-col grid?
 
-**Status:** new (awaiting agent investigation)
+**Status:** investigated · 2026-05-02
+
+### Agent investigation
+
+#### Clarifying questions
+
+1. **Reading order — row-major (left → right, then next row) or column-major (down then over)?** CSS Grid with `grid-auto-flow: row` (default) yields row-major: posts 1+2 share the top row, 3+4 the next. Column-major (`grid-auto-flow: column dense` or CSS columns) yields newspaper-style "scan down the left column first." Newest-first only feels right with row-major; column-major silently breaks the chronological promise. Confirm row-major is the target.
+2. **Does "Load more" append into the existing grid, or start a new visual batch?** Today the grid would just keep flowing; on a 2-col grid this means a freshly loaded post can land bottom-left next to a much-older post bottom-right (uneven row heights from `align-items: start` already create ragged column bottoms — appending makes it worse). Acceptable, or do we need a divider / "older" header between pages?
+3. **Hero-bearing posts vs body-only posts at the same row height — do we accept the ragged column?** `align-items: start` is the recommended mitigation but it leaves visible vertical gaps. Alternative is `masonry` (now baseline in Safari/FF, still flagged in Chrome 2026) — bigger lift, prettier result.
+4. **Does the chip strip stay 720px-capped, or widen with the grid?** Page is currently `maxWidth: 720`. A 2-col grid implies bumping that to ~1100–1200px at ≥920px; the chip strip then either centres at 720 (asymmetric) or stretches with the grid (more horizontal travel for thumb on tablets in landscape).
+
+#### Overlap with existing work
+
+- **RT-001 Candidate B** ("chip card" 2-col grid) — RT-002 is the same surface seen from the sort/filter angle. Resolutions here feed directly into RT-001's promotion.
+- **`server/services/post.ts:192`** — `orderBy: [{ createdAt: 'desc' }, { id: 'desc' }]` is unchanged by layout; sort is server-side, layout is client-side, so the data contract is safe regardless of column count.
+- **`shared/feed-filters.ts` + `filterToWhere` (post.ts:139)** — filter is a server-side WHERE clause keyed off `?filter=`. Page already uses `key={filter}` on `<FeedList>` (app/feed/page.tsx:122) so changing filter remounts and resets the grid cleanly. No filter-vs-grid interaction risk.
+- **`FeedFilterChips`** is a horizontal scroll strip with right-edge mask (FeedFilterChips.tsx:80) — already responsive, no change needed; sits _above_ the grid container so the grid breakpoint is independent.
+- **D061** (global tap pattern) — unchanged; tap-anywhere-navs survives column count.
+- **design-philosophy principle 3** (no anxiety amplification) — 2-col doubles cards-per-screen on wide; argues for a max card count or "permission to close" footer at grid bottom.
+
+#### Implementation sketch
+
+- **`app/feed/page.tsx`** — bump `maxWidth` to ~1120px at ≥920px (or drop the cap and let `FeedList` own the grid container width). Keep chip strip at 720px or widen with the grid (Q4).
+- **`components/FeedList.tsx`** — wrap `posts.map(...)` in a container with `display: grid; grid-template-columns: 1fr; gap: var(--space-6); @media (min-width: 920px) { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }`. Replace the current `flexDirection: 'column'`. Keep "Load more" button in `gridColumn: '1 / -1'` so it spans both columns and stays centred.
+- **No changes** to `server/services/post.ts` — sort and filter are layer-isolated from layout. Cursor pagination still works.
+- **`PostCard.tsx`** — verify hero/body widths don't assume a `100vw`-ish parent; existing inline styles look fluid but worth a visual pass. Long titles + clamp render differently at half-width.
+- **Test plan:** with each filter chip active, verify the grid still renders newest-first row-major; verify "Load more" appends correctly when an odd number of new posts arrives; verify mobile (<920px) is identical to today.
+- **Keep behind `ff_feed_density`** if shipping alongside RT-001 Candidate B; otherwise straight ship — pure CSS, fully reversible.
+
+#### Promotion suggestion
+
+- **Recommended destination:** parking-lot (alongside RT-001's "chip card" entry, or merged into it)
+- **Reason:** sort + filter work cleanly with a 2-col CSS grid because both are server-side concerns and the layout is purely presentational — the real questions are visual (row-major vs column-major, ragged columns, chip strip width). These are UX calls, not engineering blockers, so park with RT-001 and promote together when Paul picks a candidate.
