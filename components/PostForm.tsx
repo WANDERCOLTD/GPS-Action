@@ -70,7 +70,7 @@ import {
 import { useRouter } from 'next/navigation';
 import type { CreatePostResult } from '@/app/compose/actions';
 import { kindIsTimeBearing } from '@/shared/post-kinds';
-import { geocodeUkPostcode } from '@/shared/geo';
+import { resolveLocation } from '@/shared/geo';
 import {
   publishPostAction,
   sendPostForReviewAction,
@@ -450,10 +450,10 @@ export function PostForm({
         } else {
           const trimmed = locationFields.postcode.trim();
           if (trimmed) {
-            const coords = await geocodeUkPostcode(trimmed);
+            const coords = await resolveLocation(trimmed);
             if (!coords) {
               setPostcodeError(
-                "Postcode not recognised — check spelling, or tick 'This is online'",
+                "Couldn't find that location — try a UK postcode, town or city, or tick 'This is online'",
               );
               return;
             }

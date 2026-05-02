@@ -25,7 +25,7 @@
 import { useState, useTransition, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { kindIsTimeBearing } from '@/shared/post-kinds';
-import { geocodeUkPostcode } from '@/shared/geo';
+import { resolveLocation } from '@/shared/geo';
 import { HeroImagePicker } from './HeroImagePicker';
 import {
   EventFieldsBlock,
@@ -114,10 +114,10 @@ export function EditPostForm({ post, initialEventFields, onSubmit }: EditPostFor
           formData.set('isOnline', 'false');
           const trimmed = locationFields.postcode.trim();
           if (trimmed) {
-            const coords = await geocodeUkPostcode(trimmed);
+            const coords = await resolveLocation(trimmed);
             if (!coords) {
               setPostcodeError(
-                "Postcode not recognised — check spelling, or tick 'This is online'",
+                "Couldn't find that location — try a UK postcode, town or city, or tick 'This is online'",
               );
               return;
             }
