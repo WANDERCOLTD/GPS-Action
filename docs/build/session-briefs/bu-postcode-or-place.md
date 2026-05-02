@@ -3,7 +3,7 @@ slug: bu-postcode-or-place
 status: stub
 phase: 2
 priority: medium
-note: "Plan-only brief. Extends BU-post-location-input + BU-calendar-near-me's single field from postcode-only to 'postcode OR town/city/area' with one input. Adds Nominatim (OpenStreetMap) as the free-text geocoder behind a chained resolver. Two architectural variants surfaced for Paul to pick (client-side vs server proxy) — Nominatim's User-Agent policy + browser CORS make this a real choice, not a coin flip. See engineering-roadmap B17 for the Mapbox swap trigger."
+note: "Plan-locked brief, ready to build. Extends BU-post-location-input + BU-calendar-near-me's single field from postcode-only to 'postcode OR town/city/area' with one input. Server-proxied Nominatim (OpenStreetMap) behind a chained resolver (postcodes.io → Nominatim, UK-biased). All 6 open questions answered 2026-05-02. See engineering-roadmap B17 for the Mapbox swap trigger."
 ---
 
 # SESSION BRIEF · bu-postcode-or-place — One field, postcode or place
@@ -247,25 +247,26 @@ materially. Two choices:
 
 ---
 
-## Open questions
+## Locked decisions (Paul, 2026-05-02)
 
-1. **Variant A vs B (the architectural fork).** Recommend B. Confirm.
-2. **Privacy disclosure** under the field — silent or one-line note?
-   Recommend the one-line note.
-3. **Composer scope.** Extend the same UX to `/compose`'s location
-   field too, or only `/calendar?view=near`? Recommend both — the
-   friction is symmetric.
-4. **Global fallback for non-UK input.** If `countrycodes=gb` returns
-   nothing, do we retry without the country bias (so `Paris` resolves)
-   or surface the friendly error? Recommend surface the error — GPS
-   Action is UK-focused; resolving Paris is a footgun for distance
-   sort against UK events.
-5. **Rate-limit response code from our proxy.** When our 1 req/s
-   budget is exceeded, return `429` (correct semantically) or `503`
-   (more generic)? Recommend 429 with a `Retry-After: 1` header.
-6. **Min input length** before we bother the API. 1 char? 2? 3?
-   Currently the field accepts anything. Recommend ≥ 2 chars
-   (`London` is 6, `Hackney` is 7, no real-world place is 1 char).
+1. **Architecture: Variant B — server proxy** at `/api/geocode/place`.
+   Nominatim's User-Agent policy is enforced server-side; client code
+   stays unchanged when we later swap to Mapbox (B17).
+2. **Privacy disclosure: one-line note under the field** —
+   "Locations resolved via OpenStreetMap." Matches Honest-copy
+   principle #5 in `design-philosophy.md`.
+3. **Composer scope: both** — `/calendar?view=near` AND `/compose` +
+   `/post/[id]/edit` location fields all use the chained resolver.
+   Friction is symmetric.
+4. **No global fallback** — `countrycodes=gb` everywhere; non-UK input
+   surfaces the friendly error rather than resolving (e.g. `Paris`
+   would compute a useless distance against UK-only events).
+5. **Rate-limit response: `429` with `Retry-After: 1`** when the
+   server proxy's 1 req/s budget is exceeded.
+6. **Min input length: > 2 characters** (i.e. ≥ 3). Field accepts
+   typing freely; `Find` button stays inert and submit is a no-op
+   below the threshold. No place name in scope is shorter than 3
+   characters in practice.
 
 ---
 
