@@ -139,12 +139,12 @@ describe('NearMeViewBody — prompt state', () => {
     expect(findByTestId(tree, 'calendar-near-use-geolocation')).toBeUndefined();
     // Permission-denied prompt switches the copy from the "Allow your
     // location" line to the "We need a location" fallback that
-    // signposts the postcode option.
+    // signposts the postcode-or-place option (BU-postcode-or-place).
     const promptCopy = flatChildren(tree).filter(
       (e) => typeof e.type === 'string' && e.type === 'p',
     );
     const haystack = promptCopy.map((p) => JSON.stringify(p.props['children'])).join(' ');
-    expect(haystack).toMatch(/postcode instead/);
+    expect(haystack).toMatch(/postcode, town or city instead/);
   });
 });
 

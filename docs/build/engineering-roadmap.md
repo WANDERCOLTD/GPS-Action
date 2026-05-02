@@ -541,6 +541,64 @@ the CI gate enforced the flip before merge.
 
 ---
 
+### B17 · Geocoder upgrade — Mapbox / Google Places swap once Nominatim rate-limit bites
+
+**What:** A planned migration path off Nominatim (OpenStreetMap) to a
+typeahead-capable commercial geocoder for free-text place lookup
+(town / city / area resolution beside the existing UK postcode path).
+
+BU-postcode-or-place ships Nominatim as the free-text fallback because
+it's free, no API key, and matches the postcodes.io pattern already in
+the codebase. Nominatim's [usage policy](https://operations.osmfoundation.org/policies/nominatim/)
+caps absolute use to ~1 req/s, requires a real User-Agent, and asks
+heavy users to self-host. At GPS Action's MVP volume this is fine; at
+public-launch volume — especially if members start typing speculatively
+(typeahead-style) instead of just hitting Find — we'll bump the cap.
+
+**Trigger:** Any one of:
+
+- Server-side rate-limit headers from Nominatim start returning 429
+  in production logs more than once a week
+- We adopt typeahead UX (per-keystroke geocode) — Nominatim is not
+  designed for that workload; commercial APIs are
+- Volume reaches ~10 unique geocode calls/minute sustained
+- Any plan for non-UK members at scale (Nominatim's data quality
+  varies by country; Mapbox / Google are uniform)
+
+**Effort:** ~half a day to swap.
+
+- Pick: **Mapbox Search Box API** (free tier ≈ 50k req/mo, generous;
+  typeahead built in) is the leaner swap. Google Places is more
+  accurate but adds billing complexity.
+- Add `MAPBOX_TOKEN` to `.env` + `env.ts`
+- Replace `geocodePlace` body in `shared/geo.ts` (or its server proxy
+  per the BU's architectural decision) with a Mapbox call
+- If typeahead lands at the same time, that's a separate UX BU
+  (debounced input → suggestions list) — Mapbox unlocks it but doesn't
+  require it on day one
+
+**Files:**
+
+- `shared/geo.ts` (or `app/api/geocode/place/route.ts` if the BU lands
+  the proxy variant) — swap fetch URL + auth + response parser
+- `.env.example` + `server/lib/env.ts` — add `MAPBOX_TOKEN`
+- `docs/product/parking-lot.md` or `docs/architecture/decision-log.md`
+  — short ADR if the swap involves architectural change (server proxy
+  vs client-side)
+
+**Why not now:** Nominatim is free + zero-key + zero-config. A swap
+costs nothing today; what we need is the trigger criteria (above) so
+the swap happens before members feel friction, not after.
+
+**Origin:** Surfaced during BU-postcode-or-place planning (2026-05-02)
+when user asked how area / city input would scale beyond a small
+demo. Recorded here so the trigger isn't forgotten.
+
+**Dependencies:** BU-postcode-or-place ships Nominatim first; this is
+the upgrade path.
+
+---
+
 ## Tier C — Nice to have, adopt when value is clear
 
 These aren't wrong — they're just not earning their cost at MVP scale. Each
