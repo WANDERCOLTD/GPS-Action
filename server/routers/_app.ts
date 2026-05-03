@@ -14,6 +14,7 @@ import { reactionRouter } from '@/server/routers/reaction';
 import { commentRouter } from '@/server/routers/comment';
 import { requestRouter } from '@/server/routers/request';
 import { adminRouter } from '@/server/routers/admin';
+import { searchRouter } from '@/server/routers/search';
 import { isDemoMode } from '@/shared/demo-mode';
 
 export const appRouter = router({
@@ -27,6 +28,7 @@ export const appRouter = router({
   comment: commentRouter,
   request: requestRouter,
   admin: adminRouter,
+  search: searchRouter,
 });
 
 export type AppRouter = typeof appRouter;
