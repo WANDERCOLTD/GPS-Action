@@ -1,1419 +1,1640 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" data-theme="light">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Coordination Board · UI surface sketches</title>
-  <meta name="description" content="GPS Action — sketches of the five coordination-board UI surfaces (Inbox A/B + Broadcast wizard) for tech-review and stakeholder discussion.">
-  <style>
-    /* =====================================================================
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Coordination Board · UI surface sketches</title>
+    <meta
+      name="description"
+      content="GPS Action — sketches of the five coordination-board UI surfaces (Inbox A/B + Broadcast wizard) for tech-review and stakeholder discussion."
+    />
+    <style>
+      /* =====================================================================
        GPS Action — design tokens (subset, mirrored from styles/tokens.css)
        ===================================================================== */
-    :root {
-      --c-primary: #1851cc;
-      --c-primary-bright: #3d74e6;
-      --c-primary-subtle: #e6edfa;
-      --c-success: #0f6e56;
-      --c-success-subtle: #e1f5ee;
-      --c-warning: #ba7517;
-      --c-warning-subtle: #faeeda;
-      --c-urgent: #d85a30;
-      --c-urgent-subtle: #faece7;
-      --c-danger: #a32d2d;
-      --c-info: #3c3489;
-      --c-info-subtle: #eeedfe;
-      --c-cultural: #6b3045;
-      --c-cultural-subtle: #f3e8ec;
-      --c-whatsapp: #25d366;
-      --c-canvas: #f4f1ea;
-      --c-raised: #ffffff;
-      --c-sunken: #ede9df;
-      --c-border: #e5e2d8;
-      --c-border-strong: #b4b2a9;
-      --c-text: #2c2c2a;
-      --c-text-2: #5f5e5a;
-      --c-text-3: #888780;
-      --c-disabled: #b4b2a9;
+      :root {
+        --c-primary: #1851cc;
+        --c-primary-bright: #3d74e6;
+        --c-primary-subtle: #e6edfa;
+        --c-success: #0f6e56;
+        --c-success-subtle: #e1f5ee;
+        --c-warning: #ba7517;
+        --c-warning-subtle: #faeeda;
+        --c-urgent: #d85a30;
+        --c-urgent-subtle: #faece7;
+        --c-danger: #a32d2d;
+        --c-info: #3c3489;
+        --c-info-subtle: #eeedfe;
+        --c-cultural: #6b3045;
+        --c-cultural-subtle: #f3e8ec;
+        --c-whatsapp: #25d366;
+        --c-canvas: #f4f1ea;
+        --c-raised: #ffffff;
+        --c-sunken: #ede9df;
+        --c-border: #e5e2d8;
+        --c-border-strong: #b4b2a9;
+        --c-text: #2c2c2a;
+        --c-text-2: #5f5e5a;
+        --c-text-3: #888780;
+        --c-disabled: #b4b2a9;
 
-      --s-1: 4px;
-      --s-2: 8px;
-      --s-3: 12px;
-      --s-4: 16px;
-      --s-5: 20px;
-      --s-6: 24px;
-      --s-8: 32px;
-      --s-10: 40px;
-      --s-12: 48px;
+        --s-1: 4px;
+        --s-2: 8px;
+        --s-3: 12px;
+        --s-4: 16px;
+        --s-5: 20px;
+        --s-6: 24px;
+        --s-8: 32px;
+        --s-10: 40px;
+        --s-12: 48px;
 
-      --r-sm: 4px;
-      --r-md: 8px;
-      --r-lg: 14px;
-      --r-pill: 999px;
+        --r-sm: 4px;
+        --r-md: 8px;
+        --r-lg: 14px;
+        --r-pill: 999px;
 
-      --font-ui: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', Arial, sans-serif;
-      --font-mono: 'SF Mono', Menlo, Consolas, monospace;
+        --font-ui: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        --font-mono: 'SF Mono', Menlo, Consolas, monospace;
 
-      --shadow-sm: 0 1px 2px rgba(28, 28, 26, 0.06);
-      --shadow-md: 0 2px 8px rgba(28, 28, 26, 0.08);
-      --shadow-lg: 0 4px 16px rgba(28, 28, 26, 0.10);
-    }
+        --shadow-sm: 0 1px 2px rgba(28, 28, 26, 0.06);
+        --shadow-md: 0 2px 8px rgba(28, 28, 26, 0.08);
+        --shadow-lg: 0 4px 16px rgba(28, 28, 26, 0.1);
+      }
 
-    * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
 
-    html, body {
-      margin: 0;
-      padding: 0;
-      font-family: var(--font-ui);
-      color: var(--c-text);
-      background: var(--c-canvas);
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: var(--font-ui);
+        color: var(--c-text);
+        background: var(--c-canvas);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
 
-    body {
-      line-height: 1.55;
-      font-size: 14px;
-    }
+      body {
+        line-height: 1.55;
+        font-size: 14px;
+      }
 
-    .page {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: var(--s-12) var(--s-6);
-    }
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: var(--s-12) var(--s-6);
+      }
 
-    a { color: var(--c-primary); }
+      a {
+        color: var(--c-primary);
+      }
 
-    code {
-      font-family: var(--font-mono);
-      font-size: 0.92em;
-      background: var(--c-sunken);
-      padding: 1px 5px;
-      border-radius: var(--r-sm);
-    }
+      code {
+        font-family: var(--font-mono);
+        font-size: 0.92em;
+        background: var(--c-sunken);
+        padding: 1px 5px;
+        border-radius: var(--r-sm);
+      }
 
-    /* =====================================================================
+      /* =====================================================================
        Page header / table of contents
        ===================================================================== */
-    .page-header h1 {
-      font-size: 30px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      margin: 0 0 var(--s-2);
-    }
+      .page-header h1 {
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin: 0 0 var(--s-2);
+      }
 
-    .page-header .meta {
-      color: var(--c-text-2);
-      font-size: 13px;
-      margin: 0 0 var(--s-5);
-    }
+      .page-header .meta {
+        color: var(--c-text-2);
+        font-size: 13px;
+        margin: 0 0 var(--s-5);
+      }
 
-    .page-header .lede {
-      max-width: 720px;
-      font-size: 16px;
-      line-height: 1.6;
-      color: var(--c-text);
-      margin: 0 0 var(--s-6);
-    }
+      .page-header .lede {
+        max-width: 720px;
+        font-size: 16px;
+        line-height: 1.6;
+        color: var(--c-text);
+        margin: 0 0 var(--s-6);
+      }
 
-    .page-header .lede strong { color: var(--c-text); }
+      .page-header .lede strong {
+        color: var(--c-text);
+      }
 
-    nav.toc {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--s-2) var(--s-4);
-      padding: var(--s-3) var(--s-4);
-      background: var(--c-raised);
-      border: 1px solid var(--c-border);
-      border-radius: var(--r-md);
-      font-size: 13px;
-      margin: 0 0 var(--s-12);
-    }
+      nav.toc {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--s-2) var(--s-4);
+        padding: var(--s-3) var(--s-4);
+        background: var(--c-raised);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        font-size: 13px;
+        margin: 0 0 var(--s-12);
+      }
 
-    nav.toc strong {
-      color: var(--c-text-2);
-      margin-right: var(--s-3);
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      font-size: 11px;
-    }
+      nav.toc strong {
+        color: var(--c-text-2);
+        margin-right: var(--s-3);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        font-size: 11px;
+      }
 
-    nav.toc a {
-      text-decoration: none;
-      color: var(--c-primary);
-      white-space: nowrap;
-    }
+      nav.toc a {
+        text-decoration: none;
+        color: var(--c-primary);
+        white-space: nowrap;
+      }
 
-    nav.toc a:hover { text-decoration: underline; }
+      nav.toc a:hover {
+        text-decoration: underline;
+      }
 
-    /* =====================================================================
+      /* =====================================================================
        Surface section
        ===================================================================== */
-    section.surface {
-      background: var(--c-raised);
-      border: 1px solid var(--c-border);
-      border-radius: var(--r-lg);
-      padding: var(--s-8);
-      margin: 0 0 var(--s-8);
-      box-shadow: var(--shadow-sm);
-    }
+      section.surface {
+        background: var(--c-raised);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-lg);
+        padding: var(--s-8);
+        margin: 0 0 var(--s-8);
+        box-shadow: var(--shadow-sm);
+      }
 
-    section.surface h2 {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.005em;
-      margin: 0 0 var(--s-1);
-    }
+      section.surface h2 {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.005em;
+        margin: 0 0 var(--s-1);
+      }
 
-    section.surface h2 .num {
-      display: inline-block;
-      width: 28px;
-      height: 28px;
-      line-height: 28px;
-      text-align: center;
-      background: var(--c-primary);
-      color: #fff;
-      border-radius: var(--r-sm);
-      font-size: 14px;
-      margin-right: var(--s-3);
-      vertical-align: middle;
-    }
+      section.surface h2 .num {
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        line-height: 28px;
+        text-align: center;
+        background: var(--c-primary);
+        color: #fff;
+        border-radius: var(--r-sm);
+        font-size: 14px;
+        margin-right: var(--s-3);
+        vertical-align: middle;
+      }
 
-    section.surface .kicker {
-      color: var(--c-text-2);
-      font-size: 14px;
-      margin: 0 0 var(--s-6);
-      max-width: 700px;
-    }
+      section.surface .kicker {
+        color: var(--c-text-2);
+        font-size: 14px;
+        margin: 0 0 var(--s-6);
+        max-width: 700px;
+      }
 
-    section.surface .mock-shell {
-      background: var(--c-sunken);
-      border: 1px solid var(--c-border);
-      border-radius: var(--r-md);
-      padding: var(--s-4);
-      margin: 0 0 var(--s-6);
-      overflow-x: auto;
-    }
+      section.surface .mock-shell {
+        background: var(--c-sunken);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        padding: var(--s-4);
+        margin: 0 0 var(--s-6);
+        overflow-x: auto;
+      }
 
-    .mock-frame {
-      background: var(--c-raised);
-      border: 1px solid var(--c-border);
-      border-radius: var(--r-md);
-      font-size: 13px;
-      box-shadow: var(--shadow-sm);
-    }
+      .mock-frame {
+        background: var(--c-raised);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        font-size: 13px;
+        box-shadow: var(--shadow-sm);
+      }
 
-    /* Callouts beneath each mockup */
-    ol.callouts {
-      margin: 0;
-      padding-left: var(--s-6);
-      counter-reset: cb;
-      list-style: none;
-    }
+      /* Callouts beneath each mockup */
+      ol.callouts {
+        margin: 0;
+        padding-left: var(--s-6);
+        counter-reset: cb;
+        list-style: none;
+      }
 
-    ol.callouts li {
-      position: relative;
-      margin: 0 0 var(--s-3);
-      padding-left: var(--s-3);
-      color: var(--c-text-2);
-      font-size: 14px;
-      line-height: 1.5;
-    }
+      ol.callouts li {
+        position: relative;
+        margin: 0 0 var(--s-3);
+        padding-left: var(--s-3);
+        color: var(--c-text-2);
+        font-size: 14px;
+        line-height: 1.5;
+      }
 
-    ol.callouts li::before {
-      counter-increment: cb;
-      content: counter(cb);
-      position: absolute;
-      left: -28px;
-      top: 1px;
-      display: inline-block;
-      width: 22px;
-      height: 22px;
-      line-height: 22px;
-      text-align: center;
-      background: var(--c-primary-subtle);
-      color: var(--c-primary);
-      border-radius: var(--r-pill);
-      font-weight: 600;
-      font-size: 12px;
-    }
+      ol.callouts li::before {
+        counter-increment: cb;
+        content: counter(cb);
+        position: absolute;
+        left: -28px;
+        top: 1px;
+        display: inline-block;
+        width: 22px;
+        height: 22px;
+        line-height: 22px;
+        text-align: center;
+        background: var(--c-primary-subtle);
+        color: var(--c-primary);
+        border-radius: var(--r-pill);
+        font-weight: 600;
+        font-size: 12px;
+      }
 
-    ol.callouts li strong {
-      color: var(--c-text);
-      font-weight: 600;
-    }
+      ol.callouts li strong {
+        color: var(--c-text);
+        font-weight: 600;
+      }
 
-    .qref {
-      color: var(--c-primary);
-      background: var(--c-primary-subtle);
-      padding: 1px 7px;
-      border-radius: var(--r-pill);
-      font-size: 11px;
-      font-weight: 600;
-      margin-left: var(--s-1);
-      white-space: nowrap;
-    }
+      .qref {
+        color: var(--c-primary);
+        background: var(--c-primary-subtle);
+        padding: 1px 7px;
+        border-radius: var(--r-pill);
+        font-size: 11px;
+        font-weight: 600;
+        margin-left: var(--s-1);
+        white-space: nowrap;
+      }
 
-    /* =====================================================================
+      /* =====================================================================
        Shared mockup primitives
        ===================================================================== */
-    .muted { color: var(--c-text-3); }
-    .strong { color: var(--c-text); font-weight: 600; }
-    .row { display: flex; align-items: center; gap: var(--s-2); }
+      .muted {
+        color: var(--c-text-3);
+      }
+      .strong {
+        color: var(--c-text);
+        font-weight: 600;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: var(--s-2);
+      }
 
-    .avatar {
-      flex: 0 0 auto;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: var(--c-primary-subtle);
-      color: var(--c-primary);
-      font-size: 11px;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
+      .avatar {
+        flex: 0 0 auto;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--c-primary-subtle);
+        color: var(--c-primary);
+        font-size: 11px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-    .chip {
-      display: inline-block;
-      padding: 1px 8px;
-      border-radius: var(--r-pill);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      background: var(--c-sunken);
-      color: var(--c-text-2);
-      border: 1px solid var(--c-border);
-    }
+      .chip {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: var(--r-pill);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        background: var(--c-sunken);
+        color: var(--c-text-2);
+        border: 1px solid var(--c-border);
+      }
 
-    .chip-urgent { background: var(--c-urgent-subtle); color: var(--c-urgent); border-color: var(--c-urgent-subtle); }
-    .chip-info { background: var(--c-info-subtle); color: var(--c-info); border-color: var(--c-info-subtle); }
-    .chip-success { background: var(--c-success-subtle); color: var(--c-success); border-color: var(--c-success-subtle); }
-    .chip-warning { background: var(--c-warning-subtle); color: var(--c-warning); border-color: var(--c-warning-subtle); }
+      .chip-urgent {
+        background: var(--c-urgent-subtle);
+        color: var(--c-urgent);
+        border-color: var(--c-urgent-subtle);
+      }
+      .chip-info {
+        background: var(--c-info-subtle);
+        color: var(--c-info);
+        border-color: var(--c-info-subtle);
+      }
+      .chip-success {
+        background: var(--c-success-subtle);
+        color: var(--c-success);
+        border-color: var(--c-success-subtle);
+      }
+      .chip-warning {
+        background: var(--c-warning-subtle);
+        color: var(--c-warning);
+        border-color: var(--c-warning-subtle);
+      }
 
-    .read-tick { color: var(--c-success); font-weight: 700; font-size: 12px; }
+      .read-tick {
+        color: var(--c-success);
+        font-weight: 700;
+        font-size: 12px;
+      }
 
-    .pill-btn {
-      display: inline-block;
-      padding: 6px 14px;
-      border-radius: var(--r-pill);
-      font-size: 12px;
-      font-weight: 600;
-      background: var(--c-raised);
-      color: var(--c-text);
-      border: 1px solid var(--c-border-strong);
-    }
+      .pill-btn {
+        display: inline-block;
+        padding: 6px 14px;
+        border-radius: var(--r-pill);
+        font-size: 12px;
+        font-weight: 600;
+        background: var(--c-raised);
+        color: var(--c-text);
+        border: 1px solid var(--c-border-strong);
+      }
 
-    .btn-primary {
-      background: var(--c-primary);
-      color: #fff;
-      border-color: var(--c-primary);
-    }
+      .btn-primary {
+        background: var(--c-primary);
+        color: #fff;
+        border-color: var(--c-primary);
+      }
 
-    .btn-success { background: var(--c-success); color: #fff; border-color: var(--c-success); }
+      .btn-success {
+        background: var(--c-success);
+        color: #fff;
+        border-color: var(--c-success);
+      }
 
-    /* =====================================================================
+      /* =====================================================================
        Surface 1 — Kanban
        ===================================================================== */
-    .kanban-frame { padding: 0; }
-    .kanban-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: var(--s-3) var(--s-4);
-      border-bottom: 1px solid var(--c-border);
-      background: var(--c-canvas);
-      border-top-left-radius: var(--r-md);
-      border-top-right-radius: var(--r-md);
-    }
-    .kanban-cols {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: var(--s-3);
-      padding: var(--s-4);
-    }
-    .kanban-col h4 {
-      margin: 0 0 var(--s-3);
-      font-size: 12px;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: var(--c-text-2);
-      font-weight: 600;
-    }
-    .kanban-col h4 .count { color: var(--c-text-3); font-weight: 500; }
-    .kanban-card {
-      background: var(--c-raised);
-      border: 1px solid var(--c-border);
-      border-radius: var(--r-md);
-      padding: var(--s-3);
-      margin-bottom: var(--s-2);
-      box-shadow: var(--shadow-sm);
-    }
-    .kanban-card.card-urgent { border-left: 3px solid var(--c-urgent); }
-    .kanban-card.card-active { border-left: 3px solid var(--c-info); }
-    .kanban-card.card-done { border-left: 3px solid var(--c-success); opacity: 0.85; }
-    .kanban-card .card-title { font-weight: 600; font-size: 13px; margin-bottom: var(--s-1); }
-    .kanban-card .card-meta { font-size: 12px; color: var(--c-text-2); margin-bottom: var(--s-2); }
-    .kanban-card .card-foot { display: flex; justify-content: space-between; align-items: center; }
-    .kanban-card .card-time { color: var(--c-text-3); font-size: 11px; }
+      .kanban-frame {
+        padding: 0;
+      }
+      .kanban-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--s-3) var(--s-4);
+        border-bottom: 1px solid var(--c-border);
+        background: var(--c-canvas);
+        border-top-left-radius: var(--r-md);
+        border-top-right-radius: var(--r-md);
+      }
+      .kanban-cols {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--s-3);
+        padding: var(--s-4);
+      }
+      .kanban-col h4 {
+        margin: 0 0 var(--s-3);
+        font-size: 12px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--c-text-2);
+        font-weight: 600;
+      }
+      .kanban-col h4 .count {
+        color: var(--c-text-3);
+        font-weight: 500;
+      }
+      .kanban-card {
+        background: var(--c-raised);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        padding: var(--s-3);
+        margin-bottom: var(--s-2);
+        box-shadow: var(--shadow-sm);
+      }
+      .kanban-card.card-urgent {
+        border-left: 3px solid var(--c-urgent);
+      }
+      .kanban-card.card-active {
+        border-left: 3px solid var(--c-info);
+      }
+      .kanban-card.card-done {
+        border-left: 3px solid var(--c-success);
+        opacity: 0.85;
+      }
+      .kanban-card .card-title {
+        font-weight: 600;
+        font-size: 13px;
+        margin-bottom: var(--s-1);
+      }
+      .kanban-card .card-meta {
+        font-size: 12px;
+        color: var(--c-text-2);
+        margin-bottom: var(--s-2);
+      }
+      .kanban-card .card-foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .kanban-card .card-time {
+        color: var(--c-text-3);
+        font-size: 11px;
+      }
 
-    .kanban-footer {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: var(--s-3) var(--s-4);
-      border-top: 1px solid var(--c-border);
-      background: var(--c-canvas);
-      font-size: 12px;
-      color: var(--c-text-2);
-      border-bottom-left-radius: var(--r-md);
-      border-bottom-right-radius: var(--r-md);
-    }
+      .kanban-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--s-3) var(--s-4);
+        border-top: 1px solid var(--c-border);
+        background: var(--c-canvas);
+        font-size: 12px;
+        color: var(--c-text-2);
+        border-bottom-left-radius: var(--r-md);
+        border-bottom-right-radius: var(--r-md);
+      }
 
-    /* =====================================================================
+      /* =====================================================================
        Surface 2 — Inbox desktop (3-pane)
        ===================================================================== */
-    .inbox-frame { padding: 0; }
-    .inbox-grid {
-      display: grid;
-      grid-template-columns: 56px 220px 320px 1fr;
-      min-height: 580px;
-    }
+      .inbox-frame {
+        padding: 0;
+      }
+      .inbox-grid {
+        display: grid;
+        grid-template-columns: 56px 220px 320px 1fr;
+        min-height: 580px;
+      }
 
-    .rail {
-      background: #1a1d29;
-      color: #cfd2dc;
-      display: flex; flex-direction: column; align-items: center;
-      padding: var(--s-3) 0;
-      gap: var(--s-3);
-      border-top-left-radius: var(--r-md);
-      border-bottom-left-radius: var(--r-md);
-    }
-    .rail-logo {
-      width: 28px; height: 28px;
-      background: var(--c-primary-bright);
-      color: #fff; border-radius: var(--r-sm);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 14px;
-      margin-bottom: var(--s-3);
-    }
-    .rail-icon {
-      width: 36px; height: 36px;
-      display: flex; align-items: center; justify-content: center;
-      border-radius: var(--r-md);
-      font-size: 16px; cursor: pointer;
-    }
-    .rail-icon.active { background: rgba(61, 116, 230, 0.22); color: #fff; }
-    .rail-icon.muted { color: #6c7081; }
-    .rail-spacer { flex: 1; }
+      .rail {
+        background: #1a1d29;
+        color: #cfd2dc;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: var(--s-3) 0;
+        gap: var(--s-3);
+        border-top-left-radius: var(--r-md);
+        border-bottom-left-radius: var(--r-md);
+      }
+      .rail-logo {
+        width: 28px;
+        height: 28px;
+        background: var(--c-primary-bright);
+        color: #fff;
+        border-radius: var(--r-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        margin-bottom: var(--s-3);
+      }
+      .rail-icon {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--r-md);
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .rail-icon.active {
+        background: rgba(61, 116, 230, 0.22);
+        color: #fff;
+      }
+      .rail-icon.muted {
+        color: #6c7081;
+      }
+      .rail-spacer {
+        flex: 1;
+      }
 
-    .sidebar {
-      background: var(--c-canvas);
-      border-right: 1px solid var(--c-border);
-      padding: var(--s-3) var(--s-2);
-      font-size: 13px;
-    }
-    .sidebar h4 {
-      margin: var(--s-3) var(--s-2) var(--s-2);
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--c-text-3);
-      font-weight: 600;
-    }
-    .sidebar-item {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 6px var(--s-2);
-      border-radius: var(--r-sm);
-      cursor: pointer;
-      color: var(--c-text);
-    }
-    .sidebar-item:hover { background: var(--c-sunken); }
-    .sidebar-item.active { background: var(--c-primary-subtle); color: var(--c-primary); font-weight: 600; }
-    .sidebar-item .badge {
-      background: transparent;
-      color: var(--c-text-3);
-      font-size: 11px;
-    }
-    .sidebar-divider {
-      height: 1px;
-      background: var(--c-border);
-      margin: var(--s-3) var(--s-2);
-    }
+      .sidebar {
+        background: var(--c-canvas);
+        border-right: 1px solid var(--c-border);
+        padding: var(--s-3) var(--s-2);
+        font-size: 13px;
+      }
+      .sidebar h4 {
+        margin: var(--s-3) var(--s-2) var(--s-2);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-text-3);
+        font-weight: 600;
+      }
+      .sidebar-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px var(--s-2);
+        border-radius: var(--r-sm);
+        cursor: pointer;
+        color: var(--c-text);
+      }
+      .sidebar-item:hover {
+        background: var(--c-sunken);
+      }
+      .sidebar-item.active {
+        background: var(--c-primary-subtle);
+        color: var(--c-primary);
+        font-weight: 600;
+      }
+      .sidebar-item .badge {
+        background: transparent;
+        color: var(--c-text-3);
+        font-size: 11px;
+      }
+      .sidebar-divider {
+        height: 1px;
+        background: var(--c-border);
+        margin: var(--s-3) var(--s-2);
+      }
 
-    .inbox-list {
-      border-right: 1px solid var(--c-border);
-      display: flex; flex-direction: column;
-    }
-    .list-header {
-      padding: var(--s-3) var(--s-3);
-      border-bottom: 1px solid var(--c-border);
-      display: flex; gap: var(--s-2); align-items: center;
-      background: var(--c-raised);
-    }
-    .filter-pill {
-      padding: 4px 10px;
-      background: var(--c-sunken);
-      border-radius: var(--r-sm);
-      font-weight: 600;
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .icon-btn {
-      width: 28px; height: 28px;
-      display: inline-flex; align-items: center; justify-content: center;
-      border-radius: var(--r-sm);
-      color: var(--c-text-2);
-      cursor: pointer;
-    }
-    .icon-btn:hover { background: var(--c-sunken); }
+      .inbox-list {
+        border-right: 1px solid var(--c-border);
+        display: flex;
+        flex-direction: column;
+      }
+      .list-header {
+        padding: var(--s-3) var(--s-3);
+        border-bottom: 1px solid var(--c-border);
+        display: flex;
+        gap: var(--s-2);
+        align-items: center;
+        background: var(--c-raised);
+      }
+      .filter-pill {
+        padding: 4px 10px;
+        background: var(--c-sunken);
+        border-radius: var(--r-sm);
+        font-weight: 600;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .icon-btn {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--r-sm);
+        color: var(--c-text-2);
+        cursor: pointer;
+      }
+      .icon-btn:hover {
+        background: var(--c-sunken);
+      }
 
-    .group-label {
-      padding: var(--s-2) var(--s-3);
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--c-text-3);
-      background: var(--c-sunken);
-      font-weight: 600;
-      display: flex; align-items: center; gap: var(--s-1);
-    }
-    .conv-row {
-      padding: var(--s-3);
-      border-bottom: 1px solid var(--c-border);
-      cursor: pointer;
-      display: grid;
-      grid-template-columns: 32px 1fr;
-      gap: var(--s-2);
-    }
-    .conv-row.active { background: var(--c-primary-subtle); border-left: 3px solid var(--c-primary); padding-left: 9px; }
-    .conv-row:hover:not(.active) { background: var(--c-canvas); }
-    .conv-meta { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-2); }
-    .conv-meta .name { font-weight: 600; font-size: 13px; }
-    .conv-meta .time { color: var(--c-text-3); font-size: 11px; }
-    .conv-preview {
-      color: var(--c-text-2);
-      font-size: 12px;
-      margin: 2px 0 var(--s-2);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .conv-foot {
-      display: flex; justify-content: space-between; align-items: center;
-      gap: var(--s-2);
-    }
-    .channel-glyph { font-size: 12px; margin-right: 4px; }
+      .group-label {
+        padding: var(--s-2) var(--s-3);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-text-3);
+        background: var(--c-sunken);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: var(--s-1);
+      }
+      .conv-row {
+        padding: var(--s-3);
+        border-bottom: 1px solid var(--c-border);
+        cursor: pointer;
+        display: grid;
+        grid-template-columns: 32px 1fr;
+        gap: var(--s-2);
+      }
+      .conv-row.active {
+        background: var(--c-primary-subtle);
+        border-left: 3px solid var(--c-primary);
+        padding-left: 9px;
+      }
+      .conv-row:hover:not(.active) {
+        background: var(--c-canvas);
+      }
+      .conv-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: var(--s-2);
+      }
+      .conv-meta .name {
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .conv-meta .time {
+        color: var(--c-text-3);
+        font-size: 11px;
+      }
+      .conv-preview {
+        color: var(--c-text-2);
+        font-size: 12px;
+        margin: 2px 0 var(--s-2);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .conv-foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--s-2);
+      }
+      .channel-glyph {
+        font-size: 12px;
+        margin-right: 4px;
+      }
 
-    /* Detail pane */
-    .detail-pane {
-      display: flex; flex-direction: column;
-      background: var(--c-canvas);
-    }
-    .detail-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: var(--s-3) var(--s-4);
-      background: var(--c-raised);
-      border-bottom: 1px solid var(--c-border);
-    }
-    .detail-header .title {
-      font-weight: 700; font-size: 15px;
-      display: flex; align-items: center; gap: var(--s-2);
-    }
-    .detail-header .star { color: var(--c-warning); }
-    .detail-actions { display: flex; gap: 4px; }
-    .assignment-bar {
-      padding: var(--s-2) var(--s-4);
-      background: var(--c-canvas);
-      border-bottom: 1px solid var(--c-border);
-      font-size: 12px;
-      color: var(--c-text-2);
-    }
-    .assignment-bar .assigned-to {
-      background: var(--c-raised);
-      border: 1px solid var(--c-border);
-      padding: 4px 10px;
-      border-radius: var(--r-sm);
-      margin-left: var(--s-2);
-    }
+      /* Detail pane */
+      .detail-pane {
+        display: flex;
+        flex-direction: column;
+        background: var(--c-canvas);
+      }
+      .detail-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--s-3) var(--s-4);
+        background: var(--c-raised);
+        border-bottom: 1px solid var(--c-border);
+      }
+      .detail-header .title {
+        font-weight: 700;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        gap: var(--s-2);
+      }
+      .detail-header .star {
+        color: var(--c-warning);
+      }
+      .detail-actions {
+        display: flex;
+        gap: 4px;
+      }
+      .assignment-bar {
+        padding: var(--s-2) var(--s-4);
+        background: var(--c-canvas);
+        border-bottom: 1px solid var(--c-border);
+        font-size: 12px;
+        color: var(--c-text-2);
+      }
+      .assignment-bar .assigned-to {
+        background: var(--c-raised);
+        border: 1px solid var(--c-border);
+        padding: 4px 10px;
+        border-radius: var(--r-sm);
+        margin-left: var(--s-2);
+      }
 
-    .thread { padding: var(--s-4); flex: 1; overflow-y: auto; }
-    .msg {
-      display: grid;
-      grid-template-columns: 32px 1fr;
-      gap: var(--s-3);
-      margin-bottom: var(--s-4);
-    }
-    .msg-bubble {
-      background: var(--c-raised);
-      border: 1px solid var(--c-border);
-      border-radius: var(--r-md);
-      padding: var(--s-3);
-      font-size: 13px;
-      max-width: 480px;
-    }
-    .msg-bubble .who {
-      font-weight: 600;
-      font-size: 12px;
-      color: var(--c-text-2);
-      margin-bottom: 2px;
-    }
-    .msg-bubble.note { background: var(--c-warning-subtle); border-color: var(--c-warning); border-left: 3px solid var(--c-warning); }
-    .msg-bubble.note .who { color: var(--c-warning); }
-    .msg-bubble.system { background: var(--c-info-subtle); border-color: var(--c-info-subtle); border-left: 3px solid var(--c-info); font-size: 12px; color: var(--c-info); }
-    .msg-bubble.system .who { color: var(--c-info); }
+      .thread {
+        padding: var(--s-4);
+        flex: 1;
+        overflow-y: auto;
+      }
+      .msg {
+        display: grid;
+        grid-template-columns: 32px 1fr;
+        gap: var(--s-3);
+        margin-bottom: var(--s-4);
+      }
+      .msg-bubble {
+        background: var(--c-raised);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        padding: var(--s-3);
+        font-size: 13px;
+        max-width: 480px;
+      }
+      .msg-bubble .who {
+        font-weight: 600;
+        font-size: 12px;
+        color: var(--c-text-2);
+        margin-bottom: 2px;
+      }
+      .msg-bubble.note {
+        background: var(--c-warning-subtle);
+        border-color: var(--c-warning);
+        border-left: 3px solid var(--c-warning);
+      }
+      .msg-bubble.note .who {
+        color: var(--c-warning);
+      }
+      .msg-bubble.system {
+        background: var(--c-info-subtle);
+        border-color: var(--c-info-subtle);
+        border-left: 3px solid var(--c-info);
+        font-size: 12px;
+        color: var(--c-info);
+      }
+      .msg-bubble.system .who {
+        color: var(--c-info);
+      }
 
-    .composer {
-      padding: var(--s-3) var(--s-4);
-      background: var(--c-raised);
-      border-top: 1px solid var(--c-border);
-    }
-    .composer-tabs {
-      display: flex;
-      gap: var(--s-1);
-      margin-bottom: var(--s-2);
-    }
-    .composer-tab {
-      padding: 4px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      border-radius: var(--r-sm) var(--r-sm) 0 0;
-      cursor: pointer;
-      border: 1px solid transparent;
-      color: var(--c-text-2);
-    }
-    .composer-tab.active { background: var(--c-raised); border-color: var(--c-border); border-bottom-color: var(--c-raised); color: var(--c-text); }
-    .composer-tab.note.active { color: var(--c-warning); border-color: var(--c-warning); }
-    .composer-input {
-      border: 1px solid var(--c-border);
-      border-radius: var(--r-md);
-      background: var(--c-raised);
-      padding: var(--s-3);
-      min-height: 56px;
-      color: var(--c-text-3);
-      font-size: 13px;
-    }
-    .composer-input.note-mode { background: var(--c-warning-subtle); border-color: var(--c-warning); }
-    .composer-foot {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-top: var(--s-2);
-    }
-    .composer-icons { display: flex; gap: var(--s-1); color: var(--c-text-2); }
-    .channel-select {
-      font-size: 11px;
-      border: 1px solid var(--c-border);
-      padding: 3px 8px;
-      border-radius: var(--r-sm);
-      margin-right: var(--s-2);
-      color: var(--c-text-2);
-    }
+      .composer {
+        padding: var(--s-3) var(--s-4);
+        background: var(--c-raised);
+        border-top: 1px solid var(--c-border);
+      }
+      .composer-tabs {
+        display: flex;
+        gap: var(--s-1);
+        margin-bottom: var(--s-2);
+      }
+      .composer-tab {
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: var(--r-sm) var(--r-sm) 0 0;
+        cursor: pointer;
+        border: 1px solid transparent;
+        color: var(--c-text-2);
+      }
+      .composer-tab.active {
+        background: var(--c-raised);
+        border-color: var(--c-border);
+        border-bottom-color: var(--c-raised);
+        color: var(--c-text);
+      }
+      .composer-tab.note.active {
+        color: var(--c-warning);
+        border-color: var(--c-warning);
+      }
+      .composer-input {
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        background: var(--c-raised);
+        padding: var(--s-3);
+        min-height: 56px;
+        color: var(--c-text-3);
+        font-size: 13px;
+      }
+      .composer-input.note-mode {
+        background: var(--c-warning-subtle);
+        border-color: var(--c-warning);
+      }
+      .composer-foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: var(--s-2);
+      }
+      .composer-icons {
+        display: flex;
+        gap: var(--s-1);
+        color: var(--c-text-2);
+      }
+      .channel-select {
+        font-size: 11px;
+        border: 1px solid var(--c-border);
+        padding: 3px 8px;
+        border-radius: var(--r-sm);
+        margin-right: var(--s-2);
+        color: var(--c-text-2);
+      }
 
-    /* Assign panel popover (dotted overlay) */
-    .assign-popover {
-      position: relative;
-      margin: var(--s-3) var(--s-4);
-      background: var(--c-raised);
-      border: 1px dashed var(--c-primary);
-      border-radius: var(--r-md);
-      padding: var(--s-3);
-      box-shadow: var(--shadow-md);
-      font-size: 12px;
-      max-width: 500px;
-    }
-    .assign-popover h5 {
-      margin: 0 0 var(--s-2);
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--c-text-3);
-    }
-    .assign-popover .assign-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--s-3);
-    }
-    .assign-action {
-      padding: 6px var(--s-2);
-      border-radius: var(--r-sm);
-      cursor: pointer;
-    }
-    .assign-action.active { background: var(--c-primary-subtle); color: var(--c-primary); font-weight: 600; }
-    .assign-popover .annotate {
-      color: var(--c-primary);
-      font-size: 11px;
-      font-style: italic;
-      margin-top: var(--s-2);
-      border-top: 1px dashed var(--c-primary);
-      padding-top: var(--s-2);
-    }
+      /* Assign panel popover (dotted overlay) */
+      .assign-popover {
+        position: relative;
+        margin: var(--s-3) var(--s-4);
+        background: var(--c-raised);
+        border: 1px dashed var(--c-primary);
+        border-radius: var(--r-md);
+        padding: var(--s-3);
+        box-shadow: var(--shadow-md);
+        font-size: 12px;
+        max-width: 500px;
+      }
+      .assign-popover h5 {
+        margin: 0 0 var(--s-2);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-text-3);
+      }
+      .assign-popover .assign-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--s-3);
+      }
+      .assign-action {
+        padding: 6px var(--s-2);
+        border-radius: var(--r-sm);
+        cursor: pointer;
+      }
+      .assign-action.active {
+        background: var(--c-primary-subtle);
+        color: var(--c-primary);
+        font-weight: 600;
+      }
+      .assign-popover .annotate {
+        color: var(--c-primary);
+        font-size: 11px;
+        font-style: italic;
+        margin-top: var(--s-2);
+        border-top: 1px dashed var(--c-primary);
+        padding-top: var(--s-2);
+      }
 
-    /* =====================================================================
+      /* =====================================================================
        Surface 3 — Inbox mobile (two phone frames side-by-side)
        ===================================================================== */
-    .phones {
-      display: flex;
-      gap: var(--s-8);
-      flex-wrap: wrap;
-      justify-content: center;
-      padding: var(--s-4) 0;
-    }
-    .phone {
-      width: 320px;
-      background: var(--c-canvas);
-      border-radius: 28px;
-      border: 8px solid #1a1d29;
-      box-shadow: var(--shadow-lg);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      min-height: 580px;
-    }
-    .phone-status {
-      background: #1a1d29;
-      color: #cfd2dc;
-      font-size: 11px;
-      padding: 6px var(--s-4) 4px;
-      display: flex; justify-content: space-between;
-    }
-    .phone-header {
-      padding: var(--s-3) var(--s-4);
-      background: var(--c-raised);
-      border-bottom: 1px solid var(--c-border);
-      display: flex; align-items: center; justify-content: space-between;
-      font-weight: 600;
-      font-size: 14px;
-    }
-    .phone-list .conv-row { padding: var(--s-3) var(--s-4); }
-    .phone-tabs {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      background: var(--c-raised);
-      border-top: 1px solid var(--c-border);
-      font-size: 12px;
-      text-align: center;
-    }
-    .phone-tabs > div { padding: var(--s-3) 0; color: var(--c-text-3); }
-    .phone-tabs > div.active { color: var(--c-primary); font-weight: 600; border-top: 2px solid var(--c-primary); }
-    .phone-label {
-      text-align: center;
-      color: var(--c-text-2);
-      font-size: 12px;
-      margin-top: var(--s-2);
-    }
-    .phone-detail-thread { padding: var(--s-3); flex: 1; }
-    .phone-composer {
-      padding: var(--s-3) var(--s-4);
-      background: var(--c-raised);
-      border-top: 1px solid var(--c-border);
-    }
+      .phones {
+        display: flex;
+        gap: var(--s-8);
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: var(--s-4) 0;
+      }
+      .phone {
+        width: 320px;
+        background: var(--c-canvas);
+        border-radius: 28px;
+        border: 8px solid #1a1d29;
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 580px;
+      }
+      .phone-status {
+        background: #1a1d29;
+        color: #cfd2dc;
+        font-size: 11px;
+        padding: 6px var(--s-4) 4px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .phone-header {
+        padding: var(--s-3) var(--s-4);
+        background: var(--c-raised);
+        border-bottom: 1px solid var(--c-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .phone-list .conv-row {
+        padding: var(--s-3) var(--s-4);
+      }
+      .phone-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        background: var(--c-raised);
+        border-top: 1px solid var(--c-border);
+        font-size: 12px;
+        text-align: center;
+      }
+      .phone-tabs > div {
+        padding: var(--s-3) 0;
+        color: var(--c-text-3);
+      }
+      .phone-tabs > div.active {
+        color: var(--c-primary);
+        font-weight: 600;
+        border-top: 2px solid var(--c-primary);
+      }
+      .phone-label {
+        text-align: center;
+        color: var(--c-text-2);
+        font-size: 12px;
+        margin-top: var(--s-2);
+      }
+      .phone-detail-thread {
+        padding: var(--s-3);
+        flex: 1;
+      }
+      .phone-composer {
+        padding: var(--s-3) var(--s-4);
+        background: var(--c-raised);
+        border-top: 1px solid var(--c-border);
+      }
 
-    /* =====================================================================
+      /* =====================================================================
        Surface 4 — Broadcast wizard step 2
        ===================================================================== */
-    .wizard-frame { padding: var(--s-6); background: var(--c-raised); }
-    .stepper {
-      display: flex; align-items: center; gap: var(--s-3);
-      padding-bottom: var(--s-4);
-      border-bottom: 1px solid var(--c-border);
-      margin-bottom: var(--s-6);
-      flex-wrap: wrap;
-    }
-    .step {
-      display: flex; align-items: center; gap: var(--s-2);
-      color: var(--c-text-3);
-      font-size: 13px;
-    }
-    .step .num-circle {
-      width: 26px; height: 26px;
-      border-radius: 50%;
-      border: 2px solid var(--c-border-strong);
-      background: var(--c-raised);
-      color: var(--c-text-3);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700;
-      font-size: 12px;
-    }
-    .step.done .num-circle { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-    .step.active .num-circle { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
-    .step.active { color: var(--c-text); font-weight: 600; }
-    .step-line {
-      flex: 1;
-      height: 1px;
-      background: var(--c-border);
-      min-width: 24px;
-    }
-    .audience-pill {
-      margin-left: auto;
-      padding: 6px 14px;
-      border-radius: var(--r-pill);
-      background: var(--c-success-subtle);
-      color: var(--c-success);
-      font-size: 12px;
-      font-weight: 600;
-    }
+      .wizard-frame {
+        padding: var(--s-6);
+        background: var(--c-raised);
+      }
+      .stepper {
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+        padding-bottom: var(--s-4);
+        border-bottom: 1px solid var(--c-border);
+        margin-bottom: var(--s-6);
+        flex-wrap: wrap;
+      }
+      .step {
+        display: flex;
+        align-items: center;
+        gap: var(--s-2);
+        color: var(--c-text-3);
+        font-size: 13px;
+      }
+      .step .num-circle {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 2px solid var(--c-border-strong);
+        background: var(--c-raised);
+        color: var(--c-text-3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 12px;
+      }
+      .step.done .num-circle {
+        background: var(--c-primary);
+        border-color: var(--c-primary);
+        color: #fff;
+      }
+      .step.active .num-circle {
+        background: var(--c-primary);
+        border-color: var(--c-primary);
+        color: #fff;
+      }
+      .step.active {
+        color: var(--c-text);
+        font-weight: 600;
+      }
+      .step-line {
+        flex: 1;
+        height: 1px;
+        background: var(--c-border);
+        min-width: 24px;
+      }
+      .audience-pill {
+        margin-left: auto;
+        padding: 6px 14px;
+        border-radius: var(--r-pill);
+        background: var(--c-success-subtle);
+        color: var(--c-success);
+        font-size: 12px;
+        font-weight: 600;
+      }
 
-    .wizard-grid {
-      display: grid;
-      grid-template-columns: 1.4fr 1fr;
-      gap: var(--s-8);
-    }
+      .wizard-grid {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: var(--s-8);
+      }
 
-    .field-block { margin-bottom: var(--s-5); }
-    .field-block label {
-      display: block;
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--c-text-2);
-      font-weight: 600;
-      margin-bottom: var(--s-2);
-    }
-    .field-block .field-help {
-      color: var(--c-text-3);
-      font-size: 12px;
-      margin-top: var(--s-1);
-    }
+      .field-block {
+        margin-bottom: var(--s-5);
+      }
+      .field-block label {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-text-2);
+        font-weight: 600;
+        margin-bottom: var(--s-2);
+      }
+      .field-block .field-help {
+        color: var(--c-text-3);
+        font-size: 12px;
+        margin-top: var(--s-1);
+      }
 
-    .channel-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
-    .channel-chip {
-      padding: 8px 14px;
-      border-radius: var(--r-pill);
-      font-size: 12px;
-      font-weight: 600;
-      border: 1px solid var(--c-border);
-      background: var(--c-raised);
-      color: var(--c-text-2);
-      display: inline-flex; align-items: center; gap: 6px;
-    }
-    .channel-chip.selected {
-      background: var(--c-primary-subtle);
-      color: var(--c-primary);
-      border-color: var(--c-primary);
-    }
-    .channel-chip.wa.selected { background: rgba(37, 211, 102, 0.12); color: #1a8a45; border-color: var(--c-whatsapp); }
+      .channel-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--s-2);
+      }
+      .channel-chip {
+        padding: 8px 14px;
+        border-radius: var(--r-pill);
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid var(--c-border);
+        background: var(--c-raised);
+        color: var(--c-text-2);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .channel-chip.selected {
+        background: var(--c-primary-subtle);
+        color: var(--c-primary);
+        border-color: var(--c-primary);
+      }
+      .channel-chip.wa.selected {
+        background: rgba(37, 211, 102, 0.12);
+        color: #1a8a45;
+        border-color: var(--c-whatsapp);
+      }
 
-    .text-input {
-      display: block;
-      width: 100%;
-      padding: 10px var(--s-3);
-      border: 1px solid var(--c-border-strong);
-      border-radius: var(--r-md);
-      background: var(--c-raised);
-      font-family: var(--font-ui);
-      font-size: 14px;
-      color: var(--c-text);
-    }
+      .text-input {
+        display: block;
+        width: 100%;
+        padding: 10px var(--s-3);
+        border: 1px solid var(--c-border-strong);
+        border-radius: var(--r-md);
+        background: var(--c-raised);
+        font-family: var(--font-ui);
+        font-size: 14px;
+        color: var(--c-text);
+      }
 
-    .lang-toggle {
-      float: right;
-      font-size: 11px;
-      padding: 3px 10px;
-      background: var(--c-sunken);
-      border-radius: var(--r-pill);
-      color: var(--c-text-2);
-    }
+      .lang-toggle {
+        float: right;
+        font-size: 11px;
+        padding: 3px 10px;
+        background: var(--c-sunken);
+        border-radius: var(--r-pill);
+        color: var(--c-text-2);
+      }
 
-    .composer-template {
-      border: 1px solid var(--c-border-strong);
-      border-radius: var(--r-md);
-      background: var(--c-raised);
-      padding: var(--s-4);
-      font-size: 14px;
-      line-height: 1.6;
-      min-height: 220px;
-    }
+      .composer-template {
+        border: 1px solid var(--c-border-strong);
+        border-radius: var(--r-md);
+        background: var(--c-raised);
+        padding: var(--s-4);
+        font-size: 14px;
+        line-height: 1.6;
+        min-height: 220px;
+      }
 
-    .var-pill {
-      display: inline-block;
-      padding: 1px 8px;
-      background: var(--c-info-subtle);
-      color: var(--c-info);
-      border-radius: var(--r-pill);
-      font-size: 12px;
-      font-family: var(--font-mono);
-      font-weight: 600;
-    }
+      .var-pill {
+        display: inline-block;
+        padding: 1px 8px;
+        background: var(--c-info-subtle);
+        color: var(--c-info);
+        border-radius: var(--r-pill);
+        font-size: 12px;
+        font-family: var(--font-mono);
+        font-weight: 600;
+      }
 
-    .composer-attach {
-      margin-top: var(--s-4);
-      padding-top: var(--s-3);
-      border-top: 1px dashed var(--c-border);
-      display: flex; gap: var(--s-3); flex-wrap: wrap;
-    }
-    .composer-attach > span {
-      color: var(--c-text-3);
-      font-size: 12px;
-    }
+      .composer-attach {
+        margin-top: var(--s-4);
+        padding-top: var(--s-3);
+        border-top: 1px dashed var(--c-border);
+        display: flex;
+        gap: var(--s-3);
+        flex-wrap: wrap;
+      }
+      .composer-attach > span {
+        color: var(--c-text-3);
+        font-size: 12px;
+      }
 
-    .quick-replies { display: flex; gap: var(--s-2); flex-wrap: wrap; }
-    .quick-reply-btn {
-      padding: 6px 16px;
-      border-radius: var(--r-pill);
-      background: var(--c-success-subtle);
-      color: var(--c-success);
-      font-size: 12px;
-      font-weight: 600;
-      border: 1px solid var(--c-success-subtle);
-    }
+      .quick-replies {
+        display: flex;
+        gap: var(--s-2);
+        flex-wrap: wrap;
+      }
+      .quick-reply-btn {
+        padding: 6px 16px;
+        border-radius: var(--r-pill);
+        background: var(--c-success-subtle);
+        color: var(--c-success);
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid var(--c-success-subtle);
+      }
 
-    /* Preview panel */
-    .preview-panel {
-      background: var(--c-sunken);
-      border: 1px solid var(--c-border);
-      border-radius: var(--r-md);
-      padding: var(--s-4);
-    }
-    .preview-panel h5 {
-      margin: 0 0 var(--s-3);
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--c-text-2);
-      font-weight: 600;
-    }
-    .wa-bubble {
-      background: rgba(37, 211, 102, 0.10);
-      border: 1px solid rgba(37, 211, 102, 0.30);
-      border-radius: 10px 10px 10px 2px;
-      padding: var(--s-3);
-      font-size: 13px;
-      line-height: 1.5;
-      color: var(--c-text);
-    }
-    .wa-bubble .wa-buttons {
-      display: flex; flex-direction: column; gap: 1px;
-      margin-top: var(--s-3);
-      padding-top: var(--s-2);
-      border-top: 1px solid rgba(37, 211, 102, 0.30);
-    }
-    .wa-bubble .wa-buttons > div {
-      padding: 6px 10px;
-      text-align: center;
-      color: #1a8a45;
-      font-size: 13px;
-      font-weight: 600;
-      background: rgba(37, 211, 102, 0.06);
-      border-radius: 4px;
-    }
+      /* Preview panel */
+      .preview-panel {
+        background: var(--c-sunken);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        padding: var(--s-4);
+      }
+      .preview-panel h5 {
+        margin: 0 0 var(--s-3);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-text-2);
+        font-weight: 600;
+      }
+      .wa-bubble {
+        background: rgba(37, 211, 102, 0.1);
+        border: 1px solid rgba(37, 211, 102, 0.3);
+        border-radius: 10px 10px 10px 2px;
+        padding: var(--s-3);
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--c-text);
+      }
+      .wa-bubble .wa-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        margin-top: var(--s-3);
+        padding-top: var(--s-2);
+        border-top: 1px solid rgba(37, 211, 102, 0.3);
+      }
+      .wa-bubble .wa-buttons > div {
+        padding: 6px 10px;
+        text-align: center;
+        color: #1a8a45;
+        font-size: 13px;
+        font-weight: 600;
+        background: rgba(37, 211, 102, 0.06);
+        border-radius: 4px;
+      }
 
-    .wizard-footer {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-top: var(--s-6);
-      padding-top: var(--s-4);
-      border-top: 1px solid var(--c-border);
-    }
+      .wizard-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: var(--s-6);
+        padding-top: var(--s-4);
+        border-top: 1px solid var(--c-border);
+      }
 
-    /* =====================================================================
+      /* =====================================================================
        Surface 5 — Broadcast analytics
        ===================================================================== */
-    .analytics-frame { padding: var(--s-6); background: var(--c-raised); }
-    .analytics-header {
-      display: flex; justify-content: space-between; align-items: baseline;
-      flex-wrap: wrap; gap: var(--s-3);
-      margin-bottom: var(--s-4);
-    }
-    .analytics-header h3 { margin: 0; font-size: 20px; }
-    .analytics-header .send-badge {
-      background: var(--c-success-subtle);
-      color: var(--c-success);
-      padding: 4px 10px;
-      border-radius: var(--r-pill);
-      font-size: 12px;
-      font-weight: 600;
-    }
-    .analytics-meta {
-      color: var(--c-text-2);
-      font-size: 13px;
-      margin-bottom: var(--s-6);
-    }
+      .analytics-frame {
+        padding: var(--s-6);
+        background: var(--c-raised);
+      }
+      .analytics-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: var(--s-3);
+        margin-bottom: var(--s-4);
+      }
+      .analytics-header h3 {
+        margin: 0;
+        font-size: 20px;
+      }
+      .analytics-header .send-badge {
+        background: var(--c-success-subtle);
+        color: var(--c-success);
+        padding: 4px 10px;
+        border-radius: var(--r-pill);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .analytics-meta {
+        color: var(--c-text-2);
+        font-size: 13px;
+        margin-bottom: var(--s-6);
+      }
 
-    .funnel {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: var(--s-3);
-      margin-bottom: var(--s-6);
-    }
-    .funnel-tile {
-      background: var(--c-canvas);
-      border: 1px solid var(--c-border);
-      border-radius: var(--r-md);
-      padding: var(--s-4);
-      text-align: center;
-    }
-    .funnel-tile .label {
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--c-text-2);
-      font-weight: 600;
-      margin-bottom: var(--s-2);
-    }
-    .funnel-tile .num { font-size: 32px; font-weight: 700; color: var(--c-text); line-height: 1; }
-    .funnel-tile .pct { font-size: 14px; color: var(--c-text-2); margin-top: var(--s-1); }
-    .funnel-tile.acted { background: var(--c-success-subtle); border-color: var(--c-success-subtle); }
-    .funnel-tile.acted .num { color: var(--c-success); }
-    .funnel-tile.acted .pct { color: var(--c-success); }
-    .funnel-tile .accent { font-size: 11px; color: var(--c-success); margin-top: var(--s-1); font-weight: 600; }
+      .funnel {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--s-3);
+        margin-bottom: var(--s-6);
+      }
+      .funnel-tile {
+        background: var(--c-canvas);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        padding: var(--s-4);
+        text-align: center;
+      }
+      .funnel-tile .label {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-text-2);
+        font-weight: 600;
+        margin-bottom: var(--s-2);
+      }
+      .funnel-tile .num {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--c-text);
+        line-height: 1;
+      }
+      .funnel-tile .pct {
+        font-size: 14px;
+        color: var(--c-text-2);
+        margin-top: var(--s-1);
+      }
+      .funnel-tile.acted {
+        background: var(--c-success-subtle);
+        border-color: var(--c-success-subtle);
+      }
+      .funnel-tile.acted .num {
+        color: var(--c-success);
+      }
+      .funnel-tile.acted .pct {
+        color: var(--c-success);
+      }
+      .funnel-tile .accent {
+        font-size: 11px;
+        color: var(--c-success);
+        margin-top: var(--s-1);
+        font-weight: 600;
+      }
 
-    .analytics-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--s-4);
-      margin-bottom: var(--s-6);
-    }
-    .analytics-card {
-      background: var(--c-raised);
-      border: 1px solid var(--c-border);
-      border-radius: var(--r-md);
-      padding: var(--s-4);
-    }
-    .analytics-card h4 { margin: 0 0 var(--s-2); font-size: 13px; }
-    .analytics-card .num-large { font-size: 24px; font-weight: 700; color: var(--c-text); }
-    .analytics-card a { display: inline-block; margin-top: var(--s-2); font-size: 12px; }
+      .analytics-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--s-4);
+        margin-bottom: var(--s-6);
+      }
+      .analytics-card {
+        background: var(--c-raised);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        padding: var(--s-4);
+      }
+      .analytics-card h4 {
+        margin: 0 0 var(--s-2);
+        font-size: 13px;
+      }
+      .analytics-card .num-large {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--c-text);
+      }
+      .analytics-card a {
+        display: inline-block;
+        margin-top: var(--s-2);
+        font-size: 12px;
+      }
 
-    .segment-table { width: 100%; border-collapse: collapse; margin-top: var(--s-4); font-size: 13px; }
-    .segment-table th, .segment-table td {
-      text-align: right;
-      padding: var(--s-2) var(--s-3);
-      border-bottom: 1px solid var(--c-border);
-    }
-    .segment-table th:first-child, .segment-table td:first-child { text-align: left; }
-    .segment-table th { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-text-2); }
-    .segment-count { color: var(--c-text-3); font-size: 11px; }
+      .segment-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: var(--s-4);
+        font-size: 13px;
+      }
+      .segment-table th,
+      .segment-table td {
+        text-align: right;
+        padding: var(--s-2) var(--s-3);
+        border-bottom: 1px solid var(--c-border);
+      }
+      .segment-table th:first-child,
+      .segment-table td:first-child {
+        text-align: left;
+      }
+      .segment-table th {
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--c-text-2);
+      }
+      .segment-count {
+        color: var(--c-text-3);
+        font-size: 11px;
+      }
 
-    .analytics-foot {
-      display: flex; justify-content: flex-end; gap: var(--s-2);
-      padding-top: var(--s-4);
-      border-top: 1px solid var(--c-border);
-      margin-top: var(--s-6);
-    }
+      .analytics-foot {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--s-2);
+        padding-top: var(--s-4);
+        border-top: 1px solid var(--c-border);
+        margin-top: var(--s-6);
+      }
 
-    /* =====================================================================
+      /* =====================================================================
        Footer
        ===================================================================== */
-    .page-footer {
-      margin-top: var(--s-12);
-      padding-top: var(--s-6);
-      border-top: 1px solid var(--c-border);
-      color: var(--c-text-2);
-      font-size: 12px;
-    }
-    .page-footer a { color: var(--c-primary); }
+      .page-footer {
+        margin-top: var(--s-12);
+        padding-top: var(--s-6);
+        border-top: 1px solid var(--c-border);
+        color: var(--c-text-2);
+        font-size: 12px;
+      }
+      .page-footer a {
+        color: var(--c-primary);
+      }
 
-    /* =====================================================================
+      /* =====================================================================
        Responsive: collapse a few grids on narrow screens
        ===================================================================== */
-    @media (max-width: 920px) {
-      .inbox-grid { grid-template-columns: 56px 1fr; }
-      .inbox-grid .inbox-list,
-      .inbox-grid .detail-pane,
-      .inbox-grid .sidebar { grid-column: 2; }
-      .inbox-grid .inbox-list { display: none; }
-      .inbox-grid .detail-pane { display: none; }
-      .wizard-grid { grid-template-columns: 1fr; }
-      .analytics-row { grid-template-columns: 1fr; }
-      .funnel { grid-template-columns: repeat(2, 1fr); }
-      .kanban-cols { grid-template-columns: repeat(2, 1fr); }
-    }
+      @media (max-width: 920px) {
+        .inbox-grid {
+          grid-template-columns: 56px 1fr;
+        }
+        .inbox-grid .inbox-list,
+        .inbox-grid .detail-pane,
+        .inbox-grid .sidebar {
+          grid-column: 2;
+        }
+        .inbox-grid .inbox-list {
+          display: none;
+        }
+        .inbox-grid .detail-pane {
+          display: none;
+        }
+        .wizard-grid {
+          grid-template-columns: 1fr;
+        }
+        .analytics-row {
+          grid-template-columns: 1fr;
+        }
+        .funnel {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .kanban-cols {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
 
-    /* =====================================================================
+      /* =====================================================================
        Print: each surface starts a new page, keep contrast
        ===================================================================== */
-    @media print {
-      body { background: #fff; font-size: 12px; }
-      .page { padding: 0; max-width: none; }
-      nav.toc { display: none; }
-      section.surface { break-inside: avoid; page-break-inside: avoid; box-shadow: none; border-color: #d4d2c8; }
-      section.surface + section.surface { page-break-before: always; }
-      .mock-shell { background: #faf8f3; }
-      a { color: var(--c-text); text-decoration: none; }
-    }
-  </style>
-</head>
-<body>
-  <div class="page">
-
-    <!-- =================================================================
+      @media print {
+        body {
+          background: #fff;
+          font-size: 12px;
+        }
+        .page {
+          padding: 0;
+          max-width: none;
+        }
+        nav.toc {
+          display: none;
+        }
+        section.surface {
+          break-inside: avoid;
+          page-break-inside: avoid;
+          box-shadow: none;
+          border-color: #d4d2c8;
+        }
+        section.surface + section.surface {
+          page-break-before: always;
+        }
+        .mock-shell {
+          background: #faf8f3;
+        }
+        a {
+          color: var(--c-text);
+          text-decoration: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <!-- =================================================================
          Header + ToC
          ================================================================= -->
-    <header class="page-header">
-      <h1>Coordination Board · UI surface sketches</h1>
-      <p class="meta">v0.3 · 2026-05-03 · Companion to <code>bu-coordination-board.md</code> · Pre-prototype, mockups not pixel-final</p>
-      <p class="lede">
-        Five surfaces lifted from the merged Inbox + Broadcast thinking, sketched
-        in the GPS palette so we can react to them as a group rather than to
-        ASCII. <strong>Goal:</strong> give the tech-review meeting (Simon, Harry,
-        Grant, Paul, Leonid) and the non-technical reviewers (Jeremy, writers,
-        partner-org reps) a concrete artefact to redirect.
-      </p>
-      <p class="lede">
-        These are <em>structural</em> sketches — the geometry, the affordances,
-        the information density. Visual polish comes after the prototype phase.
-        Question references like <span class="qref">Q15</span> link back to
-        the open-questions list in the build brief.
-      </p>
+      <header class="page-header">
+        <h1>Coordination Board · UI surface sketches</h1>
+        <p class="meta">
+          v0.3 · 2026-05-03 · Companion to <code>bu-coordination-board.md</code> · Pre-prototype,
+          mockups not pixel-final
+        </p>
+        <p class="lede">
+          Five surfaces lifted from the merged Inbox + Broadcast thinking, sketched in the GPS
+          palette so we can react to them as a group rather than to ASCII.
+          <strong>Goal:</strong> give the tech-review meeting (Simon, Harry, Grant, Paul, Leonid)
+          and the non-technical reviewers (Jeremy, writers, partner-org reps) a concrete artefact to
+          redirect.
+        </p>
+        <p class="lede">
+          These are <em>structural</em> sketches — the geometry, the affordances, the information
+          density. Visual polish comes after the prototype phase. Question references like
+          <span class="qref">Q15</span> link back to the open-questions list in the build brief.
+        </p>
 
-      <nav class="toc">
-        <strong>Surfaces</strong>
-        <a href="#surface-1">1 · Kanban (Direction A)</a>
-        <a href="#surface-2">2 · Inbox desktop (Direction B)</a>
-        <a href="#surface-3">3 · Inbox mobile (Direction B)</a>
-        <a href="#surface-4">4 · Broadcast · Personalization</a>
-        <a href="#surface-5">5 · Broadcast · Analytics</a>
-      </nav>
-    </header>
+        <nav class="toc">
+          <strong>Surfaces</strong>
+          <a href="#surface-1">1 · Kanban (Direction A)</a>
+          <a href="#surface-2">2 · Inbox desktop (Direction B)</a>
+          <a href="#surface-3">3 · Inbox mobile (Direction B)</a>
+          <a href="#surface-4">4 · Broadcast · Personalization</a>
+          <a href="#surface-5">5 · Broadcast · Analytics</a>
+        </nav>
+      </header>
 
-    <!-- =================================================================
+      <!-- =================================================================
          Surface 1 — Kanban (Direction A)
          ================================================================= -->
-    <section id="surface-1" class="surface">
-      <h2><span class="num">1</span>Direction A · Kanban desktop</h2>
-      <p class="kicker">Leonid's original pitch — each working group sees a colourful board, cards move left to right as work progresses. Columns are configurable per group; the four below are the proposed default.</p>
+      <section id="surface-1" class="surface">
+        <h2><span class="num">1</span>Direction A · Kanban desktop</h2>
+        <p class="kicker">
+          Leonid's original pitch — each working group sees a colourful board, cards move left to
+          right as work progresses. Columns are configurable per group; the four below are the
+          proposed default.
+        </p>
 
-      <div class="mock-shell">
-        <div class="mock-frame kanban-frame">
-          <div class="kanban-header">
-            <div><span class="strong">Writers</span> · active board</div>
-            <div class="muted">12 members · 2 admins</div>
-          </div>
-          <div class="kanban-cols">
-            <div class="kanban-col">
-              <h4>Recruitment <span class="count">(3)</span></h4>
-              <div class="kanban-card card-urgent">
-                <div class="card-title">Hendon flyer</div>
-                <div class="card-meta">unclaimed</div>
-                <div class="card-foot">
-                  <span class="chip chip-urgent">Urgent</span>
-                  <span class="card-time">2d</span>
+        <div class="mock-shell">
+          <div class="mock-frame kanban-frame">
+            <div class="kanban-header">
+              <div><span class="strong">Writers</span> · active board</div>
+              <div class="muted">12 members · 2 admins</div>
+            </div>
+            <div class="kanban-cols">
+              <div class="kanban-col">
+                <h4>Recruitment <span class="count">(3)</span></h4>
+                <div class="kanban-card card-urgent">
+                  <div class="card-title">Hendon flyer</div>
+                  <div class="card-meta">unclaimed</div>
+                  <div class="card-foot">
+                    <span class="chip chip-urgent">Urgent</span>
+                    <span class="card-time">2d</span>
+                  </div>
+                </div>
+                <div class="kanban-card">
+                  <div class="card-title">Pesach message</div>
+                  <div class="card-meta">unclaimed</div>
+                  <div class="card-foot">
+                    <span class="chip">Draft</span>
+                    <span class="card-time">6h</span>
+                  </div>
+                </div>
+                <div class="kanban-card">
+                  <div class="card-title">Newsletter Q3</div>
+                  <div class="card-meta">unclaimed</div>
+                  <div class="card-foot">
+                    <span class="chip">Draft</span>
+                    <span class="card-time">1d</span>
+                  </div>
                 </div>
               </div>
-              <div class="kanban-card">
-                <div class="card-title">Pesach message</div>
-                <div class="card-meta">unclaimed</div>
-                <div class="card-foot">
-                  <span class="chip">Draft</span>
-                  <span class="card-time">6h</span>
+              <div class="kanban-col">
+                <h4>Preparation <span class="count">(2)</span></h4>
+                <div class="kanban-card card-urgent">
+                  <div class="card-title">Edgware petition</div>
+                  <div class="card-meta">
+                    <span class="avatar" style="width: 18px; height: 18px; font-size: 9px">SH</span>
+                    Sharon
+                  </div>
+                  <div class="card-foot">
+                    <span class="chip chip-urgent">Urgent</span>
+                    <span class="card-time">4h</span>
+                  </div>
+                </div>
+                <div class="kanban-card card-active">
+                  <div class="card-title">Radio spot</div>
+                  <div class="card-meta">
+                    <span class="avatar" style="width: 18px; height: 18px; font-size: 9px">MZ</span>
+                    Mira
+                  </div>
+                  <div class="card-foot">
+                    <span class="chip">Draft</span>
+                    <span class="card-time">1d</span>
+                  </div>
                 </div>
               </div>
-              <div class="kanban-card">
-                <div class="card-title">Newsletter Q3</div>
-                <div class="card-meta">unclaimed</div>
-                <div class="card-foot">
-                  <span class="chip">Draft</span>
-                  <span class="card-time">1d</span>
+              <div class="kanban-col">
+                <h4>Implementation <span class="count">(3)</span></h4>
+                <div class="kanban-card card-active">
+                  <div class="card-title">Council letter</div>
+                  <div class="card-meta">
+                    <span class="avatar" style="width: 18px; height: 18px; font-size: 9px">DA</span>
+                    Dan
+                  </div>
+                  <div class="card-foot">
+                    <span class="chip chip-info">Draft</span>
+                    <span class="card-time">1h</span>
+                  </div>
+                </div>
+                <div class="kanban-card card-urgent">
+                  <div class="card-title">Donor letter</div>
+                  <div class="card-meta">
+                    <span class="avatar" style="width: 18px; height: 18px; font-size: 9px">JR</span>
+                    Jonny
+                  </div>
+                  <div class="card-foot">
+                    <span class="chip chip-urgent">Urgent</span>
+                    <span class="card-time">30m</span>
+                  </div>
+                </div>
+                <div class="kanban-card card-active">
+                  <div class="card-title">Kvar bench</div>
+                  <div class="card-meta">
+                    <span class="avatar" style="width: 18px; height: 18px; font-size: 9px">DA</span>
+                    Dan
+                  </div>
+                  <div class="card-foot">
+                    <span class="chip chip-info">Draft</span>
+                    <span class="card-time">2d</span>
+                  </div>
+                </div>
+              </div>
+              <div class="kanban-col">
+                <h4>Monitoring <span class="count">(1)</span></h4>
+                <div class="kanban-card card-done">
+                  <div class="card-title">Open mic followup</div>
+                  <div class="card-meta">
+                    <span class="avatar" style="width: 18px; height: 18px; font-size: 9px">SH</span>
+                    Sharon
+                  </div>
+                  <div class="card-foot">
+                    <span class="chip chip-success">Sent</span>
+                    <span class="card-time">3d</span>
+                  </div>
                 </div>
               </div>
             </div>
-            <div class="kanban-col">
-              <h4>Preparation <span class="count">(2)</span></h4>
-              <div class="kanban-card card-urgent">
-                <div class="card-title">Edgware petition</div>
-                <div class="card-meta"><span class="avatar" style="width:18px;height:18px;font-size:9px">SH</span> Sharon</div>
-                <div class="card-foot">
-                  <span class="chip chip-urgent">Urgent</span>
-                  <span class="card-time">4h</span>
-                </div>
-              </div>
-              <div class="kanban-card card-active">
-                <div class="card-title">Radio spot</div>
-                <div class="card-meta"><span class="avatar" style="width:18px;height:18px;font-size:9px">MZ</span> Mira</div>
-                <div class="card-foot">
-                  <span class="chip">Draft</span>
-                  <span class="card-time">1d</span>
-                </div>
-              </div>
+            <div class="kanban-footer">
+              <span class="muted">+ propose to backlog</span>
+              <span
+                ><a href="#">◀ Backlog (12)</a> &nbsp; · &nbsp; <a href="#">Done (47) ▶</a></span
+              >
             </div>
-            <div class="kanban-col">
-              <h4>Implementation <span class="count">(3)</span></h4>
-              <div class="kanban-card card-active">
-                <div class="card-title">Council letter</div>
-                <div class="card-meta"><span class="avatar" style="width:18px;height:18px;font-size:9px">DA</span> Dan</div>
-                <div class="card-foot">
-                  <span class="chip chip-info">Draft</span>
-                  <span class="card-time">1h</span>
-                </div>
-              </div>
-              <div class="kanban-card card-urgent">
-                <div class="card-title">Donor letter</div>
-                <div class="card-meta"><span class="avatar" style="width:18px;height:18px;font-size:9px">JR</span> Jonny</div>
-                <div class="card-foot">
-                  <span class="chip chip-urgent">Urgent</span>
-                  <span class="card-time">30m</span>
-                </div>
-              </div>
-              <div class="kanban-card card-active">
-                <div class="card-title">Kvar bench</div>
-                <div class="card-meta"><span class="avatar" style="width:18px;height:18px;font-size:9px">DA</span> Dan</div>
-                <div class="card-foot">
-                  <span class="chip chip-info">Draft</span>
-                  <span class="card-time">2d</span>
-                </div>
-              </div>
-            </div>
-            <div class="kanban-col">
-              <h4>Monitoring <span class="count">(1)</span></h4>
-              <div class="kanban-card card-done">
-                <div class="card-title">Open mic followup</div>
-                <div class="card-meta"><span class="avatar" style="width:18px;height:18px;font-size:9px">SH</span> Sharon</div>
-                <div class="card-foot">
-                  <span class="chip chip-success">Sent</span>
-                  <span class="card-time">3d</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="kanban-footer">
-            <span class="muted">+ propose to backlog</span>
-            <span><a href="#">◀ Backlog (12)</a> &nbsp; · &nbsp; <a href="#">Done (47) ▶</a></span>
           </div>
         </div>
-      </div>
 
-      <ol class="callouts">
-        <li><strong>Columns configurable per group</strong> <span class="qref">Q3</span> — the default shown is Recruitment → Preparation → Implementation → Monitoring; Writers might prefer Draft → Edit → Publish → Distribute.</li>
-        <li><strong>Card face</strong> <span class="qref">Q9</span> — title · claimer (or "unclaimed") · status/priority chip · last-updated. The left border carries colour for urgent / active / done.</li>
-        <li><strong>Drag-reorder within column = priority</strong> (admin only). Order is per-column, not global.</li>
-        <li><strong>Backlog and Done are sibling pages</strong> off this view — list-by-default <span class="qref">Q11</span>; cards-toggle available.</li>
-        <li><strong>Mobile collapses</strong> <span class="qref">Q10</span> to a vertical scroll list with column-name as a coloured tag pill on each card.</li>
-      </ol>
-    </section>
+        <ol class="callouts">
+          <li>
+            <strong>Columns configurable per group</strong> <span class="qref">Q3</span> — the
+            default shown is Recruitment → Preparation → Implementation → Monitoring; Writers might
+            prefer Draft → Edit → Publish → Distribute.
+          </li>
+          <li>
+            <strong>Card face</strong> <span class="qref">Q9</span> — title · claimer (or
+            "unclaimed") · status/priority chip · last-updated. The left border carries colour for
+            urgent / active / done.
+          </li>
+          <li>
+            <strong>Drag-reorder within column = priority</strong> (admin only). Order is
+            per-column, not global.
+          </li>
+          <li>
+            <strong>Backlog and Done are sibling pages</strong> off this view — list-by-default
+            <span class="qref">Q11</span>; cards-toggle available.
+          </li>
+          <li>
+            <strong>Mobile collapses</strong> <span class="qref">Q10</span> to a vertical scroll
+            list with column-name as a coloured tag pill on each card.
+          </li>
+        </ol>
+      </section>
 
-    <!-- =================================================================
+      <!-- =================================================================
          Surface 2 — Inbox desktop (Direction B)
          ================================================================= -->
-    <section id="surface-2" class="surface">
-      <h2><span class="num">2</span>Direction B · Inbox desktop</h2>
-      <p class="kicker">SleekFlow-style 4-column layout: global rail · sidebar of lenses + teams · conversation list · conversation detail. The "Assign Conversation" panel is shown popped out (dashed outline) so the routing-verb seam is visible.</p>
+      <section id="surface-2" class="surface">
+        <h2><span class="num">2</span>Direction B · Inbox desktop</h2>
+        <p class="kicker">
+          SleekFlow-style 4-column layout: global rail · sidebar of lenses + teams · conversation
+          list · conversation detail. The "Assign Conversation" panel is shown popped out (dashed
+          outline) so the routing-verb seam is visible.
+        </p>
 
-      <div class="mock-shell">
-        <div class="mock-frame inbox-frame">
-          <div class="inbox-grid">
-
-            <!-- Global rail -->
-            <div class="rail">
-              <div class="rail-logo">G</div>
-              <div class="rail-icon muted" title="Home">⌂</div>
-              <div class="rail-icon active" title="Inbox">📥</div>
-              <div class="rail-icon muted" title="People">👥</div>
-              <div class="rail-icon muted" title="Broadcast">📢</div>
-              <div class="rail-icon muted" title="Flows">🔀</div>
-              <div class="rail-icon muted" title="Analytics">📊</div>
-              <div class="rail-spacer"></div>
-              <div class="rail-icon muted" title="Help">ⓘ</div>
-              <div class="rail-icon muted" title="Invite">＋</div>
-            </div>
-
-            <!-- Sidebar -->
-            <div class="sidebar">
-              <h4>My inbox</h4>
-              <div class="sidebar-item"><span>Assigned to me</span><span class="badge">7</span></div>
-              <div class="sidebar-item"><span>Collaborating</span><span class="badge">3</span></div>
-              <div class="sidebar-item"><span>Mentions</span><span class="badge">2</span></div>
-              <div class="sidebar-item"><span>Starred</span><span class="badge">12</span></div>
-              <div class="sidebar-item"><span>Scheduled</span><span class="badge">4</span></div>
-              <h4>Company inbox</h4>
-              <div class="sidebar-item active"><span>★ All</span><span class="badge">1350</span></div>
-              <div class="sidebar-item"><span>Writers</span><span class="badge">42</span></div>
-              <div class="sidebar-item"><span>Radio</span><span class="badge">18</span></div>
-              <div class="sidebar-item"><span>Social</span><span class="badge">9</span></div>
-              <div class="sidebar-item"><span>IT</span><span class="badge">5</span></div>
-              <div class="sidebar-divider"></div>
-              <h4 style="margin-top: 0">Regions</h4>
-              <div class="sidebar-item"><span>Hendon</span><span class="badge">21</span></div>
-              <div class="sidebar-item"><span>Edgware</span><span class="badge">7</span></div>
-              <div class="sidebar-divider"></div>
-              <h4 style="margin-top: 0">Networks</h4>
-              <div class="sidebar-item"><span>CUFI</span><span class="badge">103</span></div>
-            </div>
-
-            <!-- Conversation list -->
-            <div class="inbox-list">
-              <div class="list-header">
-                <div class="filter-pill">Open (1350) ▾</div>
-                <span class="icon-btn" title="Search">🔍</span>
-                <span class="icon-btn" title="Sort">↕</span>
-                <span class="icon-btn" title="Filter">⌧</span>
-              </div>
-              <div class="group-label">▸ Unassigned (1)</div>
-              <div class="conv-row active">
-                <span class="avatar">JC</span>
-                <div>
-                  <div class="conv-meta"><span class="name">Janice Chan</span><span class="time">16:36</span></div>
-                  <div class="conv-preview"><span class="channel-glyph">📞</span>Great! Thanks so much! Looking forward to use this product…</div>
-                  <div class="conv-foot">
-                    <div>
-                      <span class="chip">Inbound</span>
-                      <span class="chip">Rent</span>
-                      <span class="chip">+2</span>
-                    </div>
-                    <span class="read-tick">✓✓</span>
-                  </div>
-                </div>
-              </div>
-              <div class="group-label">─ Assigned (100) ─────</div>
-              <div class="conv-row">
-                <span class="avatar">KC</span>
-                <div>
-                  <div class="conv-meta"><span class="name">Ken Chan</span><span class="time">16:36</span></div>
-                  <div class="conv-preview"><span class="channel-glyph">▶</span>Video</div>
-                  <div class="conv-foot">
-                    <div>
-                      <span class="chip">Inbound</span>
-                      <span class="chip">Rent</span>
-                    </div>
-                    <span class="read-tick">✓✓</span>
-                  </div>
-                </div>
-              </div>
-              <div class="conv-row">
-                <span class="avatar">SC</span>
-                <div>
-                  <div class="conv-meta"><span class="name">Shaira Cheung</span><span class="time">16:36</span></div>
-                  <div class="conv-preview"><span class="channel-glyph">🖼</span>Image</div>
-                  <div class="conv-foot">
-                    <div>
-                      <span class="chip">Inbound</span>
-                      <span class="chip">Rent</span>
-                      <span class="chip">Female</span>
-                    </div>
-                    <span class="read-tick">✓✓</span>
-                  </div>
-                </div>
-              </div>
-              <div class="conv-row">
-                <span class="avatar">KC</span>
-                <div>
-                  <div class="conv-meta"><span class="name">Katherine Concepcion</span><span class="time">16:36</span></div>
-                  <div class="conv-preview">Can I book an appointment online or do I need to call?</div>
-                  <div class="conv-foot">
-                    <div>
-                      <span class="chip">Inbound</span>
-                    </div>
-                    <span class="read-tick">✓✓</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Detail pane -->
-            <div class="detail-pane">
-              <div class="detail-header">
-                <div class="title">Janice Chan <span class="star">★</span></div>
-                <div class="detail-actions">
-                  <span class="icon-btn" title="Add collaborator">⊕</span>
-                  <span class="icon-btn" title="Info">ⓘ</span>
-                  <span class="icon-btn" title="More">⋯</span>
-                </div>
-              </div>
-              <div class="assignment-bar">
-                Assigned: <span class="assigned-to">Unassigned ▾</span>
+        <div class="mock-shell">
+          <div class="mock-frame inbox-frame">
+            <div class="inbox-grid">
+              <!-- Global rail -->
+              <div class="rail">
+                <div class="rail-logo">G</div>
+                <div class="rail-icon muted" title="Home">⌂</div>
+                <div class="rail-icon active" title="Inbox">📥</div>
+                <div class="rail-icon muted" title="People">👥</div>
+                <div class="rail-icon muted" title="Broadcast">📢</div>
+                <div class="rail-icon muted" title="Flows">🔀</div>
+                <div class="rail-icon muted" title="Analytics">📊</div>
+                <div class="rail-spacer"></div>
+                <div class="rail-icon muted" title="Help">ⓘ</div>
+                <div class="rail-icon muted" title="Invite">＋</div>
               </div>
 
-              <!-- Assign popover (cut into the layout) -->
-              <div class="assign-popover">
-                <div class="assign-grid">
-                  <div>
-                    <h5>Assign conversation</h5>
-                    <div class="assign-action">Unassign</div>
-                    <div class="assign-action">Assign to me</div>
-                    <div class="assign-action">Assign via team ▸</div>
-                    <div class="assign-action active">Assign to user ▸</div>
-                  </div>
-                  <div>
-                    <h5>Assign to user</h5>
-                    <div style="margin-bottom: 6px"><input class="text-input" placeholder="Search name or email" style="font-size: 12px; padding: 6px 10px"></div>
-                    <div class="row"><span class="avatar" style="width:22px;height:22px;font-size:10px">SH</span> Sharon Wenger</div>
-                    <div class="row" style="margin-top: 4px"><span class="avatar" style="width:22px;height:22px;font-size:10px">DA</span> Dan Amor</div>
-                    <div class="row" style="margin-top: 4px"><span class="avatar" style="width:22px;height:22px;font-size:10px">MZ</span> Mira Z.</div>
-                  </div>
+              <!-- Sidebar -->
+              <div class="sidebar">
+                <h4>My inbox</h4>
+                <div class="sidebar-item">
+                  <span>Assigned to me</span><span class="badge">7</span>
                 </div>
-                <div class="annotate">
-                  <strong>Two distinct routing verbs:</strong> "Assign via team" re-routes the conversation; "Assign to user" sets the owner inside the current team. Worth keeping different.
+                <div class="sidebar-item">
+                  <span>Collaborating</span><span class="badge">3</span>
                 </div>
+                <div class="sidebar-item"><span>Mentions</span><span class="badge">2</span></div>
+                <div class="sidebar-item"><span>Starred</span><span class="badge">12</span></div>
+                <div class="sidebar-item"><span>Scheduled</span><span class="badge">4</span></div>
+                <h4>Company inbox</h4>
+                <div class="sidebar-item active">
+                  <span>★ All</span><span class="badge">1350</span>
+                </div>
+                <div class="sidebar-item"><span>Writers</span><span class="badge">42</span></div>
+                <div class="sidebar-item"><span>Radio</span><span class="badge">18</span></div>
+                <div class="sidebar-item"><span>Social</span><span class="badge">9</span></div>
+                <div class="sidebar-item"><span>IT</span><span class="badge">5</span></div>
+                <div class="sidebar-divider"></div>
+                <h4 style="margin-top: 0">Regions</h4>
+                <div class="sidebar-item"><span>Hendon</span><span class="badge">21</span></div>
+                <div class="sidebar-item"><span>Edgware</span><span class="badge">7</span></div>
+                <div class="sidebar-divider"></div>
+                <h4 style="margin-top: 0">Networks</h4>
+                <div class="sidebar-item"><span>CUFI</span><span class="badge">103</span></div>
               </div>
 
-              <div class="thread">
-                <div class="msg">
-                  <span class="avatar">JC</span>
-                  <div class="msg-bubble">
-                    <div class="who">Janice Chan · 16:36</div>
-                    Hi, hoping you can help with the Hendon flyer for Pesach. We need eyes on it before Sunday.
-                  </div>
+              <!-- Conversation list -->
+              <div class="inbox-list">
+                <div class="list-header">
+                  <div class="filter-pill">Open (1350) ▾</div>
+                  <span class="icon-btn" title="Search">🔍</span>
+                  <span class="icon-btn" title="Sort">↕</span>
+                  <span class="icon-btn" title="Filter">⌧</span>
                 </div>
-                <div class="msg">
-                  <span class="avatar" style="background: var(--c-warning-subtle); color: var(--c-warning)">SH</span>
-                  <div class="msg-bubble note">
-                    <div class="who">Sharon · internal note · 16:42</div>
-                    Looping in @Dave for typesetting. Should be back to her by EOD.
-                  </div>
-                </div>
-                <div class="msg">
-                  <span class="avatar" style="background: var(--c-info-subtle); color: var(--c-info)">⚙</span>
-                  <div class="msg-bubble system">
-                    <div class="who">System · automated</div>
-                    Snooze ends in 2h.
-                  </div>
-                </div>
-              </div>
-
-              <div class="composer">
-                <div class="composer-tabs">
-                  <div class="composer-tab active">Reply</div>
-                  <div class="composer-tab note">Internal note</div>
-                </div>
-                <div class="composer-input">Type a reply…</div>
-                <div class="composer-foot">
-                  <div class="composer-icons">📎 😀 🔗 🎤</div>
-                  <div>
-                    <span class="channel-select">via WhatsApp ▾</span>
-                    <span class="pill-btn btn-primary">Send</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <ol class="callouts">
-        <li><strong>Global left rail</strong> — Inbox · People · Broadcast · Flows · Analytics. Inbox is the active surface here; Broadcast lives one click away (see Surfaces 4 + 5).</li>
-        <li><strong>Five personal lenses</strong> — Assigned · Collaborating · Mentions · Starred · Scheduled. <strong>"All" pinned at top of Company Inbox</strong> as the sysadmin landing default <span class="qref">Q9</span>.</li>
-        <li><strong>Status filter with live count</strong> (<code>Open (1350)</code>) — triage load visible without a separate dashboard. Sort + filter sit beside it.</li>
-        <li><strong>Unassigned grouped above Assigned</strong> inside Open — not a separate filter, an in-list grouping.</li>
-        <li><strong>Row anatomy</strong>: avatar · name · time · channel/source glyph · multi-label chips with overflow · read-indicator (✓✓).</li>
-        <li><strong>Two routing verbs</strong> in the assign popover (dashed) — "Assign via team" re-routes; "Assign to user" picks the owner inside this team. Different gestures.</li>
-        <li><strong>Thread shows three message types</strong>: customer message · <span style="color: var(--c-warning); font-weight: 600">internal note (yellow tint)</span> · <span style="color: var(--c-info); font-weight: 600">system event (badged)</span> <span class="qref">Q12</span>.</li>
-        <li><strong>Composer with Reply / Internal note as tabs</strong> — mode-tinted (Reply white, Note yellow). Channel-selector (<code>via WhatsApp ▾</code>) before Send.</li>
-      </ol>
-    </section>
-
-    <!-- =================================================================
-         Surface 3 — Inbox mobile (Direction B)
-         ================================================================= -->
-    <section id="surface-3" class="surface">
-      <h2><span class="num">3</span>Direction B · Inbox mobile</h2>
-      <p class="kicker">The 3-pane desktop doesn't survive on phone. Two stacked views with push/pop nav, plus a bottom-tab segmenting Mine / Team / Mentions to replace the sidebar lenses. Open question <span class="qref">Q15</span>.</p>
-
-      <div class="mock-shell" style="background: var(--c-canvas); padding: var(--s-6) var(--s-3)">
-        <div class="phones">
-
-          <!-- Phone 1: list view -->
-          <div>
-            <div class="phone">
-              <div class="phone-status"><span>10:59</span><span>📶 🔋</span></div>
-              <div class="phone-header">
-                <div>☰ Writers ▾</div>
-                <div class="muted">ⓘ ⋯</div>
-              </div>
-              <div style="padding: var(--s-3) var(--s-4); border-bottom: 1px solid var(--c-border); background: var(--c-canvas); display: flex; gap: var(--s-2); align-items: center">
-                <span class="filter-pill">Open (42) ▾</span>
-                <span class="icon-btn">🔍</span>
-                <span class="icon-btn">↕</span>
-              </div>
-              <div class="phone-list" style="flex: 1; overflow-y: auto">
                 <div class="group-label">▸ Unassigned (1)</div>
-                <div class="conv-row">
+                <div class="conv-row active">
                   <span class="avatar">JC</span>
                   <div>
-                    <div class="conv-meta"><span class="name">Janice Chan</span><span class="time">16:36</span></div>
-                    <div class="conv-preview"><span class="channel-glyph">📞</span>Hi, hoping you can help…</div>
+                    <div class="conv-meta">
+                      <span class="name">Janice Chan</span><span class="time">16:36</span>
+                    </div>
+                    <div class="conv-preview">
+                      <span class="channel-glyph">📞</span>Great! Thanks so much! Looking forward to
+                      use this product…
+                    </div>
                     <div class="conv-foot">
                       <div>
                         <span class="chip">Inbound</span>
@@ -1424,11 +1645,13 @@
                     </div>
                   </div>
                 </div>
-                <div class="group-label">─ Assigned (100) ─</div>
+                <div class="group-label">─ Assigned (100) ─────</div>
                 <div class="conv-row">
                   <span class="avatar">KC</span>
                   <div>
-                    <div class="conv-meta"><span class="name">Ken Chan</span><span class="time">16:36</span></div>
+                    <div class="conv-meta">
+                      <span class="name">Ken Chan</span><span class="time">16:36</span>
+                    </div>
                     <div class="conv-preview"><span class="channel-glyph">▶</span>Video</div>
                     <div class="conv-foot">
                       <div>
@@ -1442,7 +1665,9 @@
                 <div class="conv-row">
                   <span class="avatar">SC</span>
                   <div>
-                    <div class="conv-meta"><span class="name">Shaira Cheung</span><span class="time">16:36</span></div>
+                    <div class="conv-meta">
+                      <span class="name">Shaira Cheung</span><span class="time">16:36</span>
+                    </div>
                     <div class="conv-preview"><span class="channel-glyph">🖼</span>Image</div>
                     <div class="conv-foot">
                       <div>
@@ -1454,337 +1679,723 @@
                     </div>
                   </div>
                 </div>
-              </div>
-              <div class="phone-tabs">
-                <div class="active">Mine</div>
-                <div>Team</div>
-                <div>Mentions</div>
-              </div>
-            </div>
-            <div class="phone-label">List view · tap row to push detail</div>
-          </div>
-
-          <!-- Phone 2: detail view -->
-          <div>
-            <div class="phone">
-              <div class="phone-status"><span>10:59</span><span>📶 🔋</span></div>
-              <div class="phone-header">
-                <div>◀ Janice Chan ★</div>
-                <div class="muted">⋯</div>
-              </div>
-              <div style="padding: var(--s-2) var(--s-4); background: var(--c-canvas); border-bottom: 1px solid var(--c-border); font-size: 12px; color: var(--c-text-2)">
-                Unassigned · <span class="chip">Inbound</span> <span class="chip">Rent</span>
-              </div>
-              <div class="phone-detail-thread">
-                <div class="msg">
-                  <span class="avatar">JC</span>
-                  <div class="msg-bubble">
-                    <div class="who">Janice Chan · 16:36</div>
-                    Hi, hoping you can help with the Hendon flyer for Pesach.
-                  </div>
-                </div>
-                <div class="msg">
-                  <span class="avatar" style="background: var(--c-warning-subtle); color: var(--c-warning)">SH</span>
-                  <div class="msg-bubble note">
-                    <div class="who">Sharon · internal note</div>
-                    Looping in @Dave for typesetting.
-                  </div>
-                </div>
-                <div class="msg">
-                  <span class="avatar" style="background: var(--c-info-subtle); color: var(--c-info)">⚙</span>
-                  <div class="msg-bubble system">
-                    <div class="who">System</div>
-                    Snooze ends in 2h.
-                  </div>
-                </div>
-              </div>
-              <div class="phone-composer">
-                <div class="composer-tabs">
-                  <div class="composer-tab active">Reply</div>
-                  <div class="composer-tab note">Note</div>
-                </div>
-                <div class="composer-input">Type a reply…</div>
-                <div class="composer-foot">
-                  <div class="composer-icons">📎 😀</div>
+                <div class="conv-row">
+                  <span class="avatar">KC</span>
                   <div>
-                    <span class="channel-select">WA ▾</span>
-                    <span class="pill-btn btn-primary">Send</span>
+                    <div class="conv-meta">
+                      <span class="name">Katherine Concepcion</span><span class="time">16:36</span>
+                    </div>
+                    <div class="conv-preview">
+                      Can I book an appointment online or do I need to call?
+                    </div>
+                    <div class="conv-foot">
+                      <div>
+                        <span class="chip">Inbound</span>
+                      </div>
+                      <span class="read-tick">✓✓</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Detail pane -->
+              <div class="detail-pane">
+                <div class="detail-header">
+                  <div class="title">Janice Chan <span class="star">★</span></div>
+                  <div class="detail-actions">
+                    <span class="icon-btn" title="Add collaborator">⊕</span>
+                    <span class="icon-btn" title="Info">ⓘ</span>
+                    <span class="icon-btn" title="More">⋯</span>
+                  </div>
+                </div>
+                <div class="assignment-bar">
+                  Assigned: <span class="assigned-to">Unassigned ▾</span>
+                </div>
+
+                <!-- Assign popover (cut into the layout) -->
+                <div class="assign-popover">
+                  <div class="assign-grid">
+                    <div>
+                      <h5>Assign conversation</h5>
+                      <div class="assign-action">Unassign</div>
+                      <div class="assign-action">Assign to me</div>
+                      <div class="assign-action">Assign via team ▸</div>
+                      <div class="assign-action active">Assign to user ▸</div>
+                    </div>
+                    <div>
+                      <h5>Assign to user</h5>
+                      <div style="margin-bottom: 6px">
+                        <input
+                          class="text-input"
+                          placeholder="Search name or email"
+                          style="font-size: 12px; padding: 6px 10px"
+                        />
+                      </div>
+                      <div class="row">
+                        <span class="avatar" style="width: 22px; height: 22px; font-size: 10px"
+                          >SH</span
+                        >
+                        Sharon Wenger
+                      </div>
+                      <div class="row" style="margin-top: 4px">
+                        <span class="avatar" style="width: 22px; height: 22px; font-size: 10px"
+                          >DA</span
+                        >
+                        Dan Amor
+                      </div>
+                      <div class="row" style="margin-top: 4px">
+                        <span class="avatar" style="width: 22px; height: 22px; font-size: 10px"
+                          >MZ</span
+                        >
+                        Mira Z.
+                      </div>
+                    </div>
+                  </div>
+                  <div class="annotate">
+                    <strong>Two distinct routing verbs:</strong> "Assign via team" re-routes the
+                    conversation; "Assign to user" sets the owner inside the current team. Worth
+                    keeping different.
+                  </div>
+                </div>
+
+                <div class="thread">
+                  <div class="msg">
+                    <span class="avatar">JC</span>
+                    <div class="msg-bubble">
+                      <div class="who">Janice Chan · 16:36</div>
+                      Hi, hoping you can help with the Hendon flyer for Pesach. We need eyes on it
+                      before Sunday.
+                    </div>
+                  </div>
+                  <div class="msg">
+                    <span
+                      class="avatar"
+                      style="background: var(--c-warning-subtle); color: var(--c-warning)"
+                      >SH</span
+                    >
+                    <div class="msg-bubble note">
+                      <div class="who">Sharon · internal note · 16:42</div>
+                      Looping in @Dave for typesetting. Should be back to her by EOD.
+                    </div>
+                  </div>
+                  <div class="msg">
+                    <span
+                      class="avatar"
+                      style="background: var(--c-info-subtle); color: var(--c-info)"
+                      >⚙</span
+                    >
+                    <div class="msg-bubble system">
+                      <div class="who">System · automated</div>
+                      Snooze ends in 2h.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="composer">
+                  <div class="composer-tabs">
+                    <div class="composer-tab active">Reply</div>
+                    <div class="composer-tab note">Internal note</div>
+                  </div>
+                  <div class="composer-input">Type a reply…</div>
+                  <div class="composer-foot">
+                    <div class="composer-icons">📎 😀 🔗 🎤</div>
+                    <div>
+                      <span class="channel-select">via WhatsApp ▾</span>
+                      <span class="pill-btn btn-primary">Send</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            <div class="phone-label">Detail view · swipe-back to list</div>
           </div>
         </div>
-      </div>
 
-      <ol class="callouts">
-        <li><strong>Two views, push/pop nav</strong> — no 3-pane on phone. Tap a row → push to detail; swipe back to list.</li>
-        <li><strong>Bottom-tab replaces the sidebar</strong>: Mine (Assigned + Starred merged) · Team (the company inbox of the currently-selected team) · Mentions.</li>
-        <li><strong>Same row shape as desktop</strong> — avatar · name · time · channel glyph · label chips · read indicator. Consistency lets a member who learns one learn the other.</li>
-        <li><strong>Composer mode preserved</strong>: Reply / Note tabs render the same on phone, with the channel-selector still beside Send.</li>
-        <li><strong>Internal notes + system events render identically</strong> on phone (yellow tint, info badge), preserving thread legibility.</li>
-      </ol>
-    </section>
+        <ol class="callouts">
+          <li>
+            <strong>Global left rail</strong> — Inbox · People · Broadcast · Flows · Analytics.
+            Inbox is the active surface here; Broadcast lives one click away (see Surfaces 4 + 5).
+          </li>
+          <li>
+            <strong>Five personal lenses</strong> — Assigned · Collaborating · Mentions · Starred ·
+            Scheduled. <strong>"All" pinned at top of Company Inbox</strong> as the sysadmin landing
+            default <span class="qref">Q9</span>.
+          </li>
+          <li>
+            <strong>Status filter with live count</strong> (<code>Open (1350)</code>) — triage load
+            visible without a separate dashboard. Sort + filter sit beside it.
+          </li>
+          <li>
+            <strong>Unassigned grouped above Assigned</strong> inside Open — not a separate filter,
+            an in-list grouping.
+          </li>
+          <li>
+            <strong>Row anatomy</strong>: avatar · name · time · channel/source glyph · multi-label
+            chips with overflow · read-indicator (✓✓).
+          </li>
+          <li>
+            <strong>Two routing verbs</strong> in the assign popover (dashed) — "Assign via team"
+            re-routes; "Assign to user" picks the owner inside this team. Different gestures.
+          </li>
+          <li>
+            <strong>Thread shows three message types</strong>: customer message ·
+            <span style="color: var(--c-warning); font-weight: 600"
+              >internal note (yellow tint)</span
+            >
+            · <span style="color: var(--c-info); font-weight: 600">system event (badged)</span>
+            <span class="qref">Q12</span>.
+          </li>
+          <li>
+            <strong>Composer with Reply / Internal note as tabs</strong> — mode-tinted (Reply white,
+            Note yellow). Channel-selector (<code>via WhatsApp ▾</code>) before Send.
+          </li>
+        </ol>
+      </section>
 
-    <!-- =================================================================
+      <!-- =================================================================
+         Surface 3 — Inbox mobile (Direction B)
+         ================================================================= -->
+      <section id="surface-3" class="surface">
+        <h2><span class="num">3</span>Direction B · Inbox mobile</h2>
+        <p class="kicker">
+          The 3-pane desktop doesn't survive on phone. Two stacked views with push/pop nav, plus a
+          bottom-tab segmenting Mine / Team / Mentions to replace the sidebar lenses. Open question
+          <span class="qref">Q15</span>.
+        </p>
+
+        <div class="mock-shell" style="background: var(--c-canvas); padding: var(--s-6) var(--s-3)">
+          <div class="phones">
+            <!-- Phone 1: list view -->
+            <div>
+              <div class="phone">
+                <div class="phone-status"><span>10:59</span><span>📶 🔋</span></div>
+                <div class="phone-header">
+                  <div>☰ Writers ▾</div>
+                  <div class="muted">ⓘ ⋯</div>
+                </div>
+                <div
+                  style="
+                    padding: var(--s-3) var(--s-4);
+                    border-bottom: 1px solid var(--c-border);
+                    background: var(--c-canvas);
+                    display: flex;
+                    gap: var(--s-2);
+                    align-items: center;
+                  "
+                >
+                  <span class="filter-pill">Open (42) ▾</span>
+                  <span class="icon-btn">🔍</span>
+                  <span class="icon-btn">↕</span>
+                </div>
+                <div class="phone-list" style="flex: 1; overflow-y: auto">
+                  <div class="group-label">▸ Unassigned (1)</div>
+                  <div class="conv-row">
+                    <span class="avatar">JC</span>
+                    <div>
+                      <div class="conv-meta">
+                        <span class="name">Janice Chan</span><span class="time">16:36</span>
+                      </div>
+                      <div class="conv-preview">
+                        <span class="channel-glyph">📞</span>Hi, hoping you can help…
+                      </div>
+                      <div class="conv-foot">
+                        <div>
+                          <span class="chip">Inbound</span>
+                          <span class="chip">Rent</span>
+                          <span class="chip">+2</span>
+                        </div>
+                        <span class="read-tick">✓✓</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="group-label">─ Assigned (100) ─</div>
+                  <div class="conv-row">
+                    <span class="avatar">KC</span>
+                    <div>
+                      <div class="conv-meta">
+                        <span class="name">Ken Chan</span><span class="time">16:36</span>
+                      </div>
+                      <div class="conv-preview"><span class="channel-glyph">▶</span>Video</div>
+                      <div class="conv-foot">
+                        <div>
+                          <span class="chip">Inbound</span>
+                          <span class="chip">Rent</span>
+                        </div>
+                        <span class="read-tick">✓✓</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="conv-row">
+                    <span class="avatar">SC</span>
+                    <div>
+                      <div class="conv-meta">
+                        <span class="name">Shaira Cheung</span><span class="time">16:36</span>
+                      </div>
+                      <div class="conv-preview"><span class="channel-glyph">🖼</span>Image</div>
+                      <div class="conv-foot">
+                        <div>
+                          <span class="chip">Inbound</span>
+                          <span class="chip">Rent</span>
+                          <span class="chip">Female</span>
+                        </div>
+                        <span class="read-tick">✓✓</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="phone-tabs">
+                  <div class="active">Mine</div>
+                  <div>Team</div>
+                  <div>Mentions</div>
+                </div>
+              </div>
+              <div class="phone-label">List view · tap row to push detail</div>
+            </div>
+
+            <!-- Phone 2: detail view -->
+            <div>
+              <div class="phone">
+                <div class="phone-status"><span>10:59</span><span>📶 🔋</span></div>
+                <div class="phone-header">
+                  <div>◀ Janice Chan ★</div>
+                  <div class="muted">⋯</div>
+                </div>
+                <div
+                  style="
+                    padding: var(--s-2) var(--s-4);
+                    background: var(--c-canvas);
+                    border-bottom: 1px solid var(--c-border);
+                    font-size: 12px;
+                    color: var(--c-text-2);
+                  "
+                >
+                  Unassigned · <span class="chip">Inbound</span> <span class="chip">Rent</span>
+                </div>
+                <div class="phone-detail-thread">
+                  <div class="msg">
+                    <span class="avatar">JC</span>
+                    <div class="msg-bubble">
+                      <div class="who">Janice Chan · 16:36</div>
+                      Hi, hoping you can help with the Hendon flyer for Pesach.
+                    </div>
+                  </div>
+                  <div class="msg">
+                    <span
+                      class="avatar"
+                      style="background: var(--c-warning-subtle); color: var(--c-warning)"
+                      >SH</span
+                    >
+                    <div class="msg-bubble note">
+                      <div class="who">Sharon · internal note</div>
+                      Looping in @Dave for typesetting.
+                    </div>
+                  </div>
+                  <div class="msg">
+                    <span
+                      class="avatar"
+                      style="background: var(--c-info-subtle); color: var(--c-info)"
+                      >⚙</span
+                    >
+                    <div class="msg-bubble system">
+                      <div class="who">System</div>
+                      Snooze ends in 2h.
+                    </div>
+                  </div>
+                </div>
+                <div class="phone-composer">
+                  <div class="composer-tabs">
+                    <div class="composer-tab active">Reply</div>
+                    <div class="composer-tab note">Note</div>
+                  </div>
+                  <div class="composer-input">Type a reply…</div>
+                  <div class="composer-foot">
+                    <div class="composer-icons">📎 😀</div>
+                    <div>
+                      <span class="channel-select">WA ▾</span>
+                      <span class="pill-btn btn-primary">Send</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="phone-label">Detail view · swipe-back to list</div>
+            </div>
+          </div>
+        </div>
+
+        <ol class="callouts">
+          <li>
+            <strong>Two views, push/pop nav</strong> — no 3-pane on phone. Tap a row → push to
+            detail; swipe back to list.
+          </li>
+          <li>
+            <strong>Bottom-tab replaces the sidebar</strong>: Mine (Assigned + Starred merged) ·
+            Team (the company inbox of the currently-selected team) · Mentions.
+          </li>
+          <li>
+            <strong>Same row shape as desktop</strong> — avatar · name · time · channel glyph ·
+            label chips · read indicator. Consistency lets a member who learns one learn the other.
+          </li>
+          <li>
+            <strong>Composer mode preserved</strong>: Reply / Note tabs render the same on phone,
+            with the channel-selector still beside Send.
+          </li>
+          <li>
+            <strong>Internal notes + system events render identically</strong> on phone (yellow
+            tint, info badge), preserving thread legibility.
+          </li>
+        </ol>
+      </section>
+
+      <!-- =================================================================
          Surface 4 — Broadcast wizard step 2
          ================================================================= -->
-    <section id="surface-4" class="surface">
-      <h2><span class="num">4</span>Broadcast wizard · Step 2 (Personalization)</h2>
-      <p class="kicker">The meaty step of the 4-step Broadcast wizard. Composer with variable-pill placeholders on the left, live preview against a sample recipient on the right. Audience size carries through from Step 1.</p>
+      <section id="surface-4" class="surface">
+        <h2><span class="num">4</span>Broadcast wizard · Step 2 (Personalization)</h2>
+        <p class="kicker">
+          The meaty step of the 4-step Broadcast wizard. Composer with variable-pill placeholders on
+          the left, live preview against a sample recipient on the right. Audience size carries
+          through from Step 1.
+        </p>
 
-      <div class="mock-shell">
-        <div class="mock-frame wizard-frame">
-
-          <!-- Stepper -->
-          <div class="stepper">
-            <div class="step done"><div class="num-circle">1</div>Segmentation</div>
-            <div class="step-line"></div>
-            <div class="step active"><div class="num-circle">2</div>Personalization</div>
-            <div class="step-line"></div>
-            <div class="step"><div class="num-circle">3</div>Automation</div>
-            <div class="step-line"></div>
-            <div class="step"><div class="num-circle">4</div>Analytics</div>
-            <div class="audience-pill">Audience: 387 members</div>
-          </div>
-
-          <div class="wizard-grid">
-            <!-- Left: composer -->
-            <div>
-              <div class="field-block">
-                <label>Channels (pick at least one)</label>
-                <div class="channel-chips">
-                  <span class="channel-chip wa selected">✓ WhatsApp</span>
-                  <span class="channel-chip selected">✓ Email</span>
-                  <span class="channel-chip">In-app</span>
-                  <span class="channel-chip">Push</span>
-                  <span class="channel-chip">SMS</span>
-                </div>
+        <div class="mock-shell">
+          <div class="mock-frame wizard-frame">
+            <!-- Stepper -->
+            <div class="stepper">
+              <div class="step done">
+                <div class="num-circle">1</div>
+                Segmentation
               </div>
-
-              <div class="field-block">
-                <label>Broadcast name</label>
-                <input class="text-input" value="Pesach week — flyer share push">
+              <div class="step-line"></div>
+              <div class="step active">
+                <div class="num-circle">2</div>
+                Personalization
               </div>
+              <div class="step-line"></div>
+              <div class="step">
+                <div class="num-circle">3</div>
+                Automation
+              </div>
+              <div class="step-line"></div>
+              <div class="step">
+                <div class="num-circle">4</div>
+                Analytics
+              </div>
+              <div class="audience-pill">Audience: 387 members</div>
+            </div>
 
-              <div class="field-block">
-                <label>
-                  Message
-                  <span class="lang-toggle">Hebrew ▾</span>
-                </label>
-                <div class="composer-template">
-                  Hi <span class="var-pill">firstName</span> 👋
-                  <br><br>
-                  Pesach is coming and we need eyes on this flyer in <span class="var-pill">region</span>. Could you share with 3 friends today? Your link:
-                  <br>
-                  <span class="var-pill">personalShareLink</span>
-                  <br><br>
-                  Last shared: <span class="var-pill">lastActionDate</span>
-                  <div class="composer-attach">
-                    <span>＋ Add image</span>
-                    <span>＋ Add file</span>
-                    <span>＋ Add link</span>
+            <div class="wizard-grid">
+              <!-- Left: composer -->
+              <div>
+                <div class="field-block">
+                  <label>Channels (pick at least one)</label>
+                  <div class="channel-chips">
+                    <span class="channel-chip wa selected">✓ WhatsApp</span>
+                    <span class="channel-chip selected">✓ Email</span>
+                    <span class="channel-chip">In-app</span>
+                    <span class="channel-chip">Push</span>
+                    <span class="channel-chip">SMS</span>
                   </div>
                 </div>
-                <div class="field-help">Variables auto-detected. Fallbacks: <code>firstName</code> → "friend"; <code>region</code> → empty.</div>
+
+                <div class="field-block">
+                  <label>Broadcast name</label>
+                  <input class="text-input" value="Pesach week — flyer share push" />
+                </div>
+
+                <div class="field-block">
+                  <label>
+                    Message
+                    <span class="lang-toggle">Hebrew ▾</span>
+                  </label>
+                  <div class="composer-template">
+                    Hi <span class="var-pill">firstName</span> 👋 <br /><br />
+                    Pesach is coming and we need eyes on this flyer in
+                    <span class="var-pill">region</span>. Could you share with 3 friends today? Your
+                    link:
+                    <br />
+                    <span class="var-pill">personalShareLink</span>
+                    <br /><br />
+                    Last shared: <span class="var-pill">lastActionDate</span>
+                    <div class="composer-attach">
+                      <span>＋ Add image</span>
+                      <span>＋ Add file</span>
+                      <span>＋ Add link</span>
+                    </div>
+                  </div>
+                  <div class="field-help">
+                    Variables auto-detected. Fallbacks: <code>firstName</code> → "friend";
+                    <code>region</code> → empty.
+                  </div>
+                </div>
+
+                <div class="field-block">
+                  <label>Quick-reply buttons (WhatsApp)</label>
+                  <div class="quick-replies">
+                    <span class="quick-reply-btn">I'm in</span>
+                    <span class="quick-reply-btn">Share</span>
+                    <span class="quick-reply-btn">Skip this one</span>
+                  </div>
+                  <div class="field-help">
+                    Buttons map to GPS verbs — tap fires a server-attributed action (verified share
+                    / RSVP / suppress 7d).
+                  </div>
+                </div>
               </div>
 
-              <div class="field-block">
-                <label>Quick-reply buttons (WhatsApp)</label>
-                <div class="quick-replies">
-                  <span class="quick-reply-btn">I'm in</span>
-                  <span class="quick-reply-btn">Share</span>
-                  <span class="quick-reply-btn">Skip this one</span>
+              <!-- Right: preview -->
+              <div>
+                <div class="preview-panel">
+                  <h5>Live preview · Sharon (Hendon) · WhatsApp</h5>
+                  <div class="wa-bubble">
+                    Hi <strong>Sharon</strong> 👋 <br /><br />
+                    Pesach is coming and we need eyes on this flyer in <strong>Hendon</strong>.
+                    Could you share with 3 friends today? Your link:
+                    <br />
+                    <a href="#">gps.uk/s/sh-9k4d</a>
+                    <br /><br />
+                    Last shared: <strong>2 weeks ago</strong>
+                    <div class="wa-buttons">
+                      <div>I'm in</div>
+                      <div>Share</div>
+                      <div>Skip this one</div>
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      font-size: 11px;
+                      color: var(--c-text-3);
+                      margin-top: var(--s-3);
+                      text-align: center;
+                    "
+                  >
+                    Sample recipient · <a href="#">change…</a>
+                  </div>
                 </div>
-                <div class="field-help">Buttons map to GPS verbs — tap fires a server-attributed action (verified share / RSVP / suppress 7d).</div>
               </div>
             </div>
 
-            <!-- Right: preview -->
-            <div>
-              <div class="preview-panel">
-                <h5>Live preview · Sharon (Hendon) · WhatsApp</h5>
-                <div class="wa-bubble">
-                  Hi <strong>Sharon</strong> 👋
-                  <br><br>
-                  Pesach is coming and we need eyes on this flyer in <strong>Hendon</strong>. Could you share with 3 friends today? Your link:
-                  <br>
-                  <a href="#">gps.uk/s/sh-9k4d</a>
-                  <br><br>
-                  Last shared: <strong>2 weeks ago</strong>
-                  <div class="wa-buttons">
-                    <div>I'm in</div>
-                    <div>Share</div>
-                    <div>Skip this one</div>
-                  </div>
-                </div>
-                <div style="font-size: 11px; color: var(--c-text-3); margin-top: var(--s-3); text-align: center">
-                  Sample recipient · <a href="#">change…</a>
-                </div>
+            <div class="wizard-footer">
+              <span class="pill-btn">Save draft</span>
+              <div>
+                <span class="pill-btn">◀ Back</span>
+                <span class="pill-btn btn-primary">Next: Automation ▶</span>
               </div>
-            </div>
-          </div>
-
-          <div class="wizard-footer">
-            <span class="pill-btn">Save draft</span>
-            <div>
-              <span class="pill-btn">◀ Back</span>
-              <span class="pill-btn btn-primary">Next: Automation ▶</span>
             </div>
           </div>
         </div>
-      </div>
 
-      <ol class="callouts">
-        <li><strong>Step indicator persistent</strong> across all 4 steps; audience count from Step 1 carries in.</li>
-        <li><strong>Channel chips</strong> — pick the fan-out path. Per-recipient prefs override unless prefs explicitly say "never email" <span class="qref">Q21</span>.</li>
-        <li><strong>Variable pills</strong> in the composer (<code>firstName</code>, <code>region</code>, <code>personalShareLink</code>, <code>lastActionDate</code>) — visually distinct, fallback strings configured per variable <span class="qref">Q22</span>.</li>
-        <li><strong>Language toggle</strong> top-right of the composer — Hebrew / English / etc. One Broadcast with N variants <span class="qref">Q23</span>.</li>
-        <li><strong>Quick-reply buttons</strong> map to server-attributed GPS verbs (verified share, RSVP, suppress) <span class="qref">Q24</span>.</li>
-        <li><strong>Live preview</strong> re-renders against a chosen sample recipient — sender can switch sample to sanity-check edge cases.</li>
-      </ol>
-    </section>
+        <ol class="callouts">
+          <li>
+            <strong>Step indicator persistent</strong> across all 4 steps; audience count from Step
+            1 carries in.
+          </li>
+          <li>
+            <strong>Channel chips</strong> — pick the fan-out path. Per-recipient prefs override
+            unless prefs explicitly say "never email" <span class="qref">Q21</span>.
+          </li>
+          <li>
+            <strong>Variable pills</strong> in the composer (<code>firstName</code>,
+            <code>region</code>, <code>personalShareLink</code>, <code>lastActionDate</code>) —
+            visually distinct, fallback strings configured per variable
+            <span class="qref">Q22</span>.
+          </li>
+          <li>
+            <strong>Language toggle</strong> top-right of the composer — Hebrew / English / etc. One
+            Broadcast with N variants <span class="qref">Q23</span>.
+          </li>
+          <li>
+            <strong>Quick-reply buttons</strong> map to server-attributed GPS verbs (verified share,
+            RSVP, suppress) <span class="qref">Q24</span>.
+          </li>
+          <li>
+            <strong>Live preview</strong> re-renders against a chosen sample recipient — sender can
+            switch sample to sanity-check edge cases.
+          </li>
+        </ol>
+      </section>
 
-    <!-- =================================================================
+      <!-- =================================================================
          Surface 5 — Broadcast analytics
          ================================================================= -->
-    <section id="surface-5" class="surface">
-      <h2><span class="num">5</span>Broadcast wizard · Step 4 (Analytics)</h2>
-      <p class="kicker">Post-send dashboard. Funnel headline tiles → per-segment breakdown → reply / unsubscribe / failure surfaces. Replies link straight back to the originating team's inbox (Surface 2).</p>
+      <section id="surface-5" class="surface">
+        <h2><span class="num">5</span>Broadcast wizard · Step 4 (Analytics)</h2>
+        <p class="kicker">
+          Post-send dashboard. Funnel headline tiles → per-segment breakdown → reply / unsubscribe /
+          failure surfaces. Replies link straight back to the originating team's inbox (Surface 2).
+        </p>
 
-      <div class="mock-shell">
-        <div class="mock-frame analytics-frame">
+        <div class="mock-shell">
+          <div class="mock-frame analytics-frame">
+            <div class="analytics-header">
+              <div>
+                <h3>Pesach week — flyer share push</h3>
+              </div>
+              <div class="send-badge">Sent 2d ago</div>
+            </div>
+            <div class="analytics-meta">
+              Audience: 387 · Channels: WhatsApp + Email · Author: Sharon Wenger
+            </div>
 
-          <div class="analytics-header">
-            <div>
-              <h3>Pesach week — flyer share push</h3>
+            <div class="funnel">
+              <div class="funnel-tile">
+                <div class="label">Delivered</div>
+                <div class="num">362</div>
+                <div class="pct">94 %</div>
+              </div>
+              <div class="funnel-tile">
+                <div class="label">Opened</div>
+                <div class="num">291</div>
+                <div class="pct">80 %</div>
+              </div>
+              <div class="funnel-tile">
+                <div class="label">Clicked link</div>
+                <div class="num">178</div>
+                <div class="pct">61 %</div>
+              </div>
+              <div class="funnel-tile acted">
+                <div class="label">Took action</div>
+                <div class="num">84</div>
+                <div class="pct">23 %</div>
+                <div class="accent">▲ verified shares</div>
+              </div>
             </div>
-            <div class="send-badge">Sent 2d ago</div>
-          </div>
-          <div class="analytics-meta">
-            Audience: 387 · Channels: WhatsApp + Email · Author: Sharon Wenger
-          </div>
 
-          <div class="funnel">
-            <div class="funnel-tile">
-              <div class="label">Delivered</div>
-              <div class="num">362</div>
-              <div class="pct">94 %</div>
+            <div class="analytics-row">
+              <div class="analytics-card">
+                <h4>Replies in inbox</h4>
+                <div class="num-large">12</div>
+                <a href="#">→ Open Writers inbox</a>
+              </div>
+              <div class="analytics-card">
+                <h4>Unsubscribed</h4>
+                <div class="num-large">3</div>
+                <div style="font-size: 12px; color: var(--c-text-2); margin-top: var(--s-1)">
+                  2 quiet · 1 wrong audience
+                </div>
+              </div>
             </div>
-            <div class="funnel-tile">
-              <div class="label">Opened</div>
-              <div class="num">291</div>
-              <div class="pct">80 %</div>
-            </div>
-            <div class="funnel-tile">
-              <div class="label">Clicked link</div>
-              <div class="num">178</div>
-              <div class="pct">61 %</div>
-            </div>
-            <div class="funnel-tile acted">
-              <div class="label">Took action</div>
-              <div class="num">84</div>
-              <div class="pct">23 %</div>
-              <div class="accent">▲ verified shares</div>
-            </div>
-          </div>
 
-          <div class="analytics-row">
+            <div class="analytics-card" style="margin-bottom: var(--s-6)">
+              <h4>Breakdown by segment</h4>
+              <table class="segment-table">
+                <thead>
+                  <tr>
+                    <th>Segment</th>
+                    <th>Delivered</th>
+                    <th>Opened</th>
+                    <th>Clicked</th>
+                    <th>Acted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Hendon <span class="segment-count">(142)</span></td>
+                    <td>96 %</td>
+                    <td>83 %</td>
+                    <td>66 %</td>
+                    <td><strong>28 %</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Edgware <span class="segment-count">(87)</span></td>
+                    <td>93 %</td>
+                    <td>78 %</td>
+                    <td>58 %</td>
+                    <td>22 %</td>
+                  </tr>
+                  <tr>
+                    <td>CUFI network <span class="segment-count">(158)</span></td>
+                    <td>92 %</td>
+                    <td>78 %</td>
+                    <td>57 %</td>
+                    <td>18 %</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
             <div class="analytics-card">
-              <h4>Replies in inbox</h4>
-              <div class="num-large">12</div>
-              <a href="#">→ Open Writers inbox</a>
-            </div>
-            <div class="analytics-card">
-              <h4>Unsubscribed</h4>
-              <div class="num-large">3</div>
-              <div style="font-size: 12px; color: var(--c-text-2); margin-top: var(--s-1)">2 quiet · 1 wrong audience</div>
-            </div>
-          </div>
-
-          <div class="analytics-card" style="margin-bottom: var(--s-6)">
-            <h4>Breakdown by segment</h4>
-            <table class="segment-table">
-              <thead>
-                <tr>
-                  <th>Segment</th>
-                  <th>Delivered</th>
-                  <th>Opened</th>
-                  <th>Clicked</th>
-                  <th>Acted</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Hendon <span class="segment-count">(142)</span></td>
-                  <td>96 %</td><td>83 %</td><td>66 %</td><td><strong>28 %</strong></td>
-                </tr>
-                <tr>
-                  <td>Edgware <span class="segment-count">(87)</span></td>
-                  <td>93 %</td><td>78 %</td><td>58 %</td><td>22 %</td>
-                </tr>
-                <tr>
-                  <td>CUFI network <span class="segment-count">(158)</span></td>
-                  <td>92 %</td><td>78 %</td><td>57 %</td><td>18 %</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="analytics-card">
-            <h4>Failures &amp; channel ops</h4>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-4); margin-top: var(--s-2); font-size: 13px">
-              <div>
-                <div class="muted">Failed</div>
-                <div class="num-large" style="font-size: 18px">25 ▾</div>
-                <div class="muted" style="font-size: 11px">18 wrong number · 5 unsub'd previously · 2 rate-limited</div>
-              </div>
-              <div>
-                <div class="muted">Quiet hours skipped</div>
-                <div class="num-large" style="font-size: 18px">0</div>
-              </div>
-              <div>
-                <div class="muted">Channel fallback fired</div>
-                <div class="num-large" style="font-size: 18px">14</div>
-                <div class="muted" style="font-size: 11px">WhatsApp → email</div>
+              <h4>Failures &amp; channel ops</h4>
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: repeat(3, 1fr);
+                  gap: var(--s-4);
+                  margin-top: var(--s-2);
+                  font-size: 13px;
+                "
+              >
+                <div>
+                  <div class="muted">Failed</div>
+                  <div class="num-large" style="font-size: 18px">25 ▾</div>
+                  <div class="muted" style="font-size: 11px">
+                    18 wrong number · 5 unsub'd previously · 2 rate-limited
+                  </div>
+                </div>
+                <div>
+                  <div class="muted">Quiet hours skipped</div>
+                  <div class="num-large" style="font-size: 18px">0</div>
+                </div>
+                <div>
+                  <div class="muted">Channel fallback fired</div>
+                  <div class="num-large" style="font-size: 18px">14</div>
+                  <div class="muted" style="font-size: 11px">WhatsApp → email</div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="analytics-foot">
-            <span class="pill-btn">Duplicate</span>
-            <span class="pill-btn">Archive</span>
-            <span class="pill-btn">Export CSV</span>
+            <div class="analytics-foot">
+              <span class="pill-btn">Duplicate</span>
+              <span class="pill-btn">Archive</span>
+              <span class="pill-btn">Export CSV</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <ol class="callouts">
-        <li><strong>Funnel headline</strong>: Delivered → Opened → Clicked → Acted. The "Acted" tile is the activist-meaningful number — verified shares / RSVPs / volunteer signups.</li>
-        <li><strong>Replies surface as a count</strong> — clicking jumps to the originating team's inbox (the cross-cutting seam <span class="qref">Q29</span>). Reply lands as a Request threaded against this Broadcast.</li>
-        <li><strong>Per-segment breakdown</strong> — important when the audience spans multiple Groups / Networks. Lets the sender see who responded to what.</li>
-        <li><strong>Failures expandable</strong> with reason codes. Quiet-hours and channel-fallback are operational metrics for tuning.</li>
-        <li><strong>Privacy default</strong> — aggregate metrics for everyone; per-recipient drill-down sysadmin-only <span class="qref">Q30</span>. Avoids the "did Sharon read it yet?" surveillance feel.</li>
-      </ol>
-    </section>
+        <ol class="callouts">
+          <li>
+            <strong>Funnel headline</strong>: Delivered → Opened → Clicked → Acted. The "Acted" tile
+            is the activist-meaningful number — verified shares / RSVPs / volunteer signups.
+          </li>
+          <li>
+            <strong>Replies surface as a count</strong> — clicking jumps to the originating team's
+            inbox (the cross-cutting seam <span class="qref">Q29</span>). Reply lands as a Request
+            threaded against this Broadcast.
+          </li>
+          <li>
+            <strong>Per-segment breakdown</strong> — important when the audience spans multiple
+            Groups / Networks. Lets the sender see who responded to what.
+          </li>
+          <li>
+            <strong>Failures expandable</strong> with reason codes. Quiet-hours and channel-fallback
+            are operational metrics for tuning.
+          </li>
+          <li>
+            <strong>Privacy default</strong> — aggregate metrics for everyone; per-recipient
+            drill-down sysadmin-only <span class="qref">Q30</span>. Avoids the "did Sharon read it
+            yet?" surveillance feel.
+          </li>
+        </ol>
+      </section>
 
-    <!-- =================================================================
+      <!-- =================================================================
          Footer
          ================================================================= -->
-    <footer class="page-footer">
-      <p>
-        Source-of-truth: <code>docs/build/session-briefs/bu-coordination-board.md</code>
-        · Non-tech overview: <code>docs/product/coordination-board-overview.md</code>
-        · Question references (Q1–Q31) live in the brief's "Open questions" sections.
-      </p>
-      <p>
-        These sketches are <strong>pre-prototype</strong>. The clickable prototype (Jeremy's gate for non-technical evaluation) is built post-tech-review against whichever Inbox direction wins, with Broadcast either riding alongside or split into a follow-on BU.
-      </p>
-      <p>
-        How to share: open this file in any browser → screenshot per surface (⌘⇧4 on Mac) for Slack / email; or print to PDF (⌘P → Save as PDF) for stakeholders who want the whole set; or push to GitHub Pages for a URL.
-      </p>
-    </footer>
-  </div>
-</body>
+      <footer class="page-footer">
+        <p>
+          Source-of-truth: <code>docs/build/session-briefs/bu-coordination-board.md</code> ·
+          Non-tech overview: <code>docs/product/coordination-board-overview.md</code>
+          · Question references (Q1–Q31) live in the brief's "Open questions" sections.
+        </p>
+        <p>
+          These sketches are <strong>pre-prototype</strong>. The clickable prototype (Jeremy's gate
+          for non-technical evaluation) is built post-tech-review against whichever Inbox direction
+          wins, with Broadcast either riding alongside or split into a follow-on BU.
+        </p>
+        <p>
+          How to share: open this file in any browser → screenshot per surface (⌘⇧4 on Mac) for
+          Slack / email; or print to PDF (⌘P → Save as PDF) for stakeholders who want the whole set;
+          or push to GitHub Pages for a URL.
+        </p>
+      </footer>
+    </div>
+  </body>
 </html>
