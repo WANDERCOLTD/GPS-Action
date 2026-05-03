@@ -28,6 +28,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLink } from '@/components/ArrowLink';
+import { RecentlyViewedTracker } from '@/components/RecentlyViewedTracker';
 import { formatDistanceToNow } from 'date-fns';
 import { Calendar, MapPin } from 'lucide-react';
 import { createCaller } from '@/server/routers/_app';
@@ -170,6 +171,10 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
 
   return (
     <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
+      {/* BU-search-surface (D078 §8): record this visit in localStorage
+          so it surfaces under "Recently viewed" on /search. Side-effect
+          only — no DOM. */}
+      <RecentlyViewedTracker postId={post.id} postLabel={post.title} />
       <div
         style={{
           display: 'flex',

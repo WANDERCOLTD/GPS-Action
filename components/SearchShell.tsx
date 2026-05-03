@@ -7,42 +7,89 @@
  * @spec build/session-briefs/bu-search-surface.md
  * @spec product/scenarios.md (SCN-31)
  *
- * Client shell for the `/search` route. PR C of the BU ships only the
- * shell — autofocused input, removable scope chip, empty-state
- * placeholders. PR D wires the typeahead + full-results to
- * `trpc.search.query`, recently-viewed via localStorage, and the
- * 4 telemetry events.
+ * Client shell for the `/search` route. Two modes off the same
+ * component:
  *
- * The page-level sticky header (back / "Search" title / refresh) sits
- * below the root layout's nav header. The duplicate refresh affordance
- * is deliberate: the page header is the contextually relevant place
- * for a member focused on a search session, and matches the design
- * brief (D078 §7 envelope).
+ *  - **Typeahead mode** (no `?type=`): debounced query against the
+ *    server action, four grouped result sections (Posts → People →
+ *    Regions → Partner orgs per D078 §4), cap 3 per group, "See all
+ *    N <group>" link → full mode.
+ *  - **Full mode** (`?type=<group>`): one group, server-rendered up to
+ *    50, no infinite scroll (preserves "feed has an end").
+ *
+ * Zero-query empty state shows Recently viewed (last 5 from
+ * `localStorage`, D078 §8) and a placeholder for Your regions. Typed
+ * queries replace the empty state with grouped results or honest
+ * "Nothing matching that yet…" copy.
+ *
+ * Telemetry: 4 events fire client-side (analytics-events.md). NEVER
+ * include the raw query string — only `q_length` and enums (D078 +
+ * the PII policy).
  */
 
 import * as React from 'react';
-import { useState, type CSSProperties, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, X } from 'lucide-react';
 import { HeaderRefreshButton } from '@/components/HeaderRefreshButton';
 import { FEED_FILTER_LABELS, type FeedFilter } from '@/shared/feed-filters';
+import { SEARCH_ENTITY_TYPES, type SearchEntityType } from '@/shared/validation/search';
+import type { SearchHit, SearchResults } from '@/server/routers/search';
+import { readRecentlyViewed, type RecentlyViewedItem } from '@/components/recently-viewed-posts';
+import { emitSearchEvent } from '@/components/search-telemetry';
+
+// ── Types ───────────────────────────────────────────────────────────────
+
+export type SearchShellMode = 'typeahead' | 'full';
 
 interface SearchShellProps {
-  /**
-   * Filter inherited from the referring feed via `?filter=` (D078 §7).
-   * `null` when search was opened app-wide or the filter was `all`.
-   * Renders a removable `× <Label>` scope chip below the input.
-   */
+  /** Mode. Server picks based on whether `?type=` is set. */
+  mode?: SearchShellMode;
+  /** Filter inherited from referring feed. `null` if app-wide. */
   initialFilter?: Exclude<FeedFilter, 'all'> | null;
-  /**
-   * Initial query from `?q=` (D078 §7 — URL-addressable result sets).
-   * PR C just hydrates the input; PR D will run the query against the
-   * server and render grouped results.
-   */
+  /** Initial query from `?q=`. */
   initialQuery?: string;
+  /**
+   * Initial server-rendered results. In full mode, the page does an
+   * SSR fetch so first paint shows results without a client round-
+   * trip. In typeahead mode, this is `null`.
+   */
+  initialResults?: SearchResults | null;
+  /** Active group in full mode. */
+  selectedType?: SearchEntityType;
+  /** Entry source for the `search_opened` telemetry event. */
+  openedSource?: 'appnav' | 'deep_link' | 'scope_chip';
+  /** Server action for client-side requeries. Page wires this. */
+  runSearch: (input: {
+    q: string;
+    type?: SearchEntityType;
+    limit?: number;
+  }) => Promise<SearchResults>;
 }
 
 const MIN_QUERY_LENGTH = 2;
+const DEBOUNCE_MS = 150;
+const TYPEAHEAD_GROUP_CAP = 3;
+const FULL_MODE_LIMIT = 50;
+
+// Group order is fixed by D078 §4 — clients render in receipt order.
+const GROUPS: ReadonlyArray<{
+  key: SearchEntityType;
+  label: string;
+  pluralised: (n: number) => string;
+}> = [
+  { key: 'posts', label: 'Posts', pluralised: (n) => (n === 1 ? '1 post' : `${n} posts`) },
+  { key: 'people', label: 'People', pluralised: (n) => (n === 1 ? '1 person' : `${n} people`) },
+  { key: 'regions', label: 'Regions', pluralised: (n) => (n === 1 ? '1 region' : `${n} regions`) },
+  {
+    key: 'partnerOrgs',
+    label: 'Partner orgs',
+    pluralised: (n) => (n === 1 ? '1 partner org' : `${n} partner orgs`),
+  },
+];
+
+// ── Styles ──────────────────────────────────────────────────────────────
 
 const headerStyle: CSSProperties = {
   display: 'flex',
@@ -115,14 +162,27 @@ const sectionStyle: CSSProperties = {
   borderTop: '1px solid var(--colour-border-subtle)',
 };
 
+const sectionHeadingRowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'baseline',
+  justifyContent: 'space-between',
+  gap: 'var(--space-2)',
+  marginBottom: 'var(--space-2)',
+};
+
 const sectionHeadingStyle: CSSProperties = {
   margin: 0,
-  marginBottom: 'var(--space-2)',
   fontSize: 'var(--text-sm)',
   fontWeight: 'var(--weight-semibold)',
   color: 'var(--colour-text-secondary)',
   textTransform: 'uppercase',
   letterSpacing: '0.04em',
+};
+
+const seeAllLinkStyle: CSSProperties = {
+  fontSize: 'var(--text-sm)',
+  color: 'var(--colour-text-link)',
+  textDecoration: 'none',
 };
 
 const placeholderCopyStyle: CSSProperties = {
@@ -131,16 +191,127 @@ const placeholderCopyStyle: CSSProperties = {
   fontSize: 'var(--text-sm)',
 };
 
-export function SearchShell({ initialFilter = null, initialQuery = '' }: SearchShellProps) {
+const resultListStyle: CSSProperties = {
+  listStyle: 'none',
+  padding: 0,
+  margin: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 'var(--space-2)',
+};
+
+const resultItemLinkStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 'var(--space-1)',
+  padding: 'var(--space-2) 0',
+  color: 'var(--colour-text-primary)',
+  textDecoration: 'none',
+};
+
+const resultLabelStyle: CSSProperties = {
+  fontSize: 'var(--text-md)',
+  fontWeight: 'var(--weight-medium)',
+};
+
+const resultMetaStyle: CSSProperties = {
+  fontSize: 'var(--text-xs)',
+  color: 'var(--colour-text-secondary)',
+};
+
+const noResultsStyle: CSSProperties = {
+  padding: 'var(--space-6) var(--space-4)',
+  textAlign: 'center' as const,
+  color: 'var(--colour-text-secondary)',
+};
+
+const fullModeLimitNoticeStyle: CSSProperties = {
+  ...placeholderCopyStyle,
+  fontStyle: 'italic',
+};
+
+// ── Component ──────────────────────────────────────────────────────────
+
+const EMPTY_RESULTS: SearchResults = {
+  posts: [],
+  people: [],
+  regions: [],
+  partnerOrgs: [],
+};
+
+export function SearchShell({
+  mode = 'typeahead',
+  initialFilter = null,
+  initialQuery = '',
+  initialResults = null,
+  selectedType,
+  openedSource = 'appnav',
+  runSearch,
+}: SearchShellProps) {
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
   const [filter, setFilter] = useState<Exclude<FeedFilter, 'all'> | null>(initialFilter);
+  const [results, setResults] = useState<SearchResults | null>(initialResults);
+  const [isLoading, setIsLoading] = useState(false);
+  const [recentlyViewed, setRecentlyViewed] = useState<RecentlyViewedItem[]>([]);
+
+  const fetchTokenRef = useRef(0);
+  const lastSubmittedRef = useRef<string | null>(null);
+
+  // Hydrate recently-viewed from localStorage AFTER mount (avoids SSR
+  // hydration mismatch — server renders with `[]`, client fills in).
+  useEffect(() => {
+    setRecentlyViewed(readRecentlyViewed());
+  }, []);
+
+  // Telemetry: fire `search_opened` once per mount. The `openedSource`
+  // is determined by the page based on referrer / query state.
+  useEffect(() => {
+    emitSearchEvent({ event: 'search_opened', source: openedSource });
+  }, [openedSource]);
+
+  // Debounced typeahead fetch. In full mode the URL drives results
+  // (the page server-renders), so we don't run this loop there.
+  useEffect(() => {
+    if (mode !== 'typeahead') return;
+    const trimmed = query.trim();
+    if (trimmed.length < MIN_QUERY_LENGTH) {
+      setResults(null);
+      setIsLoading(false);
+      lastSubmittedRef.current = null;
+      return;
+    }
+    const token = ++fetchTokenRef.current;
+    setIsLoading(true);
+    const handle = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const fetched = await runSearch({ q: trimmed });
+          if (fetchTokenRef.current !== token) return; // stale
+          setResults(fetched);
+          // Telemetry: fire once per debounced submission. Use the
+          // ref to avoid double-firing for the same trimmed query.
+          if (lastSubmittedRef.current !== trimmed) {
+            lastSubmittedRef.current = trimmed;
+            emitSearchEvent({
+              event: 'search_query_submitted',
+              q_length: trimmed.length,
+              has_scope_chip: filter !== null,
+            });
+          }
+        } catch {
+          if (fetchTokenRef.current !== token) return;
+          setResults(EMPTY_RESULTS);
+        } finally {
+          if (fetchTokenRef.current === token) setIsLoading(false);
+        }
+      })();
+    }, DEBOUNCE_MS);
+    return () => window.clearTimeout(handle);
+  }, [mode, query, filter, runSearch]);
 
   function dismissFilter(): void {
     setFilter(null);
-    // Reflect the change in the URL so a refresh (or share) preserves
-    // the widened scope. Use history.replaceState — no navigation, no
-    // server round-trip; PR D will hook the URL to the live query too.
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       url.searchParams.delete('filter');
@@ -150,12 +321,21 @@ export function SearchShell({ initialFilter = null, initialQuery = '' }: SearchS
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    // PR D wires submit to trpc.search.query + telemetry. PR C is
-    // shell-only — submitting with an empty/short query is a no-op so
-    // the keyboard "Search" key doesn't bounce the user out of the
-    // overlay.
-    if (query.trim().length < MIN_QUERY_LENGTH) return;
+    // Submit is a no-op — debounced effect runs queries. Prevents the
+    // form from reloading the page when the keyboard "Search" is hit.
   }
+
+  const trimmedQuery = query.trim();
+  const hasQuery = trimmedQuery.length >= MIN_QUERY_LENGTH;
+  const totalHits = results
+    ? results.posts.length +
+      results.people.length +
+      results.regions.length +
+      results.partnerOrgs.length
+    : 0;
+  const showZeroState = mode === 'typeahead' && !hasQuery;
+  const showResults = mode === 'full' || (mode === 'typeahead' && hasQuery && results !== null);
+  const showNoResults = mode === 'typeahead' && hasQuery && results !== null && totalHits === 0;
 
   return (
     <main data-testid="search-shell">
@@ -170,7 +350,7 @@ export function SearchShell({ initialFilter = null, initialQuery = '' }: SearchS
           <ChevronLeft size={22} strokeWidth={2} aria-hidden="true" />
         </button>
         <h1 style={titleStyle} data-testid="search-title">
-          Search
+          {mode === 'full' && selectedType ? `Search · ${groupLabel(selectedType)}` : 'Search'}
         </h1>
         <div style={{ marginLeft: 'auto' }}>
           <HeaderRefreshButton />
@@ -207,17 +387,205 @@ export function SearchShell({ initialFilter = null, initialQuery = '' }: SearchS
         )}
       </form>
 
-      <section style={sectionStyle} data-testid="search-empty-recently-viewed">
-        <h2 style={sectionHeadingStyle}>Recently viewed</h2>
-        <p style={placeholderCopyStyle}>
-          Posts you open will appear here so you can find them again.
+      {showZeroState && <ZeroState recentlyViewed={recentlyViewed} />}
+
+      {showResults && results !== null && (
+        <ResultsView
+          mode={mode}
+          query={trimmedQuery}
+          filter={filter}
+          results={results}
+          selectedType={selectedType}
+        />
+      )}
+
+      {showNoResults && (
+        <p style={noResultsStyle} data-testid="search-no-results">
+          Nothing matching that yet. Try a region name or a person.
         </p>
+      )}
+
+      {isLoading && mode === 'typeahead' && (
+        <p style={noResultsStyle} aria-live="polite" data-testid="search-loading">
+          Searching…
+        </p>
+      )}
+    </main>
+  );
+}
+
+function groupLabel(key: SearchEntityType): string {
+  const found = GROUPS.find((g) => g.key === key);
+  return found?.label ?? key;
+}
+
+// ── Sub-views ──────────────────────────────────────────────────────────
+
+function ZeroState({ recentlyViewed }: { recentlyViewed: RecentlyViewedItem[] }) {
+  return (
+    <>
+      <section style={sectionStyle} data-testid="search-empty-recently-viewed">
+        <div style={sectionHeadingRowStyle}>
+          <h2 style={sectionHeadingStyle}>Recently viewed</h2>
+        </div>
+        {recentlyViewed.length === 0 ? (
+          <p style={placeholderCopyStyle}>
+            Posts you open will appear here so you can find them again.
+          </p>
+        ) : (
+          <ul style={resultListStyle} data-testid="search-recently-viewed-list">
+            {recentlyViewed.map((item, idx) => (
+              <li key={item.id}>
+                <Link
+                  href={`/post/${item.id}`}
+                  style={resultItemLinkStyle}
+                  data-testid="search-recently-viewed-item"
+                  data-position={idx}
+                >
+                  <span style={resultLabelStyle}>{item.label}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section style={sectionStyle} data-testid="search-empty-your-regions">
         <h2 style={sectionHeadingStyle}>Your regions</h2>
         <p style={placeholderCopyStyle}>Region shortcuts will appear here.</p>
       </section>
-    </main>
+    </>
   );
 }
+
+interface ResultsViewProps {
+  mode: SearchShellMode;
+  query: string;
+  filter: Exclude<FeedFilter, 'all'> | null;
+  results: SearchResults;
+  selectedType?: SearchEntityType;
+}
+
+function ResultsView({ mode, query, filter, results, selectedType }: ResultsViewProps) {
+  const groupsToRender = useMemo(() => {
+    if (mode === 'full' && selectedType) {
+      return GROUPS.filter((g) => g.key === selectedType);
+    }
+    return GROUPS;
+  }, [mode, selectedType]);
+
+  return (
+    <>
+      {groupsToRender.map((group, groupPosition) => {
+        const hits = results[group.key];
+        if (mode === 'typeahead' && hits.length === 0) return null;
+
+        const cap = mode === 'full' ? FULL_MODE_LIMIT : TYPEAHEAD_GROUP_CAP;
+        const visible = hits.slice(0, cap);
+        const showSeeAll = mode === 'typeahead' && hits.length > 0;
+
+        return (
+          <section
+            key={group.key}
+            style={sectionStyle}
+            data-testid="search-results-section"
+            data-entity-type={group.key}
+          >
+            <div style={sectionHeadingRowStyle}>
+              <h2 style={sectionHeadingStyle}>{group.label}</h2>
+              {showSeeAll && (
+                <Link
+                  href={fullResultsHref(query, group.key, filter)}
+                  style={seeAllLinkStyle}
+                  data-testid="search-see-all-link"
+                  data-entity-type={group.key}
+                  onClick={() =>
+                    emitSearchEvent({
+                      event: 'search_see_all_clicked',
+                      entity_type: group.key,
+                    })
+                  }
+                >
+                  See all {group.pluralised(hits.length)}
+                </Link>
+              )}
+            </div>
+            {mode === 'full' && hits.length === 0 ? (
+              <p style={placeholderCopyStyle} data-testid="search-results-empty-group">
+                Nothing matching that yet. Try a region name or a person.
+              </p>
+            ) : (
+              <ResultList hits={visible} entityType={group.key} groupPosition={groupPosition} />
+            )}
+            {mode === 'full' && hits.length === FULL_MODE_LIMIT && (
+              <p style={fullModeLimitNoticeStyle} data-testid="search-results-limit-notice">
+                Showing the first {FULL_MODE_LIMIT}. Refine your query for narrower results.
+              </p>
+            )}
+          </section>
+        );
+      })}
+    </>
+  );
+}
+
+interface ResultListProps {
+  hits: SearchHit[];
+  entityType: SearchEntityType;
+  groupPosition: number;
+}
+
+function ResultList({ hits, entityType, groupPosition }: ResultListProps) {
+  return (
+    <ul style={resultListStyle}>
+      {hits.map((hit, idx) => (
+        <li key={hit.id}>
+          <Link
+            href={hit.href}
+            style={resultItemLinkStyle}
+            data-testid="search-result-item"
+            data-entity-type={entityType}
+            data-position={idx}
+            onClick={() =>
+              emitSearchEvent({
+                event: 'search_result_clicked',
+                entity_type: entityType,
+                position_in_group: idx,
+                group_position: groupPosition,
+              })
+            }
+          >
+            <span style={resultLabelStyle}>{hit.label}</span>
+            {hit.meta && <span style={resultMetaStyle}>{formatMeta(entityType, hit.meta)}</span>}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function formatMeta(entityType: SearchEntityType, meta: string): string {
+  if (entityType === 'posts') {
+    // service emits ISO string; render distance-from-now-ish without
+    // pulling date-fns into this component (keeps the bundle small).
+    const date = new Date(meta);
+    if (Number.isNaN(date.getTime())) return meta;
+    return date.toLocaleDateString();
+  }
+  return meta;
+}
+
+function fullResultsHref(
+  q: string,
+  type: SearchEntityType,
+  filter: Exclude<FeedFilter, 'all'> | null,
+): string {
+  const params = new URLSearchParams();
+  params.set('q', q);
+  params.set('type', type);
+  if (filter !== null) params.set('filter', filter);
+  return `/search?${params.toString()}`;
+}
+
+// Re-export for tests / page typing.
+export { SEARCH_ENTITY_TYPES };
