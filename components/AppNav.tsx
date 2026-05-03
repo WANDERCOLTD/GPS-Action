@@ -1,15 +1,15 @@
 'use client';
 
 /**
- * @build-unit BU-requests-foundation BU-sticky-nav BU-calendar-view BU-icon-nav BU-icon-strips
- * @spec architecture/decision-log.md (D054, D061, D065, D073)
+ * @build-unit BU-requests-foundation BU-sticky-nav BU-calendar-view BU-icon-nav BU-icon-strips BU-search-surface
+ * @spec architecture/decision-log.md (D054, D061, D065, D073, D078)
  * @spec architecture/admin-surface.md
  *
  * Top-level horizontal navigation strip. Rendered once by the root
  * layout inside the sticky `<header>`. Active link is derived from
  * `usePathname()` rather than a per-page `active` prop (D065).
  *
- *   [home] | [calendar-clock]? | [inbox] | [bar-chart-3] | [settings]
+ *   [home] | [calendar-clock]? | [inbox] | [settings] | [search]
  *
  * The Calendar tab is gated by the `calendar_enabled` feature flag
  * (BU-calendar-view / D073). The flag is resolved in the layout (server
@@ -37,7 +37,7 @@ import * as React from 'react';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, CalendarClock, Inbox, Settings } from 'lucide-react';
+import { Home, CalendarClock, Inbox, Search, Settings } from 'lucide-react';
 import { IconChipTooltip } from '@/components/IconChipTooltip';
 
 interface AppNavProps {
@@ -47,7 +47,7 @@ interface AppNavProps {
   calendarEnabled?: boolean;
 }
 
-type ActiveKey = 'feed' | 'calendar' | 'compose' | 'requests' | 'settings' | null;
+type ActiveKey = 'feed' | 'calendar' | 'compose' | 'requests' | 'search' | 'settings' | null;
 
 function deriveActive(pathname: string | null): ActiveKey {
   if (!pathname) return null;
@@ -55,6 +55,7 @@ function deriveActive(pathname: string | null): ActiveKey {
   if (pathname === '/calendar' || pathname.startsWith('/calendar/')) return 'calendar';
   if (pathname === '/compose' || pathname.startsWith('/compose/')) return 'compose';
   if (pathname === '/requests' || pathname.startsWith('/requests/')) return 'requests';
+  if (pathname === '/search' || pathname.startsWith('/search/')) return 'search';
   // /data is no longer a top-level tab — reached via /settings → "Data" entry.
   // Treat /data and /data/[entity] as "settings" for active-tab highlighting
   // so the Settings icon stays lit while a member is browsing data tables.
@@ -176,6 +177,16 @@ export function AppNav({ unreadNotificationCount = 0, calendarEnabled = false }:
           style={active === 'settings' ? activeStyle : linkStyle}
         >
           <Settings size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
+        </Link>
+      </IconChipTooltip>
+      <IconChipTooltip label="Search">
+        <Link
+          href="/search"
+          aria-label="Search"
+          data-testid="appnav-search-trigger"
+          style={active === 'search' ? activeStyle : linkStyle}
+        >
+          <Search size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
         </Link>
       </IconChipTooltip>
     </nav>

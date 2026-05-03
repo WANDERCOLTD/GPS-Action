@@ -1,8 +1,8 @@
 /**
  * Unit tests for AppNav.
  *
- * @build-unit BU-sticky-nav BU-icon-nav
- * @spec architecture/decision-log.md (D054, D061, D065)
+ * @build-unit BU-sticky-nav BU-icon-nav BU-search-surface
+ * @spec architecture/decision-log.md (D054, D061, D065, D078)
  *
  * Vitest env is `node`, no RTL. We mock `next/navigation` so
  * `usePathname()` returns a controllable value; we then invoke AppNav
@@ -14,6 +14,10 @@
  * readers continue to announce tab names. Text-content assertions
  * are gone (links no longer contain visible text); the `99+` cap
  * still applies to the unread badge.
+ *
+ * BU-search-surface (2026-05-03, PR C): magnifier trigger appended
+ * to the strip. testid `appnav-search-trigger`, aria-label `Search`,
+ * routes to `/search`.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -68,6 +72,7 @@ const NAV_LINKS: ReadonlyArray<readonly [string, string]> = [
   ['nav-feed-link', 'Feed'],
   ['nav-requests-link', 'Requests'],
   ['nav-settings-link', 'Settings'],
+  ['appnav-search-trigger', 'Search'],
 ];
 
 describe('AppNav', () => {
@@ -87,6 +92,9 @@ describe('AppNav', () => {
     ['/data', 'nav-settings-link'],
     ['/data/users', 'nav-settings-link'],
     ['/settings', 'nav-settings-link'],
+    // BU-search-surface — magnifier lights when on /search or /search/*
+    ['/search', 'appnav-search-trigger'],
+    ['/search/foo', 'appnav-search-trigger'],
   ])('highlights the right link when pathname is %s', (pathname, expectedActiveTestId) => {
     usePathnameMock.mockReturnValue(pathname);
     const tree = AppNav({}) as AnyElement;
@@ -230,6 +238,7 @@ describe('AppNav', () => {
     ['nav-feed-link', 'Feed'],
     ['nav-requests-link', 'Requests'],
     ['nav-settings-link', 'Settings'],
+    ['appnav-search-trigger', 'Search'],
   ])('%s is wrapped in IconChipTooltip with label %s', (testId, expectedLabel) => {
     usePathnameMock.mockReturnValue('/feed');
     const tree = AppNav({}) as AnyElement;
@@ -252,6 +261,25 @@ describe('AppNav', () => {
     });
     expect(wrapping).toBeDefined();
     expect(wrapping?.props.label).toBe('Calendar');
+  });
+
+  // ── BU-search-surface: magnifier trigger ────────────────────────────────
+
+  it('renders the magnifier with href /search and aria-label Search', () => {
+    usePathnameMock.mockReturnValue('/feed');
+    const tree = AppNav({}) as AnyElement;
+    const link = findByTestId(tree, 'appnav-search-trigger');
+    expect(link).toBeDefined();
+    expect(link?.props['href']).toBe('/search');
+    expect(link?.props['aria-label']).toBe('Search');
+  });
+
+  it('lights the magnifier when on /search', () => {
+    usePathnameMock.mockReturnValue('/search');
+    const tree = AppNav({}) as AnyElement;
+    expect(isActive(findByTestId(tree, 'appnav-search-trigger'))).toBe(true);
+    expect(isActive(findByTestId(tree, 'nav-feed-link'))).toBe(false);
+    expect(isActive(findByTestId(tree, 'nav-settings-link'))).toBe(false);
   });
 
   it('marks the Calendar tab active on a /calendar/* sub-path', () => {

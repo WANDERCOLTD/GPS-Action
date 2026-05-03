@@ -11,14 +11,20 @@ rather than a per-page `active` prop (D065).
 - **BU-icon-nav** (2026-04-30) — text labels replaced with lucide
   icons. Each tab keeps the prior text label as `aria-label` so
   screen readers continue to announce it.
+- **BU-search-surface** (2026-05-03, PR C) — magnifier trigger
+  appended to the right of the strip. Tapping navigates to `/search`.
+  Uses the BU-search-surface testid prefix (`appnav-search-trigger`)
+  rather than the `nav-*-link` family because it's a header trigger,
+  not a tab in the rotation.
 
 ## Tabs (icons-only)
 
-| Tab      | Icon (lucide) | `aria-label` | testid              |
-| -------- | ------------- | ------------ | ------------------- |
-| Feed     | `Home`        | `Feed`       | `nav-feed-link`     |
-| Requests | `Inbox`       | `Requests`   | `nav-requests-link` |
-| Settings | `Settings`    | `Settings`   | `nav-settings-link` |
+| Tab      | Icon (lucide) | `aria-label` | testid                  |
+| -------- | ------------- | ------------ | ----------------------- |
+| Feed     | `Home`        | `Feed`       | `nav-feed-link`         |
+| Requests | `Inbox`       | `Requests`   | `nav-requests-link`     |
+| Settings | `Settings`    | `Settings`   | `nav-settings-link`     |
+| Search   | `Search`      | `Search`     | `appnav-search-trigger` |
 
 Calendar tab (lucide `CalendarClock`) lands via `bu-calendar-view` —
 follow the same idiom as the three tabs above.
