@@ -156,12 +156,7 @@ describe('adminToggleBooleanAction', () => {
   });
 
   it('admin flips featureFlag.enabledGlobally → update + audit + revalidate', async () => {
-    const result = await adminToggleBooleanAction(
-      'featureFlag',
-      FLAG_ID,
-      'enabledGlobally',
-      true,
-    );
+    const result = await adminToggleBooleanAction('featureFlag', FLAG_ID, 'enabledGlobally', true);
     expect(result).toEqual({ ok: true });
     expect(mUpdate).toHaveBeenCalledTimes(1);
     expect(mUpdate.mock.calls[0]?.[0]?.data).toMatchObject({ enabledGlobally: true });
@@ -171,12 +166,7 @@ describe('adminToggleBooleanAction', () => {
 
   it('non-admin sees FORBIDDEN-shaped error and DB stays untouched', async () => {
     ctxRef.current = memberCtx();
-    const result = await adminToggleBooleanAction(
-      'featureFlag',
-      FLAG_ID,
-      'enabledGlobally',
-      true,
-    );
+    const result = await adminToggleBooleanAction('featureFlag', FLAG_ID, 'enabledGlobally', true);
     expect(result.ok).toBe(false);
     expect(mUpdate).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();

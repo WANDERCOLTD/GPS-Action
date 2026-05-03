@@ -168,9 +168,7 @@ export async function adminToggleBooleanAction(
     };
   }
   try {
-    await withCaller((caller) =>
-      caller.admin.update({ entity, id, data: { [field]: nextValue } }),
-    );
+    await withCaller((caller) => caller.admin.update({ entity, id, data: { [field]: nextValue } }));
   } catch (err: unknown) {
     if (err instanceof TRPCError) {
       return { ok: false, message: err.message };
