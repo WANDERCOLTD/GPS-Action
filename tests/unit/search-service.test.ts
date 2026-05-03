@@ -148,37 +148,70 @@ describe('searchAll — partner orgs deferred', () => {
 // ── Result shape ─────────────────────────────────────────────────────────
 
 describe('searchAll — result shape', () => {
-  it('maps post rows to SearchHit shape', async () => {
+  it('maps post rows to PostSearchHit shape', async () => {
     const createdAt = new Date('2026-05-01T10:00:00Z');
     mockPostFind.mockResolvedValue([
-      { id: 'post-1', title: 'Hendon school-gate', createdAt },
+      {
+        id: 'post-1',
+        title: 'Hendon school-gate',
+        createdAt,
+        urgency: true,
+        signal: 'promote',
+        kind: { slug: 'event', displayName: 'Event' },
+        author: {
+          id: 'author-1',
+          displayName: 'Sharon Cohen',
+          roleGrants: [{ role: 'queue_manager' }],
+        },
+      },
     ] as unknown as never);
     const out = await searchAll({ q: 'hendon', callerId: null });
     expect(out.posts).toEqual([
       {
         id: 'post-1',
-        label: 'Hendon school-gate',
         href: '/post/post-1',
-        meta: createdAt.toISOString(),
+        title: 'Hendon school-gate',
+        kindSlug: 'event',
+        kindDisplayName: 'Event',
+        urgency: true,
+        signal: 'promote',
+        createdAt: createdAt.toISOString(),
+        author: {
+          id: 'author-1',
+          displayName: 'Sharon Cohen',
+          roles: ['queue_manager'],
+        },
       },
     ]);
   });
 
-  it('maps user rows to SearchHit shape', async () => {
+  it('maps user rows to PersonSearchHit shape', async () => {
     mockUserFind.mockResolvedValue([
-      { id: 'user-1', displayName: 'Sharon Levine' },
+      { id: 'user-1', displayName: 'Sharon Levine', roleGrants: [{ role: 'admin' }] },
     ] as unknown as never);
     const out = await searchAll({ q: 'sharon', callerId: null });
-    expect(out.people).toEqual([{ id: 'user-1', label: 'Sharon Levine', href: '/profile/user-1' }]);
+    expect(out.people).toEqual([
+      {
+        id: 'user-1',
+        href: '/profile/user-1',
+        displayName: 'Sharon Levine',
+        roles: ['admin'],
+      },
+    ]);
   });
 
-  it('maps region rows with slug as meta', async () => {
+  it('maps region rows to RegionSearchHit shape', async () => {
     mockRegionFind.mockResolvedValue([
       { id: 'region-1', slug: 'hendon', displayName: 'Hendon' },
     ] as unknown as never);
     const out = await searchAll({ q: 'hendon', callerId: null });
     expect(out.regions).toEqual([
-      { id: 'region-1', label: 'Hendon', href: '/regions/hendon', meta: 'hendon' },
+      {
+        id: 'region-1',
+        href: '/regions/hendon',
+        displayName: 'Hendon',
+        slug: 'hendon',
+      },
     ]);
   });
 });
