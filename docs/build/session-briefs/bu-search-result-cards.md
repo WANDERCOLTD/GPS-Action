@@ -1,7 +1,7 @@
 ---
 slug: bu-search-result-cards
 status: shipped
-shipped_in: '#TBD'
+shipped_in: '#190'
 phase: 2
 priority: high
 ---

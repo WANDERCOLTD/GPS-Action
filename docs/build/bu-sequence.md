@@ -60,7 +60,6 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-composer** — BU-composer | ✅ Merged | — |
 | **bu-icon-strips** — bu-icon-strips | ✅ Merged | — |
 | **bu-postcode-or-place** — bu-postcode-or-place | ✅ Merged | — |
-| **bu-search-result-cards** — BU-search-result-cards | ✅ Merged | #TBD |
 | **f15-require-design-tokens** — F15 | ✅ Merged | — |
 | **erd-slice-1** — ERD Slice 1 | ✅ Merged | #1 |
 | **f06-eslint-rules** — F06 | ✅ Merged | #2 |
@@ -107,6 +106,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-calendar-near-me** — BU-calendar-near-me | ✅ Merged | #169 |
 | **bu-post-location-input** — BU-post-location-input | ✅ Merged | #171 |
 | **bu-search-surface** — BU-search-surface | ✅ Merged | #189 |
+| **bu-search-result-cards** — BU-search-result-cards | ✅ Merged | #190 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |
