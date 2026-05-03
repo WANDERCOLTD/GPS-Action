@@ -28,7 +28,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-17 | System auto-comments on a closing campaign | 0 | — | — | parked |
 | SCN-18 | Eddie writes his first post (the demo flow) | 2 | BU-composer, BU-fab-intent-picker, BU-feed, BU-link-first-composer, BU-publish-router, BU-tick-or-cross | D044, D062, D069, D072 | ✓ shipped |
 | SCN-19 | Sharon shares a Guardian article with a preview card | 2 | BU-am-link-collapse, BU-composer, BU-event-time, BU-fab-intent-picker, BU-link-share, BU-post-hero-demo, BU-publish-router, BU-tick-or-cross | D060, D061, D062, D064, D069, D072, D073 | ✓ shipped |
-| SCN-20 | Eddie reads the Sky News post and writes his first comment | 11 | BU-comments, BU-comments-card-lift, BU-event-time, BU-feed-card-affordances, BU-icon-strips, BU-one-click-polish, BU-publish-router, BU-reactions, BU-requests-vetting, BU-tick-or-cross | D045, D050, D052, D056, D057, D069, D072, D073 | ✓ shipped |
+| SCN-20 | Eddie reads the Sky News post and writes his first comment | 11 | BU-comments, BU-comments-card-lift, BU-event-time, BU-feed-card-affordances, BU-icon-strips, BU-one-click-polish, BU-publish-router, BU-reactions, BU-requests-vetting, BU-search-result-cards, BU-tick-or-cross | D045, D050, D052, D056, D057, D069, D072, D073 | ✓ shipped |
 | SCN-21 | Eddie tracks his vetting application from submission to outcome | 6 | BU-comments, BU-publish-router, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D052, D054, D055, D056, D057, D058, D061, D072 | ✓ shipped |
 | SCN-22 | Sharon picks up and resolves Eddie's vetting application | 6 | BU-comments, BU-publish-router, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D052, D054, D055, D056, D057, D058, D061, D072 | ✓ shipped |
 | SCN-23 | Maya raises an urgent alert at the school gate | 3 | BU-publish-router, BU-requests-foundation, BU-requests-urgent, BU-requests-vetting | D054, D055, D056, D057, D058, D072 | ✓ shipped |
@@ -39,7 +39,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-28 | Sharon shares a post, then confirms she sent it | 0 | — | — | parked |
 | SCN-29 | Eddie sees the share count on someone else's post | 0 | — | — | parked |
 | SCN-30 | Bette views her own post and notices a missing channel | 0 | — | — | parked |
-| SCN-31 | Sharon searches for Hendon | 2 | BU-search-surface | D078 | ✓ shipped |
+| SCN-31 | Sharon searches for Hendon | 2 | BU-search-result-cards, BU-search-surface | D078 | ✓ shipped |
 
 ## Build Units
 
@@ -81,6 +81,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-requests-foundation | 6 | SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D065, D072, D073, D078 |
 | BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061, D072 |
 | BU-requests-vetting | 7 | SCN-20, SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D072 |
+| BU-search-result-cards | 6 | SCN-20, SCN-31 | D045, D052, D072, D073, D078 |
 | BU-search-surface | 12 | SCN-31 | D054, D061, D065, D073, D078, DNaN |
 | BU-secondary-cta-placeholders | 1 | — | DNaN |
 | BU-seed | 1 | — | D038 |

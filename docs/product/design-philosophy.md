@@ -186,6 +186,46 @@ a longer message. Rare case, worth the friction.
 
 ---
 
+## Surface consistency
+
+**A post looks like a post wherever it appears. So does a person. So does a
+region.** Search results, network directories, the activity inbox, future
+admin tables — every list-of-entities surface re-uses the entity's canonical
+row primitives. New surfaces don't roll their own byline, avatar, kind chip,
+or signal glyph. They import the existing one.
+
+**Why this matters:** the demo path showed search results in plain `<Link>`
+rows after the post / inbox / profile primitives had stabilised. The result
+felt like a different app at the moment a member crossed surfaces. Cheap to
+prevent up front; expensive to retrofit at pilot when members start jumping
+between surfaces fluently.
+
+**Canonical primitives module:** `components/post-meta.tsx` exports
+`AvatarBubble`, `KindChip`, `SignalBadgeRow`, `formatRole`,
+`getAvatarColour`, `getInitials`. Use these. If you need a _compact_ variant
+(e.g. search row, dense table), pass smaller dimensions in `style` rather
+than re-implementing the bubble. Add a new variant prop to the primitive if
+the variation is structural.
+
+**The rule, operationally:**
+
+1. **Posts in any list re-use `KindChip` + `AvatarBubble` + role chips** with
+   the byline structure `PostCard` uses. Optional: `SignalBadgeRow` (or its
+   compact inline form) for `tick_or_cross` rows.
+2. **People in any list re-use `AvatarBubble` + display name + role chips.**
+   Same shape as the post-card byline.
+3. **Regions in any list use `MapPin` + display name + slug subtitle.** The
+   `MapPin` glyph is reserved for region/location concepts (see Glyph
+   register).
+4. **No surface invents a new row primitive.** If the existing ones don't
+   fit, propose an upgrade in the primitives module — not a one-off renderer.
+
+**Reviewer check:** any PR that lists posts, people, or regions and uses
+bare `<Link>` / `<div>` rows fails this rule. Reviewer asks "what stops a
+member from seeing a stylistic break when they cross to this surface?"
+
+---
+
 ## Glyph register (icon re-use)
 
 `lucide-react` is the project-wide icon family. This register is the single
@@ -313,5 +353,8 @@ When reviewing a UI PR, the questions are:
 - [ ] Are cultural/remembrance contexts handled with appropriate visual weight?
 - [ ] Is every claim in the copy actually true of what the code does?
 - [ ] For destructive actions — is the undo / confirmation proportionate?
+- [ ] **Surface consistency:** any list of posts / people / regions re-uses
+      the canonical row primitives from `components/post-meta.tsx` (no
+      bare-link rows, no one-off bylines).
 
 These questions go in the reviewer checklist for UI-touching PRs.
