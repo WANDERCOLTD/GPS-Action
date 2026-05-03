@@ -38,9 +38,63 @@ for context. Companion doc: `docs/product/coordination-board-overview.md`.
 
 | Surface | State | Awaits |
 |---|---|---|
-| **1 · Kanban desktop** | Revised per all 5 of Paul's stakeholder feedback items: group-name title only · Active/Backlog/Done tabs · "+ Propose to backlog" as outline button in header · no chips beyond Urgent · avatar-only with `+N` overflow · warning-subtle yellow bg for unclaimed cards. | Any further Paul feedback. |
-| **2 · Ticket detail** | NEW, built fresh during the pivot commit. Title with edit affordance · multi-assignee row · urgent flag · editable description · interleaved comments + notes + system events · Comment/Note compose tabs · Subscribe + Share-with-team + Invite-group actions · right-side meta sidebar. | Paul's first-pass feedback. |
+| **1 · Kanban desktop** | Revised per all 5 of Paul's stakeholder feedback items: group-name title only · Active/Backlog/Done tabs · "+ Propose to backlog" as outline button in header · no chips beyond Urgent · avatar-only with `+N` overflow · warning-subtle yellow bg for unclaimed cards. **POC-accepted by Paul (2026-05-03 PM):** "I think it's good for the POC." | No further changes pre-POC. |
+| **2 · Ticket detail** | NEW, built fresh during the pivot commit. Title with edit affordance · multi-assignee row · urgent flag · editable description · interleaved comments + notes + system events · Comment/Note compose tabs · Subscribe + Share-with-team + Invite-group actions · right-side meta sidebar. **First-pass feedback received (2026-05-03 PM); parked pre-POC** — see "POC feedback parked" section below. | POC acceptance; then apply parked feedback + collect "other minor comments" Paul flagged. |
 | **3 · Notifications pane** | NEW + iterated this session per Paul's 6 follow-ups: tinted (primary-subtle) row bg replaces dot indicator · acknowledged rows plain white · click → ticket → auto-ack as the only ack path · capacity callout (limited list + auto-scroll + View-all) · trigger rules split into Defaults (subscriber-driven) vs Opt-in (team-wide blasts). | Final read-through. |
+
+### POC feedback parked (2026-05-03 PM, Paul)
+
+Paul's first-pass review of Surfaces 1 + 2 after seeing the sketches.
+**Decision: park these and push for POC acceptance first** — don't
+re-iterate the sketches or the brief on these specific changes until
+the POC is approved by stakeholders. Apply when build starts (or in a
+follow-up sketch round if the POC review surfaces them).
+
+**Surface 1 (Kanban desktop) — POC-accepted as drawn.** No changes.
+
+**Surface 2 (Ticket detail) — three parked changes:**
+
+1. **Subscribe ↔ Assign Me are the same function.** Today the sketch
+   shows them as two separate buttons. Paul: "Subscribe is the same
+   function as Assign Me, so it could benefit from the same language
+   and placing one next to another."
+   - **Implication:** unify the verb and adjacency. Either collapse
+     to one control with two states ("Assign me" → once self-assigned,
+     becomes "Unassign / leave"), or keep them adjacent and use shared
+     language ("Follow / Unfollow" + "Assign me / Unassign").
+   - **Schema impact:** none — `Assignment` (multi-assignee) and
+     `RequestSubscription` are still separate entities; this is a UI
+     copy + layout change. Auto-rule already says assignees are
+     auto-subscribed (Tier-2 default #4), so the two states correlate.
+   - **Decision needed at build:** does self-assigning auto-subscribe
+     (yes, per default), and does unassigning leave the subscription
+     in place? Likely yes — explicit unsubscribe stays a separate
+     gesture.
+
+2. **Share-with-team and Invite-group should merge to one "Share with
+   team".** Today the sketch shows two distinct buttons. Paul:
+   "Share with team and Invite group should be the same thing: Share
+   with team."
+   - **Implication:** drop the "Invite group" affordance from Surface
+     2; keep one control labelled "Share with team."
+   - **Schema impact:** the previously separate primitives `RequestGroup`
+     (Share-with-team) and `GroupInvite` (Invite-group-to-ticket)
+     collapse to a single primitive. Likely just `RequestGroup` with
+     enough state to cover both routes (admin-pre-set workflow target
+     vs ad-hoc cross-team share). Drop `GroupInvite` from the schema
+     sketch in the v0.4 brief rewrite.
+   - **ADR impact:** the planned ADR for "Share-with semantics +
+     `GroupShareWorkflow` + receiving-team permission envelope" now
+     also subsumes Invite. Reduces ADR count from 6 to 5 (or 6 if a
+     dedicated "Share targets: workflow vs ad-hoc" ADR is preferred).
+
+3. **"Other minor comments" pending.** Paul flagged more feedback to
+   come, parked alongside these two until POC acceptance.
+
+**Why park, not iterate now:** Paul's framing was explicit — "I would
+park it here for now to see if we can have it accepted as POC." The
+POC review is the gate; refining sketches further before that gate
+risks burning iteration on a direction that may pivot.
 
 ### What's NOT yet built / done
 
