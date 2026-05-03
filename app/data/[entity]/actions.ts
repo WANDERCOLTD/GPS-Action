@@ -11,12 +11,17 @@
 
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ZodError } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
-import { ADMIN_ENTITY_KEYS, type AdminEntityKeyShared } from '@/shared/validation/admin';
+import {
+  ADMIN_ENTITY_KEYS,
+  isInlineToggleAllowed,
+  type AdminEntityKeyShared,
+} from '@/shared/validation/admin';
 import type { EntityFormState } from '@/components/admin/EntityForm';
 
 function isValidEntityKey(value: string): value is AdminEntityKeyShared {
@@ -138,6 +143,42 @@ export async function adminUpdateAction(
     return { status: 'error', message: 'Could not save — try again.' };
   }
   redirect(`/data/${entity}/${id}`);
+}
+
+/**
+ * Inline boolean toggle from the entity list page. Goes through the
+ * same `caller.admin.update` path as the detail edit form, so the
+ * audit log fires automatically (every flip writes one AuditLog row
+ * via the crud facade). The (entity, field) pair must be on the
+ * INLINE_TOGGLE_ALLOWLIST or the action 400s.
+ */
+export async function adminToggleBooleanAction(
+  entity: string,
+  id: string,
+  field: string,
+  nextValue: boolean,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!isValidEntityKey(entity)) {
+    return { ok: false, message: `Unknown entity "${entity}"` };
+  }
+  if (!isInlineToggleAllowed(entity, field)) {
+    return {
+      ok: false,
+      message: `Field "${field}" on "${entity}" is not inline-toggleable`,
+    };
+  }
+  try {
+    await withCaller((caller) =>
+      caller.admin.update({ entity, id, data: { [field]: nextValue } }),
+    );
+  } catch (err: unknown) {
+    if (err instanceof TRPCError) {
+      return { ok: false, message: err.message };
+    }
+    return { ok: false, message: 'Could not update — try again.' };
+  }
+  revalidatePath(`/data/${entity}`);
+  return { ok: true };
 }
 
 export async function adminDeleteAction(

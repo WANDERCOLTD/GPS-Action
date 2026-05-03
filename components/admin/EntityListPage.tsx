@@ -29,6 +29,8 @@ import { BulkSelector, type BulkActionFn } from '@/components/admin/BulkSelector
 import { BulkRowCheckbox, BulkSelectAllCheckbox } from '@/components/admin/BulkRowCheckbox';
 import { BulkActionBar } from '@/components/admin/BulkActionBar';
 import { BulkResultBanner } from '@/components/admin/BulkResultBanner';
+import { InlineBooleanToggle } from '@/components/admin/InlineBooleanToggle';
+import { isInlineToggleAllowed } from '@/shared/validation/admin';
 
 interface EntityListPageProps {
   readonly entity: EntityKey;
@@ -160,28 +162,44 @@ export async function EntityListPage({ entity, ctx, search, bulkAction }: Entity
                       <BulkRowCheckbox id={row.id} />
                     </td>
                   ) : null}
-                  {meta.listColumns.map((col, idx) => (
-                    <td
-                      key={col}
-                      style={{
-                        padding: 'var(--space-3) var(--space-4)',
-                        verticalAlign: 'top',
-                      }}
-                    >
-                      {idx === 0 ? (
-                        <Link
-                          href={`/data/${entity}/${row.id}`}
-                          data-testid="admin-list-row-link"
-                          data-row-id={row.id}
-                          style={{ color: 'var(--colour-text-link)', textDecoration: 'none' }}
-                        >
-                          {formatCell(row[col])}
-                        </Link>
-                      ) : (
-                        formatCell(row[col])
-                      )}
-                    </td>
-                  ))}
+                  {meta.listColumns.map((col, idx) => {
+                    const cellValue = row[col];
+                    const inlineToggleable =
+                      idx > 0 &&
+                      canEdit &&
+                      typeof cellValue === 'boolean' &&
+                      isInlineToggleAllowed(entity, col);
+                    return (
+                      <td
+                        key={col}
+                        style={{
+                          padding: 'var(--space-3) var(--space-4)',
+                          verticalAlign: 'top',
+                        }}
+                      >
+                        {idx === 0 ? (
+                          <Link
+                            href={`/data/${entity}/${row.id}`}
+                            data-testid="admin-list-row-link"
+                            data-row-id={row.id}
+                            style={{ color: 'var(--colour-text-link)', textDecoration: 'none' }}
+                          >
+                            {formatCell(cellValue)}
+                          </Link>
+                        ) : inlineToggleable ? (
+                          <InlineBooleanToggle
+                            entity={entity}
+                            id={row.id}
+                            field={col}
+                            value={cellValue as boolean}
+                            label={`Toggle ${col} for this row`}
+                          />
+                        ) : (
+                          formatCell(cellValue)
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
