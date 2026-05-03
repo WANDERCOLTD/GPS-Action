@@ -40,6 +40,9 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-29 | Eddie sees the share count on someone else's post | 0 | — | — | parked |
 | SCN-30 | Bette views her own post and notices a missing channel | 0 | — | — | parked |
 | SCN-31 | Sharon searches for Hendon | 2 | BU-search-result-cards, BU-search-surface | D078 | ✓ shipped |
+| SCN-32 | Leonid claims a writing job from his board | 0 | — | — | parked |
+| SCN-33 | Sharon shares a job to the IT team | 0 | — | — | parked |
+| SCN-34 | Maya gets a notification about a stuck card | 0 | — | — | parked |
 
 ## Build Units
 
