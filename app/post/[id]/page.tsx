@@ -1,5 +1,5 @@
 /**
- * @build-unit BU-comments BU-event-time BU-publish-router
+ * @build-unit BU-comments BU-event-time BU-publish-router BU-search-result-cards
  * @spec architecture/decision-log.md (D052, D045, D072, D073)
  * @spec product/scenarios.md (SCN-20)
  * @spec product/design-philosophy.md
@@ -27,7 +27,7 @@
 
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLink } from '@/components/ArrowLink';
+import { HistoryBackButton } from '@/components/HistoryBackButton';
 import { RecentlyViewedTracker } from '@/components/RecentlyViewedTracker';
 import { formatDistanceToNow } from 'date-fns';
 import { Calendar, MapPin } from 'lucide-react';
@@ -184,9 +184,10 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
           gap: 'var(--space-3)',
         }}
       >
-        <ArrowLink href="/feed" direction="back" testIdArea="post" testIdSuffix="back">
-          Back to feed
-        </ArrowLink>
+        {/* BU-search-result-cards: history-aware back button so a member
+            arriving from /search returns to their search list, not /feed.
+            Falls back to /feed when there's no history (direct visits). */}
+        <HistoryBackButton fallbackHref="/feed" />
         {canEdit && (
           <Link
             href={`/post/${post.id}/edit`}

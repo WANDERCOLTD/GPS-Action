@@ -1,7 +1,8 @@
 /**
- * @build-unit BU-search-surface
+ * @build-unit BU-search-surface BU-search-result-cards
  * @spec D078 (all 9 sub-decisions)
  * @spec ADR-0004 (pg_trgm + GIN indexes shipped in #183)
+ * @spec build/session-briefs/bu-search-result-cards.md
  *
  * App-wide member search service.
  *
@@ -20,9 +21,12 @@
  * which compiles to `ILIKE '%q%'`. PostgreSQL's planner consumes the
  * `gin_trgm_ops` indexes from ADR-0004 to make these queries fast at
  * scale. **Typo tolerance** (`henden` → `hendon`) requires the `%`
- * operator with `similarity()` — that's a v2 follow-up. The current
- * indexes already support both query styles, so the upgrade is a
- * service-only change with no schema migration.
+ * operator with `similarity()` — that's a v2 follow-up.
+ *
+ * **Per-entity hit shapes (BU-search-result-cards).** Each row carries
+ * the fields its UI component needs to render in the project's house
+ * style (kind chip, avatar byline, signal glyph). Roles are restricted
+ * to the same `admin`/`queue_manager` grants the feed surfaces.
  */
 
 import type { Prisma } from '@prisma/client';
@@ -32,26 +36,55 @@ import type { SearchEntityType } from '@/shared/validation/search';
 
 // ── Public types ─────────────────────────────────────────────────────────
 
-/**
- * Generic result row. The router's UI renders all four groups with the
- * same shape so result rendering is one component, not four.
- */
-export interface SearchHit {
+export type SearchAuthorRole = 'admin' | 'queue_manager';
+
+export interface PostSearchHit {
   id: string;
-  /** User-visible label. Post title, person displayName, region displayName, org displayName. */
-  label: string;
-  /** Where to navigate on tap. */
   href: string;
-  /** Optional second-line metadata (e.g. region slug, post createdAt). */
-  meta?: string;
+  title: string;
+  kindSlug: string | null;
+  kindDisplayName: string | null;
+  urgency: boolean;
+  signal: 'promote' | 'remove' | null;
+  /** ISO 8601 string. Wire-format dates per D073. */
+  createdAt: string;
+  author: {
+    id: string;
+    displayName: string;
+    roles: SearchAuthorRole[];
+  };
+}
+
+export interface PersonSearchHit {
+  id: string;
+  href: string;
+  displayName: string;
+  roles: SearchAuthorRole[];
+}
+
+export interface RegionSearchHit {
+  id: string;
+  href: string;
+  displayName: string;
+  slug: string;
+}
+
+/**
+ * Partner-orgs hit shape. Reserved for §3.30 — currently unused; the
+ * group always returns `[]`. Defined here so `partnerOrgs` types
+ * correctly when the entity ships.
+ */
+export interface PartnerOrgSearchHit {
+  id: string;
+  href: string;
+  displayName: string;
 }
 
 export interface SearchResults {
-  posts: SearchHit[];
-  people: SearchHit[];
-  regions: SearchHit[];
-  /** Always `[]` in v1 — D078 §9 defers partner-orgs as a search entity to the §3.30 BU. */
-  partnerOrgs: SearchHit[];
+  posts: PostSearchHit[];
+  people: PersonSearchHit[];
+  regions: RegionSearchHit[];
+  partnerOrgs: PartnerOrgSearchHit[];
 }
 
 export interface SearchAllInput {
@@ -69,6 +102,8 @@ export interface SearchAllInput {
 const TYPEAHEAD_LIMIT = 3;
 const FULL_MODE_DEFAULT_LIMIT = 20;
 const MIN_QUERY_LENGTH = 2;
+
+const SURFACED_ROLES = ['admin', 'queue_manager'] as const satisfies readonly SearchAuthorRole[];
 
 // ── Public API ───────────────────────────────────────────────────────────
 
@@ -91,7 +126,7 @@ export async function searchAll(input: SearchAllInput): Promise<SearchResults> {
     shouldSearch('people', input.type) ? searchPeople(q, limit) : [],
     shouldSearch('regions', input.type) ? searchRegions(q, limit) : [],
     // D078 §9: partner orgs deferred to §3.30. Group always empty in v1.
-    [] as SearchHit[],
+    [] as PartnerOrgSearchHit[],
   ]);
 
   return { posts, people, regions, partnerOrgs };
@@ -103,7 +138,7 @@ async function searchPosts(
   q: string,
   callerId: string | null,
   limit: number,
-): Promise<SearchHit[]> {
+): Promise<PostSearchHit[]> {
   const visibilityFilter = getPostVisibilityFilter(callerId);
 
   const containsQ: Prisma.StringFilter = { contains: q, mode: 'insensitive' };
@@ -117,35 +152,79 @@ async function searchPosts(
     },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take: limit,
-    select: { id: true, title: true, createdAt: true },
+    select: {
+      id: true,
+      title: true,
+      createdAt: true,
+      urgency: true,
+      signal: true,
+      kind: { select: { slug: true, displayName: true } },
+      author: {
+        select: {
+          id: true,
+          displayName: true,
+          roleGrants: {
+            where: {
+              revokedAt: null,
+              role: { in: [...SURFACED_ROLES] },
+            },
+            select: { role: true },
+          },
+        },
+      },
+    },
   });
 
-  return rows.map((row) => ({
-    id: row.id,
-    label: row.title,
-    href: `/post/${row.id}`,
-    meta: row.createdAt.toISOString(),
-  }));
+  return rows.map(
+    (row): PostSearchHit => ({
+      id: row.id,
+      href: `/post/${row.id}`,
+      title: row.title,
+      kindSlug: row.kind?.slug ?? null,
+      kindDisplayName: row.kind?.displayName ?? null,
+      urgency: row.urgency,
+      signal: row.signal,
+      createdAt: row.createdAt.toISOString(),
+      author: {
+        id: row.author.id,
+        displayName: row.author.displayName,
+        roles: row.author.roleGrants.map((g) => g.role as SearchAuthorRole),
+      },
+    }),
+  );
 }
 
-async function searchPeople(q: string, limit: number): Promise<SearchHit[]> {
+async function searchPeople(q: string, limit: number): Promise<PersonSearchHit[]> {
   const rows = await prisma.user.findMany({
     where: {
       displayName: { contains: q, mode: 'insensitive' },
     },
     orderBy: [{ displayName: 'asc' }],
     take: limit,
-    select: { id: true, displayName: true },
+    select: {
+      id: true,
+      displayName: true,
+      roleGrants: {
+        where: {
+          revokedAt: null,
+          role: { in: [...SURFACED_ROLES] },
+        },
+        select: { role: true },
+      },
+    },
   });
 
-  return rows.map((row) => ({
-    id: row.id,
-    label: row.displayName,
-    href: `/profile/${row.id}`,
-  }));
+  return rows.map(
+    (row): PersonSearchHit => ({
+      id: row.id,
+      href: `/profile/${row.id}`,
+      displayName: row.displayName,
+      roles: row.roleGrants.map((g) => g.role as SearchAuthorRole),
+    }),
+  );
 }
 
-async function searchRegions(q: string, limit: number): Promise<SearchHit[]> {
+async function searchRegions(q: string, limit: number): Promise<RegionSearchHit[]> {
   const rows = await prisma.region.findMany({
     where: {
       deletedAt: null,
@@ -156,12 +235,14 @@ async function searchRegions(q: string, limit: number): Promise<SearchHit[]> {
     select: { id: true, slug: true, displayName: true },
   });
 
-  return rows.map((row) => ({
-    id: row.id,
-    label: row.displayName,
-    href: `/regions/${row.slug}`,
-    meta: row.slug,
-  }));
+  return rows.map(
+    (row): RegionSearchHit => ({
+      id: row.id,
+      href: `/regions/${row.slug}`,
+      displayName: row.displayName,
+      slug: row.slug,
+    }),
+  );
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────

@@ -1,10 +1,11 @@
 'use client';
 
 /**
- * @build-unit BU-search-surface
+ * @build-unit BU-search-surface BU-search-result-cards
  * @spec architecture/decision-log.md (D078)
  * @spec adrs/0004-search-trigram-indexes.md
  * @spec build/session-briefs/bu-search-surface.md
+ * @spec build/session-briefs/bu-search-result-cards.md
  * @spec product/scenarios.md (SCN-31)
  *
  * Client shell for the `/search` route. Two modes off the same
@@ -30,12 +31,17 @@
 import * as React from 'react';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ChevronLeft, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { HeaderRefreshButton } from '@/components/HeaderRefreshButton';
+import { HistoryBackButton } from '@/components/HistoryBackButton';
 import { FEED_FILTER_LABELS, type FeedFilter } from '@/shared/feed-filters';
 import { SEARCH_ENTITY_TYPES, type SearchEntityType } from '@/shared/validation/search';
-import type { SearchHit, SearchResults } from '@/server/routers/search';
+import type { SearchResults } from '@/server/routers/search';
+import {
+  SearchPostHitRow,
+  SearchPersonHitRow,
+  SearchRegionHitRow,
+} from '@/components/SearchHitRows';
 import { readRecentlyViewed, type RecentlyViewedItem } from '@/components/recently-viewed-posts';
 import { emitSearchEvent } from '@/components/search-telemetry';
 
@@ -98,20 +104,6 @@ const headerStyle: CSSProperties = {
   padding: 'var(--space-3) var(--space-4)',
   borderBottom: '1px solid var(--colour-border-subtle)',
   background: 'var(--colour-surface-raised)',
-};
-
-const backButtonStyle: CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: 44,
-  height: 44,
-  padding: 0,
-  background: 'transparent',
-  border: 'none',
-  borderRadius: 'var(--radius-sm)',
-  color: 'var(--colour-text-link)',
-  cursor: 'pointer',
 };
 
 const titleStyle: CSSProperties = {
@@ -214,11 +206,6 @@ const resultLabelStyle: CSSProperties = {
   fontWeight: 'var(--weight-medium)',
 };
 
-const resultMetaStyle: CSSProperties = {
-  fontSize: 'var(--text-xs)',
-  color: 'var(--colour-text-secondary)',
-};
-
 const noResultsStyle: CSSProperties = {
   padding: 'var(--space-6) var(--space-4)',
   textAlign: 'center' as const,
@@ -248,7 +235,6 @@ export function SearchShell({
   openedSource = 'appnav',
   runSearch,
 }: SearchShellProps) {
-  const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
   const [filter, setFilter] = useState<Exclude<FeedFilter, 'all'> | null>(initialFilter);
   const [results, setResults] = useState<SearchResults | null>(initialResults);
@@ -340,15 +326,7 @@ export function SearchShell({
   return (
     <main data-testid="search-shell">
       <div style={headerStyle} data-testid="search-header">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="Back"
-          data-testid="search-back-button"
-          style={backButtonStyle}
-        >
-          <ChevronLeft size={22} strokeWidth={2} aria-hidden="true" />
-        </button>
+        <HistoryBackButton fallbackHref="/feed" ariaLabel="Back" />
         <h1 style={titleStyle} data-testid="search-title">
           {mode === 'full' && selectedType ? `Search · ${groupLabel(selectedType)}` : 'Search'}
         </h1>
@@ -477,12 +455,11 @@ function ResultsView({ mode, query, filter, results, selectedType }: ResultsView
   return (
     <>
       {groupsToRender.map((group, groupPosition) => {
-        const hits = results[group.key];
-        if (mode === 'typeahead' && hits.length === 0) return null;
+        const hitsCount = results[group.key].length;
+        if (mode === 'typeahead' && hitsCount === 0) return null;
 
         const cap = mode === 'full' ? FULL_MODE_LIMIT : TYPEAHEAD_GROUP_CAP;
-        const visible = hits.slice(0, cap);
-        const showSeeAll = mode === 'typeahead' && hits.length > 0;
+        const showSeeAll = mode === 'typeahead' && hitsCount > 0;
 
         return (
           <section
@@ -506,18 +483,23 @@ function ResultsView({ mode, query, filter, results, selectedType }: ResultsView
                     })
                   }
                 >
-                  See all {group.pluralised(hits.length)}
+                  See all {group.pluralised(hitsCount)}
                 </Link>
               )}
             </div>
-            {mode === 'full' && hits.length === 0 ? (
+            {mode === 'full' && hitsCount === 0 ? (
               <p style={placeholderCopyStyle} data-testid="search-results-empty-group">
                 Nothing matching that yet. Try a region name or a person.
               </p>
             ) : (
-              <ResultList hits={visible} entityType={group.key} groupPosition={groupPosition} />
+              <ResultList
+                results={results}
+                entityType={group.key}
+                cap={cap}
+                groupPosition={groupPosition}
+              />
             )}
-            {mode === 'full' && hits.length === FULL_MODE_LIMIT && (
+            {mode === 'full' && hitsCount === FULL_MODE_LIMIT && (
               <p style={fullModeLimitNoticeStyle} data-testid="search-results-limit-notice">
                 Showing the first {FULL_MODE_LIMIT}. Refine your query for narrower results.
               </p>
@@ -530,49 +512,62 @@ function ResultsView({ mode, query, filter, results, selectedType }: ResultsView
 }
 
 interface ResultListProps {
-  hits: SearchHit[];
+  results: SearchResults;
   entityType: SearchEntityType;
+  cap: number;
   groupPosition: number;
 }
 
-function ResultList({ hits, entityType, groupPosition }: ResultListProps) {
-  return (
-    <ul style={resultListStyle}>
-      {hits.map((hit, idx) => (
-        <li key={hit.id}>
-          <Link
-            href={hit.href}
-            style={resultItemLinkStyle}
-            data-testid="search-result-item"
-            data-entity-type={entityType}
-            data-position={idx}
-            onClick={() =>
-              emitSearchEvent({
-                event: 'search_result_clicked',
-                entity_type: entityType,
-                position_in_group: idx,
-                group_position: groupPosition,
-              })
-            }
-          >
-            <span style={resultLabelStyle}>{hit.label}</span>
-            {hit.meta && <span style={resultMetaStyle}>{formatMeta(entityType, hit.meta)}</span>}
-          </Link>
-        </li>
-      ))}
-    </ul>
-  );
-}
+function ResultList({ results, entityType, cap, groupPosition }: ResultListProps) {
+  const fireClick = (idx: number) => () =>
+    emitSearchEvent({
+      event: 'search_result_clicked',
+      entity_type: entityType,
+      position_in_group: idx,
+      group_position: groupPosition,
+    });
 
-function formatMeta(entityType: SearchEntityType, meta: string): string {
   if (entityType === 'posts') {
-    // service emits ISO string; render distance-from-now-ish without
-    // pulling date-fns into this component (keeps the bundle small).
-    const date = new Date(meta);
-    if (Number.isNaN(date.getTime())) return meta;
-    return date.toLocaleDateString();
+    const hits = results.posts.slice(0, cap);
+    return (
+      <ul style={resultListStyle}>
+        {hits.map((hit, idx) => (
+          <li key={hit.id}>
+            <SearchPostHitRow hit={hit} position={idx} onClick={fireClick(idx)} />
+          </li>
+        ))}
+      </ul>
+    );
   }
-  return meta;
+
+  if (entityType === 'people') {
+    const hits = results.people.slice(0, cap);
+    return (
+      <ul style={resultListStyle}>
+        {hits.map((hit, idx) => (
+          <li key={hit.id}>
+            <SearchPersonHitRow hit={hit} position={idx} onClick={fireClick(idx)} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (entityType === 'regions') {
+    const hits = results.regions.slice(0, cap);
+    return (
+      <ul style={resultListStyle}>
+        {hits.map((hit, idx) => (
+          <li key={hit.id}>
+            <SearchRegionHitRow hit={hit} position={idx} onClick={fireClick(idx)} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  // partnerOrgs — D078 §9, always empty in v1; render nothing.
+  return null;
 }
 
 function fullResultsHref(
