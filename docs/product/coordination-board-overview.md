@@ -6,6 +6,15 @@ This is the plain-language companion to the build brief at
 `docs/build/session-briefs/bu-coordination-board.md`. It captures
 what we're proposing to build, why, and which decisions are still open.
 
+> **Two shapes are on the table — not yet decided.** This document
+> describes **Shape A** (the kanban board, Leonid's original pitch).
+> A second shape — **Shape B**, a "shared inbox" inspired by
+> [sleekflow.io](https://sleekflow.io/inbox) — is described at the
+> end of this document. The two share most of the underlying machinery
+> but feel quite different to use. The technical review meeting will
+> pick between them, or settle on a hybrid that does Shape B first
+> and adds Shape A's board view later.
+
 ---
 
 ## What we're proposing
@@ -198,6 +207,99 @@ Before we lock the build, we'd value views on:
 4. Build, in the order the brief lists.
 
 This document will be updated as those steps complete.
+
+---
+
+## Shape B — the "shared inbox" alternative
+
+Shape A above describes a kanban-style board. The technical team is
+also weighing **Shape B**, a "shared inbox" approach inspired by a
+product called [SleekFlow](https://sleekflow.io/inbox). It's worth
+opening their tour page in another tab to feel the difference — the
+underlying machinery is similar, but the day-to-day experience is
+quite different.
+
+### What's different about Shape B
+
+Instead of a board with columns, each team has an **inbox** — a
+list of jobs you can filter:
+
+- **Open** — currently being worked on
+- **Snoozed** — set aside until a date you choose ("come back to me
+  tomorrow")
+- **Closed** — completed
+- **All** — everything
+
+Each member also has three personal lenses on the side, the same
+ones SleekFlow uses:
+
+- **Assigned to me** — jobs I've taken ownership of
+- **Collaborating** — jobs I've subscribed to but don't own
+- **Mentions** — jobs where someone has @-mentioned me
+
+Switching between teams works the same way as Shape A — a team
+picker that only shows you teams you belong to.
+
+### How a job feels in Shape B
+
+You open your team inbox. There's a list of conversations. You see
+who owns each one (or "Unassigned"), the last message, when it last
+moved. You filter by Open, or scroll. You click in. You see the full
+thread — what's been said, what's been decided. You add a comment, or
+@-mention a Writer to pull them in for a quick view. They get 24
+hours of access to that one job, even if they're not in your team —
+no ceremony.
+
+When you're done, you mark it Closed. No dragging cards. The "stage
+of work" is captured in the conversation itself, not in which column
+the card sits in.
+
+### What we'd lose in Shape B
+
+The visual at-a-glance of a board. Some people read a kanban faster
+than a list — you can see in two seconds that there are three jobs
+in Recruitment and one in Implementation. With a list, you have to
+filter to see the same thing.
+
+### What we'd gain in Shape B
+
+- Simpler to build, faster to ship.
+- Easier for non-technical members to learn — most people understand
+  email-style inboxes intuitively.
+- The "snooze for a day" pattern is genuinely useful for activist
+  work where context shifts.
+- Natural cross-team collaboration through @-mentions with temporary
+  access, rather than having to formally direct work.
+
+### The hybrid option
+
+Build Shape B first (simpler, faster), and add Shape A's kanban view
+as an optional toggle in a later phase, for admins who want the
+visual workflow. Both shapes share most of the same data underneath.
+
+### Questions Shape B raises that Shape A doesn't
+
+1. **How does someone become "the owner" of a job?** SleekFlow's
+   default is "first person to reply automatically becomes owner."
+   For activist work, that might be too implicit — you might comment
+   helpfully without intending to take it on. We'd probably want an
+   explicit Claim button instead.
+2. **What's the right snooze duration default?** A day? Until
+   Monday? Custom each time?
+3. **How long should an @-mention give someone temporary access?**
+   24 hours like SleekFlow, or shorter? Should this be configurable
+   per team for sensitive work?
+4. **Where do you land when you log in?** Your "Assigned to me"
+   list, or the team inbox? SleekFlow defaults to "Assigned to me"
+   (focus); the alternative is the team inbox (situational
+   awareness).
+
+### When we'll decide
+
+The technical review meeting (Simon, Harry, Grant, Paul, Leonid)
+will pick between Shape A, Shape B, and the hybrid. After that, the
+prototype is built in the chosen shape, and you'll see something
+clickable.
 
 ---
 

@@ -3,18 +3,31 @@ slug: bu-coordination-board
 status: planned
 phase: 3
 priority: high
-note: 'Stub captured 2026-05-03 from Leonid pitch + cross-team meeting (Simon/Harry/Grant/Paul/Jeremy/Leonid). Awaiting (1) technical-feasibility review with the four-person tech group and (2) prototype UI before non-technical stakeholders can evaluate. Brief is shaped enough to anchor that meeting; decisions block code.'
+note: 'Stub captured 2026-05-03 from Leonid pitch + cross-team meeting (Simon/Harry/Grant/Paul/Jeremy/Leonid). Awaiting (1) technical-feasibility review with the four-person tech group and (2) prototype UI before non-technical stakeholders can evaluate. Two competing UI directions still on the table — kanban-board (Direction A) vs shared-inbox a la sleekflow.io (Direction B). Tech review picks one. Brief is shaped enough to anchor that meeting; decisions block code.'
 ---
 
-# SESSION BRIEF · bu-coordination-board — cross-team kanban with per-group views
+# SESSION BRIEF · bu-coordination-board — cross-team coordination surface
 
-_Brief version: 0.1 (stub) · Author: Paul (via Claude) · Date: 2026-05-03_
+_Brief version: 0.2 (stub, two directions) · Author: Paul (via Claude) · Date: 2026-05-03_
 
-This is a **planned-status stub** capturing the agreed direction from
-the Leonid-led meeting (2026-05-02). It is not yet ready to build.
-Two gates sit in front of execution: a tech-feasibility review with
-Simon, Harry, Grant, and Paul (booking pending), and a UI prototype
-to take to non-technical stakeholders (writers, partner-org leads).
+This is a **planned-status stub** capturing direction from the
+Leonid-led meeting (2026-05-02), now with a second UI direction added
+after reviewing sleekflow.io's shared-inbox product (2026-05-03).
+**Two paths are on the table** and not yet picked between:
+
+- **Direction A — kanban board** (Leonid's original pitch, captured
+  in the bulk of this brief).
+- **Direction B — shared inbox** (SleekFlow-style list with status
+  filters and personal "Assigned to me / Collaborating / Mentions"
+  views; details in the dedicated section below).
+
+The two share roughly 70% of the schema. Pick the UI metaphor in the
+tech review; the data model adapts.
+
+Two gates remain in front of execution: a tech-feasibility review
+with Simon, Harry, Grant, and Paul (booking pending), and a UI
+prototype to take to non-technical stakeholders (writers, partner-
+org leads).
 
 ---
 
@@ -159,6 +172,116 @@ the groups they belong to.
     affiliated with CUFI" might not need admin approval the way joining
     Writers does. Maps to existing `Group.joinPolicy = open` per-kind.
     Confirm the model holds.
+
+---
+
+## Direction B — shared inbox (sleekflow.io style) — under consideration
+
+Added 2026-05-03 after reviewing sleekflow.io's Inbox product. **Not
+yet decided** vs Direction A (kanban board, above). Tech review picks
+between them — or chooses a hybrid where the kanban becomes a Phase 2
+view on top of a list-first inbox.
+
+### What SleekFlow actually is
+
+A **shared inbox** for customer conversations across channels. UI is
+a 3-pane layout — left sidebar of views, centre conversation list,
+right contact card. Crucially, **no kanban columns**. The "board" is
+a filterable list with a status filter at the top:
+**Open · Snoozed · Closed · All**. Personal navigation in the left
+sidebar groups views by user role:
+
+- **My views:** *Assigned to me* · *Collaborations* · *Mentions*
+- **Company views:** team-wide shared folders (= per-team inboxes)
+
+### SleekFlow primitives mapped to GPS
+
+| SleekFlow | GPS equivalent | Already in Direction A? |
+|---|---|---|
+| Conversation | `Request` | yes |
+| Channel (WhatsApp/IG/etc) | n/a — GPS jobs originate in-app | — |
+| Team / Team inbox | `Group` (kind=workstream) | yes |
+| Assignee / Contact Owner (one per item) | `Request.claimedByUserId` | yes (claim-and-lease) |
+| Collaborator (many, full reply access) | `RequestSubscription` (`source=explicit`) | yes |
+| @mention with 24h temp access | **NEW** — TTL on `RequestSubscription` | no |
+| Status: Open / Snoozed / Closed | `backlog / active / done` + **add `snoozed`** | partial |
+| Labels | `Request.labels: String[]` (new, lightweight) | no |
+| First-to-reply becomes owner | Maps to claim-and-lease | yes |
+| Internal note vs reply | `CommentAudience: all | reviewers` | yes (existing) |
+| Saved replies / AI smart reply | n/a for MVP | — |
+
+### What changes if Direction B wins
+
+1. **The board becomes a *view*, not the metaphor.** Default landing
+   per group: a filterable list (Open / Snoozed / Closed) with the
+   three personal lenses in a left sidebar. Kanban-with-columns
+   survives as an optional toggle for planners and admins.
+2. **`BoardColumn` configurability drops from P0 to Phase 2 polish.**
+   Significantly simpler — removes one of the hairier ADRs from the
+   critical path.
+3. **D054 status-collapse can land cleanly:** 4–5 lifecycle values,
+   no orthogonal column model needed at MVP.
+4. **Three default personal views:** *Assigned to me* · *Collaborating*
+   · *Mentions* — queries over the same `Request` table; not new
+   entities.
+5. **Add `snoozed`** — recommendation: a `snoozedUntil: DateTime?`
+   field that hides the row from default views until the timestamp
+   passes, rather than a new lifecycle state. Sweeper similar to
+   claim TTL.
+6. **First-class `@mention` with TTL temp access.** When a comment
+   @-mentions a user, auto-grant 24h read access to that Request,
+   even if they're not a member of the directing Group. Schema:
+   extend `RequestSubscription` with `expiresAt: DateTime?`.
+7. **Lightweight Labels.** Distinct from `Group` — admin/user-applied
+   tags on individual Requests for ad-hoc filtering ("urgent-this-
+   week", "needs-Hebrew-translation"). `Request.labels: String[]`
+   is enough for v1.
+8. **Non-tech sell improves significantly.** "Imagine SleekFlow's
+   inbox, but for our internal jobs" is a far easier pitch to Jeremy
+   and the writers than abstract column diagrams.
+
+### What Direction B complicates
+
+- **TTL access for @mentions** has security implications — temp
+  readers must be excluded from sensitive Requests. Needs explicit
+  policy.
+- **First-to-reply becomes owner** is fine for support tickets but
+  awkward for activist work where someone might comment without
+  intending to take ownership. Likely we want **explicit Claim
+  button** even if it drifts from SleekFlow's model.
+- **`snoozedUntil`** introduces a date-driven hide rule needing a
+  sweeper similar to the existing claim TTL.
+
+### Hybrid option (worth weighing in the meeting)
+
+The two directions are not mutually exclusive at the schema level
+(~70% overlap). A workable hybrid:
+
+- **MVP** ships Direction B (list-first shared inbox) — simpler,
+  faster, easier to evaluate with non-technical members.
+- **Phase 2** adds Direction A's kanban as a per-group toggle for
+  admins and planners who want the visual workflow.
+
+This defers `BoardColumn` configurability without abandoning it.
+
+### Open questions that *only* Direction B raises
+
+14. **Snooze model:** state value (`snoozed` in `RequestStatus`) vs
+    field (`snoozedUntil: DateTime?`)? Recommend the field.
+15. **TTL @mention access:** how long? 24h matches SleekFlow.
+    Configurable per group?
+16. **Claim semantics:** explicit Claim button (recommended for GPS)
+    vs implicit-on-reply (SleekFlow default)?
+17. **Labels vs `Group.kind=topic`:** when do we use a label and when
+    do we use a topic Group? Risk of two ways to do the same thing.
+18. **Default landing view per user:** *Assigned to me* (focus) vs
+    the Group inbox (situational awareness)? SleekFlow defaults to
+    "Assigned to me."
+
+Sources reviewed (sleekflow.io docs, 2026-05-03):
+- https://help.sleekflow.io/en_US/inbox/getting-started-with-sleekflow-inbox
+- https://help.sleekflow.io/assigning-and-collaborating-on-conversations
+- https://sleekflow.io/inbox
 
 ---
 
