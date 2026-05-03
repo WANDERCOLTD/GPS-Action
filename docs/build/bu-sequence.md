@@ -125,7 +125,6 @@ Briefs in `planned` or `in_progress` status (auto-generated; do not edit
 by hand — run `npm run trackers`):
 
 <!-- AUTOGEN:planned:start -->
-- **bu-coordination-board** _[high]_ — bu-coordination-board
 - **bu-hydration-fixes** _[high]_ — BU-hydration-fixes
 - **bu-prod-auth** _[high]_ — bu-prod-auth
 - **bu-vercel-prep** _[high]_ — bu-vercel-prep

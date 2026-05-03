@@ -1,63 +1,52 @@
 ---
 slug: bu-coordination-board
-status: planned
+status: ready
 phase: 3
 priority: high
-note: 'Stub captured 2026-05-03 from Leonid pitch + cross-team meeting (Simon/Harry/Grant/Paul/Jeremy/Leonid). Awaiting (1) technical-feasibility review with the four-person tech group and (2) prototype UI before non-technical stakeholders can evaluate. Two UI directions on the table for the inbound surface — kanban-board (Direction A) vs shared-inbox a la sleekflow.io (Direction B) — plus an outbound Companion (Broadcast, SleekFlow-style 4-step wizard) folded in 2026-05-03 PM after a closer look at the SleekFlow Inbox + Broadcast tour pages. Tech review picks the inbound direction; Broadcast can ride alongside or be split into its own BU later. Brief is shaped enough to anchor the meeting; decisions block code.'
+note: 'Brief v0.4 (2026-05-03 PM). Direction A — kanban — confirmed; Direction B (shared-inbox alternative) considered and rejected. Broadcast split into bu-broadcast.md (#191). Tier-2 defaults accepted as proposed; tech-feasibility review skipped per Paul. Companion scenarios SCN-32 (kanban), SCN-33 (ticket detail), SCN-34 (notifications). Coding-plan / 8-PR build sequence folded in. Build is gated only by ADRs landing alongside the schema PR.'
 ---
 
 # SESSION BRIEF · bu-coordination-board — cross-team coordination surface
 
-_Brief version: 0.3 (Inbox sharpened + Broadcast companion folded in) · Author: Paul (via Claude) · Date: 2026-05-03_
+_Brief version: 0.4 (Direction A locked, parked feedback applied, build sequence folded in) · Author: Paul (via Claude) · Date: 2026-05-03_
 
-This is a **planned-status stub** capturing direction from the
-Leonid-led meeting (2026-05-02), expanded 2026-05-03 after reviewing
-sleekflow.io's Inbox and Broadcast product surfaces.
+A configurable kanban board where each working group sees its own queue
+of work, members can claim and collaborate on cards, and the same job
+can be directed at one or more groups (including external networks like
+CUFI) without losing per-group state. Three surfaces sit on one shared
+coordination spine:
 
-**Three surfaces, one shared spine.** The coordination board is now
-framed as three pillars sharing one identity / Group / Network /
-Channel / Label / Audit substrate:
+1. **Kanban board** — per-group view with configurable columns. Where
+   work is allocated, claimed, and moved through stages.
+2. **Ticket detail** — where the work happens. Multi-assignee, urgent
+   flag, editable description, threaded comments + internal notes +
+   system events, share-with-team.
+3. **Notifications pane** — thin alerts surface, separate from the
+   boards. Subscriber-driven by default; opt-in for team-wide blasts.
 
-1. **Inbox** — inbound + collaborative work. Two UI directions still
-   on the table for this surface:
-   - **Direction A — kanban board** (Leonid's original pitch).
-   - **Direction B — shared inbox** (SleekFlow-style list with status
-     filters and personal lenses).
-2. **Broadcast** — outbound, one-to-many, structured campaigns to
-   Groups / Networks / Regions / Roles. SleekFlow's 4-step wizard
-   (Segmentation → Personalization → Automation → Analytics) maps
-   cleanly onto "GPS sends this to our Groups or Networks." Folded in
-   here as a **Companion surface**; can be split into `bu-broadcast`
-   later if review prefers that split.
-3. **Coordination state** — the schema that both surfaces sit on
-   (Requests, ownership, status, comments, subscriptions, labels).
-
-Inbox A and Inbox B share ~70% of the schema; Broadcast adds a
-campaign primitive plus a per-recipient delivery state, but reuses
-audience (Groups/Networks/Regions/Roles), channels, labels, and audit.
-Pick the Inbox metaphor in tech review; the data model adapts and
-Broadcast layers on top either way.
-
-Two gates remain in front of execution: a tech-feasibility review
-with Simon, Harry, Grant, and Paul (booking pending), and a UI
-prototype to take to non-technical stakeholders (writers, partner-
-org leads).
+All three are gated by `coord_board_v1` (registered, prod OFF, dev OFF
+by default — admin flips when ready). Members behind the flag enter the
+board from the new Board tab in `AppNav` (first slot, before Feed —
+shipped #192 / v0.2.71).
 
 ---
 
 ## Why this exists / why now
 
 GPS coordination today happens in WhatsApp threads. Work is allocated
-verbally, status is held in people's heads, and cross-team handover
-is invisible. Leonid's proposal: a kanban board where each working
-group (Writers, Radio, Social Media, IT, F2F, …) sees the tickets
-they own, sysadmins see the lot, and members across teams can hand
-work to each other without losing track.
+verbally, status is held in people's heads, and cross-team handover is
+invisible. Leonid's proposal: a kanban board where each working group
+(Writers, Radio, Social Media, IT, F2F, …) sees the tickets they own,
+sysadmins see the lot, and members across teams can hand work to each
+other without losing track.
 
-Jeremy approved the direction in principle. The Jira-style mockup
-was rejected as "alien" for non-technical members; the simpler
-colourful card layout was approved. Mechanics first, friendly UI
-next, non-technical evaluation after that.
+Jeremy approved the direction in principle. The Jira-style mockup was
+rejected as "alien" for non-technical members; the simpler colourful
+card layout was approved. POC sketches at
+`docs/product/coordination-board-sketches/` carry the visual direction
+forward — Surface 1 (kanban desktop) is POC-accepted as drawn; Surface
+2 (ticket detail) has parked feedback applied here; Surface 3
+(notifications) reached final read-through.
 
 Without this BU, GPS retains its WhatsApp-coordination ceiling: no
 backlog, no prioritisation, no audit, no cross-team visibility.
@@ -66,57 +55,219 @@ backlog, no prioritisation, no audit, no cross-team visibility.
 
 ## Objective
 
-Ship a configurable kanban board where each working group sees its
-own queue of tickets, admins can configure column names and order
-per group, members can subscribe/unsubscribe to individual jobs and
+Ship a configurable kanban board where each working group sees its own
+queue of tickets, admins can configure column names and order per
+group, members can subscribe / unsubscribe to individual jobs and
 choose how they're notified, and the same ticket can be directed at
-one or more groups (including external networks like CUFI) without
-losing per-group state.
+one or more groups (including external networks) without losing
+per-group state.
 
-Success looks like: a Writer logs in, lands on the Writers board,
-sees four columns (Recruitment / Preparation / Implementation /
-Monitoring) with cards for active writing tasks, opens one and
-subscribes, gets a WhatsApp notification when it moves to Review,
-and can drill up to a "Choose another group" picker showing only
-the groups they belong to.
+Success looks like: a Writer logs in, lands on the Writers board, sees
+four columns (Recruitment / Preparation / Implementation / Monitoring)
+with cards for active writing tasks, opens one and is auto-subscribed
+on assigning herself, gets a WhatsApp notification when it moves to
+Review, and can drill up to a "Choose another group" picker showing
+only the groups she belongs to.
 
 ---
 
-## Scope (sketch — to be fleshed out post-tech-review)
+## Direction B (shared inbox) — considered and rejected
 
-### Build (tentative)
+A SleekFlow-style filterable list with personal lenses (`Assigned to
+me`, `Collaborations`, `Mentions`) was considered as an alternative
+inbound metaphor. Both Paul and Leonid landed on the same answer
+independently: "we communicate inside each ticket" — the kanban
+metaphor matches how the team actually moves work, the inbox metaphor
+treats work like customer-support conversations. Direction B is not
+revived; the corresponding open questions (was Q14-Q18 in v0.3) are
+dropped.
 
-- `prisma/schema.prisma` (additions only — no destructive change):
-  - `Group.kind: GroupKind` enum (`workstream | region | network | team | topic`)
-  - `BoardColumn` entity (per-group, configurable, ordered)
-  - `RequestGroup` join table (Request × Group, with per-link state)
-  - `RequestSubscription` (per user per ticket, with explicit/auto source)
-  - `NotificationPreference` (user-level + per-group sidecar)
-  - `Request.boardPosition: Decimal` for manual reshuffle
-  - `Request.columnId: String?` (FK to `BoardColumn`)
-  - Lifecycle revision: `RequestStatus` reframed as
-    `backlog | active | done | abandoned` (D054 collapse plan revisited
-    in light of `BoardColumn` carrying the visual workflow)
-- `server/services/groups.ts` — CRUD + RBAC (system-admin + group-admin)
-- `server/services/board.ts` — column config, drag-reorder, transitions
-- `server/services/subscriptions.ts` — subscribe/unsubscribe, auto-rules
-- `server/services/notifications.ts` — fan-out per scope + channel
-- `server/routers/group.ts` / `board.ts` / `subscription.ts`
-- `app/(member)/board/[groupSlug]/page.tsx` — the board view (card + list)
-- `app/(member)/board/[groupSlug]/backlog/page.tsx` — off-board intake
-- `app/(member)/board/[groupSlug]/done/page.tsx` — off-board archive
-- `app/(member)/board/page.tsx` — group-areas selector (only groups
-  the user can access)
-- `components/board/Card.tsx` / `Column.tsx` / `MobileTagSwitcher.tsx`
-- ADR for the `RequestStatus` redesign (supersedes the D054 collapse plan)
-- ADR for `BoardColumn` configurability + ownership
+The Notifications pane (Surface 3) absorbs the "personal lens" need
+that originally motivated parts of Direction B — `Assigned to me`,
+`Mentions`, and `Subscribed-to` are notification filters, not separate
+inbox views.
+
+---
+
+## Surfaces
+
+### Surface 1 — Kanban board (per-group)
+
+Default landing per group. Configurable columns (system defaults +
+per-group override). Three tabs along the top: **Active** (the
+columns) · **Backlog** (off-board intake, list-default) · **Done**
+(off-board archive, list-default). "+ Propose to backlog" outline
+button in the header. No filter chips beyond Urgent. Cards show:
+title · kind glyph · multi-assignee avatar row with `+N` overflow ·
+priority chip (Urgent only) · last-updated. Unclaimed cards have a
+warning-subtle yellow background.
+
+Drag-reorder updates `Request.boardPosition` (Decimal); column
+transitions update `Request.columnId` and write an audit row.
+Recruitment → Preparation auto-fires on first self-assign.
+
+Mobile: columns flatten to a vertical list; status becomes a coloured
+tag pill (the "tag-switcher" pattern, confirmed in the meeting). List
+view is also available for Active on desktop, behind a toggle (Backlog
+and Done are list-default).
+
+### Surface 2 — Ticket detail
+
+Where work happens. Layout (post-feedback):
+
+- **Title row** with edit affordance (any group member can edit;
+  audit-logged).
+- **Action pair (unified):** **Assign me / Unassign** sits adjacent
+  to **Follow / Unfollow**. Self-assigning auto-subscribes (per Tier-2
+  default #4); explicit unfollow is a separate gesture and survives
+  unassign. Both controls share visual language and adjacency to
+  surface that "subscribe" and "assign me" are the same conceptual
+  motion at different commitment levels.
+- **Multi-assignee row** — `Assignment` join, no single-owner
+  vocabulary. First-assignee gets no special status.
+- **Urgent flag** (per `Request.isUrgent`).
+- **Editable description** (`Request.body` editable by any group
+  member, audit-logged).
+- **Interleaved thread:** Comments (`Comment.kind = comment`) +
+  Internal notes (`Comment.kind = note`) + System events
+  (`Comment.source = system`). Compose tabs switch between
+  Comment / Note (visually distinct — yellow tint for Note).
+- **Single share control:** **Share with team.** Replaces the prior
+  "Share-with-team" + "Invite group" pair (collapsed per parked
+  feedback 2026-05-03). One control covers both routes — admin-pre-set
+  workflow allow-list (per `GroupShareWorkflow`) and ad-hoc cross-team
+  share. Picker shows allowed teams; picking creates a `RequestGroup`
+  row.
+- **Right meta sidebar** — assignees, subscribers (read-only list with
+  "+N" overflow if long), labels, kind, group(s), last activity.
+
+### Surface 3 — Notifications pane
+
+Thin alerts surface, separate from the boards. Reached via the
+`Notification` tab (the existing `inbox` glyph in `AppNav`). Rows are
+list-only. Tinted (`primary-subtle`) row background = unacknowledged;
+acknowledged rows are plain white. Clicking a row → opens the source
+ticket → auto-acknowledges. No separate "mark read" gesture.
+
+Capacity callout: list capped (limit + auto-scroll); `View all` link
+opens the full history. Trigger rules split:
+
+- **Defaults (subscriber-driven):** author + assignees + ever-mentioned
+  → notified on transitions, comments, urgent flips.
+- **Opt-in (team-wide blasts):** group admins can announce to the
+  whole group via the Notifications path; recipients can mute per-flag.
+
+Per-user preferences (channel + frequency) live in account settings;
+per-group override is allowed (Tier-2 default #5).
+
+---
+
+## Scope (build list)
+
+### Schema (8 entities/extensions, contract-locked migration)
+
+- `Group.kind: GroupKind` enum (`workstream | region | network |
+  team | topic`). ADR — the existing `Group` model is per D043;
+  this adds the kind dimension without breaking it.
+- `Assignment` join table (Request × User, multi-assignee, replaces
+  `Request.claimedByUserId`). Auto-subscribes on insert (Tier-2 #4).
+- `RequestGroup` join table (Request × Group, with per-link state).
+  Covers both admin-pre-set workflow share and ad-hoc share — single
+  primitive per parked feedback (drops the prior `GroupInvite` plan).
+- `GroupShareWorkflow` — per-team admin allow-list of share targets.
+  Constrains the picker on Surface 2's "Share with team."
+- `BoardColumn` entity (per-group, configurable, ordered, with
+  system defaults seeded per `GroupKind`).
+- `Comment.kind: CommentKind` enum (`comment | note`); `.source`
+  enum (`human | system`).
+- `Notification` lifecycle (`new | acknowledged | dismissed`);
+  `Notification.reasonKind` enum (`assignment | mention |
+  status-change | comment | urgent-flip | team-blast`).
+- `Subscription.source` enum (`auto-author | auto-assignee |
+  auto-mention | explicit | team-blast-optin`). No TTL — the
+  earlier "@mention 24h temp access" idea is dropped (Direction B
+  carve-out, not needed under kanban).
+
+`Request` field changes:
+
+- Drop `Request.claimedByUserId` (replaced by `Assignment`).
+- Drop `Request.requestType` enum (every ticket is just a ticket).
+- Add `Request.columnId: String?` (FK to `BoardColumn`).
+- Add `Request.boardPosition: Decimal` (manual reshuffle).
+- Add `Request.isUrgent: Boolean`.
+- Reframe `Request.status` as `RequestStatus = backlog | active |
+  done | abandoned` (Tier-2 default #1, supersedes D054 collapse).
+
+### Services
+
+- `server/services/groups.ts` — CRUD + RBAC (system-admin +
+  group-admin).
+- `server/services/board.ts` — column config, drag-reorder, status
+  transitions, position math.
+- `server/services/assignments.ts` — assign / unassign, auto-subscribe
+  hook.
+- `server/services/subscriptions.ts` — subscribe / unsubscribe,
+  auto-rules, mention extraction.
+- `server/services/notifications.ts` — fan-out per scope + channel,
+  lifecycle transitions, team-blast path.
+- `server/services/share.ts` — share-with-team (workflow allow-list +
+  ad-hoc), `RequestGroup` creation.
+
+### Routers
+
+- `server/routers/group.ts`
+- `server/routers/board.ts`
+- `server/routers/subscription.ts`
+- `server/routers/assignment.ts`
+- `server/routers/notification.ts`
+- `server/routers/share.ts`
+
+### App routes + components
+
+- `app/board/page.tsx` — already shipped as a placeholder (#192). To
+  be replaced with the group-areas selector (only groups the user
+  can access).
+- `app/board/[groupSlug]/page.tsx` — the board view (Active tab
+  default, Backlog / Done tabs available).
+- `app/board/[groupSlug]/backlog/page.tsx`,
+  `app/board/[groupSlug]/done/page.tsx`.
+- `app/board/[groupSlug]/[ticketId]/page.tsx` — Ticket detail.
+- `components/board/Card.tsx` · `Column.tsx` · `MobileTagSwitcher.tsx`
+  · `BoardActionPair.tsx` (the Assign-me / Follow unified pair) ·
+  `ShareWithTeamPicker.tsx` · `CommentNoteThread.tsx` ·
+  `NotificationRow.tsx` · `NotificationCapacityCallout.tsx`.
+
+### ADRs (5, all land alongside schema PR)
+
+1. **`RequestStatus` redesign** — supersedes D054 collapse plan.
+   Reframe to `backlog | active | done | abandoned`; `BoardColumn`
+   carries the visual workflow within `active`.
+2. **`BoardColumn` configurability + ownership** — system defaults
+   seeded per `GroupKind` via reference-data migration (D070);
+   group admins override.
+3. **`Comment.kind` + `.source`** — note vs comment, human vs system.
+4. **`Notification` lifecycle + `reasonKind`** — three-state
+   lifecycle, six reason kinds.
+5. **`RequestGroup` + `GroupShareWorkflow`** — share-with-team
+   semantics, receiving-team permission envelope. Subsumes the
+   originally-planned separate Invite-group ADR.
+
+(`GroupMembership.role: lead → admin` — Tier-2 default #8 — is a
+rename, not an ADR. Migrates inline with the schema PR.)
+
+### Reference-data migration
+
+- `BoardColumn` system defaults per `GroupKind`. Per D070, these
+  ship in `prisma/migrations/`, not `scripts/seed.ts`. Idempotent
+  (`ON CONFLICT (groupKind, ordinal) DO NOTHING`).
 
 ### Do NOT touch (this BU)
 
-- Anything outside `Request`, `Group`, `GroupMembership`, and the new
-  entities listed above.
-- Existing `RequestType` enum (this BU adds the board view; types stay).
-- WhatsApp dispatch internals (notifications use the existing send path).
+- Anything outside `Request`, `Group`, `GroupMembership`, `Comment`,
+  `Notification`, `Subscription`, and the new entities listed above.
+- WhatsApp dispatch internals (notifications use the existing send
+  path).
+- The `/feed` and `/calendar` surfaces.
 
 ### Out of scope for this BU
 
@@ -124,364 +275,229 @@ the groups they belong to.
 - Time-tracking / SLA timers.
 - Cross-board templates or recurring tickets.
 - Inline file attachments on cards (use the linked Request).
-- Public/external read-only board view.
+- Public / external read-only board view.
+- TTL access for @mentions (Direction B carve-out, not needed).
 
 ---
 
-## Permission model (sketch)
+## Permission model
 
-| Action | Member of group | Group admin (`role: lead`) | System admin |
+| Action | Member of group | Group admin (`role: admin`) | System admin |
 |---|---|---|---|
 | View this group's board | ✓ | ✓ | ✓ |
-| Claim a card | ✓ | ✓ | ✓ |
-| Move card between columns | ✓ (own claim) | ✓ (any) | ✓ |
+| Claim (`Assignment.create`) | ✓ | ✓ | ✓ |
+| Move card between columns | ✓ (own assignment) | ✓ (any) | ✓ |
+| Edit description (`Request.body`) | ✓ (audit-logged) | ✓ | ✓ |
 | Reshuffle column order (drag) | — | ✓ | ✓ |
 | Configure columns for the group | — | ✓ | ✓ |
 | Approve join requests | — | ✓ | ✓ |
 | Promote member → group admin | — | ✓ | ✓ |
 | Create new group | — | — | ✓ |
 | Archive group | — | — | ✓ |
-| Attach group to a Request | — | ✓ | ✓ |
+| Share Request to another team | ✓ (within `GroupShareWorkflow` allow-list) | ✓ (any team) | ✓ |
+| Send team-blast notification | — | ✓ | ✓ |
+| Configure `GroupShareWorkflow` | — | ✓ | ✓ |
 
 ---
 
-## Open questions (block tech-review meeting)
+## Tier-2 defaults — applied (locked for this build)
 
-1. **`RequestStatus` redesign.** D054 collapse to (new/in_discussion/done)
-   pre-dates the configurable-column model. Likely new shape:
-   `backlog | active | done | abandoned`, with `Request.columnId`
-   carrying the visual stage. Needs ADR before any code touches status.
-2. **Multi-claimer per ticket.** Today `Request` is single-claimer.
-   If a "Doing" card means "team of 3 working together," we need an
-   `Assignment` join table. Confirm intent.
-3. **Column configurability scope.** Per-group only, or system defaults
-   that groups can override? Recommend the latter.
-4. **Recruitment → Preparation transition.** Auto on claim, or manual
-   move by claimer? Affects card UX and audit trail.
-5. **Auto-subscribe rules.** Author + claimer + @mentioned is obvious.
-   Should group admins be auto-subscribed to *everything* in their
-   group?
-6. **Per-user vs per-group notification preferences.** Meeting captured
-   per-user. Recommend allowing per-group override (a Writer might want
-   "all" for Writing, "mentions only" for an IT board they're tangentially
-   in). Confirm.
-7. **Network attachment authority.** Can a Network admin (e.g. CUFI rep)
-   self-attach their network to a Request, or must the Request creator
-   direct it to them? Affects trust model.
-8. **Cross-group visibility on multi-group Requests.** When CUFI and
-   Writers are both directed at one Request, does each see what the
-   other is doing? Default yes; some Requests may want isolation.
-9. **Card top: what fields show?** Meeting left this open ("Job name,
-   …. ?"). Title + kind glyph + claimer avatar + priority chip + last-
-   updated suggested; confirm at design pass.
-10. **Mobile layout: tags-instead-of-columns.** Confirmed in meeting.
-    SCN write-up needed so it doesn't drift. Card `Status` becomes a
-    coloured tag pill in a vertical scroll list.
-11. **List vs card view toggle on Backlog and Done.** Meeting confirmed
-    both layouts available. Default per view? List for Backlog, cards
-    for active board, list for Done is the natural pattern.
-12. **`GroupMembership.role` rename: `lead → admin`.** Cleaner UI copy,
-    matches user language. One migration, no data loss. Recommend yes.
-13. **Networks with self-attestation membership.** A user saying "I'm
-    affiliated with CUFI" might not need admin approval the way joining
-    Writers does. Maps to existing `Group.joinPolicy = open` per-kind.
-    Confirm the model holds.
+Confirmed by Paul 2026-05-03; baked into the build instead of left
+open.
 
----
-
-## Direction B — shared inbox (sleekflow.io style) — under consideration
-
-Added 2026-05-03 after reviewing sleekflow.io's Inbox product. **Not
-yet decided** vs Direction A (kanban board, above). Tech review picks
-between them — or chooses a hybrid where the kanban becomes a Phase 2
-view on top of a list-first inbox.
-
-### What SleekFlow actually is
-
-A **shared inbox** for customer conversations across channels. UI is
-a 3-pane layout — left sidebar of views, centre conversation list,
-right conversation detail. Crucially, **no kanban columns**. The "board"
-is a filterable list with a status filter at the top:
-**Open · Snoozed · Closed · All**, shown with a live count
-(e.g. `Open (1350)`) so triage load is visible at a glance.
-
-Personal navigation in the left sidebar groups views by user role:
-
-- **My views:** *Assigned to me* · *Collaborations* · *Mentions* ·
-  *Starred* · *Scheduled*
-- **Company views:** *All* (unified across teams you can access) +
-  per-team folders (= per-team inboxes, e.g. *Sales*, *Marketing*,
-  *Support HK*, *Support MY* — note the geographic split, which maps
-  cleanly to GPS regional working groups)
-
-### Additional UX patterns observed (Inbox tour, 2026-05-03)
-
-A closer look at the Inbox product page surfaced a handful of patterns
-worth lifting verbatim into Direction B:
-
-- **Status filter with live count** (`Open (1350)` dropdown header).
-  Surfaces queue depth without a separate dashboard.
-- **Unassigned / Assigned grouping inside Open** — not a separate
-  filter, an in-list grouping. Forces unassigned items to the top so
-  admins can sweep through.
-- **Read indicator per row** (double-tick) — assignee-has-opened
-  awareness, no notification needed.
-- **Channel / source badge per row** (WhatsApp / IG / TikTok glyph in
-  SleekFlow). For GPS, this maps to job *origin*: composed in-app vs
-  `/share` ingest vs partner-org submission vs RSS pull.
-- **Multi-label chips per row with overflow** (`INBOUND · RENT ·
-  FEMALE · 2+`). Confirms the labels-on-cards pattern at row level.
-- **Two distinct routing verbs** in the assign panel: **"Assign via
-  team"** (re-route or add a team to the conversation) vs **"Assign
-  to user"** (set owner inside the current team). These are different
-  gestures and should look different in the UI; conflating them is a
-  common collaboration-tool failure mode.
-- **Reply / Internal note as tabs**, not a checkbox. Tab switch
-  changes composer styling (yellow tint for internal). Visual mode
-  prevents misposting an internal thought publicly.
-- **System-message badge** ("Automated message") in the thread —
-  bot/system entries are distinguished from human comments in-thread,
-  preserving audit visibility.
-- **Search-name-or-email picker** scoped to current team for
-  "Assign to user."
-- **Top-bar action separation:** add-collaborator (person-plus icon)
-  is a different control from set-owner (assign panel). Worth keeping
-  distinct in the GPS UI too.
-- **Saved replies** appear in SleekFlow's marketing rail as a
-  per-team library of canned responses — a Phase 2 candidate for GPS
-  (partner-org liaisons repeat the same intake/triage messages).
-
-### SleekFlow primitives mapped to GPS
-
-| SleekFlow | GPS equivalent | Already in Direction A? |
+| # | Question | Applied default |
 |---|---|---|
-| Conversation | `Request` | yes |
-| Channel (WhatsApp/IG/etc) | n/a — GPS jobs originate in-app | — |
-| Team / Team inbox | `Group` (kind=workstream) | yes |
-| Assignee / Contact Owner (one per item) | `Request.claimedByUserId` | yes (claim-and-lease) |
-| Collaborator (many, full reply access) | `RequestSubscription` (`source=explicit`) | yes |
-| @mention with 24h temp access | **NEW** — TTL on `RequestSubscription` | no |
-| Status: Open / Snoozed / Closed | `backlog / active / done` + **add `snoozed`** | partial |
-| Labels | `Request.labels: String[]` (new, lightweight) | no |
-| First-to-reply becomes owner | Maps to claim-and-lease | yes |
-| Internal note vs reply | `CommentAudience: all | reviewers` | yes (existing) |
-| Saved replies / AI smart reply | n/a for MVP | — |
-
-### What changes if Direction B wins
-
-1. **The board becomes a *view*, not the metaphor.** Default landing
-   per group: a filterable list (Open / Snoozed / Closed) with the
-   three personal lenses in a left sidebar. Kanban-with-columns
-   survives as an optional toggle for planners and admins.
-2. **`BoardColumn` configurability drops from P0 to Phase 2 polish.**
-   Significantly simpler — removes one of the hairier ADRs from the
-   critical path.
-3. **D054 status-collapse can land cleanly:** 4–5 lifecycle values,
-   no orthogonal column model needed at MVP.
-4. **Three default personal views:** *Assigned to me* · *Collaborating*
-   · *Mentions* — queries over the same `Request` table; not new
-   entities.
-5. **Add `snoozed`** — recommendation: a `snoozedUntil: DateTime?`
-   field that hides the row from default views until the timestamp
-   passes, rather than a new lifecycle state. Sweeper similar to
-   claim TTL.
-6. **First-class `@mention` with TTL temp access.** When a comment
-   @-mentions a user, auto-grant 24h read access to that Request,
-   even if they're not a member of the directing Group. Schema:
-   extend `RequestSubscription` with `expiresAt: DateTime?`.
-7. **Lightweight Labels.** Distinct from `Group` — admin/user-applied
-   tags on individual Requests for ad-hoc filtering ("urgent-this-
-   week", "needs-Hebrew-translation"). `Request.labels: String[]`
-   is enough for v1.
-8. **Non-tech sell improves significantly.** "Imagine SleekFlow's
-   inbox, but for our internal jobs" is a far easier pitch to Jeremy
-   and the writers than abstract column diagrams.
-9. **Star** as a 4th personal lens (lightweight per-user bookmark,
-   distinct from Subscribe). Cheap to add — `Star` join or
-   `Request.starredBy: User[]`.
-10. **Scheduled** as a 5th personal lens — for GPS this is the natural
-    home for drafts queued for publish, snoozed-by-me items surfacing
-    as their wake-time approaches, and (if Broadcast lands) campaigns
-    you've authored that are not yet sent.
-11. **System messages in-thread.** Implies `Comment.source: human |
-    system` (or a separate `SystemEvent` primitive) — needed for
-    `/share` ingest, partner submissions, snooze-wakes, broadcast
-    delivery summaries.
-
-### What Direction B complicates
-
-- **TTL access for @mentions** has security implications — temp
-  readers must be excluded from sensitive Requests. Needs explicit
-  policy.
-- **First-to-reply becomes owner** is fine for support tickets but
-  awkward for activist work where someone might comment without
-  intending to take ownership. Likely we want **explicit Claim
-  button** even if it drifts from SleekFlow's model.
-- **`snoozedUntil`** introduces a date-driven hide rule needing a
-  sweeper similar to the existing claim TTL.
-
-### Hybrid option (worth weighing in the meeting)
-
-The two directions are not mutually exclusive at the schema level
-(~70% overlap). A workable hybrid:
-
-- **MVP** ships Direction B (list-first shared inbox) — simpler,
-  faster, easier to evaluate with non-technical members.
-- **Phase 2** adds Direction A's kanban as a per-group toggle for
-  admins and planners who want the visual workflow.
-
-This defers `BoardColumn` configurability without abandoning it.
-
-### Open questions that *only* Direction B raises
-
-14. **Snooze model:** state value (`snoozed` in `RequestStatus`) vs
-    field (`snoozedUntil: DateTime?`)? Recommend the field.
-15. **TTL @mention access:** how long? 24h matches SleekFlow.
-    Configurable per group?
-16. **Claim semantics:** explicit Claim button (recommended for GPS)
-    vs implicit-on-reply (SleekFlow default)?
-17. **Labels vs `Group.kind=topic`:** when do we use a label and when
-    do we use a topic Group? Risk of two ways to do the same thing.
-18. **Default landing view per user:** *Assigned to me* (focus) vs
-    the Group inbox (situational awareness)? SleekFlow defaults to
-    "Assigned to me."
-
-Sources reviewed (sleekflow.io docs, 2026-05-03):
-- https://help.sleekflow.io/en_US/inbox/getting-started-with-sleekflow-inbox
-- https://help.sleekflow.io/assigning-and-collaborating-on-conversations
-- https://sleekflow.io/inbox
-- Inbox UI walkthrough (sleekflow.io/agentflow, screenshot review
-  2026-05-03 PM) — used to derive the additional UX patterns above.
+| 1 | `RequestStatus` values | `backlog · active · done · abandoned` |
+| 2 | Column configurability | System defaults per `GroupKind`; per-group override allowed |
+| 3 | Recruitment → Preparation transition | Auto on first self-assign |
+| 4 | Auto-subscribe rule | Author + all assignees + ever-mentioned |
+| 5 | Per-group notification override | Allowed |
+| 6 | Network attach authority | Network admin can self-attach |
+| 7 | Backlog / Done view defaults | List-by-default for both |
+| 8 | `GroupMembership.role` rename | `lead → admin`, yes (inline migration) |
+| 9 | Network self-attestation | Per-network setting (admins decide on creation) |
+| 10 | Subscriber definition | Author + assignees + manually-subscribed + ever-mentioned |
 
 ---
 
-## Companion surface: Broadcast (outbound) — split into bu-broadcast
+## Tier-1 — settled (carry-forward decisions)
 
-The Broadcast / outbound campaign surface that was originally folded
-into this brief has been **split into its own BU** as of 2026-05-03 PM
-(per Q5 — see `docs/build/session-briefs/bu-broadcast.md`). Reason:
-Leonid noted Broadcast "looks like a separate tool from Kanban,"
-the review audience differs (comms / Jeremy + partner-org leads vs
-Leonid + tech crew), and the schema seam is clean enough to evolve
-the two independently.
-
-Coord-Board now owns the inbound + collaborative half (kanban,
-ticket detail, notifications pane); `bu-broadcast` owns the outbound
-+ measurement half (4-step wizard, audience builder, scheduling,
-analytics). They share the audience model (Groups · Networks ·
-Regions · Roles), channel model, and label taxonomy at the spine
-layer; both ride a single underlying fan-out service. Cross-cutting
-seams (Broadcast replies → tickets, shared `MessageTemplate`
-library, single fan-out service for Notifications + Broadcast) are
-documented in the bu-broadcast brief.
-
-The 13 Broadcast-specific open questions previously listed here as
-Q19–Q31 have moved to that brief.
+- **Direction A wins** (kanban). Direction B (shared inbox)
+  rejected.
+- **Broadcast split** to `bu-broadcast.md` (#191).
+- **`RequestType` collapsed** — every ticket is just a ticket.
+- **Multi-assignee per ticket** — drop "owner" vocabulary;
+  `Assignment` join.
+- **Description-edit RBAC** — any group member, audit-logged.
+- **Subscribe ↔ Assign-me are the same function** at different
+  commitment levels — unified language, adjacent placement
+  (parked feedback applied).
+- **Share-with-team and Invite-group merge** to one "Share with
+  team" — single `RequestGroup` primitive, no `GroupInvite`
+  (parked feedback applied).
 
 ---
 
-## Net-new schema implied (consolidated, both surfaces)
+## Open questions remaining (do not block schema PR)
 
-The list below merges Direction B's additions with the new Broadcast
-companion. Any of these may be deferred or split across BUs at tech
-review; surfaced here so the schema seam is visible up front.
+The questions still in front of build are UI-shape questions on the
+Tier-2 new primitives. Schema lands; UI follows once these settle.
+
+1. **Share-with-team workflow config UI.** Where do group admins set
+   the per-team allow-list? Recommend: a section on the group
+   settings page (`/board/[groupSlug]/settings`). Surface not yet
+   sketched.
+2. **Cross-team flags-in-corner.** Trigger logic + render of the
+   small badge in the team picker. Touched in Surface 3 callouts;
+   not yet a dedicated sketch. Likely a derived UI signal, no new
+   schema.
+3. **Card top fields.** Surface 1 confirms title + kind glyph +
+   assignee avatars + Urgent + last-updated. Confirm at design pass
+   when implementing `Card.tsx`.
+
+---
+
+## Schema additions (consolidated)
 
 ```
-# Inbox primitives (Direction B)
-Group.kind                           : enum  # workstream | region | network | topic
-Request.snoozedUntil                 : DateTime?           # Q14, Q7
-Request.labels                       : String[]            # Q13/Q14 (curation)
-Request.starredBy                    : User[]   (or Star join)
-RequestGroup                         : join    # per-team Open/Snoozed/Closed + (Q2) per-team owner?
-RequestSubscription.expiresAt        : DateTime?           # @mention TTL access (Q10)
-Comment.source                       : enum  # human | system  (Q12)
-CommentAudience                      : keep current (all | reviewers); maybe add team-only (Q11)
-MessageTemplate                      : per-team canned-response library (saved replies)
+# Type extensions
+GroupKind                            : enum  # workstream | region | network | team | topic
+RequestStatus                        : enum  # backlog | active | done | abandoned  (replaces existing)
+CommentKind                          : enum  # comment | note
+CommentSource                        : enum  # human | system
+NotificationLifecycle                : enum  # new | acknowledged | dismissed
+NotificationReasonKind               : enum  # assignment | mention | status_change | comment | urgent_flip | team_blast
+SubscriptionSource                   : enum  # auto_author | auto_assignee | auto_mention | explicit | team_blast_optin
 
-# Broadcast primitives (Companion)
-Broadcast                            : campaign object
-  - audienceFilterJson               : snapshot of segment definition
-  - contentTemplate                  : message body w/ variable pills
-  - channels                         : enum[]  # whatsapp | email | inApp | push | sms
-  - schedule                         : oneShot | recurring | triggered | drip
-  - status                           : draft | scheduled | sending | sent | archived
-  - approvedBy                       : User?   # gate above N recipients (Q20)
-BroadcastRecipient                   : per-recipient delivery state
-  - status                           : queued | sent | delivered | opened | acted | failed | unsubscribed
-  - channel                          : whichever the fan-out picked
-  - actedAt                          : DateTime?  # for stop-on-action (Q25)
-UserChannelPreference                : per-user channel opt-in state (Q21, Q28)
-UserUnsubscribe                      : per-user opt-out, per-category (Q28)
-BroadcastReply                       : pointer from inbound Request → originating Broadcast (Q29)
+# New entities
+Assignment                           : Request × User join (multi-assignee)
+RequestGroup                         : Request × Group join (share-with-team; covers both workflow + ad-hoc)
+GroupShareWorkflow                   : per-team admin allow-list of share targets
+BoardColumn                          : per-group, configurable, ordered
+
+# Field changes — Group
+Group.kind                           : GroupKind
+
+# Field changes — Request
+Request.status                       : RequestStatus  (re-enum)
+Request.columnId                     : String?  (FK BoardColumn)
+Request.boardPosition                : Decimal
+Request.isUrgent                     : Boolean
+- Request.claimedByUserId             # dropped, replaced by Assignment
+- Request.requestType                 # dropped, ticket = ticket
+
+# Field changes — Comment
+Comment.kind                         : CommentKind
+Comment.source                       : CommentSource
+
+# Field changes — Notification
+Notification.lifecycle               : NotificationLifecycle
+Notification.reasonKind              : NotificationReasonKind
+
+# Field changes — Subscription (existing RequestSubscription)
+Subscription.source                  : SubscriptionSource
+
+# Field changes — GroupMembership
+GroupMembership.role: lead → admin   # rename, inline migration
 ```
 
-ADRs implied (likely):
+---
 
-- ADR — `RequestStatus` redesign (supersedes D054, ties Inbox lifecycle).
-- ADR — `BoardColumn` configurability (only if Direction A or hybrid wins).
-- ADR — TTL access on `RequestSubscription` (security boundary).
-- ADR — `Broadcast` + `BroadcastRecipient` shape and approval-gate
-  policy (only if Companion stays in this BU; otherwise lives in
-  `bu-broadcast`).
-- ADR — Single fan-out service shared by Notifications + Broadcast
-  (Q26).
+## Build sequence (8 PRs)
+
+Each PR is a discrete reviewable unit, behind `coord_board_v1`. Order
+matters where indicated.
+
+| # | Scope | Depends on |
+|---|---|---|
+| **1** | **Schema + 5 ADRs** — all schema additions above + reference-data migration for `BoardColumn` defaults + the 5 ADRs in one PR. Pure Prisma + ADR text; no behaviour. | — |
+| **2** | **Services** — `groups`, `board`, `assignments`, `subscriptions`, `notifications`, `share`. Unit tests at the service layer. | #1 |
+| **3** | **Routers** — tRPC procedures + integration tests. | #2 |
+| **4** | **Surface 1 — Kanban board view** at `/board/[groupSlug]`. Active / Backlog / Done tabs. Drag-reorder. | #3 |
+| **5** | **Surface 2 — Ticket detail** at `/board/[groupSlug]/[ticketId]`. Unified Assign-me / Follow pair, single Share-with-team, comment / note thread. | #4 |
+| **6** | **Surface 3 — Notifications pane** under the existing `Inbox` AppNav tab. Subscriber-driven defaults + opt-in team-blast. | #5 |
+| **7** | **Mobile** — tag-switcher, responsive board, reflow. | #4–#6 |
+| **8** | **Flag flip** — `coord_board_v1` ON in prod for the named pilot teams (Writers + IT first). | #1–#7 |
+
+Estimate: ~10–12 days for one engineer, parallelisable to ~7 days
+with two (services + first surface in parallel after #1).
 
 ---
 
-## Pending dependencies (block build)
+## Tests required
 
-- **Tech-feasibility review** with Simon, Harry, Grant, Paul. Leonid
-  to book. This brief is the input document.
-- **UI prototype** (post-meeting). Non-technical members cannot
-  evaluate the system until the prototype reaches a friendly state.
-  Jeremy will not approve general rollout without it.
-- **Leonid's processed system requirements** — confidential follow-up
-  doc from the meeting. May change scope before build.
+Across all 8 PRs the test surface is:
 
----
-
-## Tests required (when build starts)
-
-- Unit: column transitions respect lifecycle invariants
-  (no `active` row without `columnId`; Backlog/Done are off-board).
-- Unit: subscription auto-rules fire on author/claim/mention.
-- Unit: notification fan-out respects scope + channel preferences.
-- Integration: directing a Request at two groups creates two
-  `RequestGroup` rows, each with independent state.
-- Integration: drag-reorder updates `boardPosition` without renumbering.
-- Component: card and list views render the same data correctly.
-- Component: mobile tag-switcher behaves as a column-equivalent.
-- E2E: vetted user joins Writers → sees only Writing board → drills up
-  → switches to IT board (only if also a member) → cannot see Radio.
+- **Unit (services):** column transitions respect lifecycle invariants
+  (no `active` row without `columnId`; Backlog / Done are off-board).
+  Subscription auto-rules fire on author / assign / mention.
+  Notification fan-out respects scope + channel preferences.
+  Self-assigning auto-subscribes; unassigning leaves subscription.
+  Share-with-team picker respects `GroupShareWorkflow` allow-list.
+- **Integration (routers):** directing a Request at two groups
+  creates two `RequestGroup` rows, each with independent state.
+  Drag-reorder updates `boardPosition` without renumbering. Editing
+  description writes an audit row. Cross-group comment visibility
+  respects `Comment.kind` (notes hidden from non-team-members).
+- **Component:** card and list views render the same data
+  correctly. Mobile tag-switcher behaves as a column-equivalent.
+  Action pair (`BoardActionPair.tsx`) handles all four state
+  combinations (assigned/unassigned × following/not).
+- **E2E:** vetted user joins Writers → sees only Writing board →
+  drills up → switches to IT board (only if also a member) → cannot
+  see Radio. Author-of-ticket auto-subscribed; receives notification
+  on status change; click → ticket → auto-ack.
 
 ---
 
-## Definition of done (when build starts)
+## Definition of done (across the 8-PR sequence)
 
-Standard per template, plus:
+- [ ] All 5 ADRs merged.
+- [ ] Reference-data migration seeds default `BoardColumn` sets per
+      `GroupKind`.
+- [ ] `coord_board_v1` flipped on for pilot teams in prod.
+- [ ] `npm run trackers` updated; `bu-sequence.md` reflects shipped
+      status.
+- [ ] Non-technical walkthrough doc updated to match shipped UX.
+- [ ] Notification preferences accessible via account settings, not
+      buried.
+- [ ] At least one writer + one IT-team member used the board
+      end-to-end without intervention (pilot acceptance).
 
-- [ ] ADR for `RequestStatus` redesign merged
-- [ ] ADR for `BoardColumn` configurability merged
-- [ ] Reference-data migration seeds default column sets per `GroupKind`
-- [ ] `npm run trackers` updated; `bu-sequence.md` reflects shipped status
-- [ ] Non-technical walkthrough doc updated to match shipped UX
-- [ ] Notification preferences accessible via account settings, not buried
+---
+
+## Companion scenarios
+
+- **SCN-32** — Leonid claims a writing job from the Writers board
+  (kanban / Surface 1).
+- **SCN-33** — Sharon shares a job to the IT team and comments
+  internally (ticket detail / Surface 2; exercises unified
+  Assign-me / Follow + single Share-with-team).
+- **SCN-34** — Maya gets a notification about a stuck card and
+  acknowledges by clicking through (notifications / Surface 3).
 
 ---
 
 ## Context
 
-- Meeting outcomes (2026-05-02): in this brief's "Open questions" + the
-  non-technical companion doc at
+- POC sketches: `docs/product/coordination-board-sketches/`
+  (index.html · 3 surfaces · SVG + JPG).
+- Companion non-technical walkthrough:
   `docs/product/coordination-board-overview.md`.
-- Existing schema: `prisma/schema.prisma` — `Group`, `GroupMembership`,
-  `Request`, `RoleGrant`, `Notification` already cover ~70% of the
-  primitives.
-- D054 (Request rename + status collapse plan) — needs supersession.
-- D043 (Groups model).
-- D042 (CoordinatorProfile sidecar pattern — template for
-  `NetworkProfile` if Networks ever sprout fields).
-- D070 (reference data lives in migrations, not seed scripts) — applies
-  to default column sets.
-- Parking lot: "Identity & affiliation ideas → Partner Organisations"
-  (will be §3.30 in v0.6) — Networks land here.
+- Earlier handoff: `docs/build/session-handoffs/bu-coordination-board-2026-05-03.md`
+  (carries the SleekFlow-comparison thinking that fed the
+  rejected Direction B; preserved for archaeology).
+- Existing schema: `prisma/schema.prisma` — `Group`,
+  `GroupMembership`, `Request`, `RoleGrant`, `Notification` already
+  cover ~70% of the primitives.
+- D043 (Groups model) — base for `Group.kind`.
+- D054 (Request rename + status collapse plan) — superseded by
+  ADR #1 in the schema PR.
+- D042 (CoordinatorProfile sidecar pattern) — template for
+  `NetworkProfile` if Networks ever sprout fields.
+- D070 (reference data lives in migrations, not seed scripts) —
+  applies to default column sets.
+- D036 + `docs/product/feature-flag-register.md` — `coord_board_v1`
+  registered, currently OFF in both prod and dev.
+- Parking lot: "Identity & affiliation ideas → Partner
+  Organisations" (will be §3.30 in v0.6) — Networks land here.

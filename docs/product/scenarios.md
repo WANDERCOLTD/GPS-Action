@@ -45,7 +45,7 @@ Scenarios feed session briefs. Every Claude Code session building a feature gets
 
 **Admin / operational scenarios** 16. Coordinator dispatches a Boost/Remove post to WhatsApp 17. System auto-comments on a closing campaign
 
-**Later additions** 18. Eddie writes his first post · 19. Sharon shares a Guardian article with a preview card · 20. Eddie reads the Sky News post and writes his first comment · 21. Eddie tracks his vetting application · 22. Sharon resolves Eddie's vetting application · 23. Maya raises an urgent alert at the school gate · 24. Sharon pastes a Guardian link into the FAB · 25. Eddie types a thought into the FAB · 26. Sharon publishes a tick_or_cross post · 27. Eddie sends his first post for review; Bette refines and publishes · 28. Sharon shares a post, then confirms she sent it · 29. Eddie sees the share count on someone else's post · 30. Bette views her own post and notices a missing channel · 31. Sharon searches for Hendon
+**Later additions** 18. Eddie writes his first post · 19. Sharon shares a Guardian article with a preview card · 20. Eddie reads the Sky News post and writes his first comment · 21. Eddie tracks his vetting application · 22. Sharon resolves Eddie's vetting application · 23. Maya raises an urgent alert at the school gate · 24. Sharon pastes a Guardian link into the FAB · 25. Eddie types a thought into the FAB · 26. Sharon publishes a tick_or_cross post · 27. Eddie sends his first post for review; Bette refines and publishes · 28. Sharon shares a post, then confirms she sent it · 29. Eddie sees the share count on someone else's post · 30. Bette views her own post and notices a missing channel · 31. Sharon searches for Hendon · 32. Leonid claims a writing job from his board · 33. Sharon shares a job to the IT team · 34. Maya gets a notification about a stuck card
 
 ---
 
@@ -1981,3 +1981,282 @@ member apps.
 - D018 — inbound sharing endpoint (URL-addressable result pages)
 - Research: `docs/product/research/search-surfaces.md` (the design
   rationale)
+
+---
+
+### Scenario 32 — Leonid claims a writing job from his board
+
+<!-- @no-code-yet -->
+
+_Leonid, member, Writers group. Monday morning, kitchen table, coffee
+in one hand, laptop on the other. The coordination board pilot just
+went live for Writers + IT — `coord_board_v1` flipped on for him 20
+minutes ago._
+
+Leonid opens GPS Action. The first AppNav icon — the kanban one — is
+new. He taps it. He's a member of one team, Writers, so he lands
+straight on the Writers board (no group-picker step). Group title at
+the top: **Writers**. Three tabs underneath: **Active · Backlog ·
+Done**.
+
+The Active tab is loaded. Four columns: Recruitment · Preparation ·
+Implementation · Monitoring. About a dozen cards in total. Two cards
+in Recruitment have a warning-subtle yellow background — unclaimed.
+The third card in Preparation has Bette's avatar and "+2" — three
+people are on it. Title: "Op-ed reply: Times Sunday piece on
+hostages."
+
+Leonid scans for something he can pick up. One of the unclaimed
+Recruitment cards reads: "BBC News at Ten — biased framing of Gaza
+ceasefire — needs a 200-word complaint draft." Last-updated yesterday.
+Urgent chip — small zap glyph. He taps the card.
+
+Ticket detail opens. Title at top with a tiny pencil affordance — he
+could rename it but won't. **Assignees** row reads "Unassigned." Next
+to it, two adjacent buttons: **Assign me** (filled) and **Follow**
+(outline). They share the same pill shape — Leonid registers the
+visual relationship: subscribing and assigning are the same kind of
+motion at different commitment levels.
+
+He taps **Assign me**. Three things happen: (1) his avatar appears in
+the assignees row, (2) **Follow** instantly flips to **Following**
+(filled, slightly different shade), and (3) the card behind him in
+the column moves out of the yellow-background unclaimed style. A
+small system-event line drops into the thread:
+**🤖 Leonid Belkov assigned themselves · 09:14**.
+
+The description is editable — he could refine the brief, but won't
+yet. Below the description: the comment / note thread. One internal
+note already there from the editor:
+
+> **Bette Rosenthal · note · 2d ago**
+> _Watch the framing in para 3. They've used "tensions rose" — we
+> need to push back on the agentless construction._
+
+Leonid taps the card-state header: column reads "Recruitment." He
+drags it into "Preparation." Auto-fires (per Tier-2 default #3:
+Recruitment → Preparation auto on first self-assign — but he beat the
+auto-fire by manually moving). Either way, the card is now in
+Preparation, his avatar visible. The board's column counts re-render.
+
+He's set up. Closes the laptop. Knows he'll get a notification if
+Bette comments back, or if someone else jumps in.
+
+**What the scenario surfaces:**
+
+- One-team members skip the group-picker step — straight to their
+  board. The handoff calls this out: `app/board/page.tsx` becomes a
+  picker, but only for users in 2+ groups.
+- "Assign me" + "Follow" share visual language and adjacency. Per the
+  parked feedback, they're the same conceptual motion. Self-assigning
+  auto-subscribes (Tier-2 default #4); the Follow state visibly flips
+  in the same gesture.
+- Unclaimed cards have a warning-subtle yellow background — visual
+  inventory of what needs picking up. Confirmed in the Surface 1
+  sketch.
+- Drag-into-column writes `Request.columnId` and a system event in
+  the thread. Auto-fire (default #3) is a fallback for the
+  drag-not-required path.
+- System events and comments interleave in the same thread, both
+  using `Comment` (with `kind` and `source` carving them apart).
+
+**Friction found:**
+
+- The auto-fire from Recruitment → Preparation racing the manual drag
+  is benign here (both result in the same final column), but if the
+  click-handler latency is high a user might see the move twice. UX
+  decision: idempotent server, optimistic UI.
+- "Following" vs "Follow" as the toggled label is fine, but
+  "Assign me" → "Unassign" is a bigger label change in the same
+  spot. Pilot whether this reads naturally.
+
+**Related:**
+
+- bu-coordination-board (this is a Surface 1 scenario)
+- BU-icon-nav (the kanban glyph that anchors his entry point)
+- D043 (Groups model — Writers is a `workstream` `GroupKind`)
+
+---
+
+### Scenario 33 — Sharon shares a job to the IT team
+
+<!-- @no-code-yet -->
+
+_Sharon, member, Writers group lead. Wednesday afternoon, working
+through the Writers Active column. One of the cards has been stuck
+in Preparation for three days because nobody knows how to set up the
+embedded petition widget on the Writers' WordPress site. She
+remembers IT have a "Tech assists" workstream._
+
+Sharon opens the stuck card. Title: "Hostages: 100-day silent vigil —
+RSVP collector embed." Three Writers are assigned, including her.
+Column: Preparation. Description has the brief. Comments thread has
+two Writers asking the same question: how do we get the widget code?
+
+She scrolls to the action row near the title. Just below the
+**Assign me** / **Following** pair (Sharon is already assigned, so
+the buttons read **Unassign** / **Following**), there's one share
+control: **+ Share with team**. She taps it.
+
+A picker opens. It shows the teams Writers can share into — set by
+the Writers admin (Bette) in the workflow allow-list. Three options:
+**IT · Social Media · Radio.** Above the list, a small note:
+"Sharing keeps your team's status; the receiving team picks it up
+in their Backlog."
+
+She taps **IT**. The picker closes. A system event drops into the
+thread:
+
+> **🤖 Sharon Cohen shared this with IT · 15:42**
+
+Card now appears in two boards — Writers (still in Preparation, no
+change) and IT (in Backlog, where IT decides whether to pull it
+into Active). The card's right meta sidebar now shows two group
+chips: **Writers · IT.** Subscriber list grew by one — IT's group
+admin (Grant) was auto-subscribed per the share-with-team rule.
+
+Sharon types a Comment (not a Note — this needs to be visible to IT
+too):
+
+> Hi IT — we're stuck on the WordPress embed for the RSVP. Anyone
+> got 30 min in the next two days?
+
+She taps **Comment** (yellow-tab is **Note**, blue-tab is
+**Comment** — she picks Comment). Posts. Closes.
+
+**What the scenario surfaces:**
+
+- One share control replaces the prior "Share with team" + "Invite
+  group" pair (parked feedback applied, single `RequestGroup`
+  primitive).
+- The picker is constrained by `GroupShareWorkflow` — Writers' admin
+  defined which teams Writers can share into. Open Q1 in the brief is
+  about where admins set this; for the scenario we assume it's
+  already configured.
+- Receiving team gets the card in Backlog, not Active — gives them
+  agency over whether to take it on. Surfaces the "ad-hoc share"
+  shape: `RequestGroup.state = backlog` for the new row.
+- Comment vs Note — Note is internal-team-only (Writers don't want
+  IT seeing every internal comment); Comment is cross-team. Tab
+  switch makes the distinction visually obvious (yellow tint for
+  Note).
+- Subscribers grow on share — IT admin auto-subscribed so they get
+  notified.
+
+**Friction found:**
+
+- Grant (IT admin) gets the notification; a regular IT member only
+  sees the card if they actively browse IT's Backlog. Pilot question:
+  should team-blast notification fire on share to alert all IT
+  members, or stay subscriber-only?
+- The card now lives in two boards. If Writers complete it but IT
+  hasn't acted, the Writers' state moves to Done while IT still has
+  it Active. `RequestGroup` per-link state allows this; UX needs to
+  not feel like the card "disappeared" from the originator's view.
+
+**Related:**
+
+- bu-coordination-board (Surface 2)
+- D043 (Groups model — Writers + IT are both `workstream`)
+- The parked feedback merging Share-with-team and Invite-group into
+  one control
+
+---
+
+### Scenario 34 — Maya gets a notification about a stuck card
+
+<!-- @no-code-yet -->
+
+_Maya, member, F2F coordinator (the boots-on-the-ground organising
+team). Thursday morning. She subscribed-on-mention to a Writers
+ticket two weeks ago when Bette tagged her for a venue address; she
+hasn't thought about it since._
+
+Maya opens GPS Action. The Inbox icon (third in the AppNav) has a
+red dot — three unread notifications. She taps.
+
+The Notifications pane is a vertical list. Each row is one
+notification, stacked newest-first:
+
+```
+[primary-subtle row]  Bette commented on "Hostages: 100-day silent
+                      vigil — RSVP collector embed"
+                      Writers · 2h ago
+
+[primary-subtle row]  Card moved to Done: "Sky News bias —
+                      complaint draft"
+                      Writers · 1d ago
+
+[plain white row]     Sharon assigned themselves to "Sky News bias
+                      — complaint draft"
+                      Writers · 2d ago  · acked
+
+(View all →)
+```
+
+The two unacknowledged rows have the **primary-subtle** background
+tint. The third row, already acknowledged, is plain white. There's
+no separate "mark read" gesture — the convention is: tap the row,
+go to the ticket, the row auto-acknowledges in the background.
+
+Maya taps the top row. The ticket detail opens — Bette's comment is
+right there in the thread:
+
+> **Bette Rosenthal · 2h ago**
+> _Maya — we've moved this to Implementation but the venue address
+> on the Hampstead end is still missing. Can you ping the synagogue
+> warden?_
+
+The notification she just clicked on auto-acknowledges. When Maya
+returns to the Notifications pane, that row is now plain white, no
+red dot in the AppNav for it.
+
+She replies in the comment thread:
+
+> Just emailed the warden. Should hear back today.
+
+Posts. She also notices the second row — the "moved to Done" — is
+still primary-subtle. She taps it. Card opens; she scrolls the
+thread, sees the resolution. Closes back. Notifications pane shows
+both rows now plain white. The Inbox red dot is gone.
+
+The pane has a list capacity callout near the bottom: "Showing 10
+most recent. **View all →**." She doesn't need to.
+
+**What the scenario surfaces:**
+
+- Subscriber-driven notifications (Tier-2 default #10): Maya was
+  subscribed via @mention two weeks ago; that subscription is still
+  live; Bette's new comment fan-outs to her.
+- Tinted row = unack, plain white = ack. Click-to-open auto-acks
+  (no separate gesture). Maya never has to think about "marking"
+  anything.
+- Notification reasons interleave in one feed: comment + status
+  change + assignment. Each row shows the reason naturally in
+  prose; the underlying `Notification.reasonKind` is data, not UI
+  copy.
+- Capacity callout prevents the pane becoming a 200-row scroll;
+  full history is one tap away if needed.
+
+**Friction found:**
+
+- "Card moved to Done" is informative but Maya doesn't need to do
+  anything about it. Should status-change notifications be
+  opt-out per-flag (Tier-2 #5: per-group override allowed)?
+  Pilot question.
+- The acknowledge-on-click model means Maya can't return to the
+  Notifications pane to find what she previously clicked unless she
+  taps "View all" and scans. Pilot feedback may surface a "starred"
+  or "snoozed" affordance — not in MVP.
+- Old subscription (2 weeks since the @mention) feels durable —
+  good for Maya, but a member subscribed to many tickets via stale
+  mentions could end up with notification volume creeping up.
+  Per-group + per-flag opt-out becomes the relief valve.
+
+**Related:**
+
+- bu-coordination-board (Surface 3)
+- D057 (unread Notification count + red dot in AppNav — already
+  shipped; this scenario shows where the count comes from)
+- The earlier handoff's "trigger rules split into Defaults
+  (subscriber-driven) vs Opt-in (team-wide blasts)" pattern
