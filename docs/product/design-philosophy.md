@@ -236,10 +236,15 @@ BU ships a new glyph, update this register in the same commit.
 
 | Tab      | Glyph            |
 | -------- | ---------------- |
+| Board    | `kanban-square`  |
 | Feed     | `home`           |
 | Calendar | `calendar-clock` |
 | Requests | `inbox`          |
 | Settings | `settings`       |
+
+The Board tab is the first slot when `coord_board_v1` is on (BU-coordination-board,
+Direction A — kanban). Hidden by default; admin flips the flag via
+`/data/featureFlag` when ready to demo.
 
 The `bar-chart-3` glyph is no longer in the AppNav (Data is reached
 via Settings → "Data"). Still in use elsewhere — e.g.

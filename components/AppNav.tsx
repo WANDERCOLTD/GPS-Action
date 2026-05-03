@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * @build-unit BU-requests-foundation BU-sticky-nav BU-calendar-view BU-icon-nav BU-icon-strips BU-search-surface
+ * @build-unit BU-requests-foundation BU-sticky-nav BU-calendar-view BU-icon-nav BU-icon-strips BU-search-surface BU-coordination-board
  * @spec architecture/decision-log.md (D054, D061, D065, D073, D078)
  * @spec architecture/admin-surface.md
  *
@@ -9,10 +9,12 @@
  * layout inside the sticky `<header>`. Active link is derived from
  * `usePathname()` rather than a per-page `active` prop (D065).
  *
- *   [home] | [calendar-clock]? | [inbox] | [settings] | [search]
+ *   [kanban-square]? | [home] | [calendar-clock]? | [inbox] | [settings] | [search]
  *
- * The Calendar tab is gated by the `calendar_enabled` feature flag
- * (BU-calendar-view / D073). The flag is resolved in the layout (server
+ * The Board tab is gated by the `coord_board_v1` feature flag
+ * (BU-coordination-board, planned). When on, it occupies the first
+ * slot, before Feed. The Calendar tab is gated by `calendar_enabled`
+ * (BU-calendar-view / D073). Flags are resolved in the layout (server
  * component) and passed down so this client component never reads from
  * the database.
  *
@@ -37,7 +39,7 @@ import * as React from 'react';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, CalendarClock, Inbox, Search, Settings } from 'lucide-react';
+import { Home, CalendarClock, Inbox, KanbanSquare, Search, Settings } from 'lucide-react';
 import { IconChipTooltip } from '@/components/IconChipTooltip';
 
 interface AppNavProps {
@@ -45,12 +47,23 @@ interface AppNavProps {
   unreadNotificationCount?: number;
   /** BU-calendar-view / D073: when true, renders the Calendar tab between Feed and Requests. */
   calendarEnabled?: boolean;
+  /** BU-coordination-board: when true, renders the Board tab as the first slot, before Feed. */
+  coordBoardEnabled?: boolean;
 }
 
-type ActiveKey = 'feed' | 'calendar' | 'compose' | 'requests' | 'search' | 'settings' | null;
+type ActiveKey =
+  | 'board'
+  | 'feed'
+  | 'calendar'
+  | 'compose'
+  | 'requests'
+  | 'search'
+  | 'settings'
+  | null;
 
 function deriveActive(pathname: string | null): ActiveKey {
   if (!pathname) return null;
+  if (pathname === '/board' || pathname.startsWith('/board/')) return 'board';
   if (pathname === '/feed' || pathname.startsWith('/feed/')) return 'feed';
   if (pathname === '/calendar' || pathname.startsWith('/calendar/')) return 'calendar';
   if (pathname === '/compose' || pathname.startsWith('/compose/')) return 'compose';
@@ -95,7 +108,11 @@ const activeStyle: CSSProperties = {
 const ICON_SIZE = 22;
 const ICON_STROKE = 2;
 
-export function AppNav({ unreadNotificationCount = 0, calendarEnabled = false }: AppNavProps) {
+export function AppNav({
+  unreadNotificationCount = 0,
+  calendarEnabled = false,
+  coordBoardEnabled = false,
+}: AppNavProps) {
   const active = deriveActive(usePathname());
 
   return (
@@ -112,6 +129,18 @@ export function AppNav({ unreadNotificationCount = 0, calendarEnabled = false }:
         minWidth: 0,
       }}
     >
+      {coordBoardEnabled && (
+        <IconChipTooltip label="Board">
+          <Link
+            href="/board"
+            aria-label="Board"
+            data-testid="nav-board-link"
+            style={active === 'board' ? activeStyle : linkStyle}
+          >
+            <KanbanSquare size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          </Link>
+        </IconChipTooltip>
+      )}
       <IconChipTooltip label="Feed">
         <Link
           href="/feed"

@@ -17,11 +17,12 @@
 
 ## Active flags
 
-| Name               | Purpose | Default (prod)         | Default (dev) | TTL / owner     | Notes                                                                                          |
-| ------------------ | ------- | ---------------------- | ------------- | --------------- | ---------------------------------------------------------------------------------------------- |
-| `ff_reactions`     | rollout | enabled (post-rollout) | ON            | TTL: 2026-09-01 | Quiet, multi-select reactions on posts. BU-reactions / D050. Live since BU-reactions shipped.  |
-| `ff_comments`      | rollout | enabled (post-rollout) | ON            | TTL: 2026-09-01 | Post-detail page + flat comment thread. BU-comments / D052. Live since BU-comments shipped.    |
-| `calendar_enabled` | rollout | OFF                    | ON            | TTL: 2026-10-30 | Calendar tab + agenda + month surfaces. BU-calendar-view (downstream of BU-event-time / D073). |
+| Name               | Purpose | Default (prod)         | Default (dev) | TTL / owner     | Notes                                                                                                |
+| ------------------ | ------- | ---------------------- | ------------- | --------------- | ---------------------------------------------------------------------------------------------------- |
+| `ff_reactions`     | rollout | enabled (post-rollout) | ON            | TTL: 2026-09-01 | Quiet, multi-select reactions on posts. BU-reactions / D050. Live since BU-reactions shipped.        |
+| `ff_comments`      | rollout | enabled (post-rollout) | ON            | TTL: 2026-09-01 | Post-detail page + flat comment thread. BU-comments / D052. Live since BU-comments shipped.          |
+| `calendar_enabled` | rollout | OFF                    | ON            | TTL: 2026-10-30 | Calendar tab + agenda + month surfaces. BU-calendar-view (downstream of BU-event-time / D073).       |
+| `coord_board_v1`   | rollout | OFF                    | OFF           | TTL: 2026-11-03 | Board tab in `AppNav` + `/board` placeholder. BU-coordination-board (planned, Direction A — kanban). |
 
 ## Flag rationale
 
@@ -43,6 +44,26 @@
 - **TTL:** 2026-10-30 (six months from registration). At TTL the flag
   is either fully rolled out (and removed) or the owner extends it
   with a named reason. The weekly cron opens an issue at TTL-7d.
+- **Audit:** flag-flip rows captured in `audit_log` per D036 §7.
+
+### `coord_board_v1`
+
+- **Build unit:** BU-coordination-board (consumes the flag). Brief at
+  `docs/build/session-briefs/bu-coordination-board.md` — currently
+  `status: planned`, Direction A (kanban) settled, awaiting tech-review.
+- **What it gates:** the Board tab (first slot in `AppNav`, before
+  Feed) and the `/board` placeholder route. Nothing else lands behind
+  this flag in this PR — schema, services, and the kanban surfaces
+  arrive in subsequent BU-coordination-board PRs and remain gated by
+  the same flag until the trio (board / ticket detail / notifications)
+  is end-to-end demoable.
+- **Default OFF in prod and dev:** the surface is a placeholder until
+  the BU starts shipping. Admins flip it on for stakeholder demos via
+  `/data/featureFlag` (admin CRUD creates the row with
+  `enabledGlobally=true`). No row exists by default — the
+  fail-closed evaluator returns `false`.
+- **TTL:** 2026-11-03 (six months from registration). Extends as the
+  BU progresses; removed when the kanban surface is fully rolled out.
 - **Audit:** flag-flip rows captured in `audit_log` per D036 §7.
 
 ### `ff_reactions`

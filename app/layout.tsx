@@ -83,10 +83,12 @@ function RootErrorFallback() {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const ctx = await createTRPCContext();
 
-  const [unreadNotificationCount, calendarEnabled] = await Promise.all([
+  const [unreadNotificationCount, calendarEnabled, coordBoardEnabled] = await Promise.all([
     ctx.user ? countUnreadForUser(ctx.user.id) : Promise.resolve(0),
     // BU-calendar-view / D073 — Calendar tab gated by `calendar_enabled`.
     isFeatureEnabled('calendar_enabled'),
+    // BU-coordination-board — Board tab gated by `coord_board_v1`.
+    isFeatureEnabled('coord_board_v1'),
   ]);
 
   // The sticky header is suppressed entirely when there is genuinely
@@ -126,6 +128,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 <AppNav
                   unreadNotificationCount={unreadNotificationCount}
                   calendarEnabled={calendarEnabled}
+                  coordBoardEnabled={coordBoardEnabled}
                 />
                 <DevBannerToggle enabled={process.env.NODE_ENV !== 'production' || isDemoMode()} />
                 <HeaderRefreshButton />
