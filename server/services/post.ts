@@ -39,6 +39,7 @@ import {
   type FeedCommentPeek,
 } from '@/server/services/comment';
 import { createKindReviewRequest, closeKindReviewRequest } from '@/server/services/request';
+import { getPostVisibilityFilter } from '@/server/services/visibility';
 import type { FeedFilter } from '@/shared/feed-filters';
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -159,10 +160,7 @@ function filterToWhere(filter: FeedFilter | undefined): Record<string, unknown> 
 export async function listPosts(input: ListPostsInput): Promise<ListPostsResult> {
   const limit = Math.min(input.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
 
-  // Visibility: unauthenticated callers only see 'public' posts.
-  const visibilityFilter: PostVisibility[] = input.callerId
-    ? ['public', 'authenticated_only']
-    : ['public'];
+  const visibilityFilter = getPostVisibilityFilter(input.callerId);
 
   const cursorWhere = input.cursor
     ? {
@@ -597,9 +595,7 @@ interface ListUpcomingInput {
 export async function listUpcoming(input: ListUpcomingInput): Promise<{ posts: PostListItem[] }> {
   const limit = Math.min(input.limit ?? 100, MAX_LIMIT);
   const from = input.from ?? todayStartLondonUtc();
-  const visibilityFilter: PostVisibility[] = input.callerId
-    ? ['public', 'authenticated_only']
-    : ['public'];
+  const visibilityFilter = getPostVisibilityFilter(input.callerId);
 
   const eventAtClause: { gte: Date; lte?: Date } = { gte: from };
   if (input.to) eventAtClause.lte = input.to;
@@ -740,9 +736,7 @@ interface ListNearbyInput {
 export async function listNearby(input: ListNearbyInput): Promise<{ posts: NearbyPost[] }> {
   const limit = Math.min(input.limit ?? MAX_LIMIT, MAX_LIMIT);
   const from = input.from ?? todayStartLondonUtc();
-  const visibilityFilter: PostVisibility[] = input.callerId
-    ? ['public', 'authenticated_only']
-    : ['public'];
+  const visibilityFilter = getPostVisibilityFilter(input.callerId);
 
   const kindFilter =
     input.kindSlugs && input.kindSlugs.length > 0
