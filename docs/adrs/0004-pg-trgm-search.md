@@ -1,7 +1,7 @@
 # ADR-0004 · `pg_trgm` extension + GIN indexes for app-wide member search
 
-**Status:** Proposed (becomes Accepted on first build PR)
-**Date:** 2026-05-02
+**Status:** Accepted (migration shipped 2026-05-03 in `20260503100000_search_trgm_indexes`)
+**Date:** 2026-05-02 (proposed) · 2026-05-03 (accepted on migration land)
 **Deciders:** Paul (product), Claude Code Session N (spec assembly)
 
 ## Context
@@ -65,19 +65,22 @@ not a polish item but the v1 design.
 
 We will adopt **Option C — `pg_trgm` + GIN**.
 
-A forward-only migration creates the extension and the indexes:
+The migration `20260503100000_search_trgm_indexes/migration.sql`
+creates the extension and four indexes (the actual SQL — column
+names match the Prisma schema, which uses `displayName`, not
+`name`, on both `User` and `Region`):
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
-CREATE INDEX posts_title_trgm_idx
-  ON "Post" USING gin (title gin_trgm_ops);
-CREATE INDEX posts_body_trgm_idx
-  ON "Post" USING gin (body gin_trgm_ops);
-CREATE INDEX users_display_name_trgm_idx
+CREATE INDEX "Post_title_trgm_idx"
+  ON "Post" USING gin ("title" gin_trgm_ops);
+CREATE INDEX "Post_body_trgm_idx"
+  ON "Post" USING gin ("body" gin_trgm_ops);
+CREATE INDEX "User_displayName_trgm_idx"
   ON "User" USING gin ("displayName" gin_trgm_ops);
-CREATE INDEX regions_name_trgm_idx
-  ON "Region" USING gin (name gin_trgm_ops);
+CREATE INDEX "Region_displayName_trgm_idx"
+  ON "Region" USING gin ("displayName" gin_trgm_ops);
 -- partner-orgs index deferred until §3.30 ships (D078 §9).
 ```
 
