@@ -3,26 +3,40 @@ slug: bu-coordination-board
 status: planned
 phase: 3
 priority: high
-note: 'Stub captured 2026-05-03 from Leonid pitch + cross-team meeting (Simon/Harry/Grant/Paul/Jeremy/Leonid). Awaiting (1) technical-feasibility review with the four-person tech group and (2) prototype UI before non-technical stakeholders can evaluate. Two competing UI directions still on the table — kanban-board (Direction A) vs shared-inbox a la sleekflow.io (Direction B). Tech review picks one. Brief is shaped enough to anchor that meeting; decisions block code.'
+note: 'Stub captured 2026-05-03 from Leonid pitch + cross-team meeting (Simon/Harry/Grant/Paul/Jeremy/Leonid). Awaiting (1) technical-feasibility review with the four-person tech group and (2) prototype UI before non-technical stakeholders can evaluate. Two UI directions on the table for the inbound surface — kanban-board (Direction A) vs shared-inbox a la sleekflow.io (Direction B) — plus an outbound Companion (Broadcast, SleekFlow-style 4-step wizard) folded in 2026-05-03 PM after a closer look at the SleekFlow Inbox + Broadcast tour pages. Tech review picks the inbound direction; Broadcast can ride alongside or be split into its own BU later. Brief is shaped enough to anchor the meeting; decisions block code.'
 ---
 
 # SESSION BRIEF · bu-coordination-board — cross-team coordination surface
 
-_Brief version: 0.2 (stub, two directions) · Author: Paul (via Claude) · Date: 2026-05-03_
+_Brief version: 0.3 (Inbox sharpened + Broadcast companion folded in) · Author: Paul (via Claude) · Date: 2026-05-03_
 
 This is a **planned-status stub** capturing direction from the
-Leonid-led meeting (2026-05-02), now with a second UI direction added
-after reviewing sleekflow.io's shared-inbox product (2026-05-03).
-**Two paths are on the table** and not yet picked between:
+Leonid-led meeting (2026-05-02), expanded 2026-05-03 after reviewing
+sleekflow.io's Inbox and Broadcast product surfaces.
 
-- **Direction A — kanban board** (Leonid's original pitch, captured
-  in the bulk of this brief).
-- **Direction B — shared inbox** (SleekFlow-style list with status
-  filters and personal "Assigned to me / Collaborating / Mentions"
-  views; details in the dedicated section below).
+**Three surfaces, one shared spine.** The coordination board is now
+framed as three pillars sharing one identity / Group / Network /
+Channel / Label / Audit substrate:
 
-The two share roughly 70% of the schema. Pick the UI metaphor in the
-tech review; the data model adapts.
+1. **Inbox** — inbound + collaborative work. Two UI directions still
+   on the table for this surface:
+   - **Direction A — kanban board** (Leonid's original pitch).
+   - **Direction B — shared inbox** (SleekFlow-style list with status
+     filters and personal lenses).
+2. **Broadcast** — outbound, one-to-many, structured campaigns to
+   Groups / Networks / Regions / Roles. SleekFlow's 4-step wizard
+   (Segmentation → Personalization → Automation → Analytics) maps
+   cleanly onto "GPS sends this to our Groups or Networks." Folded in
+   here as a **Companion surface**; can be split into `bu-broadcast`
+   later if review prefers that split.
+3. **Coordination state** — the schema that both surfaces sit on
+   (Requests, ownership, status, comments, subscriptions, labels).
+
+Inbox A and Inbox B share ~70% of the schema; Broadcast adds a
+campaign primitive plus a per-recipient delivery state, but reuses
+audience (Groups/Networks/Regions/Roles), channels, labels, and audit.
+Pick the Inbox metaphor in tech review; the data model adapts and
+Broadcast layers on top either way.
 
 Two gates remain in front of execution: a tech-feasibility review
 with Simon, Harry, Grant, and Paul (booking pending), and a UI
@@ -186,13 +200,56 @@ view on top of a list-first inbox.
 
 A **shared inbox** for customer conversations across channels. UI is
 a 3-pane layout — left sidebar of views, centre conversation list,
-right contact card. Crucially, **no kanban columns**. The "board" is
-a filterable list with a status filter at the top:
-**Open · Snoozed · Closed · All**. Personal navigation in the left
-sidebar groups views by user role:
+right conversation detail. Crucially, **no kanban columns**. The "board"
+is a filterable list with a status filter at the top:
+**Open · Snoozed · Closed · All**, shown with a live count
+(e.g. `Open (1350)`) so triage load is visible at a glance.
 
-- **My views:** *Assigned to me* · *Collaborations* · *Mentions*
-- **Company views:** team-wide shared folders (= per-team inboxes)
+Personal navigation in the left sidebar groups views by user role:
+
+- **My views:** *Assigned to me* · *Collaborations* · *Mentions* ·
+  *Starred* · *Scheduled*
+- **Company views:** *All* (unified across teams you can access) +
+  per-team folders (= per-team inboxes, e.g. *Sales*, *Marketing*,
+  *Support HK*, *Support MY* — note the geographic split, which maps
+  cleanly to GPS regional working groups)
+
+### Additional UX patterns observed (Inbox tour, 2026-05-03)
+
+A closer look at the Inbox product page surfaced a handful of patterns
+worth lifting verbatim into Direction B:
+
+- **Status filter with live count** (`Open (1350)` dropdown header).
+  Surfaces queue depth without a separate dashboard.
+- **Unassigned / Assigned grouping inside Open** — not a separate
+  filter, an in-list grouping. Forces unassigned items to the top so
+  admins can sweep through.
+- **Read indicator per row** (double-tick) — assignee-has-opened
+  awareness, no notification needed.
+- **Channel / source badge per row** (WhatsApp / IG / TikTok glyph in
+  SleekFlow). For GPS, this maps to job *origin*: composed in-app vs
+  `/share` ingest vs partner-org submission vs RSS pull.
+- **Multi-label chips per row with overflow** (`INBOUND · RENT ·
+  FEMALE · 2+`). Confirms the labels-on-cards pattern at row level.
+- **Two distinct routing verbs** in the assign panel: **"Assign via
+  team"** (re-route or add a team to the conversation) vs **"Assign
+  to user"** (set owner inside the current team). These are different
+  gestures and should look different in the UI; conflating them is a
+  common collaboration-tool failure mode.
+- **Reply / Internal note as tabs**, not a checkbox. Tab switch
+  changes composer styling (yellow tint for internal). Visual mode
+  prevents misposting an internal thought publicly.
+- **System-message badge** ("Automated message") in the thread —
+  bot/system entries are distinguished from human comments in-thread,
+  preserving audit visibility.
+- **Search-name-or-email picker** scoped to current team for
+  "Assign to user."
+- **Top-bar action separation:** add-collaborator (person-plus icon)
+  is a different control from set-owner (assign panel). Worth keeping
+  distinct in the GPS UI too.
+- **Saved replies** appear in SleekFlow's marketing rail as a
+  per-team library of canned responses — a Phase 2 candidate for GPS
+  (partner-org liaisons repeat the same intake/triage messages).
 
 ### SleekFlow primitives mapped to GPS
 
@@ -239,6 +296,17 @@ sidebar groups views by user role:
 8. **Non-tech sell improves significantly.** "Imagine SleekFlow's
    inbox, but for our internal jobs" is a far easier pitch to Jeremy
    and the writers than abstract column diagrams.
+9. **Star** as a 4th personal lens (lightweight per-user bookmark,
+   distinct from Subscribe). Cheap to add — `Star` join or
+   `Request.starredBy: User[]`.
+10. **Scheduled** as a 5th personal lens — for GPS this is the natural
+    home for drafts queued for publish, snoozed-by-me items surfacing
+    as their wake-time approaches, and (if Broadcast lands) campaigns
+    you've authored that are not yet sent.
+11. **System messages in-thread.** Implies `Comment.source: human |
+    system` (or a separate `SystemEvent` primitive) — needed for
+    `/share` ingest, partner submissions, snooze-wakes, broadcast
+    delivery summaries.
 
 ### What Direction B complicates
 
@@ -282,6 +350,209 @@ Sources reviewed (sleekflow.io docs, 2026-05-03):
 - https://help.sleekflow.io/en_US/inbox/getting-started-with-sleekflow-inbox
 - https://help.sleekflow.io/assigning-and-collaborating-on-conversations
 - https://sleekflow.io/inbox
+- Inbox UI walkthrough (sleekflow.io/agentflow, screenshot review
+  2026-05-03 PM) — used to derive the additional UX patterns above.
+
+---
+
+## Companion surface: Broadcast (outbound) — under consideration
+
+Folded in 2026-05-03 PM after a closer look at SleekFlow's
+[Broadcast](https://sleekflow.io/broadcast) product, which is
+conceptually equivalent to "GPS sends this to our Groups or Networks."
+Inbox handles the inbound + collaborative half of the coordination
+surface; Broadcast handles the outbound half. They share the audience
+model (Groups / Networks / Regions / Roles), channel model, labels,
+audit, and analytics — so folding them into one BU avoids two
+divergent audience pickers and two notification engines.
+
+If the tech review prefers, this companion can be split out as a
+separate `bu-broadcast` brief; the schema seam at the spine layer is
+clean enough.
+
+### What SleekFlow Broadcast is
+
+A **4-step wizard** for sending personalised messages to a filtered
+audience across multiple channels, with scheduling/automation and
+post-send analytics:
+
+1. **Segmentation.** Build the audience by filtering contacts —
+   labels, channel availability, last-active date, attributes.
+2. **Personalization.** Pick channels (WhatsApp / SMS / IG /
+   Messenger / WeChat). Name the broadcast. Compose a message
+   template with variable placeholders (`{name}`, `{Code}`),
+   multimedia attachments, dynamic links, and WhatsApp interactive
+   buttons (opt-in, quick replies). Preview shows a per-recipient
+   render.
+3. **Automation.** One-shot scheduled send, recurring, or triggered
+   (event-driven). Stop-on-action rules to avoid pestering users
+   who've already done the thing.
+4. **Analytics.** Delivery rate, open rate (channel-permitting),
+   click-through, reply rate, action-taken, unsubscribe rate.
+
+### Mapping to GPS
+
+| SleekFlow Broadcast | GPS analogue |
+|---|---|
+| Channels (WhatsApp/SMS/IG/Messenger/WeChat) | WhatsApp dispatch (existing send path) · AM email · in-app notification · push (Phase 2) · SMS (parking-lot) |
+| Audience segment | Boolean filter over `Group` × `Network` × `Region` × `RoleGrant` × vetted-state × activity (e.g. last-share-date) |
+| Personalization variables | `{firstName}`, `{region}`, `{personalShareLink}` (token-stamped per recipient — see D018), `{lastActionDate}`, language variant |
+| Interactive buttons (quick reply / opt-in) | GPS verbs surfaced as buttons: **Share · Boost · Skip · I'm in · RSVP** — each triggers an attributed server action |
+| Broadcast (campaign object) | NEW — `Broadcast` entity: name, audience filter snapshot, content template, channels, schedule, status |
+| Per-recipient delivery state | NEW — `BroadcastRecipient`: queued / sent / delivered / opened / acted / failed / unsubscribed |
+| Saved replies (templates library) | Shared with Inbox — single `MessageTemplate` library scoped per team |
+| Analytics dashboard | Per-broadcast view + aggregate per-team |
+
+### What Broadcast adds that Inbox doesn't
+
+- **Campaign primitive.** A first-class `Broadcast` object distinct
+  from a `Request`. A broadcast may *spawn* Requests on reply (see
+  cross-cutting question below), but is itself a one-to-many send,
+  not a coordinated job.
+- **Audience builder UI** — query-builder over Groups / Networks /
+  Regions / Roles / activity filters, with live recipient count.
+- **Variable-pill message editor** — inline `{firstName}` style
+  placeholders in the composer, with a live render preview.
+- **Approval gate above N recipients** — anti-hijack and
+  anti-mass-mistake. Cross-team or large-Network sends require a
+  second approver.
+- **Per-recipient delivery state machine** with sweepers for
+  scheduled-send and stop-on-action rules.
+- **Analytics surface** — delivery / open / click / action /
+  unsubscribe per broadcast, per segment.
+
+### What Broadcast borrows from Inbox
+
+- Audience model — same `Group` / `Network` / `Region` / `RoleGrant`
+  primitives.
+- Channel model — same fan-out path (WhatsApp dispatch, AM email,
+  in-app, push).
+- Labels — segmentation filters can use the same `Request.labels`
+  taxonomy (and label contacts, not just Requests).
+- Audit log — every broadcast captured with author, audience
+  snapshot, content, results (mirrors Inbox's audit ratchet).
+- System-message rendering — broadcast send/delivery summaries land
+  in-thread on the originating Request when one exists.
+
+### Cross-cutting seams (Inbox × Broadcast)
+
+- **Replies → Inbox.** When a recipient replies (in-app, WhatsApp
+  inbound, email reply), the response lands as a Request in the
+  originating team's inbox, threaded against the Broadcast.
+- **Saved replies vs broadcast templates.** One `MessageTemplate`
+  library, two consumers — avoids divergence.
+- **Notification engine vs Broadcast triggers.** Both want to "send
+  X to audience Y when event Z fires." Should be one engine, not two.
+  Likely answer: Broadcast is the user-facing surface; the underlying
+  fan-out service is shared with the in-app Notification primitive.
+- **Labels are bidirectional.** A label on a Request filters Inbox;
+  a label on a User contributes to Broadcast segmentation. Same
+  taxonomy, two surfaces.
+
+### Open questions Broadcast raises (Direction-C, broadcast-only)
+
+19. **Authoring authority matrix.** Who can broadcast to what?
+    Members → their own teams? Group admins → their group + adjacent?
+    Sysadmins → anyone? Network admins → their network only? Define
+    the matrix; it shapes the audience-builder permission boundary.
+20. **Approval gate threshold.** Above what audience size (or what
+    cross-org reach) does a second approver kick in? Who's the
+    approver — sysadmin pool, or any Group admin from the
+    target audience?
+21. **Channel selection: per-recipient preference vs sender choice.**
+    If Sharon's prefs say "WhatsApp only" and a broadcast is sent on
+    email, does she get nothing, or does sender override? Define the
+    fallback chain (try WhatsApp → fall back to email → fall back to
+    in-app).
+22. **Personalization variable set.** Confirm: `{firstName}`,
+    `{region}`, `{personalShareLink}`, `{lastActionDate}`, language.
+    Fallback strings for missing values? ("Hi friend" if no first
+    name.)
+23. **Multilingual broadcasts.** Hebrew + English variants of the
+    same broadcast, picked per-recipient by their language attribute?
+    One Broadcast with N variants, or N Broadcasts with shared
+    audience?
+24. **Interactive-button → GPS-verb mapping.** WhatsApp quick-reply
+    buttons map to: Share / Boost / Skip / I'm in / RSVP. Does each
+    button trigger a server-attributed action (creating a verified
+    share / RSVP record), or just a templated reply that lands in
+    Inbox for human triage?
+25. **Stop-on-action semantics.** A drip sequence must stop when the
+    recipient has done "the thing." Define "the thing" — is it a
+    generic `RequestAction` event (verified share, RSVP, comment), or
+    per-broadcast custom condition?
+26. **Triggered broadcasts vs the existing Notification primitive.**
+    Big overlap. Risk: two systems, divergent audit. Recommend single
+    underlying fan-out service, two surfaces (in-app notifications
+    are short-form; broadcasts are long-form campaigns).
+27. **Anti-spam caps per recipient.** Max broadcasts per recipient
+    per day across all senders. Per-channel? Per-category? Whose
+    responsibility — platform, team, or sender?
+28. **Unsubscribe granularity.** Per-broadcast, per-category
+    (operational vs campaign), or per-channel? Affects opt-in
+    schema and member-facing settings.
+29. **Broadcast replies → Inbox.** Reply lands as Request threaded
+    against the Broadcast — assignee defaults to broadcast author,
+    on rotation, or unassigned?
+30. **Analytics privacy.** Aggregate metrics (delivery / open /
+    click) are safe. Per-recipient read receipts may be creepy. Pick
+    a line; default to aggregate-only for non-sysadmins.
+31. **Member-facing copy.** "Send to..." vs "Broadcast to..." —
+    "Broadcast" reads as power-user/admin language. Recommend
+    "Send to..." in member UI; keep "Broadcast" as the data/admin
+    term. (Carries the CLAUDE.md "Send not Dispatch" rule forward.)
+
+Sources reviewed (broadcast, 2026-05-03):
+- https://sleekflow.io/broadcast — 4-step wizard tour (screenshot
+  review only; product-page level, not detailed docs).
+
+---
+
+## Net-new schema implied (consolidated, both surfaces)
+
+The list below merges Direction B's additions with the new Broadcast
+companion. Any of these may be deferred or split across BUs at tech
+review; surfaced here so the schema seam is visible up front.
+
+```
+# Inbox primitives (Direction B)
+Group.kind                           : enum  # workstream | region | network | topic
+Request.snoozedUntil                 : DateTime?           # Q14, Q7
+Request.labels                       : String[]            # Q13/Q14 (curation)
+Request.starredBy                    : User[]   (or Star join)
+RequestGroup                         : join    # per-team Open/Snoozed/Closed + (Q2) per-team owner?
+RequestSubscription.expiresAt        : DateTime?           # @mention TTL access (Q10)
+Comment.source                       : enum  # human | system  (Q12)
+CommentAudience                      : keep current (all | reviewers); maybe add team-only (Q11)
+MessageTemplate                      : per-team canned-response library (saved replies)
+
+# Broadcast primitives (Companion)
+Broadcast                            : campaign object
+  - audienceFilterJson               : snapshot of segment definition
+  - contentTemplate                  : message body w/ variable pills
+  - channels                         : enum[]  # whatsapp | email | inApp | push | sms
+  - schedule                         : oneShot | recurring | triggered | drip
+  - status                           : draft | scheduled | sending | sent | archived
+  - approvedBy                       : User?   # gate above N recipients (Q20)
+BroadcastRecipient                   : per-recipient delivery state
+  - status                           : queued | sent | delivered | opened | acted | failed | unsubscribed
+  - channel                          : whichever the fan-out picked
+  - actedAt                          : DateTime?  # for stop-on-action (Q25)
+UserChannelPreference                : per-user channel opt-in state (Q21, Q28)
+UserUnsubscribe                      : per-user opt-out, per-category (Q28)
+BroadcastReply                       : pointer from inbound Request → originating Broadcast (Q29)
+```
+
+ADRs implied (likely):
+
+- ADR — `RequestStatus` redesign (supersedes D054, ties Inbox lifecycle).
+- ADR — `BoardColumn` configurability (only if Direction A or hybrid wins).
+- ADR — TTL access on `RequestSubscription` (security boundary).
+- ADR — `Broadcast` + `BroadcastRecipient` shape and approval-gate
+  policy (only if Companion stays in this BU; otherwise lives in
+  `bu-broadcast`).
+- ADR — Single fan-out service shared by Notifications + Broadcast
+  (Q26).
 
 ---
 

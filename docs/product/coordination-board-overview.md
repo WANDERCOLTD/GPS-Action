@@ -1,19 +1,29 @@
 # Coordination Board — overview for non-technical readers
 
-_Date: 2026-05-03 · Audience: working-group leads, partner-org reps, anyone evaluating GPS without a developer in the room_
+_Date: 2026-05-03 (revised PM — Broadcast companion added) · Audience: working-group leads, partner-org reps, anyone evaluating GPS without a developer in the room_
 
 This is the plain-language companion to the build brief at
 `docs/build/session-briefs/bu-coordination-board.md`. It captures
 what we're proposing to build, why, and which decisions are still open.
 
-> **Two shapes are on the table — not yet decided.** This document
-> describes **Shape A** (the kanban board, Leonid's original pitch).
-> A second shape — **Shape B**, a "shared inbox" inspired by
-> [sleekflow.io](https://sleekflow.io/inbox) — is described at the
-> end of this document. The two share most of the underlying machinery
-> but feel quite different to use. The technical review meeting will
-> pick between them, or settle on a hybrid that does Shape B first
-> and adds Shape A's board view later.
+> **Two shapes for the inbound side, plus one outbound companion.**
+> This document describes **Shape A** (the kanban board, Leonid's
+> original pitch). A second shape — **Shape B**, a "shared inbox"
+> inspired by [sleekflow.io](https://sleekflow.io/inbox) — is
+> described after Shape A. Both are inbound surfaces: how teams
+> manage work coming at them.
+>
+> A third surface — **Companion: Broadcast** — handles the _outbound_
+> side: when GPS sends a campaign to a Group, Network, or Region.
+> Inspired by SleekFlow's
+> [Broadcast](https://sleekflow.io/broadcast) wizard. It's described
+> at the end and is being weighed alongside the inbound shapes; if
+> tech review prefers, it can be split into its own build later.
+>
+> The technical review meeting will pick the inbound shape (A, B, or
+> a hybrid) and decide whether the outbound Companion ships in the
+> same BU or as a follow-on. The shapes share most of the underlying
+> machinery; the day-to-day experience differs.
 
 ---
 
@@ -302,6 +312,97 @@ The technical review meeting (Simon, Harry, Grant, Paul, Leonid)
 will pick between Shape A, Shape B, and the hybrid. After that, the
 prototype is built in the chosen shape, and you'll see something
 clickable.
+
+---
+
+## Companion: Broadcast — sending out to Groups and Networks
+
+Shapes A and B describe how GPS handles the **inbound** side:
+incoming jobs, requests, conversations a team manages. There is a
+matching **outbound** need — when GPS itself sends a structured
+message to a Group (Writers, Radio, Social) or a Network (CUFI,
+partner orgs) or a Region (Hendon, Edgware). Today this also lives
+in WhatsApp threads with no audit and no measurement.
+
+The Companion borrows directly from
+[SleekFlow's Broadcast](https://sleekflow.io/broadcast) product, a
+4-step wizard non-technical staff find easy to learn:
+
+1. **Pick the audience.** Filter members — by Group, Network,
+   Region, role, language, recent activity. The wizard shows you a
+   live count of who'd receive the message before you send.
+2. **Write the message.** Choose channels (WhatsApp, email, in-app,
+   maybe SMS later). Compose the message with **personalisation
+   slots** ("Hi {first name}, your region {region} has..."). Add
+   buttons for the recipient to tap — "I'm in", "Share", "RSVP".
+3. **Pick when it goes.** Send now, schedule for later, repeat
+   weekly, or trigger when something happens (e.g. when a post
+   reaches 100 shares, broadcast a thank-you to everyone who shared).
+4. **Watch what happened.** After it sends, see how many were
+   delivered, how many opened, how many took the action you asked
+   for, and how many opted out.
+
+### Why this matters
+
+GPS already sends WhatsApp messages out as part of dispatch. What's
+missing is the structured layer above it: an audience picker, a
+personalised template, scheduling, audit, and analytics. Without
+this, sending a "thank you to everyone who shared this week" is a
+manual job that doesn't get done.
+
+The Companion also catches the **replies**. When someone replies to
+a broadcast (in-app or via WhatsApp), the reply lands in the team's
+inbox as a job — so the inbound and outbound surfaces feed each
+other.
+
+### What changes vs. how we send today
+
+- Bigger sends need a **second person to approve** before they go
+  out (anti-mistake, anti-hijack).
+- Members can **opt out** per category — "no campaign messages",
+  "operational only", or "all off."
+- A small **anti-spam cap** stops any one member from being
+  broadcast-bombarded by multiple senders on the same day.
+- All sends are **logged** — who sent what, to whom, when, with
+  what results. Today this is invisible.
+
+### Open questions on the Companion
+
+Before we lock it in:
+
+a. **Who's allowed to broadcast to whom?** Members to their own
+teams? Group admins to their group? Sysadmins to anyone? Network
+admins to their network only? Need to draw the matrix.
+b. **What's a "big" send that needs a second approver?** A specific
+number of recipients? Any cross-organisation reach? Both?
+c. **What does a recipient see if their preference disagrees with
+the sender?** If a member chose "WhatsApp only" and the broadcast
+is email, do they get nothing, or does sender choice override?
+d. **One Broadcast in two languages, or two Broadcasts?** Hebrew +
+English: send one with both variants and pick by member language,
+or send two with shared audience?
+e. **What language do we use in the UI?** "Send to..." reads
+friendly to members. "Broadcast" sounds like power-user
+terminology. Recommend "Send to..." in the member-facing UI;
+"Broadcast" stays in admin/analytics views.
+f. **Aggregate analytics or per-recipient?** Aggregate ("87% opened")
+is safe and useful. Per-recipient read receipts may feel
+surveillance-y. Likely default to aggregate-only for non-sysadmins.
+
+### Should the Companion ship in the same BU?
+
+Two views, both reasonable:
+
+- **Together** — Inbox and Broadcast share most of their plumbing
+  (Groups, Networks, channels, labels, audit). Building them as one
+  BU avoids two divergent audience pickers and two notification
+  engines.
+- **Apart** — Inbox is the team workspace; Broadcast is a
+  marketing/operations workspace. Different audiences review them.
+  Splitting `bu-broadcast` keeps each brief focused.
+
+The tech review will decide. Either way, the schema spine is the
+same.
 
 ---
 
