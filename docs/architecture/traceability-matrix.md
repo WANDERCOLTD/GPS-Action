@@ -39,7 +39,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-28 | Sharon shares a post, then confirms she sent it | 0 | — | — | parked |
 | SCN-29 | Eddie sees the share count on someone else's post | 0 | — | — | parked |
 | SCN-30 | Bette views her own post and notices a missing channel | 0 | — | — | parked |
-| SCN-31 | Sharon searches for Hendon | 0 | — | — | parked |
+| SCN-31 | Sharon searches for Hendon | 2 | BU-search-surface | D078 | ✓ shipped |
 
 ## Build Units
 
@@ -54,7 +54,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-admin-crud | 21 | — | — |
 | BU-am-link-collapse | 4 | SCN-19, SCN-26, SCN-27 | D060, D061, D062, D064, D069, D072, D073 |
 | BU-calendar-near-me | 6 | — | D045, D048, D060, D064, D069, D072, D073, D076 |
-| BU-calendar-view | 9 | — | D003, D036, D054, D061, D065, D073, D076 |
+| BU-calendar-view | 9 | — | D003, D036, D054, D061, D065, D073, D076, D078 |
 | BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057, D061, D064, D069, D072, D073 |
 | BU-comments-card-lift | 1 | SCN-20 | D052, D072 |
 | BU-composer | 8 | SCN-18, SCN-19, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D060, D061, D062, D064, D069, D072, D073, D076 |
@@ -67,8 +67,8 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-feed-card-clamp | 1 | — | D052, D061, D064, D073 |
 | BU-feed-filter | 2 | — | — |
 | BU-healthcheck | 3 | — | D037 |
-| BU-icon-nav | 1 | — | D054, D061, D065, D073 |
-| BU-icon-strips | 5 | SCN-20 | D052, D054, D061, D065, D073, D076 |
+| BU-icon-nav | 1 | — | D054, D061, D065, D073, D078 |
+| BU-icon-strips | 5 | SCN-20 | D052, D054, D061, D065, D073, D076, D078 |
 | BU-link-first-composer | 7 | SCN-18, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D072, D073 |
 | BU-link-share | 5 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D061, D062, D064, D069, D072, D073, D076 |
 | BU-one-click-polish | 4 | SCN-3, SCN-20 | D050, D052 |
@@ -78,14 +78,14 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-postcode-or-place | 4 | — | D076 |
 | BU-publish-router | 21 | SCN-18, SCN-19, SCN-20, SCN-21, SCN-22, SCN-23, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D052, D054, D055, D056, D057, D058, D060, D062, D064, D069, D072, D073, D076 |
 | BU-reactions | 9 | SCN-3, SCN-20 | D036, D050, D052, D069, D072 |
-| BU-requests-foundation | 6 | SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D065, D072, D073 |
+| BU-requests-foundation | 6 | SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D065, D072, D073, D078 |
 | BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061, D072 |
 | BU-requests-vetting | 7 | SCN-20, SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D072 |
-| BU-search-surface | 4 | — | — |
+| BU-search-surface | 7 | SCN-31 | D054, D061, D065, D073, D078 |
 | BU-secondary-cta-placeholders | 1 | — | DNaN |
 | BU-seed | 1 | — | D038 |
 | BU-share-rail-on-detail | 4 | — | D067 |
-| BU-sticky-nav | 5 | — | D003, D054, D061, D065, D073 |
+| BU-sticky-nav | 5 | — | D003, D054, D061, D065, D073, D078 |
 | BU-tick-or-cross | 11 | SCN-18, SCN-19, SCN-20, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D052, D060, D062, D064, D069, D070, D072, D073, D076 |
 | BU-versioning | 3 | — | D003, D065, D073 |
 | BU-whatsapp-share | 2 | — | D065, D067 |
@@ -121,4 +121,5 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D072 | Post lifecycle, publish router, and per-kind action registry | 21 |
 | D073 | Structured event-time fields on `Post` (`event_at`, `event_ends_at`, `location_text`) | 22 |
 | D076 | Post location coordinates + online flag (`latitude`, `longitude`, `isOnline`) | 7 |
+| D078 | App-wide member search: 9 design decisions for `bu-search-surface` | 3 |
 
