@@ -54,7 +54,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-001-prep | 1 | — | — |
 | BU-admin-audit-integration | 3 | — | — |
 | BU-admin-bulk-ops | 8 | — | — |
-| BU-admin-crud | 21 | — | — |
+| BU-admin-crud | 22 | — | — |
 | BU-am-link-collapse | 4 | SCN-19, SCN-26, SCN-27 | D060, D061, D062, D064, D069, D072, D073 |
 | BU-calendar-near-me | 6 | — | D045, D048, D060, D064, D069, D072, D073, D076 |
 | BU-calendar-view | 9 | — | D003, D036, D054, D061, D065, D073, D076, D078 |
