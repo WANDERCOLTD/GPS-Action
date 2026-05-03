@@ -105,6 +105,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-postcard-share-polish** — bu-postcard-share-polish | ✅ Merged | #167 |
 | **bu-calendar-near-me** — BU-calendar-near-me | ✅ Merged | #169 |
 | **bu-post-location-input** — BU-post-location-input | ✅ Merged | #171 |
+| **bu-search-surface** — BU-search-surface | ✅ Merged | #189 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |
