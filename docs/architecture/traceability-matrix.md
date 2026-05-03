@@ -81,7 +81,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-requests-foundation | 6 | SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D065, D072, D073 |
 | BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061, D072 |
 | BU-requests-vetting | 7 | SCN-20, SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D072 |
-| BU-search-surface | 1 | — | — |
+| BU-search-surface | 4 | — | — |
 | BU-secondary-cta-placeholders | 1 | — | DNaN |
 | BU-seed | 1 | — | D038 |
 | BU-share-rail-on-detail | 4 | — | D067 |
