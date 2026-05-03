@@ -1551,29 +1551,55 @@
             desktop; full-screen overlay on mobile.
           </li>
           <li>
-            <strong>Lifecycle</strong> — New (urgent dot indicator, bold) · Acknowledged (faded,
-            read) · Dismissed (× per row, removed from view). Auto-acknowledged when the user opens
-            the linked ticket.
+            <strong>Lifecycle visual</strong> — <strong>New</strong> rows have a tinted (light blue)
+            background covering the whole row (no per-row knob — saves space).
+            <strong>Acknowledged</strong> rows are plain white. <strong>Dismissed</strong> rows are
+            removed from view via the per-row × action.
           </li>
           <li>
-            <strong>Triggers</strong> — @mention (always) · comment on a subscribed ticket · column
-            move · new internal note (only if subscribed) · new assignment to you · share-with
-            action (target team's notifications fire).
+            <strong>Acknowledging is implicit</strong> — clicking a row opens the linked ticket and
+            auto-acknowledges. There's no separate "ack" button. "Mark all acknowledged" in the
+            footer is the bulk equivalent.
+          </li>
+          <li>
+            <strong>Capacity</strong> — limited list (~5–10 rows). Scrollbar appears automatically
+            if the window is squeezed vertically. <strong>"View all →"</strong> opens a full-page
+            list of every not-yet-dismissed notification.
+          </li>
+          <li>
+            <strong>Fires on — defaults (subscriber-driven)</strong>:
+            <ul style="margin: 4px 0 0; padding-left: 18px">
+              <li><strong>@mention</strong> — the mentioned user, always.</li>
+              <li><strong>Comment</strong> — ticket subscribers.</li>
+              <li><strong>Internal note</strong> — subscribers only.</li>
+              <li><strong>Column move</strong> — subscribers only.</li>
+              <li><strong>New assignment</strong> — the assignee.</li>
+            </ul>
+          </li>
+          <li>
+            <strong>Fires on — opt-in (team-wide blasts)</strong>:
+            <ul style="margin: 4px 0 0; padding-left: 18px">
+              <li>
+                <strong>Share-with → target team</strong> — fires to the whole target team only if
+                "notify team" is ticked at share-time.
+              </li>
+              <li>
+                <strong>Add-to-active-board → own team</strong> — fires to the whole owning team
+                only if the option is ticked at the time the admin moves the ticket from backlog
+                onto the active board.
+              </li>
+            </ul>
           </li>
           <li>
             <strong>Each row shows</strong> — source ticket title (link) · group name + "shared" tag
             if cross-team · reason glyph (📝 note · ⏵ moved · @ mention · ⊕ assigned · 💬 comment) ·
-            timestamp · per-row dismiss × .
+            timestamp · per-row dismiss <code>×</code>.
           </li>
           <li>
             <strong>Cross-team awareness</strong>
             <span class="qref">Q10</span> — notifications from shared-with tickets render with the
             team name they're shared from (e.g. <code>Newsletter Q3 · Social Media (shared)</code>).
             The team-picker badge counts these.
-          </li>
-          <li>
-            <strong>Footer</strong> — "Mark all acknowledged" (sweep action) · "View all →"
-            (full-page notifications view if the dropdown gets crowded).
           </li>
           <li>
             <strong>Not an inbox</strong> — you don't reply to tickets from here. Click → opens the
