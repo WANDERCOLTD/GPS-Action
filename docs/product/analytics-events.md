@@ -48,7 +48,7 @@ ID. PII-safe for export and third-party analytics.
 
 ---
 
-## The 16 events (MVP set)
+## The 20 events (MVP set)
 
 Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Build Unit**, **answers question(s)**.
@@ -173,6 +173,43 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Build Unit:** BU-vetting
 **Answers:** Q7
 
+### Search (4)
+
+#### `search_opened`
+
+**When:** The `/search` route mounts.
+**Properties:** `source` (enum: appnav, deep_link, scope_chip)
+**Fired from:** `components/SearchShell.tsx` (client, on mount)
+**Build Unit:** BU-search-surface (D078)
+**Answers:** Q1, Q6
+**Notes:** `appnav` = magnifier tap; `deep_link` = arrived with `?q=`; `scope_chip` = arrived from a filtered feed (`?filter=` set, no `?q=`).
+
+#### `search_query_submitted`
+
+**When:** A debounced typeahead query (≥2 chars) hits the server.
+**Properties:** `q_length` (int), `has_scope_chip` (bool)
+**Fired from:** `components/SearchShell.tsx` (client, after debounce)
+**Build Unit:** BU-search-surface
+**Answers:** Q1, Q6
+**Notes:** **Never include the raw query string.** Member names commonly appear in queries — `q_length` and `has_scope_chip` are the only properties allowed. The stub sink rejects payloads carrying a `q` or `query` field as a defence-in-depth check.
+
+#### `search_result_clicked`
+
+**When:** Member taps a result link in either typeahead or full mode.
+**Properties:** `entity_type` (enum: posts, people, regions, partnerOrgs), `position_in_group` (int), `group_position` (int)
+**Fired from:** `components/SearchShell.tsx` (client, on result `<a>` click)
+**Build Unit:** BU-search-surface
+**Answers:** Q6
+**Notes:** Both positions are zero-indexed. `group_position` is the rank of the entity group in the response (D078 §4 — Posts=0, People=1, Regions=2, Partner orgs=3).
+
+#### `search_see_all_clicked`
+
+**When:** Member taps the "See all N" link on a typeahead result group.
+**Properties:** `entity_type` (enum: posts, people, regions, partnerOrgs)
+**Fired from:** `components/SearchShell.tsx` (client, on link click)
+**Build Unit:** BU-search-surface
+**Answers:** Q6
+
 ### Dispatch (2)
 
 #### `dispatch_started`
@@ -202,7 +239,7 @@ These have been considered and deferred — don't add them without a decision:
 | Scroll depth granularity             | Too noisy at this scale; pilot too small for the signal |
 | Click heatmaps                       | Over-engineering; not needed for pilot decisions        |
 | Time-on-screen per view              | Battery drain + PII risk + weak signal                  |
-| Search queries                       | Skip until search is a priority feature                 |
+| Raw search query strings             | PII risk — member names, addresses commonly appear      |
 | Keystroke timing / typing patterns   | Creepy; no clear use                                    |
 | Individual comment text or post body | PII — never track content                               |
 | Referral viral coefficient           | Meaningful only at scale; revisit post-pilot            |
