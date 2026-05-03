@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" font-family="-apple-system, BlinkMacSystemFont, Inter, 'Helvetica Neue', Arial, sans-serif">
+  <title>Direction A · Kanban desktop · GPS Action coordination board</title>
+  <desc>Surface 1 of 5 · 4-column kanban with configurable columns; cards move left to right as work progresses. Pre-prototype mockup, GPS palette.</desc>
+  <style>
+    .canvas{fill:#f4f1ea}
+    .raised{fill:#fff;stroke:#e5e2d8;stroke-width:1}
+    .sunken{fill:#ede9df}
+    .border{stroke:#e5e2d8;stroke-width:1;fill:none}
+    .urgent{fill:#d85a30}.urgent-bg{fill:#faece7}
+    .info{fill:#3c3489}.info-bg{fill:#eeedfe}
+    .success{fill:#0f6e56}.success-bg{fill:#e1f5ee}
+    .primary{fill:#1851cc}.primary-bg{fill:#e6edfa}
+    .text{fill:#2c2c2a}.text-2{fill:#5f5e5a}.text-3{fill:#888780}
+    .ttl{font-size:30px;font-weight:700;fill:#2c2c2a;letter-spacing:-0.5px}
+    .sub{font-size:15px;fill:#5f5e5a}
+    .h4{font-size:11px;font-weight:600;fill:#888780;letter-spacing:.8px}
+    .lab{font-size:13px;fill:#2c2c2a}
+    .sm{font-size:11px;fill:#5f5e5a}
+    .xs{font-size:10px;fill:#888780}
+    .strong{font-weight:600}
+    .chip{font-size:10px;font-weight:700;letter-spacing:.5px}
+    .ct{font-size:14px;font-weight:600;fill:#2c2c2a}
+    .cm{font-size:11px;fill:#5f5e5a}
+    .cap{font-size:11px;fill:#888780}
+  </style>
+
+  <rect width="1600" height="900" class="canvas"/>
+
+  <!-- Title -->
+  <text x="40" y="56" class="ttl">Direction A · Kanban desktop</text>
+  <text x="40" y="84" class="sub">Surface 1/5 · Configurable columns per group · cards move left to right as work progresses</text>
+
+  <!-- Mockup frame -->
+  <rect x="40" y="118" width="1520" height="720" rx="14" class="raised"/>
+
+  <!-- Frame header band -->
+  <path d="M40 132 a14 14 0 0 1 14-14 h1492 a14 14 0 0 1 14 14 v52 h-1520z" class="canvas"/>
+  <line x1="40" y1="184" x2="1560" y2="184" class="border"/>
+  <circle cx="68" cy="158" r="10" class="primary-bg"/>
+  <text x="68" y="162" class="chip primary" text-anchor="middle">W</text>
+  <text x="92" y="162" class="lab strong">Writers</text>
+  <text x="160" y="162" class="lab text-2">· active board</text>
+  <text x="1540" y="162" class="sm" text-anchor="end">12 members · 2 admins · ⚙</text>
+
+  <!-- Column 1: Recruitment -->
+  <g transform="translate(80,212)">
+    <text x="0" y="0" class="h4">RECRUITMENT (3)</text>
+    <!-- card -->
+    <rect x="0" y="16" width="340" height="92" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <rect x="0" y="16" width="3" height="92" class="urgent"/>
+    <text x="14" y="40" class="ct">Hendon flyer</text>
+    <text x="14" y="60" class="cm">unclaimed</text>
+    <rect x="14" y="74" width="62" height="20" rx="10" class="urgent-bg"/>
+    <text x="45" y="88" class="chip urgent" text-anchor="middle">URGENT</text>
+    <text x="326" y="88" class="xs" text-anchor="end">2d</text>
+
+    <rect x="0" y="120" width="340" height="92" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <text x="14" y="144" class="ct">Pesach message</text>
+    <text x="14" y="164" class="cm">unclaimed</text>
+    <rect x="14" y="178" width="50" height="20" rx="10" class="sunken"/>
+    <text x="39" y="192" class="chip text-2" text-anchor="middle">DRAFT</text>
+    <text x="326" y="192" class="xs" text-anchor="end">6h</text>
+
+    <rect x="0" y="224" width="340" height="92" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <text x="14" y="248" class="ct">Newsletter Q3</text>
+    <text x="14" y="268" class="cm">unclaimed</text>
+    <rect x="14" y="282" width="50" height="20" rx="10" class="sunken"/>
+    <text x="39" y="296" class="chip text-2" text-anchor="middle">DRAFT</text>
+    <text x="326" y="296" class="xs" text-anchor="end">1d</text>
+  </g>
+
+  <!-- Column 2: Preparation -->
+  <g transform="translate(440,212)">
+    <text x="0" y="0" class="h4">PREPARATION (2)</text>
+    <rect x="0" y="16" width="340" height="92" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <rect x="0" y="16" width="3" height="92" class="urgent"/>
+    <text x="14" y="40" class="ct">Edgware petition</text>
+    <circle cx="22" cy="58" r="8" class="primary-bg"/>
+    <text x="22" y="62" class="chip primary" text-anchor="middle">SH</text>
+    <text x="38" y="64" class="cm">Sharon</text>
+    <rect x="14" y="74" width="62" height="20" rx="10" class="urgent-bg"/>
+    <text x="45" y="88" class="chip urgent" text-anchor="middle">URGENT</text>
+    <text x="326" y="88" class="xs" text-anchor="end">4h</text>
+
+    <rect x="0" y="120" width="340" height="92" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <rect x="0" y="120" width="3" height="92" class="info"/>
+    <text x="14" y="144" class="ct">Radio spot</text>
+    <circle cx="22" cy="162" r="8" class="primary-bg"/>
+    <text x="22" y="166" class="chip primary" text-anchor="middle">MZ</text>
+    <text x="38" y="168" class="cm">Mira</text>
+    <rect x="14" y="178" width="50" height="20" rx="10" class="info-bg"/>
+    <text x="39" y="192" class="chip info" text-anchor="middle">DRAFT</text>
+    <text x="326" y="192" class="xs" text-anchor="end">1d</text>
+  </g>
+
+  <!-- Column 3: Implementation -->
+  <g transform="translate(800,212)">
+    <text x="0" y="0" class="h4">IMPLEMENTATION (3)</text>
+    <rect x="0" y="16" width="340" height="92" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <rect x="0" y="16" width="3" height="92" class="info"/>
+    <text x="14" y="40" class="ct">Council letter</text>
+    <circle cx="22" cy="58" r="8" class="primary-bg"/>
+    <text x="22" y="62" class="chip primary" text-anchor="middle">DA</text>
+    <text x="38" y="64" class="cm">Dan</text>
+    <rect x="14" y="74" width="50" height="20" rx="10" class="info-bg"/>
+    <text x="39" y="88" class="chip info" text-anchor="middle">DRAFT</text>
+    <text x="326" y="88" class="xs" text-anchor="end">1h</text>
+
+    <rect x="0" y="120" width="340" height="92" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <rect x="0" y="120" width="3" height="92" class="urgent"/>
+    <text x="14" y="144" class="ct">Donor letter</text>
+    <circle cx="22" cy="162" r="8" class="primary-bg"/>
+    <text x="22" y="166" class="chip primary" text-anchor="middle">JR</text>
+    <text x="38" y="168" class="cm">Jonny</text>
+    <rect x="14" y="178" width="62" height="20" rx="10" class="urgent-bg"/>
+    <text x="45" y="192" class="chip urgent" text-anchor="middle">URGENT</text>
+    <text x="326" y="192" class="xs" text-anchor="end">30m</text>
+
+    <rect x="0" y="224" width="340" height="92" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <rect x="0" y="224" width="3" height="92" class="info"/>
+    <text x="14" y="248" class="ct">Kvar bench</text>
+    <circle cx="22" cy="266" r="8" class="primary-bg"/>
+    <text x="22" y="270" class="chip primary" text-anchor="middle">DA</text>
+    <text x="38" y="272" class="cm">Dan</text>
+    <rect x="14" y="282" width="50" height="20" rx="10" class="info-bg"/>
+    <text x="39" y="296" class="chip info" text-anchor="middle">DRAFT</text>
+    <text x="326" y="296" class="xs" text-anchor="end">2d</text>
+  </g>
+
+  <!-- Column 4: Monitoring -->
+  <g transform="translate(1160,212)">
+    <text x="0" y="0" class="h4">MONITORING (1)</text>
+    <rect x="0" y="16" width="340" height="92" rx="8" fill="#fff" stroke="#e5e2d8" opacity="0.85"/>
+    <rect x="0" y="16" width="3" height="92" class="success"/>
+    <text x="14" y="40" class="ct">Open mic followup</text>
+    <circle cx="22" cy="58" r="8" class="primary-bg"/>
+    <text x="22" y="62" class="chip primary" text-anchor="middle">SH</text>
+    <text x="38" y="64" class="cm">Sharon</text>
+    <rect x="14" y="74" width="42" height="20" rx="10" class="success-bg"/>
+    <text x="35" y="88" class="chip success" text-anchor="middle">SENT</text>
+    <text x="326" y="88" class="xs" text-anchor="end">3d</text>
+  </g>
+
+  <!-- Frame footer -->
+  <line x1="40" y1="780" x2="1560" y2="780" class="border"/>
+  <text x="80" y="810" class="sm">+ propose to backlog</text>
+  <text x="1540" y="810" class="sm primary" text-anchor="end">◀ Backlog (12)   ·   Done (47) ▶</text>
+
+  <!-- Caption -->
+  <text x="40" y="876" class="cap">GPS Action · Coordination board · Pre-prototype mockup · v0.3 · 2026-05-03</text>
+</svg>

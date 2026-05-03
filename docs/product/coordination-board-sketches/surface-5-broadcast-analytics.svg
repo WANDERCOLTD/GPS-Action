@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" font-family="-apple-system, BlinkMacSystemFont, Inter, 'Helvetica Neue', Arial, sans-serif">
+  <title>Broadcast wizard · Step 4 (Analytics) · GPS Action coordination board</title>
+  <desc>Surface 5 of 5 · Post-send dashboard. Funnel tiles, replies-to-inbox link, per-segment breakdown, failures and channel-fallback ops. Pre-prototype mockup, GPS palette.</desc>
+  <style>
+    .canvas{fill:#f4f1ea}.raised{fill:#fff;stroke:#e5e2d8;stroke-width:1}
+    .sunken{fill:#ede9df}.border{stroke:#e5e2d8;stroke-width:1;fill:none}
+    .urgent{fill:#d85a30}.urgent-bg{fill:#faece7}
+    .info{fill:#3c3489}.info-bg{fill:#eeedfe}
+    .success{fill:#0f6e56}.success-bg{fill:#e1f5ee}
+    .warning{fill:#ba7517}.warning-bg{fill:#faeeda}
+    .primary{fill:#1851cc}.primary-bg{fill:#e6edfa}
+    .text{fill:#2c2c2a}.text-2{fill:#5f5e5a}.text-3{fill:#888780}
+    .ttl{font-size:30px;font-weight:700;fill:#2c2c2a;letter-spacing:-0.5px}
+    .sub{font-size:15px;fill:#5f5e5a}
+    .h4{font-size:11px;font-weight:600;fill:#5f5e5a;letter-spacing:1px}
+    .lab{font-size:14px;fill:#2c2c2a}
+    .sm{font-size:12px;fill:#5f5e5a}
+    .xs{font-size:11px;fill:#888780}
+    .strong{font-weight:600}
+    .num-big{font-size:36px;font-weight:700;fill:#2c2c2a}
+    .pct{font-size:18px;fill:#5f5e5a}
+    .h3{font-size:24px;font-weight:700;fill:#2c2c2a}
+    .num-md{font-size:24px;font-weight:700;fill:#2c2c2a}
+    .num-sm{font-size:18px;font-weight:700;fill:#2c2c2a}
+    .cap{font-size:11px;fill:#888780}
+    .table-th{font-size:10px;font-weight:600;fill:#888780;letter-spacing:.6px;text-anchor:end}
+    .table-td{font-size:13px;fill:#2c2c2a;text-anchor:end}
+  </style>
+
+  <rect width="1600" height="900" class="canvas"/>
+
+  <!-- Title -->
+  <text x="40" y="56" class="ttl">Broadcast wizard · Step 4 (Analytics)</text>
+  <text x="40" y="84" class="sub">Surface 5/5 · Funnel headline · per-segment breakdown · replies link to inbox · failure + channel-fallback ops</text>
+
+  <!-- Mockup frame -->
+  <rect x="40" y="118" width="1520" height="720" rx="14" class="raised"/>
+
+  <!-- Header -->
+  <g transform="translate(80,158)">
+    <text x="0" y="0" class="h3">Pesach week — flyer share push</text>
+    <rect x="1330" y="-22" width="110" height="28" rx="14" class="success-bg"/>
+    <text x="1385" y="-4" class="sm strong success" text-anchor="middle">Sent 2d ago</text>
+    <text x="0" y="30" class="sm">Audience: 387  ·  Channels: WhatsApp + Email  ·  Author: Sharon Wenger</text>
+  </g>
+  <line x1="80" y1="216" x2="1520" y2="216" class="border"/>
+
+  <!-- Funnel tiles -->
+  <g transform="translate(80,240)">
+    <!-- Delivered -->
+    <rect x="0" y="0" width="340" height="148" rx="10" class="canvas"/>
+    <rect x="0" y="0" width="340" height="148" rx="10" fill="none" stroke="#e5e2d8"/>
+    <text x="170" y="32" class="h4" text-anchor="middle">DELIVERED</text>
+    <text x="170" y="86" class="num-big" text-anchor="middle">362</text>
+    <text x="170" y="118" class="pct" text-anchor="middle">94 %</text>
+
+    <!-- Opened -->
+    <rect x="360" y="0" width="340" height="148" rx="10" class="canvas"/>
+    <rect x="360" y="0" width="340" height="148" rx="10" fill="none" stroke="#e5e2d8"/>
+    <text x="530" y="32" class="h4" text-anchor="middle">OPENED</text>
+    <text x="530" y="86" class="num-big" text-anchor="middle">291</text>
+    <text x="530" y="118" class="pct" text-anchor="middle">80 %</text>
+
+    <!-- Clicked -->
+    <rect x="720" y="0" width="340" height="148" rx="10" class="canvas"/>
+    <rect x="720" y="0" width="340" height="148" rx="10" fill="none" stroke="#e5e2d8"/>
+    <text x="890" y="32" class="h4" text-anchor="middle">CLICKED LINK</text>
+    <text x="890" y="86" class="num-big" text-anchor="middle">178</text>
+    <text x="890" y="118" class="pct" text-anchor="middle">61 %</text>
+
+    <!-- Acted -->
+    <rect x="1080" y="0" width="340" height="148" rx="10" class="success-bg"/>
+    <rect x="1080" y="0" width="340" height="148" rx="10" fill="none" stroke="#0f6e56" stroke-width="1.5"/>
+    <text x="1250" y="32" class="h4 success" text-anchor="middle">TOOK ACTION</text>
+    <text x="1250" y="86" class="num-big success" text-anchor="middle">84</text>
+    <text x="1250" y="118" class="pct success" text-anchor="middle">23 %</text>
+    <text x="1250" y="138" class="xs success strong" text-anchor="middle">▲ verified shares</text>
+  </g>
+
+  <!-- Replies + Unsubs row -->
+  <g transform="translate(80,420)">
+    <!-- Replies -->
+    <rect x="0" y="0" width="700" height="84" rx="10" class="raised"/>
+    <text x="20" y="28" class="sm strong">Replies in inbox</text>
+    <text x="20" y="62" class="num-md">12</text>
+    <text x="680" y="62" class="sm primary strong" text-anchor="end">→ Open Writers inbox</text>
+    <!-- Unsubs -->
+    <rect x="720" y="0" width="700" height="84" rx="10" class="raised"/>
+    <text x="740" y="28" class="sm strong">Unsubscribed</text>
+    <text x="740" y="62" class="num-md">3</text>
+    <text x="1400" y="62" class="sm" text-anchor="end">2 quiet · 1 wrong audience</text>
+  </g>
+
+  <!-- Per-segment table -->
+  <g transform="translate(80,524)">
+    <rect x="0" y="0" width="1440" height="160" rx="10" class="raised"/>
+    <text x="20" y="28" class="sm strong">Breakdown by segment</text>
+    <!-- table headers -->
+    <text x="20" y="58" class="h4">SEGMENT</text>
+    <text x="980" y="58" class="table-th">DELIVERED</text>
+    <text x="1100" y="58" class="table-th">OPENED</text>
+    <text x="1220" y="58" class="table-th">CLICKED</text>
+    <text x="1410" y="58" class="table-th">ACTED</text>
+    <line x1="20" y1="68" x2="1420" y2="68" class="border"/>
+    <!-- rows -->
+    <text x="20" y="92" class="lab">Hendon <tspan fill="#888780" font-size="11">(142)</tspan></text>
+    <text x="980" y="92" class="table-td">96 %</text>
+    <text x="1100" y="92" class="table-td">83 %</text>
+    <text x="1220" y="92" class="table-td">66 %</text>
+    <text x="1410" y="92" class="table-td strong success">28 %</text>
+    <line x1="20" y1="104" x2="1420" y2="104" class="border"/>
+
+    <text x="20" y="124" class="lab">Edgware <tspan fill="#888780" font-size="11">(87)</tspan></text>
+    <text x="980" y="124" class="table-td">93 %</text>
+    <text x="1100" y="124" class="table-td">78 %</text>
+    <text x="1220" y="124" class="table-td">58 %</text>
+    <text x="1410" y="124" class="table-td">22 %</text>
+    <line x1="20" y1="136" x2="1420" y2="136" class="border"/>
+
+    <text x="20" y="154" class="lab">CUFI network <tspan fill="#888780" font-size="11">(158)</tspan></text>
+    <text x="980" y="154" class="table-td">92 %</text>
+    <text x="1100" y="154" class="table-td">78 %</text>
+    <text x="1220" y="154" class="table-td">57 %</text>
+    <text x="1410" y="154" class="table-td">18 %</text>
+  </g>
+
+  <!-- Failures + ops row -->
+  <g transform="translate(80,704)">
+    <rect x="0" y="0" width="1440" height="100" rx="10" class="raised"/>
+    <!-- Failed -->
+    <text x="20" y="28" class="sm text-3">Failed</text>
+    <text x="20" y="56" class="num-sm">25 ▾</text>
+    <text x="20" y="82" class="xs">18 wrong number · 5 unsub'd previously · 2 rate-limited</text>
+    <line x1="500" y1="20" x2="500" y2="80" class="border"/>
+    <!-- Quiet hours -->
+    <text x="520" y="28" class="sm text-3">Quiet hours skipped</text>
+    <text x="520" y="56" class="num-sm">0</text>
+    <line x1="900" y1="20" x2="900" y2="80" class="border"/>
+    <!-- Channel fallback -->
+    <text x="920" y="28" class="sm text-3">Channel fallback fired</text>
+    <text x="920" y="56" class="num-sm">14</text>
+    <text x="920" y="82" class="xs">WhatsApp → email</text>
+  </g>
+
+  <!-- Caption -->
+  <text x="40" y="876" class="cap">GPS Action · Coordination board · Pre-prototype mockup · v0.3 · 2026-05-03</text>
+</svg>

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" font-family="-apple-system, BlinkMacSystemFont, Inter, 'Helvetica Neue', Arial, sans-serif">
+  <title>Broadcast wizard · Step 2 (Personalization) · GPS Action coordination board</title>
+  <desc>Surface 4 of 5 · 4-step Broadcast wizard mid-step. Channel chips, variable-pill composer, live WhatsApp preview, quick-reply buttons. Pre-prototype mockup, GPS palette.</desc>
+  <style>
+    .canvas{fill:#f4f1ea}.raised{fill:#fff;stroke:#e5e2d8;stroke-width:1}
+    .sunken{fill:#ede9df}.border{stroke:#e5e2d8;stroke-width:1;fill:none}
+    .urgent{fill:#d85a30}.urgent-bg{fill:#faece7}
+    .info{fill:#3c3489}.info-bg{fill:#eeedfe}
+    .success{fill:#0f6e56}.success-bg{fill:#e1f5ee}
+    .warning{fill:#ba7517}.warning-bg{fill:#faeeda}
+    .primary{fill:#1851cc}.primary-bg{fill:#e6edfa}
+    .wa{fill:#1a8a45}.wa-bg{fill:rgba(37,211,102,0.10);stroke:rgba(37,211,102,0.30);stroke-width:1}
+    .text{fill:#2c2c2a}.text-2{fill:#5f5e5a}.text-3{fill:#888780}
+    .ttl{font-size:30px;font-weight:700;fill:#2c2c2a;letter-spacing:-0.5px}
+    .sub{font-size:15px;fill:#5f5e5a}
+    .h4{font-size:11px;font-weight:600;fill:#5f5e5a;letter-spacing:1px}
+    .lab{font-size:14px;fill:#2c2c2a}
+    .sm{font-size:12px;fill:#5f5e5a}
+    .xs{font-size:11px;fill:#888780}
+    .strong{font-weight:600}
+    .step-num{font-size:12px;font-weight:700;fill:#fff;text-anchor:middle}
+    .step-num-off{font-size:12px;font-weight:700;fill:#888780;text-anchor:middle}
+    .var{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:13px;font-weight:600;fill:#3c3489}
+    .cap{font-size:11px;fill:#888780}
+  </style>
+
+  <rect width="1600" height="900" class="canvas"/>
+
+  <!-- Title -->
+  <text x="40" y="56" class="ttl">Broadcast wizard · Step 2 (Personalization)</text>
+  <text x="40" y="84" class="sub">Surface 4/5 · Channel chips · variable-pill composer · live WhatsApp preview · quick-reply buttons</text>
+
+  <!-- Mockup frame -->
+  <rect x="40" y="118" width="1520" height="720" rx="14" class="raised"/>
+
+  <!-- Stepper -->
+  <g transform="translate(80,160)">
+    <!-- Step 1: done -->
+    <circle cx="14" cy="14" r="14" class="primary"/>
+    <text x="14" y="18" class="step-num">1</text>
+    <text x="36" y="18" class="lab text-2">Segmentation</text>
+    <line x1="160" y1="14" x2="280" y2="14" stroke="#1851cc" stroke-width="2"/>
+
+    <!-- Step 2: active -->
+    <circle cx="294" cy="14" r="14" class="primary"/>
+    <text x="294" y="18" class="step-num">2</text>
+    <text x="316" y="18" class="lab text strong">Personalization</text>
+    <line x1="450" y1="14" x2="570" y2="14" class="border" stroke-dasharray="4,4"/>
+
+    <!-- Step 3: pending -->
+    <circle cx="584" cy="14" r="14" fill="#fff" stroke="#b4b2a9" stroke-width="2"/>
+    <text x="584" y="18" class="step-num-off">3</text>
+    <text x="606" y="18" class="lab text-3">Automation</text>
+    <line x1="720" y1="14" x2="840" y2="14" class="border" stroke-dasharray="4,4"/>
+
+    <!-- Step 4: pending -->
+    <circle cx="854" cy="14" r="14" fill="#fff" stroke="#b4b2a9" stroke-width="2"/>
+    <text x="854" y="18" class="step-num-off">4</text>
+    <text x="876" y="18" class="lab text-3">Analytics</text>
+
+    <!-- Audience pill (right-aligned) -->
+    <rect x="1240" y="0" width="200" height="28" rx="14" class="success-bg"/>
+    <text x="1340" y="18" class="sm strong success" text-anchor="middle">Audience: 387 members</text>
+  </g>
+  <line x1="80" y1="210" x2="1520" y2="210" class="border"/>
+
+  <!-- Two-column body -->
+
+  <!-- LEFT: composer (820 wide) -->
+  <g transform="translate(80,240)">
+    <!-- Channels -->
+    <text x="0" y="0" class="h4">CHANNELS (PICK AT LEAST ONE)</text>
+    <!-- WhatsApp chip (selected) -->
+    <rect x="0" y="14" width="118" height="32" rx="16" fill="rgba(37,211,102,0.12)" stroke="#25d366" stroke-width="1"/>
+    <text x="59" y="34" class="lab wa strong" text-anchor="middle">✓ WhatsApp</text>
+    <!-- Email chip (selected) -->
+    <rect x="128" y="14" width="80" height="32" rx="16" class="primary-bg" stroke="#1851cc" stroke-width="1"/>
+    <text x="168" y="34" class="lab primary strong" text-anchor="middle">✓ Email</text>
+    <!-- In-app -->
+    <rect x="218" y="14" width="78" height="32" rx="16" fill="#fff" stroke="#e5e2d8"/>
+    <text x="257" y="34" class="lab text-2" text-anchor="middle">In-app</text>
+    <!-- Push -->
+    <rect x="306" y="14" width="64" height="32" rx="16" fill="#fff" stroke="#e5e2d8"/>
+    <text x="338" y="34" class="lab text-2" text-anchor="middle">Push</text>
+    <!-- SMS -->
+    <rect x="380" y="14" width="64" height="32" rx="16" fill="#fff" stroke="#e5e2d8"/>
+    <text x="412" y="34" class="lab text-2" text-anchor="middle">SMS</text>
+
+    <!-- Broadcast name -->
+    <text x="0" y="86" class="h4">BROADCAST NAME</text>
+    <rect x="0" y="98" width="820" height="44" rx="8" fill="#fff" stroke="#b4b2a9"/>
+    <text x="14" y="124" class="lab">Pesach week — flyer share push</text>
+
+    <!-- Message label + lang toggle -->
+    <text x="0" y="184" class="h4">MESSAGE</text>
+    <rect x="760" y="172" width="60" height="20" rx="10" class="sunken"/>
+    <text x="790" y="186" class="sm" text-anchor="middle">Hebrew ▾</text>
+
+    <!-- Message editor -->
+    <rect x="0" y="200" width="820" height="220" rx="8" fill="#fff" stroke="#b4b2a9"/>
+    <text x="14" y="226" class="lab">Hi <tspan class="var">firstName</tspan> 👋</text>
+    <text x="14" y="258" class="lab">Pesach is coming and we need eyes on this flyer in <tspan class="var">region</tspan>.</text>
+    <text x="14" y="276" class="lab">Could you share with 3 friends today? Your link:</text>
+    <text x="14" y="300" class="var">personalShareLink</text>
+    <text x="14" y="332" class="lab">Last shared: <tspan class="var">lastActionDate</tspan></text>
+    <line x1="14" y1="358" x2="806" y2="358" class="border" stroke-dasharray="3,3"/>
+    <text x="14" y="384" class="sm">＋ Add image    ＋ Add file    ＋ Add link</text>
+    <text x="14" y="406" class="xs">variables auto-detected · fallbacks: firstName→"friend", region→empty</text>
+
+    <!-- Quick replies -->
+    <text x="0" y="462" class="h4">QUICK-REPLY BUTTONS (WHATSAPP)</text>
+    <rect x="0" y="476" width="78" height="32" rx="16" class="success-bg" stroke="#0f6e56"/>
+    <text x="39" y="496" class="lab success strong" text-anchor="middle">I'm in</text>
+    <rect x="88" y="476" width="68" height="32" rx="16" class="success-bg" stroke="#0f6e56"/>
+    <text x="122" y="496" class="lab success strong" text-anchor="middle">Share</text>
+    <rect x="166" y="476" width="120" height="32" rx="16" class="success-bg" stroke="#0f6e56"/>
+    <text x="226" y="496" class="lab success strong" text-anchor="middle">Skip this one</text>
+    <text x="0" y="528" class="xs">buttons map to GPS verbs · server-attributed actions (verified share / RSVP / suppress 7d)</text>
+  </g>
+
+  <!-- RIGHT: preview panel (560 wide) -->
+  <g transform="translate(940,240)">
+    <rect x="0" y="0" width="540" height="540" rx="8" class="sunken"/>
+    <text x="20" y="28" class="h4">LIVE PREVIEW · SHARON (HENDON) · WHATSAPP</text>
+
+    <!-- WhatsApp bubble -->
+    <rect x="20" y="46" width="500" height="380" rx="10" class="wa-bg"/>
+    <text x="40" y="80" class="lab">Hi <tspan class="strong">Sharon</tspan> 👋</text>
+    <text x="40" y="120" class="lab">Pesach is coming and we need eyes on this flyer in</text>
+    <text x="40" y="138" class="lab"><tspan class="strong">Hendon</tspan>. Could you share with 3 friends today? Your link:</text>
+    <text x="40" y="166" class="lab primary">gps.uk/s/sh-9k4d</text>
+    <text x="40" y="206" class="lab">Last shared: <tspan class="strong">2 weeks ago</tspan></text>
+
+    <!-- WA buttons -->
+    <line x1="40" y1="234" x2="500" y2="234" stroke="rgba(37,211,102,0.30)"/>
+    <rect x="40" y="248" width="460" height="34" rx="4" fill="rgba(37,211,102,0.06)"/>
+    <text x="270" y="270" class="lab wa strong" text-anchor="middle">I'm in</text>
+    <rect x="40" y="290" width="460" height="34" rx="4" fill="rgba(37,211,102,0.06)"/>
+    <text x="270" y="312" class="lab wa strong" text-anchor="middle">Share</text>
+    <rect x="40" y="332" width="460" height="34" rx="4" fill="rgba(37,211,102,0.06)"/>
+    <text x="270" y="354" class="lab wa strong" text-anchor="middle">Skip this one</text>
+
+    <!-- preview footer -->
+    <text x="270" y="464" class="xs" text-anchor="middle">Sample recipient · change…</text>
+  </g>
+
+  <!-- Wizard footer -->
+  <line x1="80" y1="800" x2="1520" y2="800" class="border"/>
+  <rect x="80" y="816" width="100" height="34" rx="17" fill="#fff" stroke="#b4b2a9"/>
+  <text x="130" y="838" class="sm strong" text-anchor="middle">Save draft</text>
+  <rect x="1300" y="816" width="80" height="34" rx="17" fill="#fff" stroke="#b4b2a9"/>
+  <text x="1340" y="838" class="sm strong" text-anchor="middle">◀ Back</text>
+  <rect x="1390" y="816" width="170" height="34" rx="17" class="primary"/>
+  <text x="1475" y="838" class="lab" fill="#fff" text-anchor="middle" font-weight="700">Next: Automation ▶</text>
+
+  <!-- Caption -->
+  <text x="40" y="876" class="cap">GPS Action · Coordination board · Pre-prototype mockup · v0.3 · 2026-05-03</text>
+</svg>
