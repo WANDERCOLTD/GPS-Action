@@ -162,7 +162,7 @@ describe('SearchShell — shell basics', () => {
     const tree = SearchShell({ runSearch: noopRunSearch }) as AnyElement;
     expect(findByTestId(tree, 'search-shell')).toBeDefined();
     expect(findByTestId(tree, 'search-header')).toBeDefined();
-    expect(findByTestId(tree, 'search-back-button')).toBeDefined();
+    expect(findByTestId(tree, 'nav-history-back-button')).toBeDefined();
     expect(findByTestId(tree, 'search-title')).toBeDefined();
     expect(findByTestId(tree, 'search-input-form')).toBeDefined();
     expect(findByTestId(tree, 'search-input-query')).toBeDefined();
@@ -207,13 +207,12 @@ describe('SearchShell — shell basics', () => {
     expect(chip?.props['aria-label']).toBe('Remove Urgent scope');
   });
 
-  it('back button calls router.back() when clicked', () => {
+  it('renders the history back button in the header with the /feed fallback', () => {
     const tree = SearchShell({ runSearch: noopRunSearch }) as AnyElement;
-    const button = findByTestId(tree, 'search-back-button');
+    const button = findByTestId(tree, 'nav-history-back-button');
+    expect(button).toBeDefined();
     expect(button?.props['aria-label']).toBe('Back');
-    const onClick = button?.props.onClick as () => void;
-    onClick();
-    expect(backSpy).toHaveBeenCalledTimes(1);
+    expect(button?.props['data-fallback']).toBe('/feed');
   });
 });
 

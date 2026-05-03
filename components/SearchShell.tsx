@@ -31,9 +31,9 @@
 import * as React from 'react';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ChevronLeft, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { HeaderRefreshButton } from '@/components/HeaderRefreshButton';
+import { HistoryBackButton } from '@/components/HistoryBackButton';
 import { FEED_FILTER_LABELS, type FeedFilter } from '@/shared/feed-filters';
 import { SEARCH_ENTITY_TYPES, type SearchEntityType } from '@/shared/validation/search';
 import type { SearchResults } from '@/server/routers/search';
@@ -104,20 +104,6 @@ const headerStyle: CSSProperties = {
   padding: 'var(--space-3) var(--space-4)',
   borderBottom: '1px solid var(--colour-border-subtle)',
   background: 'var(--colour-surface-raised)',
-};
-
-const backButtonStyle: CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: 44,
-  height: 44,
-  padding: 0,
-  background: 'transparent',
-  border: 'none',
-  borderRadius: 'var(--radius-sm)',
-  color: 'var(--colour-text-link)',
-  cursor: 'pointer',
 };
 
 const titleStyle: CSSProperties = {
@@ -249,7 +235,6 @@ export function SearchShell({
   openedSource = 'appnav',
   runSearch,
 }: SearchShellProps) {
-  const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
   const [filter, setFilter] = useState<Exclude<FeedFilter, 'all'> | null>(initialFilter);
   const [results, setResults] = useState<SearchResults | null>(initialResults);
@@ -341,15 +326,7 @@ export function SearchShell({
   return (
     <main data-testid="search-shell">
       <div style={headerStyle} data-testid="search-header">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="Back"
-          data-testid="search-back-button"
-          style={backButtonStyle}
-        >
-          <ChevronLeft size={22} strokeWidth={2} aria-hidden="true" />
-        </button>
+        <HistoryBackButton fallbackHref="/feed" ariaLabel="Back" />
         <h1 style={titleStyle} data-testid="search-title">
           {mode === 'full' && selectedType ? `Search · ${groupLabel(selectedType)}` : 'Search'}
         </h1>
