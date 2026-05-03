@@ -20,10 +20,7 @@ describe('getPostVisibilityFilter', () => {
   });
 
   it('returns public + authenticated_only for authenticated callers', () => {
-    expect(getPostVisibilityFilter('user-123')).toEqual([
-      'public',
-      'authenticated_only',
-    ]);
+    expect(getPostVisibilityFilter('user-123')).toEqual(['public', 'authenticated_only']);
   });
 
   it('treats any non-empty string as authenticated', () => {

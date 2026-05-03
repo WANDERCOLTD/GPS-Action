@@ -32,8 +32,6 @@ import type { PostVisibility } from '@prisma/client';
  *     where: { visibility: { in: visibility }, ... },
  *   });
  */
-export function getPostVisibilityFilter(
-  callerId: string | null | undefined,
-): PostVisibility[] {
+export function getPostVisibilityFilter(callerId: string | null | undefined): PostVisibility[] {
   return callerId ? ['public', 'authenticated_only'] : ['public'];
 }
