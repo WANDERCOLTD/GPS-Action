@@ -15,7 +15,50 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ReactElement } from 'react';
-import type { SearchResults } from '@/server/routers/search';
+import type {
+  SearchResults,
+  PostSearchHit,
+  PersonSearchHit,
+  RegionSearchHit,
+} from '@/server/routers/search';
+
+// ── Hit factories — minimum-fields helpers for the new per-entity shapes
+//    (BU-search-result-cards). Keep tests terse.
+
+function makePostHit(overrides: Partial<PostSearchHit> = {}): PostSearchHit {
+  return {
+    id: 'p1',
+    href: '/post/p1',
+    title: 'A post',
+    kindSlug: 'thought',
+    kindDisplayName: 'Thought',
+    urgency: false,
+    signal: null,
+    createdAt: '2026-05-01T00:00:00.000Z',
+    author: { id: 'u1', displayName: 'Author', roles: [] },
+    ...overrides,
+  };
+}
+
+function makePersonHit(overrides: Partial<PersonSearchHit> = {}): PersonSearchHit {
+  return {
+    id: 'u1',
+    href: '/profile/u1',
+    displayName: 'Person',
+    roles: [],
+    ...overrides,
+  };
+}
+
+function makeRegionHit(overrides: Partial<RegionSearchHit> = {}): RegionSearchHit {
+  return {
+    id: 'r1',
+    href: '/regions/foo',
+    displayName: 'Foo',
+    slug: 'foo',
+    ...overrides,
+  };
+}
 
 const stateSlots: unknown[] = [];
 let slotIdx = 0;
@@ -177,9 +220,11 @@ describe('SearchShell — shell basics', () => {
 describe('SearchShell — typeahead results', () => {
   it('renders grouped results when initialResults is populated and a query is set', () => {
     const initialResults = makeResults({
-      posts: [{ id: 'p1', label: 'Hendon march tomorrow', href: '/post/p1', meta: '2026-05-01' }],
-      people: [{ id: 'u1', label: 'Sharon Cohen', href: '/profile/u1' }],
-      regions: [{ id: 'r1', label: 'Hendon', href: '/regions/hendon', meta: 'hendon' }],
+      posts: [makePostHit({ id: 'p1', title: 'Hendon march tomorrow', href: '/post/p1' })],
+      people: [makePersonHit({ id: 'u1', displayName: 'Sharon Cohen', href: '/profile/u1' })],
+      regions: [
+        makeRegionHit({ id: 'r1', displayName: 'Hendon', href: '/regions/hendon', slug: 'hendon' }),
+      ],
     });
     const tree = SearchShell({
       runSearch: noopRunSearch,
@@ -196,7 +241,7 @@ describe('SearchShell — typeahead results', () => {
 
   it('renders See-all link with q + type + filter on each non-empty group', () => {
     const initialResults = makeResults({
-      posts: [{ id: 'p1', label: 'A post', href: '/post/p1' }],
+      posts: [makePostHit()],
     });
     const tree = SearchShell({
       runSearch: noopRunSearch,
@@ -211,7 +256,7 @@ describe('SearchShell — typeahead results', () => {
 
   it('omits empty groups in typeahead mode', () => {
     const initialResults = makeResults({
-      posts: [{ id: 'p1', label: 'A post', href: '/post/p1' }],
+      posts: [makePostHit()],
       // people, regions, partnerOrgs all empty
     });
     const tree = SearchShell({
@@ -240,8 +285,8 @@ describe('SearchShell — typeahead results', () => {
   it('renders result-item testids with entity_type + position', () => {
     const initialResults = makeResults({
       posts: [
-        { id: 'p1', label: 'A', href: '/post/p1' },
-        { id: 'p2', label: 'B', href: '/post/p2' },
+        makePostHit({ id: 'p1', title: 'A', href: '/post/p1' }),
+        makePostHit({ id: 'p2', title: 'B', href: '/post/p2' }),
       ],
     });
     const tree = SearchShell({
@@ -260,8 +305,8 @@ describe('SearchShell — typeahead results', () => {
 describe('SearchShell — full mode', () => {
   it('renders only the selected group in full mode', () => {
     const initialResults = makeResults({
-      posts: [{ id: 'p1', label: 'A post', href: '/post/p1' }],
-      people: [{ id: 'u1', label: 'Sharon', href: '/profile/u1' }],
+      posts: [makePostHit()],
+      people: [makePersonHit({ displayName: 'Sharon' })],
     });
     const tree = SearchShell({
       runSearch: noopRunSearch,
@@ -287,11 +332,9 @@ describe('SearchShell — full mode', () => {
   });
 
   it('renders the limit notice when full mode returns exactly 50 hits', () => {
-    const fifty = Array.from({ length: 50 }, (_, i) => ({
-      id: `p${i}`,
-      label: `Post ${i}`,
-      href: `/post/p${i}`,
-    }));
+    const fifty = Array.from({ length: 50 }, (_, i) =>
+      makePostHit({ id: `p${i}`, title: `Post ${i}`, href: `/post/p${i}` }),
+    );
     const tree = SearchShell({
       runSearch: noopRunSearch,
       mode: 'full',
@@ -304,7 +347,7 @@ describe('SearchShell — full mode', () => {
 
   it('does not render the See-all link in full mode', () => {
     const initialResults = makeResults({
-      posts: [{ id: 'p1', label: 'A post', href: '/post/p1' }],
+      posts: [makePostHit()],
     });
     const tree = SearchShell({
       runSearch: noopRunSearch,
