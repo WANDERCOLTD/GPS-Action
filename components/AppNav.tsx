@@ -37,7 +37,7 @@ import * as React from 'react';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, CalendarClock, Inbox, BarChart3, Settings } from 'lucide-react';
+import { Home, CalendarClock, Inbox, Settings } from 'lucide-react';
 import { IconChipTooltip } from '@/components/IconChipTooltip';
 
 interface AppNavProps {
@@ -47,7 +47,7 @@ interface AppNavProps {
   calendarEnabled?: boolean;
 }
 
-type ActiveKey = 'feed' | 'calendar' | 'compose' | 'requests' | 'data' | 'settings' | null;
+type ActiveKey = 'feed' | 'calendar' | 'compose' | 'requests' | 'settings' | null;
 
 function deriveActive(pathname: string | null): ActiveKey {
   if (!pathname) return null;
@@ -55,7 +55,10 @@ function deriveActive(pathname: string | null): ActiveKey {
   if (pathname === '/calendar' || pathname.startsWith('/calendar/')) return 'calendar';
   if (pathname === '/compose' || pathname.startsWith('/compose/')) return 'compose';
   if (pathname === '/requests' || pathname.startsWith('/requests/')) return 'requests';
-  if (pathname === '/data' || pathname.startsWith('/data/')) return 'data';
+  // /data is no longer a top-level tab — reached via /settings → "Data" entry.
+  // Treat /data and /data/[entity] as "settings" for active-tab highlighting
+  // so the Settings icon stays lit while a member is browsing data tables.
+  if (pathname === '/data' || pathname.startsWith('/data/')) return 'settings';
   if (pathname === '/settings' || pathname.startsWith('/settings/')) return 'settings';
   return null;
 }
@@ -163,16 +166,6 @@ export function AppNav({ unreadNotificationCount = 0, calendarEnabled = false }:
               {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
             </span>
           )}
-        </Link>
-      </IconChipTooltip>
-      <IconChipTooltip label="Data">
-        <Link
-          href="/data"
-          aria-label="Data"
-          data-testid="nav-data-link"
-          style={active === 'data' ? activeStyle : linkStyle}
-        >
-          <BarChart3 size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
         </Link>
       </IconChipTooltip>
       <IconChipTooltip label="Settings">

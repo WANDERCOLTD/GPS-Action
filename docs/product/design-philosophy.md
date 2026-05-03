@@ -192,15 +192,18 @@ a longer message. Rare case, worth the friction.
 source of truth for picks across the app. **Re-use before introducing.** When a
 BU ships a new glyph, update this register in the same commit.
 
-### AppNav tabs (BU-icon-nav, shipped #152)
+### AppNav tabs (BU-icon-nav, shipped #152; Data demoted by `bu-data-into-settings`)
 
 | Tab      | Glyph            |
 | -------- | ---------------- |
 | Feed     | `home`           |
 | Calendar | `calendar-clock` |
 | Requests | `inbox`          |
-| Data     | `bar-chart-3`    |
 | Settings | `settings`       |
+
+The `bar-chart-3` glyph is no longer in the AppNav (Data is reached
+via Settings → "Data"). Still in use elsewhere — e.g.
+`app/capabilities/page.tsx`.
 
 ### In-content glyphs (shipped)
 

@@ -67,7 +67,6 @@ function flatStrings(node: unknown): string {
 const NAV_LINKS: ReadonlyArray<readonly [string, string]> = [
   ['nav-feed-link', 'Feed'],
   ['nav-requests-link', 'Requests'],
-  ['nav-data-link', 'Data'],
   ['nav-settings-link', 'Settings'],
 ];
 
@@ -83,8 +82,10 @@ describe('AppNav', () => {
     ['/feed/something', 'nav-feed-link'],
     ['/requests', 'nav-requests-link'],
     ['/requests/abc-123', 'nav-requests-link'],
-    ['/data', 'nav-data-link'],
-    ['/data/users', 'nav-data-link'],
+    // /data has no top-level tab — Data was demoted into the Settings page.
+    // Keep the Settings tab lit while a member browses /data subpages.
+    ['/data', 'nav-settings-link'],
+    ['/data/users', 'nav-settings-link'],
     ['/settings', 'nav-settings-link'],
   ])('highlights the right link when pathname is %s', (pathname, expectedActiveTestId) => {
     usePathnameMock.mockReturnValue(pathname);
@@ -228,7 +229,6 @@ describe('AppNav', () => {
   it.each([
     ['nav-feed-link', 'Feed'],
     ['nav-requests-link', 'Requests'],
-    ['nav-data-link', 'Data'],
     ['nav-settings-link', 'Settings'],
   ])('%s is wrapped in IconChipTooltip with label %s', (testId, expectedLabel) => {
     usePathnameMock.mockReturnValue('/feed');

@@ -18,11 +18,15 @@ rather than a per-page `active` prop (D065).
 | -------- | ------------- | ------------ | ------------------- |
 | Feed     | `Home`        | `Feed`       | `nav-feed-link`     |
 | Requests | `Inbox`       | `Requests`   | `nav-requests-link` |
-| Data     | `BarChart3`   | `Data`       | `nav-data-link`     |
 | Settings | `Settings`    | `Settings`   | `nav-settings-link` |
 
 Calendar tab (lucide `CalendarClock`) lands via `bu-calendar-view` —
-follow the same idiom as the four tabs above.
+follow the same idiom as the three tabs above.
+
+`/data` was previously a top-level tab (`BarChart3`) but was demoted
+into the Settings page (`bu-data-into-settings`). The route still
+exists; reach it via Settings → "Data". `/data` and `/data/*` paths
+keep the Settings tab lit so members don't lose their orientation.
 
 ## Behaviour
 

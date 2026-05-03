@@ -10,6 +10,7 @@
  */
 
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { ArrowLink } from '@/components/ArrowLink';
 import { createTRPCContext } from '@/server/routers/context';
 
@@ -24,6 +25,8 @@ export default async function SettingsPage() {
   }
 
   const isAdmin = ctx.activeRoles.includes('admin');
+  const isQueueManager = ctx.activeRoles.includes('queue_manager');
+  const canSeeData = isAdmin || isQueueManager;
 
   return (
     <main
@@ -104,6 +107,41 @@ export default async function SettingsPage() {
             In-app + push preferences. Lands with BU-requests-vetting (D057 Notifications entity).
           </p>
         </li>
+        {canSeeData && (
+          <li
+            style={{
+              listStyle: 'none',
+              padding: 0,
+              background: 'var(--colour-surface-raised)',
+              border: '1px solid var(--colour-border-subtle)',
+              borderRadius: 'var(--radius-md)',
+            }}
+            data-testid="settings-section-data"
+          >
+            <Link
+              href="/data"
+              data-testid="settings-data-link"
+              style={{
+                display: 'block',
+                padding: 'var(--space-4)',
+                color: 'inherit',
+                textDecoration: 'none',
+              }}
+            >
+              <strong style={{ fontSize: 'var(--text-sm)' }}>Data →</strong>
+              <p
+                style={{
+                  margin: 'var(--space-1) 0 0 0',
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--colour-text-secondary)',
+                }}
+              >
+                Inspect entities in the data model. Admins see all tables; queue managers see queue
+                tables. Read-only today; full CRUD lands in BU-admin-crud.
+              </p>
+            </Link>
+          </li>
+        )}
         {isAdmin && (
           <>
             <li
@@ -125,7 +163,7 @@ export default async function SettingsPage() {
                 }}
               >
                 Toggle ff_reactions, ff_comments, etc. Lands as part of BU-admin-crud or its own
-                small BU. Today: read-only — see Data → featureFlag.
+                small BU. Today: read-only — see the Data section above (featureFlag entity).
               </p>
             </li>
             <li
