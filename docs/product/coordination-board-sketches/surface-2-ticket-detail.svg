@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" font-family="-apple-system, BlinkMacSystemFont, Inter, 'Helvetica Neue', Arial, sans-serif">
+  <title>Ticket detail · GPS Action coordination board</title>
+  <desc>Surface 2 of 3 · Where work happens. Title, multi-assignee, urgent flag, editable description, interleaved comments + notes + system events, Comment/Note compose tabs, Subscribe / Share-with-team / Invite-group actions, meta sidebar. Pre-prototype mockup, GPS palette.</desc>
+  <style>
+    .canvas{fill:#f4f1ea}
+    .raised{fill:#fff;stroke:#e5e2d8;stroke-width:1}
+    .sunken{fill:#ede9df}
+    .border{stroke:#e5e2d8;stroke-width:1;fill:none}
+    .urgent{fill:#d85a30}.urgent-bg{fill:#faece7}
+    .warning{fill:#ba7517}.warning-bg{fill:#faeeda}
+    .info{fill:#3c3489}.info-bg{fill:#eeedfe}
+    .success{fill:#0f6e56}.success-bg{fill:#e1f5ee}
+    .primary{fill:#1851cc}.primary-bg{fill:#e6edfa}
+    .text{fill:#2c2c2a}.text-2{fill:#5f5e5a}.text-3{fill:#888780}
+    .ttl{font-size:30px;font-weight:700;fill:#2c2c2a;letter-spacing:-0.5px}
+    .sub{font-size:15px;fill:#5f5e5a}
+    .h2{font-size:22px;font-weight:700;fill:#2c2c2a;letter-spacing:-0.3px}
+    .h4{font-size:11px;font-weight:600;fill:#888780;letter-spacing:.8px}
+    .lab{font-size:13px;fill:#2c2c2a}
+    .sm{font-size:12px;fill:#5f5e5a}
+    .xs{font-size:11px;fill:#888780}
+    .strong{font-weight:600}
+    .chip{font-size:10px;font-weight:700;letter-spacing:.5px}
+    .av-text{font-size:11px;font-weight:700;fill:#1851cc}
+    .body-text{font-size:14px;fill:#2c2c2a}
+    .crumb{font-size:12px;fill:#1851cc}
+    .cap{font-size:11px;fill:#888780}
+    .btn-text{font-size:12px;font-weight:600;fill:#1851cc}
+  </style>
+
+  <rect width="1600" height="900" class="canvas"/>
+
+  <!-- Title -->
+  <text x="40" y="56" class="ttl">Ticket detail</text>
+  <text x="40" y="84" class="sub">Surface 2/3 · Where work happens · communication is inside the ticket, not in a separate inbox</text>
+
+  <!-- Mockup frame -->
+  <rect x="40" y="118" width="1520" height="720" rx="14" class="raised"/>
+
+  <!-- Top header bar -->
+  <text x="60" y="148" class="crumb">← Writers / Active board / Implementation</text>
+  <text x="1540" y="148" class="sm" text-anchor="end">⋯</text>
+
+  <!-- Title row + actions -->
+  <text x="60" y="190" class="h2">Hendon flyer for Pesach</text>
+  <text x="375" y="190" class="sm text-3">✏</text>
+
+  <!-- Action buttons (right-aligned) -->
+  <rect x="1132" y="170" width="98" height="28" rx="14" fill="#fff" stroke="#b4b2a9"/>
+  <text x="1181" y="188" class="btn-text" text-anchor="middle">⊕ Subscribe</text>
+  <rect x="1238" y="170" width="124" height="28" rx="14" fill="#fff" stroke="#b4b2a9"/>
+  <text x="1300" y="188" class="btn-text" text-anchor="middle">+ Share with team</text>
+  <rect x="1370" y="170" width="118" height="28" rx="14" fill="#fff" stroke="#b4b2a9"/>
+  <text x="1429" y="188" class="btn-text" text-anchor="middle">+ Invite group</text>
+
+  <!-- Status row: column chip, urgent chip, assignees, last-updated -->
+  <rect x="60" y="216" width="120" height="22" rx="11" class="info-bg"/>
+  <text x="120" y="231" class="chip info" text-anchor="middle">IMPLEMENTATION</text>
+  <rect x="190" y="216" width="64" height="22" rx="11" class="urgent-bg"/>
+  <text x="222" y="231" class="chip urgent" text-anchor="middle">URGENT</text>
+  <!-- assignees (2) -->
+  <circle cx="280" cy="227" r="13" class="primary-bg" stroke="#fff" stroke-width="2"/>
+  <text x="280" y="231" class="av-text" text-anchor="middle">SH</text>
+  <circle cx="300" cy="227" r="13" class="primary-bg" stroke="#fff" stroke-width="2"/>
+  <text x="300" y="231" class="av-text" text-anchor="middle">DA</text>
+  <text x="320" y="231" class="sm">+ assign</text>
+  <text x="1540" y="231" class="xs" text-anchor="end">last update 30m ago · created 3d ago</text>
+
+  <line x1="40" y1="252" x2="1560" y2="252" class="border"/>
+
+  <!-- Two-column body: left = description + activity + composer, right = meta sidebar -->
+
+  <!-- LEFT COLUMN -->
+  <g transform="translate(60,272)">
+
+    <!-- Description block -->
+    <text x="0" y="14" class="h4">DESCRIPTION</text>
+    <text x="80" y="14" class="xs">click to edit · save on blur</text>
+    <rect x="0" y="24" width="1060" height="80" rx="8" class="canvas"/>
+    <text x="14" y="50" class="body-text">Use the new Hendon logo (in /shared/branding) and adapt the Pesach</text>
+    <text x="14" y="72" class="body-text">message copy from last year. Print-ready by Sunday for Wednesday distribution.</text>
+
+    <!-- Activity feed -->
+    <text x="0" y="138" class="h4">ACTIVITY</text>
+    <text x="78" y="138" class="xs">interleaved comments · notes · system events</text>
+
+    <!-- System: Sharon assigned -->
+    <circle cx="14" cy="170" r="11" class="info-bg"/>
+    <text x="14" y="174" class="chip info" text-anchor="middle">⚙</text>
+    <text x="36" y="174" class="sm"><tspan class="strong">Sharon</tspan> assigned themselves</text>
+    <text x="1060" y="174" class="xs" text-anchor="end">2d</text>
+
+    <!-- System: moved column -->
+    <circle cx="14" cy="200" r="11" class="info-bg"/>
+    <text x="14" y="204" class="chip info" text-anchor="middle">⚙</text>
+    <text x="36" y="204" class="sm">Moved <tspan class="strong">Recruitment → Preparation</tspan></text>
+    <text x="1060" y="204" class="xs" text-anchor="end">1d</text>
+
+    <!-- Comment: Sharon -->
+    <circle cx="14" cy="240" r="14" class="primary-bg"/>
+    <text x="14" y="244" class="av-text" text-anchor="middle">SH</text>
+    <rect x="36" y="222" width="1010" height="56" rx="8" class="raised"/>
+    <text x="50" y="240" class="xs strong text-2">Sharon · comment · 1d</text>
+    <text x="50" y="260" class="lab">Looking at draft 1 with Dan today. Will share v2 by EOD.</text>
+
+    <!-- Note (yellow tint) -->
+    <circle cx="14" cy="304" r="14" class="warning-bg"/>
+    <text x="14" y="308" class="chip warning" text-anchor="middle">SH</text>
+    <rect x="36" y="286" width="1010" height="56" rx="8" class="warning-bg" stroke="#ba7517" stroke-width="1"/>
+    <rect x="36" y="286" width="3" height="56" class="warning"/>
+    <text x="50" y="304" class="xs strong warning">Sharon · internal note · 1d</text>
+    <text x="50" y="324" class="lab">Use the new logo file from /shared/branding/2026-pesach. The old one is wrong size.</text>
+
+    <!-- System: column move -->
+    <circle cx="14" cy="368" r="11" class="info-bg"/>
+    <text x="14" y="372" class="chip info" text-anchor="middle">⚙</text>
+    <text x="36" y="372" class="sm">Moved <tspan class="strong">Preparation → Implementation</tspan></text>
+    <text x="1060" y="372" class="xs" text-anchor="end">1h</text>
+
+    <!-- Comment: Dan -->
+    <circle cx="14" cy="408" r="14" class="primary-bg"/>
+    <text x="14" y="412" class="av-text" text-anchor="middle">DA</text>
+    <rect x="36" y="390" width="1010" height="56" rx="8" class="raised"/>
+    <text x="50" y="408" class="xs strong text-2">Dan · comment · 30m</text>
+    <text x="50" y="428" class="lab">Typesetting in progress, will have proof tomorrow.</text>
+
+    <!-- Composer -->
+    <line x1="0" y1="478" x2="1060" y2="478" class="border"/>
+    <!-- tabs -->
+    <rect x="0" y="494" width="84" height="28" rx="4" fill="#fff" stroke="#e5e2d8"/>
+    <text x="42" y="512" class="lab strong" text-anchor="middle">Comment</text>
+    <text x="100" y="512" class="lab text-2">Note</text>
+    <text x="240" y="512" class="xs">Comment notifies subscribers · Note is silent</text>
+    <!-- input -->
+    <rect x="0" y="528" width="1060" height="56" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <text x="14" y="558" class="sm text-3">Type a comment…</text>
+    <!-- foot -->
+    <text x="0" y="612" class="sm">📎  😀  🔗</text>
+    <rect x="980" y="596" width="80" height="30" rx="15" class="primary"/>
+    <text x="1020" y="616" class="lab" fill="#fff" text-anchor="middle" font-weight="700">Send</text>
+  </g>
+
+  <!-- RIGHT COLUMN: meta sidebar -->
+  <g transform="translate(1140,272)">
+
+    <!-- Assignees -->
+    <text x="0" y="14" class="h4">ASSIGNEES (2)</text>
+    <circle cx="14" cy="38" r="14" class="primary-bg"/>
+    <text x="14" y="42" class="av-text" text-anchor="middle">SH</text>
+    <text x="36" y="34" class="lab strong">Sharon Wenger</text>
+    <text x="36" y="48" class="xs">author · 3d ago</text>
+    <text x="400" y="42" class="sm" text-anchor="end">unassign</text>
+    <circle cx="14" cy="74" r="14" class="primary-bg"/>
+    <text x="14" y="78" class="av-text" text-anchor="middle">DA</text>
+    <text x="36" y="70" class="lab strong">Dan Amor</text>
+    <text x="36" y="84" class="xs">self-assigned · 1d</text>
+    <text x="400" y="78" class="sm" text-anchor="end">unassign</text>
+    <text x="0" y="116" class="sm primary strong">+ Add assignee</text>
+
+    <!-- Subscribers -->
+    <line x1="0" y1="138" x2="400" y2="138" class="border"/>
+    <text x="0" y="162" class="h4">SUBSCRIBERS (8)</text>
+    <text x="0" y="184" class="sm">Author + assignees + ever-mentioned</text>
+    <text x="0" y="200" class="sm">+ 3 manually subscribed</text>
+    <text x="0" y="226" class="sm primary strong">Manage subscribers</text>
+
+    <!-- Shared with -->
+    <line x1="0" y1="248" x2="400" y2="248" class="border"/>
+    <text x="0" y="272" class="h4">SHARED WITH</text>
+    <rect x="0" y="284" width="120" height="24" rx="12" class="primary-bg"/>
+    <text x="60" y="299" class="sm primary strong" text-anchor="middle">Social Media</text>
+    <text x="0" y="332" class="sm primary strong">+ Share with another team</text>
+    <text x="0" y="350" class="xs">Shared teams can self-assign + comment, cannot move ticket</text>
+
+    <!-- Key dates -->
+    <line x1="0" y1="370" x2="400" y2="370" class="border"/>
+    <text x="0" y="394" class="h4">KEY DATES</text>
+    <text x="0" y="416" class="sm">Created · 3 days ago by Sharon</text>
+    <text x="0" y="434" class="sm">Last update · 30 min ago</text>
+    <text x="0" y="452" class="sm">Due · Sunday (4d)</text>
+
+    <!-- Group invite -->
+    <line x1="0" y1="472" x2="400" y2="472" class="border"/>
+    <text x="0" y="496" class="h4">INVITE GROUP TO TICKET</text>
+    <text x="0" y="518" class="sm">Pull a wider audience in</text>
+    <text x="0" y="536" class="sm primary strong">+ Invite group</text>
+  </g>
+
+  <!-- Caption -->
+  <text x="40" y="876" class="cap">GPS Action · Coordination board · Pre-prototype mockup · v0.4 · 2026-05-03</text>
+</svg>

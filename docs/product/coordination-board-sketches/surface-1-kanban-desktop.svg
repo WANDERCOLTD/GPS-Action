@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" font-family="-apple-system, BlinkMacSystemFont, Inter, 'Helvetica Neue', Arial, sans-serif">
+  <title>Kanban desktop · GPS Action coordination board</title>
+  <desc>Surface 1 of 3 · Per-team kanban with configurable columns. Tickets are cards; columns encode work-state; multi-assignee with overflow. Unclaimed tickets carry a warning-subtle background. Urgent is the only cross-cutting flag. Pre-prototype mockup, GPS palette.</desc>
+  <style>
+    .canvas{fill:#f4f1ea}
+    .raised{fill:#fff;stroke:#e5e2d8;stroke-width:1}
+    .sunken{fill:#ede9df}
+    .border{stroke:#e5e2d8;stroke-width:1;fill:none}
+    .urgent{fill:#d85a30}.urgent-bg{fill:#faece7}
+    .warning{fill:#ba7517}.warning-bg{fill:#faeeda}
+    .info{fill:#3c3489}.info-bg{fill:#eeedfe}
+    .success{fill:#0f6e56}.success-bg{fill:#e1f5ee}
+    .primary{fill:#1851cc}.primary-bg{fill:#e6edfa}
+    .text{fill:#2c2c2a}.text-2{fill:#5f5e5a}.text-3{fill:#888780}
+    .ttl{font-size:30px;font-weight:700;fill:#2c2c2a;letter-spacing:-0.5px}
+    .sub{font-size:15px;fill:#5f5e5a}
+    .group-name{font-size:22px;font-weight:700;fill:#2c2c2a;letter-spacing:-0.3px}
+    .h4{font-size:11px;font-weight:600;fill:#888780;letter-spacing:.8px}
+    .lab{font-size:13px;fill:#2c2c2a}
+    .sm{font-size:11px;fill:#5f5e5a}
+    .xs{font-size:10px;fill:#888780}
+    .strong{font-weight:600}
+    .chip{font-size:10px;font-weight:700;letter-spacing:.5px}
+    .ct{font-size:14px;font-weight:600;fill:#2c2c2a}
+    .av-text{font-size:10px;font-weight:700;fill:#1851cc}
+    .av-overflow{font-size:10px;font-weight:700;fill:#5f5e5a}
+    .tab{font-size:13px;font-weight:600;fill:#5f5e5a}
+    .tab-active{font-size:13px;font-weight:700;fill:#1851cc}
+    .cap{font-size:11px;fill:#888780}
+  </style>
+
+  <rect width="1600" height="900" class="canvas"/>
+
+  <!-- Title -->
+  <text x="40" y="56" class="ttl">Kanban desktop</text>
+  <text x="40" y="84" class="sub">Surface 1/3 · Per-team board · multiple assignees per ticket · Urgent is the only cross-cutting flag</text>
+
+  <!-- Mockup frame -->
+  <rect x="40" y="118" width="1520" height="720" rx="14" class="raised"/>
+
+  <!-- Group header band -->
+  <text x="60" y="158" class="group-name">Writers</text>
+  <text x="1380" y="158" class="sm" text-anchor="end">12 members · 2 admins · ⚙</text>
+  <rect x="1396" y="138" width="148" height="32" rx="16" fill="none" stroke="#1851cc" stroke-width="1.5"/>
+  <text x="1470" y="158" class="sm primary strong" text-anchor="middle">+ Propose to backlog</text>
+
+  <!-- Tab strip -->
+  <line x1="40" y1="184" x2="1560" y2="184" class="border"/>
+  <text x="60" y="208" class="tab-active">Active board</text>
+  <rect x="40" y="218" width="98" height="3" class="primary"/>
+  <text x="180" y="208" class="tab">Backlog <tspan fill="#888780">(12)</tspan></text>
+  <text x="280" y="208" class="tab">Done <tspan fill="#888780">(47)</tspan></text>
+  <line x1="40" y1="232" x2="1560" y2="232" class="border"/>
+
+  <!-- Column 1: Recruitment -->
+  <g transform="translate(80,260)">
+    <text x="0" y="0" class="h4">RECRUITMENT (3)</text>
+
+    <!-- Hendon flyer · unclaimed + urgent · warning-subtle bg + urgent left border + urgent chip -->
+    <rect x="0" y="16" width="340" height="90" rx="8" class="warning-bg"/>
+    <rect x="0" y="16" width="340" height="90" rx="8" fill="none" stroke="#e5e2d8"/>
+    <rect x="0" y="16" width="3" height="90" class="urgent"/>
+    <text x="14" y="40" class="ct">Hendon flyer</text>
+    <rect x="262" y="26" width="64" height="20" rx="10" class="urgent-bg"/>
+    <text x="294" y="40" class="chip urgent" text-anchor="middle">URGENT</text>
+    <text x="326" y="92" class="xs" text-anchor="end">2d</text>
+
+    <!-- Pesach message · unclaimed + non-urgent · warning-subtle bg only -->
+    <rect x="0" y="118" width="340" height="90" rx="8" class="warning-bg"/>
+    <rect x="0" y="118" width="340" height="90" rx="8" fill="none" stroke="#e5e2d8"/>
+    <text x="14" y="142" class="ct">Pesach message</text>
+    <text x="326" y="194" class="xs" text-anchor="end">6h</text>
+
+    <!-- Newsletter Q3 · unclaimed + non-urgent -->
+    <rect x="0" y="220" width="340" height="90" rx="8" class="warning-bg"/>
+    <rect x="0" y="220" width="340" height="90" rx="8" fill="none" stroke="#e5e2d8"/>
+    <text x="14" y="244" class="ct">Newsletter Q3</text>
+    <text x="326" y="296" class="xs" text-anchor="end">1d</text>
+  </g>
+
+  <!-- Column 2: Preparation -->
+  <g transform="translate(440,260)">
+    <text x="0" y="0" class="h4">PREPARATION (2)</text>
+
+    <!-- Edgware petition · claimed (1) + urgent · white bg, urgent left border + chip, 1 avatar -->
+    <rect x="0" y="16" width="340" height="90" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <rect x="0" y="16" width="3" height="90" class="urgent"/>
+    <text x="14" y="40" class="ct">Edgware petition</text>
+    <rect x="262" y="26" width="64" height="20" rx="10" class="urgent-bg"/>
+    <text x="294" y="40" class="chip urgent" text-anchor="middle">URGENT</text>
+    <!-- avatar SH at x=28 -->
+    <circle cx="28" cy="86" r="14" class="primary-bg" stroke="#fff" stroke-width="2"/>
+    <text x="28" y="90" class="av-text" text-anchor="middle">SH</text>
+    <text x="326" y="92" class="xs" text-anchor="end">4h</text>
+
+    <!-- Radio spot · claimed (1) + non-urgent · 1 avatar -->
+    <rect x="0" y="118" width="340" height="90" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <text x="14" y="142" class="ct">Radio spot</text>
+    <circle cx="28" cy="188" r="14" class="primary-bg" stroke="#fff" stroke-width="2"/>
+    <text x="28" y="192" class="av-text" text-anchor="middle">MZ</text>
+    <text x="326" y="194" class="xs" text-anchor="end">1d</text>
+  </g>
+
+  <!-- Column 3: Implementation -->
+  <g transform="translate(800,260)">
+    <text x="0" y="0" class="h4">IMPLEMENTATION (3)</text>
+
+    <!-- Council letter · 2 assignees -->
+    <rect x="0" y="16" width="340" height="90" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <text x="14" y="40" class="ct">Council letter</text>
+    <!-- 2 avatars overlapping -->
+    <circle cx="28" cy="86" r="14" class="primary-bg" stroke="#fff" stroke-width="2"/>
+    <text x="28" y="90" class="av-text" text-anchor="middle">DA</text>
+    <circle cx="50" cy="86" r="14" class="primary-bg" stroke="#fff" stroke-width="2"/>
+    <text x="50" y="90" class="av-text" text-anchor="middle">SH</text>
+    <text x="326" y="92" class="xs" text-anchor="end">1h</text>
+
+    <!-- Donor letter · 2 assignees + urgent -->
+    <rect x="0" y="118" width="340" height="90" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <rect x="0" y="118" width="3" height="90" class="urgent"/>
+    <text x="14" y="142" class="ct">Donor letter</text>
+    <rect x="262" y="128" width="64" height="20" rx="10" class="urgent-bg"/>
+    <text x="294" y="142" class="chip urgent" text-anchor="middle">URGENT</text>
+    <circle cx="28" cy="188" r="14" class="primary-bg" stroke="#fff" stroke-width="2"/>
+    <text x="28" y="192" class="av-text" text-anchor="middle">JR</text>
+    <circle cx="50" cy="188" r="14" class="primary-bg" stroke="#fff" stroke-width="2"/>
+    <text x="50" y="192" class="av-text" text-anchor="middle">DA</text>
+    <text x="326" y="194" class="xs" text-anchor="end">30m</text>
+
+    <!-- Kvar bench · 6 assignees -> 4 visible + "+2" overflow -->
+    <rect x="0" y="220" width="340" height="90" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <text x="14" y="244" class="ct">Kvar bench</text>
+    <circle cx="28" cy="290" r="14" class="primary-bg" stroke="#fff" stroke-width="2"/>
+    <text x="28" y="294" class="av-text" text-anchor="middle">DA</text>
+    <circle cx="50" cy="290" r="14" class="primary-bg" stroke="#fff" stroke-width="2"/>
+    <text x="50" y="294" class="av-text" text-anchor="middle">SH</text>
+    <circle cx="72" cy="290" r="14" class="primary-bg" stroke="#fff" stroke-width="2"/>
+    <text x="72" y="294" class="av-text" text-anchor="middle">MZ</text>
+    <circle cx="94" cy="290" r="14" class="primary-bg" stroke="#fff" stroke-width="2"/>
+    <text x="94" y="294" class="av-text" text-anchor="middle">JR</text>
+    <!-- overflow +2 -->
+    <circle cx="116" cy="290" r="14" class="sunken" stroke="#fff" stroke-width="2"/>
+    <text x="116" y="294" class="av-overflow" text-anchor="middle">+2</text>
+    <text x="326" y="296" class="xs" text-anchor="end">2d</text>
+  </g>
+
+  <!-- Column 4: Monitoring -->
+  <g transform="translate(1160,260)">
+    <text x="0" y="0" class="h4">MONITORING (1)</text>
+    <rect x="0" y="16" width="340" height="90" rx="8" fill="#fff" stroke="#e5e2d8"/>
+    <text x="14" y="40" class="ct">Open mic followup</text>
+    <circle cx="28" cy="86" r="14" class="primary-bg" stroke="#fff" stroke-width="2"/>
+    <text x="28" y="90" class="av-text" text-anchor="middle">SH</text>
+    <text x="326" y="92" class="xs" text-anchor="end">3d</text>
+  </g>
+
+  <!-- Caption -->
+  <text x="40" y="876" class="cap">GPS Action · Coordination board · Pre-prototype mockup · v0.4 · 2026-05-03</text>
+</svg>

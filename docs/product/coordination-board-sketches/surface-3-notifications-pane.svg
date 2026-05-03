@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" font-family="-apple-system, BlinkMacSystemFont, Inter, 'Helvetica Neue', Arial, sans-serif">
+  <title>Notifications pane · GPS Action coordination board</title>
+  <desc>Surface 3 of 3 · Header bell-icon dropdown. Alerts about updates on tickets you're assigned to or subscribed to. New / Acknowledged states; per-row dismiss; click → opens ticket. Pre-prototype mockup, GPS palette.</desc>
+  <style>
+    .canvas{fill:#f4f1ea}
+    .raised{fill:#fff;stroke:#e5e2d8;stroke-width:1}
+    .sunken{fill:#ede9df}
+    .border{stroke:#e5e2d8;stroke-width:1;fill:none}
+    .urgent{fill:#d85a30}.urgent-bg{fill:#faece7}
+    .warning{fill:#ba7517}.warning-bg{fill:#faeeda}
+    .info{fill:#3c3489}.info-bg{fill:#eeedfe}
+    .success{fill:#0f6e56}.success-bg{fill:#e1f5ee}
+    .primary{fill:#1851cc}.primary-bg{fill:#e6edfa}
+    .text{fill:#2c2c2a}.text-2{fill:#5f5e5a}.text-3{fill:#888780}
+    .ttl{font-size:30px;font-weight:700;fill:#2c2c2a;letter-spacing:-0.5px}
+    .sub{font-size:15px;fill:#5f5e5a}
+    .h3{font-size:18px;font-weight:700;fill:#2c2c2a}
+    .h4{font-size:11px;font-weight:600;fill:#888780;letter-spacing:.8px}
+    .lab{font-size:13px;fill:#2c2c2a}
+    .sm{font-size:12px;fill:#5f5e5a}
+    .xs{font-size:11px;fill:#888780}
+    .strong{font-weight:600}
+    .crumb{font-size:13px;fill:#1851cc}
+    .pill{font-size:11px;font-weight:600}
+    .cap{font-size:11px;fill:#888780}
+    .annotate{font-size:13px;font-style:italic;fill:#5f5e5a}
+  </style>
+
+  <rect width="1600" height="900" class="canvas"/>
+
+  <!-- Title -->
+  <text x="40" y="56" class="ttl">Notifications pane</text>
+  <text x="40" y="84" class="sub">Surface 3/3 · Header bell-icon → dropdown · alerts about updates on your tickets · separate from the boards</text>
+
+  <!-- Mockup frame -->
+  <rect x="40" y="118" width="1520" height="720" rx="14" class="raised"/>
+
+  <!-- Faux app header bar (top of frame) -->
+  <rect x="40" y="118" width="1520" height="56" rx="14" class="canvas"/>
+  <rect x="40" y="160" width="1520" height="14" class="canvas"/>
+  <line x1="40" y1="174" x2="1560" y2="174" class="border"/>
+
+  <!-- Logo + breadcrumb -->
+  <rect x="68" y="134" width="28" height="28" rx="6" fill="#1851cc"/>
+  <text x="82" y="154" class="pill" fill="#fff" text-anchor="middle">G</text>
+  <text x="116" y="154" class="lab strong">GPS Action</text>
+  <text x="220" y="154" class="sm">/ Writers</text>
+
+  <!-- Right side of header: bell icon (highlighted) + avatar -->
+  <!-- Bell icon container -->
+  <rect x="1428" y="134" width="36" height="28" rx="6" class="primary-bg"/>
+  <text x="1446" y="155" font-size="18" text-anchor="middle">🔔</text>
+  <!-- Badge -->
+  <circle cx="1462" cy="138" r="9" class="urgent"/>
+  <text x="1462" y="142" class="pill" fill="#fff" text-anchor="middle">3</text>
+  <!-- Avatar -->
+  <circle cx="1490" cy="148" r="14" class="primary-bg" stroke="#fff" stroke-width="2"/>
+  <text x="1490" y="152" class="pill primary" text-anchor="middle">SH</text>
+
+  <!-- Annotation arrow from bell to dropdown -->
+  <path d="M1446 168 L1446 188 L1280 196 L1280 200" fill="none" stroke="#888780" stroke-dasharray="3,3" stroke-width="1"/>
+
+  <!-- Dropdown panel (anchored under bell, but shifted left for visibility) -->
+  <g transform="translate(720,200)">
+    <!-- Outer panel -->
+    <rect x="0" y="0" width="600" height="600" rx="12" fill="#fff" stroke="#b4b2a9" stroke-width="1"/>
+
+    <!-- Panel header -->
+    <text x="20" y="34" class="h3">Notifications</text>
+    <text x="572" y="34" class="sm" text-anchor="end">⚙ Settings</text>
+    <line x1="0" y1="54" x2="600" y2="54" class="border"/>
+
+    <!-- Filter tabs -->
+    <text x="20" y="80" class="lab strong">All</text>
+    <rect x="14" y="86" width="30" height="3" class="primary"/>
+    <rect x="64" y="68" width="58" height="22" rx="11" class="urgent-bg"/>
+    <text x="93" y="83" class="pill urgent" text-anchor="middle">3 NEW</text>
+    <text x="138" y="80" class="sm">12 acknowledged</text>
+    <!-- Tinted background covers all unacknowledged rows (replaces the per-row dot indicator) -->
+    <rect x="0" y="100" width="600" height="220" class="primary-bg"/>
+    <line x1="0" y1="100" x2="600" y2="100" class="border"/>
+
+    <!-- New section -->
+    <text x="20" y="124" class="h4 primary">NEW</text>
+
+    <!-- Notification 1: note left -->
+    <text x="20" y="146" class="lab strong">Hendon flyer</text>
+    <text x="130" y="146" class="sm">· Writers</text>
+    <text x="566" y="146" class="xs" text-anchor="end">2m</text>
+    <text x="20" y="168" class="sm"><tspan fill="#ba7517" font-weight="700">📝</tspan> Sharon left an internal note</text>
+    <text x="566" y="168" class="sm text-3" text-anchor="end">×</text>
+    <line x1="20" y1="186" x2="580" y2="186" stroke="#cfd2e6" stroke-width="1"/>
+
+    <!-- Notification 2: status moved -->
+    <text x="20" y="208" class="lab strong">Council letter</text>
+    <text x="130" y="208" class="sm">· Writers</text>
+    <text x="566" y="208" class="xs" text-anchor="end">15m</text>
+    <text x="20" y="230" class="sm"><tspan fill="#3c3489" font-weight="700">⏵</tspan> Moved to Implementation</text>
+    <text x="566" y="230" class="sm text-3" text-anchor="end">×</text>
+    <line x1="20" y1="248" x2="580" y2="248" stroke="#cfd2e6" stroke-width="1"/>
+
+    <!-- Notification 3: mention -->
+    <text x="20" y="270" class="lab strong">Pesach message</text>
+    <text x="148" y="270" class="sm">· Writers</text>
+    <text x="566" y="270" class="xs" text-anchor="end">30m</text>
+    <text x="20" y="292" class="sm"><tspan fill="#1851cc" font-weight="700">@</tspan> Mira mentioned you</text>
+    <text x="566" y="292" class="sm text-3" text-anchor="end">×</text>
+
+    <!-- Acknowledged section (no tint, no dots — just rows on white) -->
+    <text x="20" y="346" class="h4">ACKNOWLEDGED</text>
+
+    <!-- Notification 4: assignment -->
+    <text x="20" y="368" class="lab text-2">Edgware petition</text>
+    <text x="148" y="368" class="sm">· Writers</text>
+    <text x="566" y="368" class="xs" text-anchor="end">1h</text>
+    <text x="20" y="388" class="sm">⊕ You assigned yourself</text>
+    <text x="566" y="388" class="sm text-3" text-anchor="end">×</text>
+    <line x1="20" y1="406" x2="580" y2="406" class="border"/>
+
+    <!-- Notification 5: comment -->
+    <text x="20" y="428" class="lab text-2">Donor letter</text>
+    <text x="126" y="428" class="sm">· Writers</text>
+    <text x="566" y="428" class="xs" text-anchor="end">2h</text>
+    <text x="20" y="448" class="sm">💬 Jonny commented</text>
+    <text x="566" y="448" class="sm text-3" text-anchor="end">×</text>
+    <line x1="20" y1="466" x2="580" y2="466" class="border"/>
+
+    <!-- Notification 6: cross-team mention (shared-with team) -->
+    <text x="20" y="488" class="lab text-2">Newsletter Q3</text>
+    <text x="134" y="488" class="sm">· Social Media (shared)</text>
+    <text x="566" y="488" class="xs" text-anchor="end">3h</text>
+    <text x="20" y="508" class="sm"><tspan fill="#1851cc" font-weight="700">@</tspan> Dan mentioned you</text>
+    <text x="566" y="508" class="sm text-3" text-anchor="end">×</text>
+
+    <!-- Footer -->
+    <line x1="0" y1="540" x2="600" y2="540" class="border"/>
+    <text x="20" y="568" class="sm primary strong">Mark all acknowledged</text>
+    <text x="580" y="568" class="sm primary strong" text-anchor="end">View all →</text>
+  </g>
+
+  <!-- Annotations beside the dropdown -->
+  <g transform="translate(80,280)">
+    <text x="0" y="0" class="h4">LIFECYCLE</text>
+    <rect x="0" y="14" width="60" height="20" rx="10" class="primary-bg"/>
+    <text x="30" y="28" class="pill primary" text-anchor="middle">NEW</text>
+    <text x="70" y="29" class="sm">tinted row background</text>
+    <text x="0" y="62" class="sm">↓ click row → opens ticket</text>
+    <rect x="0" y="74" width="124" height="20" rx="10" class="sunken"/>
+    <text x="62" y="88" class="pill text-2" text-anchor="middle">ACKNOWLEDGED</text>
+    <text x="134" y="89" class="sm">white row, no tint</text>
+    <text x="0" y="122" class="sm">↓ × per-row</text>
+    <rect x="0" y="134" width="80" height="20" rx="10" fill="none" stroke="#b4b2a9"/>
+    <text x="40" y="148" class="pill text-2" text-anchor="middle">DISMISSED</text>
+    <text x="90" y="149" class="sm">removed from view</text>
+
+    <text x="0" y="186" class="h4">FIRES ON · DEFAULT</text>
+    <text x="0" y="208" class="sm">@mention — the mentioned user</text>
+    <text x="0" y="226" class="sm">comment — ticket subscribers</text>
+    <text x="0" y="244" class="sm">internal note — subscribers</text>
+    <text x="0" y="262" class="sm">column move — subscribers</text>
+    <text x="0" y="280" class="sm">new assignment — the assignee</text>
+
+    <text x="0" y="316" class="h4">FIRES ON · OPT-IN</text>
+    <text x="0" y="338" class="sm">share-with → target team</text>
+    <text x="0" y="354" class="xs">(only if "notify team" ticked at share-time)</text>
+    <text x="0" y="376" class="sm">add-to-active-board → own team</text>
+    <text x="0" y="392" class="xs">(only if option ticked when admin moves it</text>
+    <text x="0" y="406" class="xs">from backlog onto the board)</text>
+
+    <text x="0" y="442" class="h4">CAPACITY</text>
+    <text x="0" y="464" class="sm">limited list (~5–10 rows)</text>
+    <text x="0" y="480" class="sm">scrollbar appears if window squeezed</text>
+    <text x="0" y="496" class="sm">"View all →" → full-page list</text>
+    <text x="0" y="512" class="sm">of all not-yet-dismissed</text>
+  </g>
+
+  <!-- Caption -->
+  <text x="40" y="876" class="cap">GPS Action · Coordination board · Pre-prototype mockup · v0.4 · 2026-05-03</text>
+</svg>

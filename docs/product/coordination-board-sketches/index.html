@@ -1,0 +1,1637 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Coordination Board · UI surface sketches</title>
+    <meta
+      name="description"
+      content="GPS Action — sketches of the three coordination-board UI surfaces (Kanban desktop · Ticket detail · Notifications pane) for tech-review and stakeholder discussion. v0.4: Direction B (inbox) dropped; Broadcast split to its own BU."
+    />
+    <style>
+      /* =====================================================================
+       GPS Action — design tokens (subset, mirrored from styles/tokens.css)
+       ===================================================================== */
+      :root {
+        --c-primary: #1851cc;
+        --c-primary-bright: #3d74e6;
+        --c-primary-subtle: #e6edfa;
+        --c-success: #0f6e56;
+        --c-success-subtle: #e1f5ee;
+        --c-warning: #ba7517;
+        --c-warning-subtle: #faeeda;
+        --c-urgent: #d85a30;
+        --c-urgent-subtle: #faece7;
+        --c-danger: #a32d2d;
+        --c-info: #3c3489;
+        --c-info-subtle: #eeedfe;
+        --c-cultural: #6b3045;
+        --c-cultural-subtle: #f3e8ec;
+        --c-whatsapp: #25d366;
+        --c-canvas: #f4f1ea;
+        --c-raised: #ffffff;
+        --c-sunken: #ede9df;
+        --c-border: #e5e2d8;
+        --c-border-strong: #b4b2a9;
+        --c-text: #2c2c2a;
+        --c-text-2: #5f5e5a;
+        --c-text-3: #888780;
+        --c-disabled: #b4b2a9;
+
+        --s-1: 4px;
+        --s-2: 8px;
+        --s-3: 12px;
+        --s-4: 16px;
+        --s-5: 20px;
+        --s-6: 24px;
+        --s-8: 32px;
+        --s-10: 40px;
+        --s-12: 48px;
+
+        --r-sm: 4px;
+        --r-md: 8px;
+        --r-lg: 14px;
+        --r-pill: 999px;
+
+        --font-ui: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        --font-mono: 'SF Mono', Menlo, Consolas, monospace;
+
+        --shadow-sm: 0 1px 2px rgba(28, 28, 26, 0.06);
+        --shadow-md: 0 2px 8px rgba(28, 28, 26, 0.08);
+        --shadow-lg: 0 4px 16px rgba(28, 28, 26, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: var(--font-ui);
+        color: var(--c-text);
+        background: var(--c-canvas);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      body {
+        line-height: 1.55;
+        font-size: 14px;
+      }
+
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: var(--s-12) var(--s-6);
+      }
+
+      a {
+        color: var(--c-primary);
+      }
+
+      code {
+        font-family: var(--font-mono);
+        font-size: 0.92em;
+        background: var(--c-sunken);
+        padding: 1px 5px;
+        border-radius: var(--r-sm);
+      }
+
+      /* =====================================================================
+       Page header / table of contents
+       ===================================================================== */
+      .page-header h1 {
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin: 0 0 var(--s-2);
+      }
+
+      .page-header .meta {
+        color: var(--c-text-2);
+        font-size: 13px;
+        margin: 0 0 var(--s-5);
+      }
+
+      .page-header .lede {
+        max-width: 720px;
+        font-size: 16px;
+        line-height: 1.6;
+        color: var(--c-text);
+        margin: 0 0 var(--s-6);
+      }
+
+      .page-header .lede strong {
+        color: var(--c-text);
+      }
+
+      nav.toc {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--s-2) var(--s-4);
+        padding: var(--s-3) var(--s-4);
+        background: var(--c-raised);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        font-size: 13px;
+        margin: 0 0 var(--s-12);
+      }
+
+      nav.toc strong {
+        color: var(--c-text-2);
+        margin-right: var(--s-3);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        font-size: 11px;
+      }
+
+      nav.toc a {
+        text-decoration: none;
+        color: var(--c-primary);
+        white-space: nowrap;
+      }
+
+      nav.toc a:hover {
+        text-decoration: underline;
+      }
+
+      /* =====================================================================
+       Surface section
+       ===================================================================== */
+      section.surface {
+        background: var(--c-raised);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-lg);
+        padding: var(--s-8);
+        margin: 0 0 var(--s-8);
+        box-shadow: var(--shadow-sm);
+      }
+
+      section.surface h2 {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.005em;
+        margin: 0 0 var(--s-1);
+      }
+
+      section.surface h2 .num {
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        line-height: 28px;
+        text-align: center;
+        background: var(--c-primary);
+        color: #fff;
+        border-radius: var(--r-sm);
+        font-size: 14px;
+        margin-right: var(--s-3);
+        vertical-align: middle;
+      }
+
+      section.surface .kicker {
+        color: var(--c-text-2);
+        font-size: 14px;
+        margin: 0 0 var(--s-6);
+        max-width: 700px;
+      }
+
+      section.surface .mock-shell {
+        background: var(--c-sunken);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        padding: var(--s-4);
+        margin: 0 0 var(--s-6);
+        overflow-x: auto;
+      }
+
+      .mock-frame {
+        background: var(--c-raised);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        font-size: 13px;
+        box-shadow: var(--shadow-sm);
+      }
+
+      /* Callouts beneath each mockup */
+      ol.callouts {
+        margin: 0;
+        padding-left: var(--s-6);
+        counter-reset: cb;
+        list-style: none;
+      }
+
+      ol.callouts li {
+        position: relative;
+        margin: 0 0 var(--s-3);
+        padding-left: var(--s-3);
+        color: var(--c-text-2);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      ol.callouts li::before {
+        counter-increment: cb;
+        content: counter(cb);
+        position: absolute;
+        left: -28px;
+        top: 1px;
+        display: inline-block;
+        width: 22px;
+        height: 22px;
+        line-height: 22px;
+        text-align: center;
+        background: var(--c-primary-subtle);
+        color: var(--c-primary);
+        border-radius: var(--r-pill);
+        font-weight: 600;
+        font-size: 12px;
+      }
+
+      ol.callouts li strong {
+        color: var(--c-text);
+        font-weight: 600;
+      }
+
+      .qref {
+        color: var(--c-primary);
+        background: var(--c-primary-subtle);
+        padding: 1px 7px;
+        border-radius: var(--r-pill);
+        font-size: 11px;
+        font-weight: 600;
+        margin-left: var(--s-1);
+        white-space: nowrap;
+      }
+
+      /* =====================================================================
+       Shared mockup primitives
+       ===================================================================== */
+      .muted {
+        color: var(--c-text-3);
+      }
+      .strong {
+        color: var(--c-text);
+        font-weight: 600;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: var(--s-2);
+      }
+
+      .avatar {
+        flex: 0 0 auto;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--c-primary-subtle);
+        color: var(--c-primary);
+        font-size: 11px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .chip {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: var(--r-pill);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        background: var(--c-sunken);
+        color: var(--c-text-2);
+        border: 1px solid var(--c-border);
+      }
+
+      .chip-urgent {
+        background: var(--c-urgent-subtle);
+        color: var(--c-urgent);
+        border-color: var(--c-urgent-subtle);
+      }
+      .chip-info {
+        background: var(--c-info-subtle);
+        color: var(--c-info);
+        border-color: var(--c-info-subtle);
+      }
+      .chip-success {
+        background: var(--c-success-subtle);
+        color: var(--c-success);
+        border-color: var(--c-success-subtle);
+      }
+      .chip-warning {
+        background: var(--c-warning-subtle);
+        color: var(--c-warning);
+        border-color: var(--c-warning-subtle);
+      }
+
+      .read-tick {
+        color: var(--c-success);
+        font-weight: 700;
+        font-size: 12px;
+      }
+
+      .pill-btn {
+        display: inline-block;
+        padding: 6px 14px;
+        border-radius: var(--r-pill);
+        font-size: 12px;
+        font-weight: 600;
+        background: var(--c-raised);
+        color: var(--c-text);
+        border: 1px solid var(--c-border-strong);
+      }
+
+      .btn-primary {
+        background: var(--c-primary);
+        color: #fff;
+        border-color: var(--c-primary);
+      }
+
+      .btn-success {
+        background: var(--c-success);
+        color: #fff;
+        border-color: var(--c-success);
+      }
+
+      /* =====================================================================
+       Surface 1 — Kanban
+       ===================================================================== */
+      .kanban-frame {
+        padding: 0;
+      }
+      .kanban-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--s-3) var(--s-4);
+        border-bottom: 1px solid var(--c-border);
+        background: var(--c-canvas);
+        border-top-left-radius: var(--r-md);
+        border-top-right-radius: var(--r-md);
+      }
+      .kanban-cols {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--s-3);
+        padding: var(--s-4);
+      }
+      .kanban-col h4 {
+        margin: 0 0 var(--s-3);
+        font-size: 12px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--c-text-2);
+        font-weight: 600;
+      }
+      .kanban-col h4 .count {
+        color: var(--c-text-3);
+        font-weight: 500;
+      }
+      .kanban-card {
+        background: var(--c-raised);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        padding: var(--s-3);
+        margin-bottom: var(--s-2);
+        box-shadow: var(--shadow-sm);
+      }
+      .kanban-card.card-urgent {
+        border-left: 3px solid var(--c-urgent);
+      }
+      .kanban-card.card-active {
+        border-left: 3px solid var(--c-info);
+      }
+      .kanban-card.card-done {
+        border-left: 3px solid var(--c-success);
+        opacity: 0.85;
+      }
+      .kanban-card .card-title {
+        font-weight: 600;
+        font-size: 13px;
+        margin-bottom: var(--s-1);
+      }
+      .kanban-card .card-meta {
+        font-size: 12px;
+        color: var(--c-text-2);
+        margin-bottom: var(--s-2);
+      }
+      .kanban-card .card-foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .kanban-card .card-time {
+        color: var(--c-text-3);
+        font-size: 11px;
+      }
+
+      .kanban-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--s-3) var(--s-4);
+        border-top: 1px solid var(--c-border);
+        background: var(--c-canvas);
+        font-size: 12px;
+        color: var(--c-text-2);
+        border-bottom-left-radius: var(--r-md);
+        border-bottom-right-radius: var(--r-md);
+      }
+
+      /* =====================================================================
+       Surface 2 — Inbox desktop (3-pane)
+       ===================================================================== */
+      .inbox-frame {
+        padding: 0;
+      }
+      .inbox-grid {
+        display: grid;
+        grid-template-columns: 56px 220px 320px 1fr;
+        min-height: 580px;
+      }
+
+      .rail {
+        background: #1a1d29;
+        color: #cfd2dc;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: var(--s-3) 0;
+        gap: var(--s-3);
+        border-top-left-radius: var(--r-md);
+        border-bottom-left-radius: var(--r-md);
+      }
+      .rail-logo {
+        width: 28px;
+        height: 28px;
+        background: var(--c-primary-bright);
+        color: #fff;
+        border-radius: var(--r-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        margin-bottom: var(--s-3);
+      }
+      .rail-icon {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--r-md);
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .rail-icon.active {
+        background: rgba(61, 116, 230, 0.22);
+        color: #fff;
+      }
+      .rail-icon.muted {
+        color: #6c7081;
+      }
+      .rail-spacer {
+        flex: 1;
+      }
+
+      .sidebar {
+        background: var(--c-canvas);
+        border-right: 1px solid var(--c-border);
+        padding: var(--s-3) var(--s-2);
+        font-size: 13px;
+      }
+      .sidebar h4 {
+        margin: var(--s-3) var(--s-2) var(--s-2);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-text-3);
+        font-weight: 600;
+      }
+      .sidebar-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px var(--s-2);
+        border-radius: var(--r-sm);
+        cursor: pointer;
+        color: var(--c-text);
+      }
+      .sidebar-item:hover {
+        background: var(--c-sunken);
+      }
+      .sidebar-item.active {
+        background: var(--c-primary-subtle);
+        color: var(--c-primary);
+        font-weight: 600;
+      }
+      .sidebar-item .badge {
+        background: transparent;
+        color: var(--c-text-3);
+        font-size: 11px;
+      }
+      .sidebar-divider {
+        height: 1px;
+        background: var(--c-border);
+        margin: var(--s-3) var(--s-2);
+      }
+
+      .inbox-list {
+        border-right: 1px solid var(--c-border);
+        display: flex;
+        flex-direction: column;
+      }
+      .list-header {
+        padding: var(--s-3) var(--s-3);
+        border-bottom: 1px solid var(--c-border);
+        display: flex;
+        gap: var(--s-2);
+        align-items: center;
+        background: var(--c-raised);
+      }
+      .filter-pill {
+        padding: 4px 10px;
+        background: var(--c-sunken);
+        border-radius: var(--r-sm);
+        font-weight: 600;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .icon-btn {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--r-sm);
+        color: var(--c-text-2);
+        cursor: pointer;
+      }
+      .icon-btn:hover {
+        background: var(--c-sunken);
+      }
+
+      .group-label {
+        padding: var(--s-2) var(--s-3);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-text-3);
+        background: var(--c-sunken);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: var(--s-1);
+      }
+      .conv-row {
+        padding: var(--s-3);
+        border-bottom: 1px solid var(--c-border);
+        cursor: pointer;
+        display: grid;
+        grid-template-columns: 32px 1fr;
+        gap: var(--s-2);
+      }
+      .conv-row.active {
+        background: var(--c-primary-subtle);
+        border-left: 3px solid var(--c-primary);
+        padding-left: 9px;
+      }
+      .conv-row:hover:not(.active) {
+        background: var(--c-canvas);
+      }
+      .conv-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: var(--s-2);
+      }
+      .conv-meta .name {
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .conv-meta .time {
+        color: var(--c-text-3);
+        font-size: 11px;
+      }
+      .conv-preview {
+        color: var(--c-text-2);
+        font-size: 12px;
+        margin: 2px 0 var(--s-2);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .conv-foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--s-2);
+      }
+      .channel-glyph {
+        font-size: 12px;
+        margin-right: 4px;
+      }
+
+      /* Detail pane */
+      .detail-pane {
+        display: flex;
+        flex-direction: column;
+        background: var(--c-canvas);
+      }
+      .detail-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--s-3) var(--s-4);
+        background: var(--c-raised);
+        border-bottom: 1px solid var(--c-border);
+      }
+      .detail-header .title {
+        font-weight: 700;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        gap: var(--s-2);
+      }
+      .detail-header .star {
+        color: var(--c-warning);
+      }
+      .detail-actions {
+        display: flex;
+        gap: 4px;
+      }
+      .assignment-bar {
+        padding: var(--s-2) var(--s-4);
+        background: var(--c-canvas);
+        border-bottom: 1px solid var(--c-border);
+        font-size: 12px;
+        color: var(--c-text-2);
+      }
+      .assignment-bar .assigned-to {
+        background: var(--c-raised);
+        border: 1px solid var(--c-border);
+        padding: 4px 10px;
+        border-radius: var(--r-sm);
+        margin-left: var(--s-2);
+      }
+
+      .thread {
+        padding: var(--s-4);
+        flex: 1;
+        overflow-y: auto;
+      }
+      .msg {
+        display: grid;
+        grid-template-columns: 32px 1fr;
+        gap: var(--s-3);
+        margin-bottom: var(--s-4);
+      }
+      .msg-bubble {
+        background: var(--c-raised);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        padding: var(--s-3);
+        font-size: 13px;
+        max-width: 480px;
+      }
+      .msg-bubble .who {
+        font-weight: 600;
+        font-size: 12px;
+        color: var(--c-text-2);
+        margin-bottom: 2px;
+      }
+      .msg-bubble.note {
+        background: var(--c-warning-subtle);
+        border-color: var(--c-warning);
+        border-left: 3px solid var(--c-warning);
+      }
+      .msg-bubble.note .who {
+        color: var(--c-warning);
+      }
+      .msg-bubble.system {
+        background: var(--c-info-subtle);
+        border-color: var(--c-info-subtle);
+        border-left: 3px solid var(--c-info);
+        font-size: 12px;
+        color: var(--c-info);
+      }
+      .msg-bubble.system .who {
+        color: var(--c-info);
+      }
+
+      .composer {
+        padding: var(--s-3) var(--s-4);
+        background: var(--c-raised);
+        border-top: 1px solid var(--c-border);
+      }
+      .composer-tabs {
+        display: flex;
+        gap: var(--s-1);
+        margin-bottom: var(--s-2);
+      }
+      .composer-tab {
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: var(--r-sm) var(--r-sm) 0 0;
+        cursor: pointer;
+        border: 1px solid transparent;
+        color: var(--c-text-2);
+      }
+      .composer-tab.active {
+        background: var(--c-raised);
+        border-color: var(--c-border);
+        border-bottom-color: var(--c-raised);
+        color: var(--c-text);
+      }
+      .composer-tab.note.active {
+        color: var(--c-warning);
+        border-color: var(--c-warning);
+      }
+      .composer-input {
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        background: var(--c-raised);
+        padding: var(--s-3);
+        min-height: 56px;
+        color: var(--c-text-3);
+        font-size: 13px;
+      }
+      .composer-input.note-mode {
+        background: var(--c-warning-subtle);
+        border-color: var(--c-warning);
+      }
+      .composer-foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: var(--s-2);
+      }
+      .composer-icons {
+        display: flex;
+        gap: var(--s-1);
+        color: var(--c-text-2);
+      }
+      .channel-select {
+        font-size: 11px;
+        border: 1px solid var(--c-border);
+        padding: 3px 8px;
+        border-radius: var(--r-sm);
+        margin-right: var(--s-2);
+        color: var(--c-text-2);
+      }
+
+      /* Assign panel popover (dotted overlay) */
+      .assign-popover {
+        position: relative;
+        margin: var(--s-3) var(--s-4);
+        background: var(--c-raised);
+        border: 1px dashed var(--c-primary);
+        border-radius: var(--r-md);
+        padding: var(--s-3);
+        box-shadow: var(--shadow-md);
+        font-size: 12px;
+        max-width: 500px;
+      }
+      .assign-popover h5 {
+        margin: 0 0 var(--s-2);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-text-3);
+      }
+      .assign-popover .assign-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--s-3);
+      }
+      .assign-action {
+        padding: 6px var(--s-2);
+        border-radius: var(--r-sm);
+        cursor: pointer;
+      }
+      .assign-action.active {
+        background: var(--c-primary-subtle);
+        color: var(--c-primary);
+        font-weight: 600;
+      }
+      .assign-popover .annotate {
+        color: var(--c-primary);
+        font-size: 11px;
+        font-style: italic;
+        margin-top: var(--s-2);
+        border-top: 1px dashed var(--c-primary);
+        padding-top: var(--s-2);
+      }
+
+      /* =====================================================================
+       Surface 3 — Inbox mobile (two phone frames side-by-side)
+       ===================================================================== */
+      .phones {
+        display: flex;
+        gap: var(--s-8);
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: var(--s-4) 0;
+      }
+      .phone {
+        width: 320px;
+        background: var(--c-canvas);
+        border-radius: 28px;
+        border: 8px solid #1a1d29;
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 580px;
+      }
+      .phone-status {
+        background: #1a1d29;
+        color: #cfd2dc;
+        font-size: 11px;
+        padding: 6px var(--s-4) 4px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .phone-header {
+        padding: var(--s-3) var(--s-4);
+        background: var(--c-raised);
+        border-bottom: 1px solid var(--c-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .phone-list .conv-row {
+        padding: var(--s-3) var(--s-4);
+      }
+      .phone-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        background: var(--c-raised);
+        border-top: 1px solid var(--c-border);
+        font-size: 12px;
+        text-align: center;
+      }
+      .phone-tabs > div {
+        padding: var(--s-3) 0;
+        color: var(--c-text-3);
+      }
+      .phone-tabs > div.active {
+        color: var(--c-primary);
+        font-weight: 600;
+        border-top: 2px solid var(--c-primary);
+      }
+      .phone-label {
+        text-align: center;
+        color: var(--c-text-2);
+        font-size: 12px;
+        margin-top: var(--s-2);
+      }
+      .phone-detail-thread {
+        padding: var(--s-3);
+        flex: 1;
+      }
+      .phone-composer {
+        padding: var(--s-3) var(--s-4);
+        background: var(--c-raised);
+        border-top: 1px solid var(--c-border);
+      }
+
+      /* =====================================================================
+       Surface 4 — Broadcast wizard step 2
+       ===================================================================== */
+      .wizard-frame {
+        padding: var(--s-6);
+        background: var(--c-raised);
+      }
+      .stepper {
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+        padding-bottom: var(--s-4);
+        border-bottom: 1px solid var(--c-border);
+        margin-bottom: var(--s-6);
+        flex-wrap: wrap;
+      }
+      .step {
+        display: flex;
+        align-items: center;
+        gap: var(--s-2);
+        color: var(--c-text-3);
+        font-size: 13px;
+      }
+      .step .num-circle {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 2px solid var(--c-border-strong);
+        background: var(--c-raised);
+        color: var(--c-text-3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 12px;
+      }
+      .step.done .num-circle {
+        background: var(--c-primary);
+        border-color: var(--c-primary);
+        color: #fff;
+      }
+      .step.active .num-circle {
+        background: var(--c-primary);
+        border-color: var(--c-primary);
+        color: #fff;
+      }
+      .step.active {
+        color: var(--c-text);
+        font-weight: 600;
+      }
+      .step-line {
+        flex: 1;
+        height: 1px;
+        background: var(--c-border);
+        min-width: 24px;
+      }
+      .audience-pill {
+        margin-left: auto;
+        padding: 6px 14px;
+        border-radius: var(--r-pill);
+        background: var(--c-success-subtle);
+        color: var(--c-success);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .wizard-grid {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: var(--s-8);
+      }
+
+      .field-block {
+        margin-bottom: var(--s-5);
+      }
+      .field-block label {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-text-2);
+        font-weight: 600;
+        margin-bottom: var(--s-2);
+      }
+      .field-block .field-help {
+        color: var(--c-text-3);
+        font-size: 12px;
+        margin-top: var(--s-1);
+      }
+
+      .channel-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--s-2);
+      }
+      .channel-chip {
+        padding: 8px 14px;
+        border-radius: var(--r-pill);
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid var(--c-border);
+        background: var(--c-raised);
+        color: var(--c-text-2);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .channel-chip.selected {
+        background: var(--c-primary-subtle);
+        color: var(--c-primary);
+        border-color: var(--c-primary);
+      }
+      .channel-chip.wa.selected {
+        background: rgba(37, 211, 102, 0.12);
+        color: #1a8a45;
+        border-color: var(--c-whatsapp);
+      }
+
+      .text-input {
+        display: block;
+        width: 100%;
+        padding: 10px var(--s-3);
+        border: 1px solid var(--c-border-strong);
+        border-radius: var(--r-md);
+        background: var(--c-raised);
+        font-family: var(--font-ui);
+        font-size: 14px;
+        color: var(--c-text);
+      }
+
+      .lang-toggle {
+        float: right;
+        font-size: 11px;
+        padding: 3px 10px;
+        background: var(--c-sunken);
+        border-radius: var(--r-pill);
+        color: var(--c-text-2);
+      }
+
+      .composer-template {
+        border: 1px solid var(--c-border-strong);
+        border-radius: var(--r-md);
+        background: var(--c-raised);
+        padding: var(--s-4);
+        font-size: 14px;
+        line-height: 1.6;
+        min-height: 220px;
+      }
+
+      .var-pill {
+        display: inline-block;
+        padding: 1px 8px;
+        background: var(--c-info-subtle);
+        color: var(--c-info);
+        border-radius: var(--r-pill);
+        font-size: 12px;
+        font-family: var(--font-mono);
+        font-weight: 600;
+      }
+
+      .composer-attach {
+        margin-top: var(--s-4);
+        padding-top: var(--s-3);
+        border-top: 1px dashed var(--c-border);
+        display: flex;
+        gap: var(--s-3);
+        flex-wrap: wrap;
+      }
+      .composer-attach > span {
+        color: var(--c-text-3);
+        font-size: 12px;
+      }
+
+      .quick-replies {
+        display: flex;
+        gap: var(--s-2);
+        flex-wrap: wrap;
+      }
+      .quick-reply-btn {
+        padding: 6px 16px;
+        border-radius: var(--r-pill);
+        background: var(--c-success-subtle);
+        color: var(--c-success);
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid var(--c-success-subtle);
+      }
+
+      /* Preview panel */
+      .preview-panel {
+        background: var(--c-sunken);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        padding: var(--s-4);
+      }
+      .preview-panel h5 {
+        margin: 0 0 var(--s-3);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-text-2);
+        font-weight: 600;
+      }
+      .wa-bubble {
+        background: rgba(37, 211, 102, 0.1);
+        border: 1px solid rgba(37, 211, 102, 0.3);
+        border-radius: 10px 10px 10px 2px;
+        padding: var(--s-3);
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--c-text);
+      }
+      .wa-bubble .wa-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        margin-top: var(--s-3);
+        padding-top: var(--s-2);
+        border-top: 1px solid rgba(37, 211, 102, 0.3);
+      }
+      .wa-bubble .wa-buttons > div {
+        padding: 6px 10px;
+        text-align: center;
+        color: #1a8a45;
+        font-size: 13px;
+        font-weight: 600;
+        background: rgba(37, 211, 102, 0.06);
+        border-radius: 4px;
+      }
+
+      .wizard-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: var(--s-6);
+        padding-top: var(--s-4);
+        border-top: 1px solid var(--c-border);
+      }
+
+      /* =====================================================================
+       Surface 5 — Broadcast analytics
+       ===================================================================== */
+      .analytics-frame {
+        padding: var(--s-6);
+        background: var(--c-raised);
+      }
+      .analytics-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: var(--s-3);
+        margin-bottom: var(--s-4);
+      }
+      .analytics-header h3 {
+        margin: 0;
+        font-size: 20px;
+      }
+      .analytics-header .send-badge {
+        background: var(--c-success-subtle);
+        color: var(--c-success);
+        padding: 4px 10px;
+        border-radius: var(--r-pill);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .analytics-meta {
+        color: var(--c-text-2);
+        font-size: 13px;
+        margin-bottom: var(--s-6);
+      }
+
+      .funnel {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--s-3);
+        margin-bottom: var(--s-6);
+      }
+      .funnel-tile {
+        background: var(--c-canvas);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        padding: var(--s-4);
+        text-align: center;
+      }
+      .funnel-tile .label {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-text-2);
+        font-weight: 600;
+        margin-bottom: var(--s-2);
+      }
+      .funnel-tile .num {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--c-text);
+        line-height: 1;
+      }
+      .funnel-tile .pct {
+        font-size: 14px;
+        color: var(--c-text-2);
+        margin-top: var(--s-1);
+      }
+      .funnel-tile.acted {
+        background: var(--c-success-subtle);
+        border-color: var(--c-success-subtle);
+      }
+      .funnel-tile.acted .num {
+        color: var(--c-success);
+      }
+      .funnel-tile.acted .pct {
+        color: var(--c-success);
+      }
+      .funnel-tile .accent {
+        font-size: 11px;
+        color: var(--c-success);
+        margin-top: var(--s-1);
+        font-weight: 600;
+      }
+
+      .analytics-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--s-4);
+        margin-bottom: var(--s-6);
+      }
+      .analytics-card {
+        background: var(--c-raised);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r-md);
+        padding: var(--s-4);
+      }
+      .analytics-card h4 {
+        margin: 0 0 var(--s-2);
+        font-size: 13px;
+      }
+      .analytics-card .num-large {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--c-text);
+      }
+      .analytics-card a {
+        display: inline-block;
+        margin-top: var(--s-2);
+        font-size: 12px;
+      }
+
+      .segment-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: var(--s-4);
+        font-size: 13px;
+      }
+      .segment-table th,
+      .segment-table td {
+        text-align: right;
+        padding: var(--s-2) var(--s-3);
+        border-bottom: 1px solid var(--c-border);
+      }
+      .segment-table th:first-child,
+      .segment-table td:first-child {
+        text-align: left;
+      }
+      .segment-table th {
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--c-text-2);
+      }
+      .segment-count {
+        color: var(--c-text-3);
+        font-size: 11px;
+      }
+
+      .analytics-foot {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--s-2);
+        padding-top: var(--s-4);
+        border-top: 1px solid var(--c-border);
+        margin-top: var(--s-6);
+      }
+
+      /* =====================================================================
+       Footer
+       ===================================================================== */
+      .page-footer {
+        margin-top: var(--s-12);
+        padding-top: var(--s-6);
+        border-top: 1px solid var(--c-border);
+        color: var(--c-text-2);
+        font-size: 12px;
+      }
+      .page-footer a {
+        color: var(--c-primary);
+      }
+
+      /* =====================================================================
+       Responsive: collapse a few grids on narrow screens
+       ===================================================================== */
+      @media (max-width: 920px) {
+        .inbox-grid {
+          grid-template-columns: 56px 1fr;
+        }
+        .inbox-grid .inbox-list,
+        .inbox-grid .detail-pane,
+        .inbox-grid .sidebar {
+          grid-column: 2;
+        }
+        .inbox-grid .inbox-list {
+          display: none;
+        }
+        .inbox-grid .detail-pane {
+          display: none;
+        }
+        .wizard-grid {
+          grid-template-columns: 1fr;
+        }
+        .analytics-row {
+          grid-template-columns: 1fr;
+        }
+        .funnel {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .kanban-cols {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      /* =====================================================================
+       Print: each surface starts a new page, keep contrast
+       ===================================================================== */
+      @media print {
+        body {
+          background: #fff;
+          font-size: 12px;
+        }
+        .page {
+          padding: 0;
+          max-width: none;
+        }
+        nav.toc {
+          display: none;
+        }
+        section.surface {
+          break-inside: avoid;
+          page-break-inside: avoid;
+          box-shadow: none;
+          border-color: #d4d2c8;
+        }
+        section.surface + section.surface {
+          page-break-before: always;
+        }
+        .mock-shell {
+          background: #faf8f3;
+        }
+        a {
+          color: var(--c-text);
+          text-decoration: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <!-- =================================================================
+         Header + ToC
+         ================================================================= -->
+      <header class="page-header">
+        <h1>Coordination Board · UI surface sketches</h1>
+        <p class="meta">
+          v0.4 · 2026-05-03 · Companion to
+          <code>bu-coordination-board.md</code> · Pre-prototype, mockups not pixel-final
+        </p>
+        <p class="lede">
+          Three surfaces for the Direction-A kanban after the Inbox surfaces were dropped (per Paul
+          + Leonid, 2026-05-03 PM).
+          <strong>Direction B (shared inbox) is rejected:</strong>
+          communication lives inside each ticket, with a thin notifications pane for alerts. The
+          Broadcast wizard split out to a separate <code>bu-broadcast</code> stub.
+        </p>
+        <p class="lede">
+          Each surface embeds its SVG (rendered crisp at any zoom) plus numbered callouts. Question
+          references like
+          <span class="qref">Q15</span> link back to the open-questions list in the build brief. JPG
+          renderings of all three surfaces live alongside in this directory for tools that don't
+          accept SVG.
+        </p>
+
+        <nav class="toc">
+          <strong>Surfaces</strong>
+          <a href="#surface-1">1 · Kanban desktop</a>
+          <a href="#surface-2">2 · Ticket detail</a>
+          <a href="#surface-3">3 · Notifications pane</a>
+        </nav>
+      </header>
+
+      <!-- =================================================================
+         Surface 1 — Kanban desktop (revised)
+         ================================================================= -->
+      <section id="surface-1" class="surface">
+        <h2><span class="num">1</span>Kanban desktop</h2>
+        <p class="kicker">
+          Per-team board. Group name as the page title. Tickets are cards; the column encodes
+          work-state (Recruitment → Preparation → Implementation → Monitoring, configurable).
+          Multi-assignee with overflow chip. Urgent is the only cross-cutting flag.
+        </p>
+
+        <div class="mock-shell">
+          <img
+            src="surface-1-kanban-desktop.svg"
+            alt="Kanban desktop mockup — Writers board with 4 columns and configurable cards"
+            style="width: 100%; height: auto; display: block; border-radius: 8px"
+          />
+        </div>
+
+        <ol class="callouts">
+          <li>
+            <strong>Page title = group name only</strong>
+            (<code>Writers</code>). "Active board" subtitle dropped. Backlog and Done get their own
+            subtitles when you click through the tabs.
+          </li>
+          <li>
+            <strong>Header strip</strong> — group name on the left, members/admins meta + settings
+            glyph + a primary outline <strong>+ Propose to backlog</strong> button on the right.
+          </li>
+          <li>
+            <strong>Tabs row</strong> below the header — Active board (current) · Backlog (12) ·
+            Done (47). Backlog and Done are admin-curated views.
+          </li>
+          <li>
+            <strong>Columns are configurable per group</strong>
+            <span class="qref">Q3</span> — defaults shown. Writers might prefer Draft → Edit →
+            Publish → Distribute.
+          </li>
+          <li>
+            <strong>Card face — minimal</strong> — title · multi-assignee avatars (3-4 visible, then
+            <code>+N</code> overflow chip) · urgent flag if applicable · last-updated time. Names
+            appear on hover/tap, not beside the avatar.
+          </li>
+          <li>
+            <strong>Unclaimed = warning-subtle yellow background</strong>
+            (per Q2 — zero-assignee tickets get a coloured indicator). Combines cleanly with the
+            urgent left-border + chip.
+          </li>
+          <li>
+            <strong>Only Urgent gets a chip</strong> — the column already encodes work-state, so
+            Draft / Sent / In-progress chips are redundant. Future cross-cutting flags (Blocked,
+            cultural marker) can occupy the same slot if added.
+          </li>
+          <li>
+            <strong>Mobile collapse</strong>
+            <span class="qref">Q12</span> — single timeline scroll with column-name as a coloured
+            tag pill on each card. Phase 2.
+          </li>
+        </ol>
+      </section>
+
+      <!-- =================================================================
+         Surface 2 — Ticket detail (NEW)
+         ================================================================= -->
+      <section id="surface-2" class="surface">
+        <h2><span class="num">2</span>Ticket detail</h2>
+        <p class="kicker">
+          Where work happens. Communication lives inside the ticket — no separate inbox metaphor.
+          Description (editable), interleaved comments + notes + system events, Comment / Note
+          compose tabs. Right-side meta: assignees, subscribers, shared-with teams, invite-group,
+          key dates.
+        </p>
+
+        <div class="mock-shell">
+          <img
+            src="surface-2-ticket-detail.svg"
+            alt="Ticket detail mockup — Hendon flyer with description, activity feed, and meta sidebar"
+            style="width: 100%; height: auto; display: block; border-radius: 8px"
+          />
+        </div>
+
+        <ol class="callouts">
+          <li>
+            <strong>Title with edit pencil</strong> — click-to-edit inline, save on blur or Enter.
+            Description below behaves the same. Permission: any group member can edit, audit trail
+            captures changes <span class="qref">Q3</span>.
+          </li>
+          <li>
+            <strong>Status row</strong> — column position chip (<code>IMPLEMENTATION</code>), urgent
+            flag if applicable, multi-assignee avatars + "<code>+ assign</code>" affordance,
+            last-updated time on the right.
+          </li>
+          <li>
+            <strong>Three top-bar actions</strong>: Subscribe (opt in/out of notifications) · Share
+            with team (route to another team within the admin-pre-set workflow) · Invite group (pull
+            a wider audience to this ticket).
+          </li>
+          <li>
+            <strong>Activity feed — interleaved</strong>:
+            <span style="color: var(--c-info); font-weight: 600">⚙ system events</span>
+            (assigned, moved between columns) · regular comments (notify subscribers) ·
+            <span style="color: var(--c-warning); font-weight: 600">▌internal notes</span>
+            (yellow tint, silent — no notification). Chronological order.
+          </li>
+          <li>
+            <strong>Composer</strong> — Comment / Note as tabs. Comment notifies subscribers; Note
+            is silent <span class="qref">Q7</span>. Channel-selector lives at ticket level
+            (subscribe), not per-message.
+          </li>
+          <li>
+            <strong>Right meta sidebar</strong> — Assignees (with author badge + unassign affordance
+            · "+ Add assignee") · Subscribers (count + manage link) · Shared-with team chips (each
+            with restricted permissions: can self-assign and comment, cannot move ticket) ·
+            Invite-group affordance · Key dates.
+          </li>
+          <li>
+            <strong>Multi-group routing</strong> — Share-with-team is limited by an admin-pre-set
+            workflow per team <span class="qref">Q1</span>. Receiving team's members inherit read +
+            comment + self-assign rights but cannot change the ticket's column position.
+          </li>
+        </ol>
+      </section>
+
+      <!-- =================================================================
+         Surface 3 — Notifications pane (NEW)
+         ================================================================= -->
+      <section id="surface-3" class="surface">
+        <h2><span class="num">3</span>Notifications pane</h2>
+        <p class="kicker">
+          Header bell-icon dropdown. Thin alerts list — not a full inbox. Lifecycle: New →
+          Acknowledged → dismissed. Click any row to open the ticket (auto-acknowledges).
+        </p>
+
+        <div class="mock-shell">
+          <img
+            src="surface-3-notifications-pane.svg"
+            alt="Notifications pane mockup — bell-icon dropdown with New and Acknowledged sections"
+            style="width: 100%; height: auto; display: block; border-radius: 8px"
+          />
+        </div>
+
+        <ol class="callouts">
+          <li>
+            <strong>Anchored to header bell icon</strong>
+            <span class="qref">Q13</span> — badge shows unread count. Dropdown panel ~600px wide on
+            desktop; full-screen overlay on mobile.
+          </li>
+          <li>
+            <strong>Lifecycle visual</strong> — <strong>New</strong> rows have a tinted (light blue)
+            background covering the whole row (no per-row knob — saves space).
+            <strong>Acknowledged</strong> rows are plain white. <strong>Dismissed</strong> rows are
+            removed from view via the per-row × action.
+          </li>
+          <li>
+            <strong>Acknowledging is implicit</strong> — clicking a row opens the linked ticket and
+            auto-acknowledges. There's no separate "ack" button. "Mark all acknowledged" in the
+            footer is the bulk equivalent.
+          </li>
+          <li>
+            <strong>Capacity</strong> — limited list (~5–10 rows). Scrollbar appears automatically
+            if the window is squeezed vertically. <strong>"View all →"</strong> opens a full-page
+            list of every not-yet-dismissed notification.
+          </li>
+          <li>
+            <strong>Fires on — defaults (subscriber-driven)</strong>:
+            <ul style="margin: 4px 0 0; padding-left: 18px">
+              <li><strong>@mention</strong> — the mentioned user, always.</li>
+              <li><strong>Comment</strong> — ticket subscribers.</li>
+              <li><strong>Internal note</strong> — subscribers only.</li>
+              <li><strong>Column move</strong> — subscribers only.</li>
+              <li><strong>New assignment</strong> — the assignee.</li>
+            </ul>
+          </li>
+          <li>
+            <strong>Fires on — opt-in (team-wide blasts)</strong>:
+            <ul style="margin: 4px 0 0; padding-left: 18px">
+              <li>
+                <strong>Share-with → target team</strong> — fires to the whole target team only if
+                "notify team" is ticked at share-time.
+              </li>
+              <li>
+                <strong>Add-to-active-board → own team</strong> — fires to the whole owning team
+                only if the option is ticked at the time the admin moves the ticket from backlog
+                onto the active board.
+              </li>
+            </ul>
+          </li>
+          <li>
+            <strong>Each row shows</strong> — source ticket title (link) · group name + "shared" tag
+            if cross-team · reason glyph (📝 note · ⏵ moved · @ mention · ⊕ assigned · 💬 comment) ·
+            timestamp · per-row dismiss <code>×</code>.
+          </li>
+          <li>
+            <strong>Cross-team awareness</strong>
+            <span class="qref">Q10</span> — notifications from shared-with tickets render with the
+            team name they're shared from (e.g. <code>Newsletter Q3 · Social Media (shared)</code>).
+            The team-picker badge counts these.
+          </li>
+          <li>
+            <strong>Not an inbox</strong> — you don't reply to tickets from here. Click → opens the
+            ticket detail (Surface 2) where you respond.
+          </li>
+        </ol>
+      </section>
+
+      <!-- =================================================================
+         Footer
+         ================================================================= -->
+      <footer class="page-footer">
+        <p>
+          Source-of-truth: <code>docs/build/session-briefs/bu-coordination-board.md</code>
+          (rewrite to v0.4 pending) · Non-tech overview:
+          <code>docs/product/coordination-board-overview.md</code> · Broadcast surface split into
+          <code>bu-broadcast</code> (stub pending).
+        </p>
+        <p>
+          <strong>What changed in v0.4:</strong> Surfaces 2 + 3 (Inbox desktop + mobile) dropped
+          after Direction B was rejected by both Paul and Leonid. New Surface 2 (Ticket detail) and
+          Surface 3 (Notifications pane) reflect the agreed model: communication lives inside the
+          ticket, alerts live in a thin dropdown. Broadcast surfaces 4 + 5 split out to their own
+          BU.
+        </p>
+        <p>
+          How to share: open this file in any browser → screenshot per surface (⌘⇧4) for Slack /
+          email; or drop the SVG / JPG files (alongside this <code>index.html</code>) directly into
+          slide decks; or print to PDF (⌘P → Save as PDF) for stakeholders who want the whole set;
+          or push to GitHub Pages for a URL.
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>
