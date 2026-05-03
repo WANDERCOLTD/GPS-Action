@@ -59,11 +59,11 @@ Both Backlog and Done can be displayed as cards or as a plain list.
 
 ## Who uses it, and what they can do
 
-| Role | What they can do |
-|---|---|
-| **Member of a team** | See the team's board, claim cards, move cards they own through the columns, comment, subscribe to specific jobs |
-| **Team admin** | Everything above, plus: approve people who want to join the team, promote a member to team admin, configure the team's columns, drag cards to reorder priority, accept jobs sent to the team from elsewhere |
-| **System admin** | Everything above, across every team. Plus: create new teams, archive teams that are no longer active, intervene if a team admin is unavailable |
+| Role                 | What they can do                                                                                                                                                                                            |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Member of a team** | See the team's board, claim cards, move cards they own through the columns, comment, subscribe to specific jobs                                                                                             |
+| **Team admin**       | Everything above, plus: approve people who want to join the team, promote a member to team admin, configure the team's columns, drag cards to reorder priority, accept jobs sent to the team from elsewhere |
+| **System admin**     | Everything above, across every team. Plus: create new teams, archive teams that are no longer active, intervene if a team admin is unavailable                                                              |
 
 Joining a team needs admin approval (with one exception — see
 "Networks" below). The Tech team specifically remains
@@ -118,12 +118,14 @@ CUFI simultaneously, with each tracking their own progress.
 Every member chooses two things in their settings:
 
 **How much to be notified about:**
+
 - Everything on my boards
 - Only jobs I've subscribed to
 - Only when I'm @mentioned
 - Nothing
 
 **Where to be notified:**
+
 - Inside GPS
 - WhatsApp
 - Email
