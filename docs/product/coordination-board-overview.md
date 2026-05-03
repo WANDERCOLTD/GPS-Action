@@ -13,7 +13,7 @@ what we're proposing to build, why, and which decisions are still open.
 > described after Shape A. Both are inbound surfaces: how teams
 > manage work coming at them.
 >
-> A third surface — **Companion: Broadcast** — handles the *outbound*
+> A third surface — **Companion: Broadcast** — handles the _outbound_
 > side: when GPS sends a campaign to a Group, Network, or Region.
 > Inspired by SleekFlow's
 > [Broadcast](https://sleekflow.io/broadcast) wizard. It's described
@@ -371,23 +371,23 @@ other.
 Before we lock it in:
 
 a. **Who's allowed to broadcast to whom?** Members to their own
-   teams? Group admins to their group? Sysadmins to anyone? Network
-   admins to their network only? Need to draw the matrix.
+teams? Group admins to their group? Sysadmins to anyone? Network
+admins to their network only? Need to draw the matrix.
 b. **What's a "big" send that needs a second approver?** A specific
-   number of recipients? Any cross-organisation reach? Both?
+number of recipients? Any cross-organisation reach? Both?
 c. **What does a recipient see if their preference disagrees with
-   the sender?** If a member chose "WhatsApp only" and the broadcast
-   is email, do they get nothing, or does sender choice override?
+the sender?** If a member chose "WhatsApp only" and the broadcast
+is email, do they get nothing, or does sender choice override?
 d. **One Broadcast in two languages, or two Broadcasts?** Hebrew +
-   English: send one with both variants and pick by member language,
-   or send two with shared audience?
+English: send one with both variants and pick by member language,
+or send two with shared audience?
 e. **What language do we use in the UI?** "Send to..." reads
-   friendly to members. "Broadcast" sounds like power-user
-   terminology. Recommend "Send to..." in the member-facing UI;
-   "Broadcast" stays in admin/analytics views.
+friendly to members. "Broadcast" sounds like power-user
+terminology. Recommend "Send to..." in the member-facing UI;
+"Broadcast" stays in admin/analytics views.
 f. **Aggregate analytics or per-recipient?** Aggregate ("87% opened")
-   is safe and useful. Per-recipient read receipts may feel
-   surveillance-y. Likely default to aggregate-only for non-sysadmins.
+is safe and useful. Per-recipient read receipts may feel
+surveillance-y. Likely default to aggregate-only for non-sysadmins.
 
 ### Should the Companion ship in the same BU?
 
