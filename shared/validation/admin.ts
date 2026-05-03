@@ -33,6 +33,23 @@ export const ADMIN_ENTITY_KEYS = [
 
 export type AdminEntityKeyShared = (typeof ADMIN_ENTITY_KEYS)[number];
 
+/**
+ * (entity, field) pairs that may be flipped via the entity-list
+ * one-click toggle. Restricting to a small allowlist keeps the
+ * blast radius narrow — admins can still edit any boolean from the
+ * detail page, but only these are flippable from the list.
+ *
+ * Both the server action and the list-page renderer consult this,
+ * so the gate is enforced regardless of caller.
+ */
+export const INLINE_TOGGLE_ALLOWLIST: Readonly<Record<string, ReadonlyArray<string>>> = {
+  featureFlag: ['enabledGlobally'],
+};
+
+export function isInlineToggleAllowed(entity: string, field: string): boolean {
+  return INLINE_TOGGLE_ALLOWLIST[entity]?.includes(field) ?? false;
+}
+
 const entityEnum = z.enum(ADMIN_ENTITY_KEYS);
 
 const dataRecord = z.record(z.string(), z.unknown());
