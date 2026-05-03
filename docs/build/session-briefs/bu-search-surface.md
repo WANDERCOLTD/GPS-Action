@@ -1,7 +1,7 @@
 ---
 slug: bu-search-surface
 status: shipped
-shipped_in: '#TBD'
+shipped_in: '#189'
 phase: 2
 priority: medium
 ---
@@ -247,7 +247,7 @@ worse version of both.
 | #183 | PR A — `pg_trgm` extension + 4 GIN indexes (ADR-0004)                                                          |
 | #184 | PR B — `search.query` tRPC procedure + service layer + visibility                                              |
 | #188 | PR C — AppNav magnifier + `/search` route shell                                                                |
-| #TBD | PR D — typeahead grouped results + full-results page + recently-viewed (localStorage) + 4 telemetry events     |
+| #189 | PR D — typeahead grouped results + full-results page + recently-viewed (localStorage) + 4 telemetry events     |
 
 Operational follow-ups parked:
 
