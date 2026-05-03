@@ -22,6 +22,7 @@
     "intent",
     "capabilities",
     "calendar",
-    "dev"
+    "dev",
+    "search"
   ]
 }

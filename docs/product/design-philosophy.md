@@ -227,6 +227,8 @@ via Settings → "Data"). Still in use elsewhere — e.g.
 | Filter chip — Meetings      | `users`                   | `FeedFilterChips` (BU-icon-strips)                                        |
 | Comments tab — Activity     | `activity`                | `CommentList` (BU-icon-strips)                                            |
 | Sort affordance — Distance  | `ruler-dimension-line`    | `NearMeView` (BU-icon-strips — map-scale-bar look)                        |
+| Search trigger              | `search`                  | `AppNav` (BU-search-surface, PR C — magnifier in the header strip)        |
+| Page-back affordance        | `chevron-left`            | `SearchShell` (BU-search-surface, PR C — `/search` page header)           |
 
 ### Person vs group (the `user` / `users` carve)
 
@@ -270,8 +272,6 @@ their own.
 
 | Concept                                | Glyph            | New / Re-use         |
 | -------------------------------------- | ---------------- | -------------------- |
-| Search trigger (AppNav header)         | `search`         | New                  |
-| Overlay header back                    | `chevron-left`   | New                  |
 | Posts group label (optional)           | `message-square` | Re-use (PostCard)    |
 | Regions group label (optional)         | `map-pin`        | Re-use (PostCard)    |
 | People group label (optional)          | `user`           | New                  |

@@ -68,6 +68,7 @@ The first segment must come from this approved list:
 | `capabilities` | SRS capabilities mockup at `/capabilities` — static showcase tiles (`app/capabilities/`)                        |
 | `calendar`     | Calendar tab — agenda view, month grid, day panel (BU-calendar-view — D073)                                     |
 | `dev`          | Dev-only affordances on the demo path — banner toggle, dev tools (BU-one-click-polish)                          |
+| `search`       | Search overlay + full-results page (BU-search-surface — D078)                                                   |
 
 To add a new area:
 
