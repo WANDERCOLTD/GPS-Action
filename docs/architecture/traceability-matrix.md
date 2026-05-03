@@ -81,7 +81,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-requests-foundation | 6 | SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D065, D072, D073, D078 |
 | BU-requests-urgent | 5 | SCN-21, SCN-22, SCN-23 | D054, D055, D056, D057, D058, D061, D072 |
 | BU-requests-vetting | 7 | SCN-20, SCN-21, SCN-22, SCN-23 | D052, D054, D055, D056, D057, D058, D061, D072 |
-| BU-search-surface | 7 | SCN-31 | D054, D061, D065, D073, D078 |
+| BU-search-surface | 12 | SCN-31 | D054, D061, D065, D073, D078, DNaN |
 | BU-secondary-cta-placeholders | 1 | — | DNaN |
 | BU-seed | 1 | — | D038 |
 | BU-share-rail-on-detail | 4 | — | D067 |
@@ -121,5 +121,5 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D072 | Post lifecycle, publish router, and per-kind action registry | 21 |
 | D073 | Structured event-time fields on `Post` (`event_at`, `event_ends_at`, `location_text`) | 22 |
 | D076 | Post location coordinates + online flag (`latitude`, `longitude`, `isOnline`) | 7 |
-| D078 | App-wide member search: 9 design decisions for `bu-search-surface` | 3 |
+| D078 | App-wide member search: 9 design decisions for `bu-search-surface` | 6 |
 

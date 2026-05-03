@@ -1,6 +1,7 @@
 ---
 slug: bu-search-surface
-status: ready
+status: shipped
+shipped_in: '#TBD'
 phase: 2
 priority: medium
 ---
@@ -239,9 +240,23 @@ worse version of both.
 
 ## Status
 
-**Ready.** All 8 pre-build decisions locked 2026-05-01. Two
-operational details (trgm similarity threshold, body-column index
-choice) confirm at build time — not blocking.
+**Shipped** in 4 PRs (May 2026):
+
+| PR   | Scope                                                                                                         |
+| ---- | ------------------------------------------------------------------------------------------------------------- |
+| #183 | PR A — `pg_trgm` extension + 4 GIN indexes (ADR-0004)                                                          |
+| #184 | PR B — `search.query` tRPC procedure + service layer + visibility                                              |
+| #188 | PR C — AppNav magnifier + `/search` route shell                                                                |
+| #TBD | PR D — typeahead grouped results + full-results page + recently-viewed (localStorage) + 4 telemetry events     |
+
+Operational follow-ups parked:
+
+- **pg_trgm typo tolerance (`henden → hendon`).** Service uses `ILIKE`
+  in v1; trigram indexes already in place for the v2 upgrade.
+  Service-only swap when a pilot signal warrants it.
+- **Comment search.** Excluded from v1 per D078 §2 (privacy review).
+- **Partner-orgs entity.** Result group ships empty-hidden until §3.30
+  partner-orgs lands (D078 §9).
 
 ---
 
