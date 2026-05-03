@@ -355,156 +355,28 @@ Sources reviewed (sleekflow.io docs, 2026-05-03):
 
 ---
 
-## Companion surface: Broadcast (outbound) — under consideration
+## Companion surface: Broadcast (outbound) — split into bu-broadcast
 
-Folded in 2026-05-03 PM after a closer look at SleekFlow's
-[Broadcast](https://sleekflow.io/broadcast) product, which is
-conceptually equivalent to "GPS sends this to our Groups or Networks."
-Inbox handles the inbound + collaborative half of the coordination
-surface; Broadcast handles the outbound half. They share the audience
-model (Groups / Networks / Regions / Roles), channel model, labels,
-audit, and analytics — so folding them into one BU avoids two
-divergent audience pickers and two notification engines.
+The Broadcast / outbound campaign surface that was originally folded
+into this brief has been **split into its own BU** as of 2026-05-03 PM
+(per Q5 — see `docs/build/session-briefs/bu-broadcast.md`). Reason:
+Leonid noted Broadcast "looks like a separate tool from Kanban,"
+the review audience differs (comms / Jeremy + partner-org leads vs
+Leonid + tech crew), and the schema seam is clean enough to evolve
+the two independently.
 
-If the tech review prefers, this companion can be split out as a
-separate `bu-broadcast` brief; the schema seam at the spine layer is
-clean enough.
+Coord-Board now owns the inbound + collaborative half (kanban,
+ticket detail, notifications pane); `bu-broadcast` owns the outbound
++ measurement half (4-step wizard, audience builder, scheduling,
+analytics). They share the audience model (Groups · Networks ·
+Regions · Roles), channel model, and label taxonomy at the spine
+layer; both ride a single underlying fan-out service. Cross-cutting
+seams (Broadcast replies → tickets, shared `MessageTemplate`
+library, single fan-out service for Notifications + Broadcast) are
+documented in the bu-broadcast brief.
 
-### What SleekFlow Broadcast is
-
-A **4-step wizard** for sending personalised messages to a filtered
-audience across multiple channels, with scheduling/automation and
-post-send analytics:
-
-1. **Segmentation.** Build the audience by filtering contacts —
-   labels, channel availability, last-active date, attributes.
-2. **Personalization.** Pick channels (WhatsApp / SMS / IG /
-   Messenger / WeChat). Name the broadcast. Compose a message
-   template with variable placeholders (`{name}`, `{Code}`),
-   multimedia attachments, dynamic links, and WhatsApp interactive
-   buttons (opt-in, quick replies). Preview shows a per-recipient
-   render.
-3. **Automation.** One-shot scheduled send, recurring, or triggered
-   (event-driven). Stop-on-action rules to avoid pestering users
-   who've already done the thing.
-4. **Analytics.** Delivery rate, open rate (channel-permitting),
-   click-through, reply rate, action-taken, unsubscribe rate.
-
-### Mapping to GPS
-
-| SleekFlow Broadcast | GPS analogue |
-|---|---|
-| Channels (WhatsApp/SMS/IG/Messenger/WeChat) | WhatsApp dispatch (existing send path) · AM email · in-app notification · push (Phase 2) · SMS (parking-lot) |
-| Audience segment | Boolean filter over `Group` × `Network` × `Region` × `RoleGrant` × vetted-state × activity (e.g. last-share-date) |
-| Personalization variables | `{firstName}`, `{region}`, `{personalShareLink}` (token-stamped per recipient — see D018), `{lastActionDate}`, language variant |
-| Interactive buttons (quick reply / opt-in) | GPS verbs surfaced as buttons: **Share · Boost · Skip · I'm in · RSVP** — each triggers an attributed server action |
-| Broadcast (campaign object) | NEW — `Broadcast` entity: name, audience filter snapshot, content template, channels, schedule, status |
-| Per-recipient delivery state | NEW — `BroadcastRecipient`: queued / sent / delivered / opened / acted / failed / unsubscribed |
-| Saved replies (templates library) | Shared with Inbox — single `MessageTemplate` library scoped per team |
-| Analytics dashboard | Per-broadcast view + aggregate per-team |
-
-### What Broadcast adds that Inbox doesn't
-
-- **Campaign primitive.** A first-class `Broadcast` object distinct
-  from a `Request`. A broadcast may *spawn* Requests on reply (see
-  cross-cutting question below), but is itself a one-to-many send,
-  not a coordinated job.
-- **Audience builder UI** — query-builder over Groups / Networks /
-  Regions / Roles / activity filters, with live recipient count.
-- **Variable-pill message editor** — inline `{firstName}` style
-  placeholders in the composer, with a live render preview.
-- **Approval gate above N recipients** — anti-hijack and
-  anti-mass-mistake. Cross-team or large-Network sends require a
-  second approver.
-- **Per-recipient delivery state machine** with sweepers for
-  scheduled-send and stop-on-action rules.
-- **Analytics surface** — delivery / open / click / action /
-  unsubscribe per broadcast, per segment.
-
-### What Broadcast borrows from Inbox
-
-- Audience model — same `Group` / `Network` / `Region` / `RoleGrant`
-  primitives.
-- Channel model — same fan-out path (WhatsApp dispatch, AM email,
-  in-app, push).
-- Labels — segmentation filters can use the same `Request.labels`
-  taxonomy (and label contacts, not just Requests).
-- Audit log — every broadcast captured with author, audience
-  snapshot, content, results (mirrors Inbox's audit ratchet).
-- System-message rendering — broadcast send/delivery summaries land
-  in-thread on the originating Request when one exists.
-
-### Cross-cutting seams (Inbox × Broadcast)
-
-- **Replies → Inbox.** When a recipient replies (in-app, WhatsApp
-  inbound, email reply), the response lands as a Request in the
-  originating team's inbox, threaded against the Broadcast.
-- **Saved replies vs broadcast templates.** One `MessageTemplate`
-  library, two consumers — avoids divergence.
-- **Notification engine vs Broadcast triggers.** Both want to "send
-  X to audience Y when event Z fires." Should be one engine, not two.
-  Likely answer: Broadcast is the user-facing surface; the underlying
-  fan-out service is shared with the in-app Notification primitive.
-- **Labels are bidirectional.** A label on a Request filters Inbox;
-  a label on a User contributes to Broadcast segmentation. Same
-  taxonomy, two surfaces.
-
-### Open questions Broadcast raises (Direction-C, broadcast-only)
-
-19. **Authoring authority matrix.** Who can broadcast to what?
-    Members → their own teams? Group admins → their group + adjacent?
-    Sysadmins → anyone? Network admins → their network only? Define
-    the matrix; it shapes the audience-builder permission boundary.
-20. **Approval gate threshold.** Above what audience size (or what
-    cross-org reach) does a second approver kick in? Who's the
-    approver — sysadmin pool, or any Group admin from the
-    target audience?
-21. **Channel selection: per-recipient preference vs sender choice.**
-    If Sharon's prefs say "WhatsApp only" and a broadcast is sent on
-    email, does she get nothing, or does sender override? Define the
-    fallback chain (try WhatsApp → fall back to email → fall back to
-    in-app).
-22. **Personalization variable set.** Confirm: `{firstName}`,
-    `{region}`, `{personalShareLink}`, `{lastActionDate}`, language.
-    Fallback strings for missing values? ("Hi friend" if no first
-    name.)
-23. **Multilingual broadcasts.** Hebrew + English variants of the
-    same broadcast, picked per-recipient by their language attribute?
-    One Broadcast with N variants, or N Broadcasts with shared
-    audience?
-24. **Interactive-button → GPS-verb mapping.** WhatsApp quick-reply
-    buttons map to: Share / Boost / Skip / I'm in / RSVP. Does each
-    button trigger a server-attributed action (creating a verified
-    share / RSVP record), or just a templated reply that lands in
-    Inbox for human triage?
-25. **Stop-on-action semantics.** A drip sequence must stop when the
-    recipient has done "the thing." Define "the thing" — is it a
-    generic `RequestAction` event (verified share, RSVP, comment), or
-    per-broadcast custom condition?
-26. **Triggered broadcasts vs the existing Notification primitive.**
-    Big overlap. Risk: two systems, divergent audit. Recommend single
-    underlying fan-out service, two surfaces (in-app notifications
-    are short-form; broadcasts are long-form campaigns).
-27. **Anti-spam caps per recipient.** Max broadcasts per recipient
-    per day across all senders. Per-channel? Per-category? Whose
-    responsibility — platform, team, or sender?
-28. **Unsubscribe granularity.** Per-broadcast, per-category
-    (operational vs campaign), or per-channel? Affects opt-in
-    schema and member-facing settings.
-29. **Broadcast replies → Inbox.** Reply lands as Request threaded
-    against the Broadcast — assignee defaults to broadcast author,
-    on rotation, or unassigned?
-30. **Analytics privacy.** Aggregate metrics (delivery / open /
-    click) are safe. Per-recipient read receipts may be creepy. Pick
-    a line; default to aggregate-only for non-sysadmins.
-31. **Member-facing copy.** "Send to..." vs "Broadcast to..." —
-    "Broadcast" reads as power-user/admin language. Recommend
-    "Send to..." in member UI; keep "Broadcast" as the data/admin
-    term. (Carries the CLAUDE.md "Send not Dispatch" rule forward.)
-
-Sources reviewed (broadcast, 2026-05-03):
-- https://sleekflow.io/broadcast — 4-step wizard tour (screenshot
-  review only; product-page level, not detailed docs).
+The 13 Broadcast-specific open questions previously listed here as
+Q19–Q31 have moved to that brief.
 
 ---
 
