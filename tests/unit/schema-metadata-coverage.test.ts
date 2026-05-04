@@ -50,6 +50,17 @@ const SCHEMA_MODELS_AWAITING_METADATA: ReadonlyArray<string> = [
   // BU-requests-vetting — added the Notification model.
   // Admin metadata pending.
   'Notification',
+  // bu-coordination-board (ADRs 0005-0009) — schema PR (#1 of 8). Admin
+  // metadata for these entities lands once services + UI exist (PRs
+  // #2-#7); the kanban surface is the primary CRUD path, with admin
+  // metadata covering the configuration corners (BoardColumn,
+  // GroupShareWorkflow) and the auditable joins (Assignment,
+  // RequestGroup, RequestSubscription).
+  'Assignment',
+  'RequestGroup',
+  'GroupShareWorkflow',
+  'BoardColumn',
+  'RequestSubscription',
 ];
 
 // Metadata keys with no corresponding schema model. None today.
