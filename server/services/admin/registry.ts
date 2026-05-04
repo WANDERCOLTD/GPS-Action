@@ -31,6 +31,7 @@ import {
   planIncludeFromColumns,
   planToPrismaInclude,
 } from '@/server/services/admin/include';
+import { seedDefaultColumnsForGroup } from '@/server/services/board-column';
 import type {
   AdminGetArgs,
   AdminListArgs,
@@ -537,7 +538,7 @@ const groupEntry: EntityRegistryEntry = {
   },
   async create({ data, actorId }) {
     const parsed = groupCreateSchema.parse(data);
-    return prisma.group.create({
+    const created = await prisma.group.create({
       data: {
         slug: parsed.slug,
         displayName: parsed.displayName,
@@ -546,8 +547,17 @@ const groupEntry: EntityRegistryEntry = {
         isOfficial: parsed.isOfficial,
         createdByUserId: actorId,
       },
-      select: { id: true },
+      select: { id: true, kind: true },
     });
+    // Seed default BoardColumn set per ADR-0006. Idempotent — if the
+    // seed fails the next call will retry. The board's empty-state
+    // covers the brief mid-creation gap.
+    await seedDefaultColumnsForGroup({
+      groupId: created.id,
+      kind: created.kind,
+      actorId,
+    });
+    return { id: created.id };
   },
   async update({ id, data }) {
     const parsed = groupUpdateSchema.parse(data);
