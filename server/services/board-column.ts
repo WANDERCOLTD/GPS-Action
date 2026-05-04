@@ -119,6 +119,20 @@ export async function listColumnsForGroup(groupId: string): Promise<BoardColumn[
 }
 
 /**
+ * Resolve the groupId for a BoardColumn — used by routers to gate
+ * column-level mutations behind the group-admin permission check
+ * before calling the mutation primitives. Returns null if the column
+ * doesn't exist (deleted or otherwise).
+ */
+export async function getColumnGroupId(columnId: string): Promise<string | null> {
+  const row = await prisma.boardColumn.findUnique({
+    where: { id: columnId },
+    select: { groupId: true },
+  });
+  return row?.groupId ?? null;
+}
+
+/**
  * Append a new column at the end of the Group's active set (ordinal =
  * current count). Trim + reject empty `displayName`.
  */
