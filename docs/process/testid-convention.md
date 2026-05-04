@@ -69,6 +69,7 @@ The first segment must come from this approved list:
 | `calendar`     | Calendar tab — agenda view, month grid, day panel (BU-calendar-view — D073)                                     |
 | `dev`          | Dev-only affordances on the demo path — banner toggle, dev tools (BU-one-click-polish)                          |
 | `search`       | Search overlay + full-results page (BU-search-surface — D078)                                                   |
+| `board`        | Coordination board — group picker, kanban view, ticket detail, notifications (bu-coordination-board)            |
 
 To add a new area:
 

@@ -1,21 +1,29 @@
 /**
- * @build-unit BU-coordination-board
+ * @build-unit bu-coordination-board (build seq #4 — Surface 1, PR #4c)
  * @spec docs/build/session-briefs/bu-coordination-board.md
  *
- * `/board` placeholder route — coordination-board landing surface.
- * Reserved while the BU is still in `planned` status (Direction A —
- * kanban — settled, awaiting tech-review with Simon, Harry, Grant,
- * Paul, Leonid). Members reaching this URL while the flag is on see
- * a coming-soon panel; flag-off redirects to /feed.
+ * `/board` landing — the group-areas selector. Replaces the placeholder
+ * that shipped in #192 with a list of every group the caller can open
+ * a board for. Each card links to `/board/[slug]` (the kanban view,
+ * built in PR #4d).
  *
- * Gated by the `coord_board_v1` feature flag. Mirrors the
- * `/calendar` flag-off redirect pattern so the route is never
- * reachable without the AppNav tab also being visible.
+ * Gated by the `coord_board_v1` feature flag. Flag-off redirects to
+ * `/feed` (matches the placeholder's behaviour, which mirrors the
+ * `/calendar` flag-off pattern).
+ *
+ * Unauthenticated users hit the dev-login redirect: there is no
+ * gated landing for /board (members-only surface by design).
  */
 
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { createCaller } from '@/server/routers/_app';
+import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
+import {
+  BoardGroupPicker,
+  type BoardGroupKind,
+  type BoardGroupPickerItem,
+} from '@/components/board/BoardGroupPicker';
 
 export const metadata = {
   title: 'Board — GPS Action',
@@ -27,9 +35,25 @@ export default async function BoardPage() {
     redirect('/feed');
   }
 
+  const ctx = await createTRPCContext();
+  if (!ctx.user) {
+    redirect('/dev/login');
+  }
+
+  const caller = createCaller(ctx);
+  const accessible = await caller.groupKanban.listMine();
+
+  const groups: BoardGroupPickerItem[] = accessible.map((row) => ({
+    id: row.group.id,
+    slug: row.group.slug,
+    displayName: row.group.displayName,
+    description: row.group.description,
+    kind: row.group.kind as BoardGroupKind,
+    isAdmin: row.access.canAdminBoard,
+  }));
+
   return (
     <main
-      data-testid="board-placeholder"
       style={{
         padding: 'var(--space-6) var(--space-4)',
         maxWidth: 720,
@@ -39,50 +63,24 @@ export default async function BoardPage() {
       <h1
         style={{
           margin: 0,
-          marginBottom: 'var(--space-3)',
+          marginBottom: 'var(--space-2)',
           fontSize: 'var(--text-xl)',
           fontFamily: 'var(--font-ui)',
         }}
       >
-        Coordination board
+        Coordination boards
       </h1>
-      <p
-        style={{
-          margin: 0,
-          marginBottom: 'var(--space-4)',
-          color: 'var(--colour-text-secondary)',
-          lineHeight: 1.5,
-        }}
-      >
-        Coming soon — a kanban view of every job each working group has on the go. Allocate to
-        people, see what's stuck, and hand things across teams without losing track.
-      </p>
       <p
         style={{
           margin: 0,
           marginBottom: 'var(--space-5)',
           color: 'var(--colour-text-secondary)',
-          fontSize: 'var(--text-sm)',
+          lineHeight: 1.5,
         }}
       >
-        The brief is shaped; tech-review and prototype are next. For now this tab reserves the slot.
+        Open the board for any working group you belong to.
       </p>
-      <Link
-        href="/feed"
-        data-testid="board-placeholder-back"
-        style={{
-          display: 'inline-block',
-          padding: 'var(--space-2) var(--space-4)',
-          borderRadius: 'var(--radius-sm)',
-          background: 'var(--colour-surface-sunken)',
-          color: 'var(--colour-text-link)',
-          textDecoration: 'none',
-          fontSize: 'var(--text-sm)',
-          fontFamily: 'var(--font-ui)',
-        }}
-      >
-        ← Back to feed
-      </Link>
+      <BoardGroupPicker groups={groups} />
     </main>
   );
 }
