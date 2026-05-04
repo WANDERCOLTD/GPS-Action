@@ -110,7 +110,7 @@ Each is its own atomic PR. Stack on `main` once #205 + #206 land.
 | 2d | `group-kanban.ts` | Group-flavoured queries for kanban (member's groups + access checks). Coexists with admin's group CRUD. | #1, 2c |
 | 2e | `request-group.ts` | Share-with-team service (RequestGroup CRUD + GroupShareWorkflow CRUD + permission envelope). | #1, 2d |
 | 2f | `notifications-kanban.ts` | Lifecycle transitions, reasonKind dispatch, fan-out. Extends existing `notification.ts` rather than replace. | #1, 2b |
-| 2g | **Breaking changes** | Drop `Request.claimedByUserId`, drop `Request.requestType`, reframe `RequestStatus`. Update every consumer. **Needs Paul's confirm on requestType semantics first.** | all |
+| 2g | **Breaking changes** | Drop `Request.claimedByUserId`, **make `Request.requestType` nullable** (Option B, resolved 2026-05-04 — see Open Q #1), reframe `RequestStatus`. Update every consumer. | all |
 
 PR #3 (routers) starts after services. PR #4 (Surface 1 kanban)
 is unblocked the moment routers exist.
@@ -119,11 +119,17 @@ is unblocked the moment routers exist.
 
 ## Open questions to resolve with Paul
 
-1. **`Request.requestType` drop semantics.** Brief says "every
-   ticket is just a ticket" → does the column drop entirely, or
-   does it stay nullable (kanban cards have null type, vetting/
-   flag/kind_review keep their type)? Resolution affects PR #2g
-   and every downstream consumer.
+1. ~~**`Request.requestType` drop semantics.**~~ **RESOLVED 2026-05-04 — Option B.**
+   Keep column, make it nullable. Kanban cards have `requestType = null`;
+   vetting / flag / kind_review / outcome_review / dedup_merge /
+   edit_request / incident / content_submission / link_submission keep
+   their existing type values. Additive migration — no breaking change
+   to existing readers. PR #2g no longer needs to drop the column;
+   it just needs to (a) make the column nullable in schema +
+   migration, and (b) leave kanban-card creation paths writing `null`.
+   The "every ticket is just a ticket" line in the brief means the
+   *kanban surface* doesn't branch on requestType — not that the
+   column is gone.
 
 2. **Default `BoardColumn` workflow names per `GroupKind`.** The
    handoff Session 2 listed defaults but flagged some are

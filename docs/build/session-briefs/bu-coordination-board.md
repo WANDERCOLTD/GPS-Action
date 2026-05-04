@@ -191,7 +191,15 @@ per-group override is allowed (Tier-2 default #5).
 `Request` field changes:
 
 - Drop `Request.claimedByUserId` (replaced by `Assignment`).
-- Drop `Request.requestType` enum (every ticket is just a ticket).
+- Make `Request.requestType` nullable (kanban tickets carry `null`;
+  vetting / flag / kind_review / outcome_review / dedup_merge /
+  edit_request / incident / content_submission / link_submission
+  rows keep their existing values). Resolved 2026-05-04 — the brief's
+  earlier "drop the enum" line was ambiguous; Option B (nullable, not
+  removed) was chosen because all 9 enum values are still in active
+  use by non-kanban surfaces. The kanban surface itself does not
+  branch on requestType — that's what "every ticket is just a ticket"
+  means.
 - Add `Request.columnId: String?` (FK to `BoardColumn`).
 - Add `Request.boardPosition: Decimal` (manual reshuffle).
 - Add `Request.isUrgent: Boolean`.
@@ -384,7 +392,7 @@ Request.columnId                     : String?  (FK BoardColumn)
 Request.boardPosition                : Decimal
 Request.isUrgent                     : Boolean
 - Request.claimedByUserId             # dropped, replaced by Assignment
-- Request.requestType                 # dropped, ticket = ticket
+~ Request.requestType                 # made nullable (Option B, 2026-05-04); kanban cards carry null
 
 # Field changes — Comment
 Comment.kind                         : CommentKind
