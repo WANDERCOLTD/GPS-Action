@@ -157,8 +157,8 @@ model User {
   regionsOfInterest UserRegion[]
 
   // Requests (BU-requests-foundation — D054; renamed from WorkItem)
+  // requestsClaimed dropped per ADR-0011; ownership lives on Assignment.
   requestsCreated  Request[] @relation("requestsCreated")
-  requestsClaimed  Request[] @relation("requestsClaimed")
   requestsResolved Request[] @relation("requestsResolved")
 
   // Role grants
@@ -306,11 +306,10 @@ model Request {
   createdByUserId String?
   createdBy       User?    @relation("requestsCreated", fields: [createdByUserId], references: [id], onDelete: SetNull)
 
-  // Claim fields (all nullable until a claim happens)
-  claimedByUserId String?
-  claimedBy       User?     @relation("requestsClaimed", fields: [claimedByUserId], references: [id], onDelete: SetNull)
-  claimedAt       DateTime?
-  claimExpiresAt  DateTime?
+  // Claim trio dropped per ADR-0011 (PR #2g.2). The single-owner pattern
+  // is replaced by the Assignment join (ADR-0009). lastHeartbeatAt
+  // survives the drop — it's an orthogonal field for the realtime
+  // presence pattern, not part of the claim model.
   lastHeartbeatAt DateTime?
 
   // Resolution fields (populated on resolve)
@@ -354,7 +353,6 @@ model Request {
   subscriptions RequestSubscription[]
 
   @@index([status, priority, createdAt])
-  @@index([claimedByUserId, status])
   @@index([type, status])
   @@index([regionSlug, status])
   @@index([urgency, status])

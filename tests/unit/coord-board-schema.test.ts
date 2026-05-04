@@ -46,6 +46,11 @@ const MIGRATION_SQL_2G1 = readFileSync(
   'utf8',
 );
 
+const MIGRATION_SQL_2G2 = readFileSync(
+  join(process.cwd(), 'prisma/migrations/20260504130000_drop_request_claim_trio/migration.sql'),
+  'utf8',
+);
+
 const RENAME_SQL = readFileSync(
   join(
     process.cwd(),
@@ -200,8 +205,19 @@ describe('coord-board schema — field additions on existing entities', () => {
     expect(MIGRATION_SQL).toMatch(/"reasonKind" "NotificationReasonKind"(?!\s+NOT NULL)/);
   });
 
-  it('Request.claimedByUserId still present (drop deferred to PR #2g.2)', () => {
-    expect(fieldOf('Request', 'claimedByUserId').type).toBe('String');
+  it('Request claim trio dropped per ADR-0011 (PR #2g.2)', () => {
+    // Ownership lives on Assignment now. Schema sanity: confirm the
+    // fields are gone + the migration backfills Assignment rows from
+    // the legacy column before the DROP.
+    const requestModel = datamodel.models.find((m) => m.name === 'Request');
+    expect(requestModel).toBeDefined();
+    const fields = requestModel!.fields.map((f) => f.name);
+    expect(fields).not.toContain('claimedByUserId');
+    expect(fields).not.toContain('claimedAt');
+    expect(fields).not.toContain('claimExpiresAt');
+    expect(fields).not.toContain('claimedBy');
+    expect(MIGRATION_SQL_2G2).toMatch(/INSERT INTO "Assignment"/);
+    expect(MIGRATION_SQL_2G2).toMatch(/DROP COLUMN "claimedByUserId"/);
   });
 
   it('Request.type is nullable per ADR-0010 (Option B)', () => {

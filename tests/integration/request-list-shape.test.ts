@@ -37,9 +37,6 @@ function makeDbRequest(overrides: Record<string, unknown> = {}) {
     groupTags: [],
     createdAt: new Date('2026-04-30T10:00:00Z'),
     createdByUserId: 'u-submitter',
-    claimedByUserId: null,
-    claimedAt: null,
-    claimExpiresAt: null,
     lastHeartbeatAt: null,
     resolvedAt: null,
     resolvedByUserId: null,
@@ -54,7 +51,8 @@ function makeDbRequest(overrides: Record<string, unknown> = {}) {
       displayName: 'Sharon Cohen',
       avatarUrl: 'https://cdn.example/sharon.jpg',
     },
-    claimedBy: null,
+    // ADR-0011: claimedBy is derived from the first active Assignment row.
+    assignments: [],
     kind: null,
     ...overrides,
   };
@@ -86,7 +84,7 @@ describe('RequestListItem shape — BU-requests-card-lift', () => {
     expect(rows.map((r) => r.priority)).toEqual(['urgent', 'low']);
   });
 
-  it('asks Prisma for avatarUrl in the include shape (createdBy + claimedBy)', async () => {
+  it('asks Prisma for avatarUrl on createdBy + on the active Assignment user', async () => {
     mockFindMany.mockResolvedValue([] as never);
     await listRequestsForReviewer({
       callerId: 'u',
@@ -99,25 +97,29 @@ describe('RequestListItem shape — BU-requests-card-lift', () => {
       | {
           include?: {
             createdBy?: { select?: Record<string, boolean> };
-            claimedBy?: { select?: Record<string, boolean> };
+            assignments?: {
+              select?: {
+                user?: { select?: Record<string, boolean> };
+              };
+            };
           };
         }
       | undefined;
     expect(args?.include?.createdBy?.select?.avatarUrl).toBe(true);
-    expect(args?.include?.claimedBy?.select?.avatarUrl).toBe(true);
+    expect(args?.include?.assignments?.select?.user?.select?.avatarUrl).toBe(true);
   });
 
-  it('exposes avatarUrl on claimedBy when claimed', async () => {
+  it('exposes avatarUrl on claimedBy when an Assignment is active (ADR-0011)', async () => {
     mockFindMany.mockResolvedValue([
       makeDbRequest({
         status: 'claimed',
-        claimedByUserId: 'u-claimer',
-        claimedAt: new Date(),
-        claimedBy: {
-          id: 'u-claimer',
-          displayName: 'Eddie Stone',
-          avatarUrl: null,
-        },
+        assignments: [
+          {
+            userId: 'u-claimer',
+            assignedAt: new Date('2026-04-30T11:00:00Z'),
+            user: { id: 'u-claimer', displayName: 'Eddie Stone', avatarUrl: null },
+          },
+        ],
       }),
     ] as never);
     const rows = await listRequestsForSubmitter('u-submitter');
@@ -126,5 +128,6 @@ describe('RequestListItem shape — BU-requests-card-lift', () => {
       displayName: 'Eddie Stone',
       avatarUrl: null,
     });
+    expect(rows[0]?.claimedByUserId).toBe('u-claimer');
   });
 });
