@@ -5,21 +5,18 @@
  * GPS Action brand mark in the sticky header. Clickable, routes to
  * /capabilities (the SRS showcase landing page).
  *
- * Three SVG layers, two colours:
- *   1. Brand-colour tile (rounded square)
- *   2. Contrast-colour pin teardrop + inner brand-colour cutout (the ring)
- *   3. Contrast-colour Star of David on top
- *
- * Colours follow the existing semantic token pair `--colour-primary` /
- * `--colour-primary-contrast`, so the mark inverts cleanly between light
- * and dark themes. The exact navy from gpsnet.org isn't a token yet — if
- * we want to land it precisely, that's a separate token PR per
- * docs/process/design-tokens-convention.md.
+ * Renders the cropped pin from the brand artwork (`gps-logo-mark.png`).
+ * The full wordmark version lives at `public/brands/gps-logo.png` for
+ * use on landing pages where the "GPS" lettering is large enough to
+ * read; in the sticky header the mark-only crop avoids unreadable
+ * micro-type. Colours are baked into the PNG, so this asset does not
+ * invert in dark mode — accepted tradeoff for brand fidelity.
  */
+import Image from 'next/image';
 import Link from 'next/link';
 
-const TILE = 'var(--colour-primary)';
-const MARK = 'var(--colour-primary-contrast)';
+const HEIGHT = 32;
+const WIDTH = 35;
 
 export function HeaderLogo() {
   return (
@@ -36,21 +33,14 @@ export function HeaderLogo() {
         lineHeight: 0,
       }}
     >
-      <svg
-        viewBox="0 0 32 40"
-        width={26}
-        height={32}
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <rect width="32" height="40" rx="4" fill={TILE} />
-        <g transform="translate(4 4)">
-          <path fill={MARK} d="M12 32 L19.2 21.6 A12 12 0 1 0 4.8 21.6 Z" />
-          <path fill={TILE} d="M12 30 L17.7 20.7 A10 10 0 1 0 6.3 20.7 Z" />
-          <path fill={MARK} d="M12 6.5 L17.2 15.5 L6.8 15.5 Z M12 18.5 L6.8 9.5 L17.2 9.5 Z" />
-        </g>
-      </svg>
+      <Image
+        src="/brands/gps-logo-mark.png"
+        alt=""
+        width={WIDTH}
+        height={HEIGHT}
+        priority
+        style={{ display: 'block', height: HEIGHT, width: 'auto' }}
+      />
     </Link>
   );
 }

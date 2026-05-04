@@ -20,8 +20,8 @@ import {
 } from '@/shared/seed-images';
 
 describe('SEED_HERO_IMAGES', () => {
-  it('exposes exactly 8 images for the demo set', () => {
-    expect(SEED_HERO_IMAGES).toHaveLength(8);
+  it('exposes exactly 10 images for the demo set', () => {
+    expect(SEED_HERO_IMAGES).toHaveLength(10);
   });
 
   it('every entry has a url and an alt string', () => {
