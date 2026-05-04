@@ -1,0 +1,240 @@
+/**
+ * Smoke tests for the board router (PR #4b).
+ *
+ * Mocks the underlying services. Asserts:
+ *   - auth gate (UNAUTHORIZED) on every endpoint.
+ *   - GroupAccessError → TRPCError NOT_FOUND / FORBIDDEN.
+ *   - Permission rule: plain member without an assignment is FORBIDDEN.
+ *   - Group admin / system admin / active assignee all pass.
+ *   - BoardError kinds map to the right TRPCError code.
+ *   - Successful mutations invoke the underlying service with the
+ *     caller's actorId.
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { TRPCError } from '@trpc/server';
+
+vi.mock('@/server/services/board', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    moveCard: vi.fn(),
+    setRequestStatus: vi.fn(),
+  };
+});
+
+vi.mock('@/server/services/assignments', () => ({
+  isAssigneeActive: vi.fn(),
+}));
+
+vi.mock('@/server/services/group-kanban', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    assertCanViewBoard: vi.fn(),
+  };
+});
+
+import { createCaller } from '@/server/routers/_app';
+import type { TRPCContext } from '@/server/lib/trpc';
+import * as boardSvc from '@/server/services/board';
+import { BoardError } from '@/server/services/board';
+import * as assignmentsSvc from '@/server/services/assignments';
+import * as groupKanbanSvc from '@/server/services/group-kanban';
+import { GroupAccessError } from '@/server/services/group-kanban';
+
+const mockMoveCard = vi.mocked(boardSvc.moveCard);
+const mockSetStatus = vi.mocked(boardSvc.setRequestStatus);
+const mockIsAssignee = vi.mocked(assignmentsSvc.isAssigneeActive);
+const mockAssertView = vi.mocked(groupKanbanSvc.assertCanViewBoard);
+
+function authedContext(roles: string[] = []): TRPCContext {
+  return {
+    user: {
+      id: 'u1',
+      email: 'a@b.com',
+      displayName: 'A',
+      avatarUrl: null,
+      phoneNumber: null,
+      verifiedAt: new Date(),
+      lastSeenAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
+    },
+    activeRoles: roles as never,
+    activeScopes: [],
+  };
+}
+
+function publicContext(): TRPCContext {
+  return { user: null, activeRoles: [], activeScopes: [] };
+}
+
+const memberAccess = {
+  isMember: true,
+  isGroupAdmin: false,
+  isSystemAdmin: false,
+  canViewBoard: true,
+  canAdminBoard: false,
+};
+const adminAccess = {
+  isMember: true,
+  isGroupAdmin: true,
+  isSystemAdmin: false,
+  canViewBoard: true,
+  canAdminBoard: true,
+};
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+const moveInput = {
+  requestId: 'r1',
+  groupId: 'g1',
+  destination: { lane: 'active' as const, columnId: 'c1' },
+};
+
+describe('board.moveCard', () => {
+  it('rejects unauthenticated', async () => {
+    const caller = createCaller(publicContext());
+    await expect(caller.board.moveCard(moveInput)).rejects.toBeInstanceOf(TRPCError);
+  });
+
+  it("converts GroupAccessError('not_found') → NOT_FOUND", async () => {
+    mockAssertView.mockRejectedValue(new GroupAccessError('not_found', 'no access'));
+    const caller = createCaller(authedContext());
+    await expect(caller.board.moveCard(moveInput)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('rejects a plain member without an active assignment', async () => {
+    mockAssertView.mockResolvedValue(memberAccess);
+    mockIsAssignee.mockResolvedValue(false);
+    const caller = createCaller(authedContext());
+    await expect(caller.board.moveCard(moveInput)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(mockMoveCard).not.toHaveBeenCalled();
+  });
+
+  it('allows a member who has an active assignment', async () => {
+    mockAssertView.mockResolvedValue(memberAccess);
+    mockIsAssignee.mockResolvedValue(true);
+    mockMoveCard.mockResolvedValue({
+      request: { id: 'r1' },
+      requestGroup: { id: 'rg1' },
+      isOriginating: true,
+      status: 'active',
+    } as never);
+    const caller = createCaller(authedContext());
+    const result = await caller.board.moveCard(moveInput);
+    expect(result.isOriginating).toBe(true);
+    expect(mockMoveCard).toHaveBeenCalledWith(expect.objectContaining({ actorId: 'u1' }));
+  });
+
+  it('allows a group admin without checking assignment', async () => {
+    mockAssertView.mockResolvedValue(adminAccess);
+    mockMoveCard.mockResolvedValue({
+      request: { id: 'r1' },
+      requestGroup: { id: 'rg1' },
+      isOriginating: true,
+      status: 'active',
+    } as never);
+    const caller = createCaller(authedContext());
+    await caller.board.moveCard(moveInput);
+    expect(mockIsAssignee).not.toHaveBeenCalled();
+    expect(mockMoveCard).toHaveBeenCalled();
+  });
+
+  it('passes isSystemAdmin from active roles', async () => {
+    mockAssertView.mockResolvedValue({
+      ...adminAccess,
+      isGroupAdmin: false,
+      isSystemAdmin: true,
+    });
+    mockMoveCard.mockResolvedValue({} as never);
+    const caller = createCaller(authedContext(['admin']));
+    await caller.board.moveCard(moveInput);
+    expect(mockAssertView).toHaveBeenCalledWith({
+      groupId: 'g1',
+      userId: 'u1',
+      isSystemAdmin: true,
+    });
+  });
+
+  it('coerces nullish before/after to null when calling the service', async () => {
+    mockAssertView.mockResolvedValue(adminAccess);
+    mockMoveCard.mockResolvedValue({} as never);
+    const caller = createCaller(authedContext());
+    await caller.board.moveCard(moveInput);
+    expect(mockMoveCard).toHaveBeenCalledWith(
+      expect.objectContaining({ beforeRequestId: null, afterRequestId: null }),
+    );
+  });
+
+  it("maps BoardError('request_not_found') → NOT_FOUND", async () => {
+    mockAssertView.mockResolvedValue(adminAccess);
+    mockMoveCard.mockRejectedValue(new BoardError('request_not_found', 'gone'));
+    const caller = createCaller(authedContext());
+    await expect(caller.board.moveCard(moveInput)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it("maps BoardError('group_link_not_found') → NOT_FOUND", async () => {
+    mockAssertView.mockResolvedValue(adminAccess);
+    mockMoveCard.mockRejectedValue(new BoardError('group_link_not_found', 'gone'));
+    const caller = createCaller(authedContext());
+    await expect(caller.board.moveCard(moveInput)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it("maps BoardError('shared_off_board_forbidden') → FORBIDDEN", async () => {
+    mockAssertView.mockResolvedValue(adminAccess);
+    mockMoveCard.mockRejectedValue(new BoardError('shared_off_board_forbidden', 'no'));
+    const caller = createCaller(authedContext());
+    await expect(
+      caller.board.moveCard({ ...moveInput, destination: { lane: 'backlog' } }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it("maps BoardError('column_not_in_group') → BAD_REQUEST", async () => {
+    mockAssertView.mockResolvedValue(adminAccess);
+    mockMoveCard.mockRejectedValue(new BoardError('column_not_in_group', 'wrong'));
+    const caller = createCaller(authedContext());
+    await expect(caller.board.moveCard(moveInput)).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+  });
+});
+
+describe('board.setStatus', () => {
+  const setInput = { requestId: 'r1', groupId: 'g1', status: 'abandoned' as const };
+
+  it('rejects unauthenticated', async () => {
+    const caller = createCaller(publicContext());
+    await expect(caller.board.setStatus(setInput)).rejects.toBeInstanceOf(TRPCError);
+  });
+
+  it('rejects a plain member without assignment', async () => {
+    mockAssertView.mockResolvedValue(memberAccess);
+    mockIsAssignee.mockResolvedValue(false);
+    const caller = createCaller(authedContext());
+    await expect(caller.board.setStatus(setInput)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(mockSetStatus).not.toHaveBeenCalled();
+  });
+
+  it('allows a group admin to mark abandoned', async () => {
+    mockAssertView.mockResolvedValue(adminAccess);
+    mockSetStatus.mockResolvedValue({ id: 'r1', status: 'abandoned' } as never);
+    const caller = createCaller(authedContext());
+    const result = await caller.board.setStatus(setInput);
+    expect(result.status).toBe('abandoned');
+    expect(mockSetStatus).toHaveBeenCalledWith({
+      requestId: 'r1',
+      status: 'abandoned',
+      actorId: 'u1',
+    });
+  });
+
+  it("maps BoardError('request_not_found') → NOT_FOUND", async () => {
+    mockAssertView.mockResolvedValue(adminAccess);
+    mockSetStatus.mockRejectedValue(new BoardError('request_not_found', 'missing'));
+    const caller = createCaller(authedContext());
+    await expect(caller.board.setStatus(setInput)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+});

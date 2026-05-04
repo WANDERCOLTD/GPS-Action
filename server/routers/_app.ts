@@ -15,6 +15,7 @@ import { commentRouter } from '@/server/routers/comment';
 import { requestRouter } from '@/server/routers/request';
 import { assignmentRouter } from '@/server/routers/assignment';
 import { subscriptionRouter } from '@/server/routers/subscription';
+import { boardRouter } from '@/server/routers/board';
 import { boardColumnRouter } from '@/server/routers/board-column';
 import { groupKanbanRouter } from '@/server/routers/group-kanban';
 import { shareRouter } from '@/server/routers/share';
@@ -35,6 +36,7 @@ export const appRouter = router({
   request: requestRouter,
   assignment: assignmentRouter,
   subscription: subscriptionRouter,
+  board: boardRouter,
   boardColumn: boardColumnRouter,
   groupKanban: groupKanbanRouter,
   share: shareRouter,
