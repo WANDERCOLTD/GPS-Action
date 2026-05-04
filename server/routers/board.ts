@@ -115,7 +115,11 @@ async function gateMoveOrStatus(opts: {
   return access;
 }
 
-const listCardsSchema = z.object({ groupId: z.string().min(1) });
+const listCardsSchema = z.object({
+  groupId: z.string().min(1),
+  /** Off-board lanes use 'backlog' | 'done' | 'abandoned'. Default = 'active'. */
+  status: z.enum(['backlog', 'active', 'done', 'abandoned']).optional(),
+});
 
 export const boardRouter = router({
   /**
@@ -134,7 +138,7 @@ export const boardRouter = router({
       } catch (err) {
         throw toTRPCError(err);
       }
-      return listBoardCardsForGroup(input.groupId);
+      return listBoardCardsForGroup(input.groupId, { status: input.status });
     }),
 
   /**

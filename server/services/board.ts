@@ -396,8 +396,11 @@ export interface BoardCard {
   isUrgent: boolean;
   /** Global Request.status. Same value across every group's view. */
   status: RequestStatus;
-  /** Per-link column placement (RequestGroup.columnId). */
-  columnId: string;
+  /**
+   * Per-link column placement (RequestGroup.columnId). Non-null on the
+   * Active tab; null on Backlog / Done lists (off-board lanes).
+   */
+  columnId: string | null;
   /** Per-link board position as a string for client serialisation safety. */
   boardPosition: string;
   /** Active assignees, ordered oldest assignment first (visual stability). */
@@ -406,9 +409,19 @@ export interface BoardCard {
   updatedAt: Date;
 }
 
+export interface ListBoardCardsOptions {
+  /**
+   * Filter cards by global Request.status. Defaults to 'active' (the
+   * Active tab). 'backlog' / 'done' / 'abandoned' return off-board cards
+   * for the same group; PR #4e adds the Backlog and Done list pages.
+   */
+  status?: RequestStatus;
+}
+
 /**
- * Read cards for a group's board (Active tab). Includes both originating
- * cards and cards shared into this group from other groups.
+ * Read cards for a group's board, scoped to a status (Active tab by
+ * default). Includes both originating cards and cards shared into this
+ * group from other groups.
  *
  * Joins via RequestGroup so the per-link state (`columnId`,
  * `boardPosition`, `isUrgent`) drives the view — for the originating
@@ -416,25 +429,37 @@ export interface BoardCard {
  *
  * Filters:
  *   - RequestGroup.deletedAt IS NULL (link is active).
- *   - RequestGroup.columnId IS NOT NULL (card placed on a column).
+ *   - When status='active': RequestGroup.columnId IS NOT NULL (card
+ *     placed on a column).
+ *   - When status='backlog' | 'done' | 'abandoned': RequestGroup.columnId
+ *     IS NULL (card is off-board).
  *   - Request.deletedAt IS NULL (request not soft-deleted).
- *   - Request.status === 'active' (off-board lanes belong to other tabs).
+ *   - Request.status === <status> (filter passed in or default 'active').
  *
- * Sort: by columnId then boardPosition asc — caller groups by columnId
- * to render columns. The per-column ordering reflects manual reshuffles.
+ * Sort:
+ *   - Active: by columnId then boardPosition asc (caller groups by
+ *     columnId to render columns).
+ *   - Off-board: by boardPosition asc, then createdAt asc tie-break.
  */
-export async function listBoardCardsForGroup(groupId: string): Promise<BoardCard[]> {
+export async function listBoardCardsForGroup(
+  groupId: string,
+  options: ListBoardCardsOptions = {},
+): Promise<BoardCard[]> {
+  const status = options.status ?? 'active';
+  const isActive = status === 'active';
   const rows = await prisma.requestGroup.findMany({
     where: {
       groupId,
       deletedAt: null,
-      columnId: { not: null },
+      columnId: isActive ? { not: null } : null,
       request: {
         deletedAt: null,
-        status: 'active',
+        status,
       },
     },
-    orderBy: [{ columnId: 'asc' }, { boardPosition: 'asc' }],
+    orderBy: isActive
+      ? [{ columnId: 'asc' }, { boardPosition: 'asc' }]
+      : [{ boardPosition: 'asc' }, { createdAt: 'asc' }],
     include: {
       request: {
         select: {
@@ -471,7 +496,7 @@ export async function listBoardCardsForGroup(groupId: string): Promise<BoardCard
       kindDisplayName: row.request.kind?.displayName ?? null,
       isUrgent: row.isUrgent,
       status: row.request.status,
-      columnId: row.columnId as string,
+      columnId: row.columnId,
       boardPosition: (row.boardPosition ?? new Prisma.Decimal(0)).toString(),
       assignees: row.request.assignments.map((a) => ({
         userId: a.user.id,
