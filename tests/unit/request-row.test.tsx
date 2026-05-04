@@ -55,7 +55,7 @@ function makeRow(overrides: Partial<RequestRowInput> = {}): RequestRowInput {
   return {
     id: 'req-1',
     type: 'vetting' as RequestType,
-    status: 'unclaimed' as RequestStatus,
+    status: 'backlog' as RequestStatus,
     context: { summary: 'Sharon wants to join the Manchester chapter' } as Prisma.JsonValue,
     regionSlug: null,
     createdAt: new Date('2026-04-30T10:00:00Z'),

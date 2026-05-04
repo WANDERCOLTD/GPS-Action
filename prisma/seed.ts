@@ -915,12 +915,13 @@ async function main(): Promise<void> {
     for (const { type, count } of REQUEST_TYPES) {
       for (let n = 0; n < count; n += 1) {
         const id = seedUuid('workitem', `${type}:${n}`);
+        // ADR-0012: status reframed to backlog | active | done | abandoned.
         const status: RequestStatus =
           n === 0 && type === 'flag'
-            ? 'claimed'
+            ? 'active'
             : n === 0 && type === 'outcome_review'
-              ? 'resolved'
-              : 'unclaimed';
+              ? 'done'
+              : 'backlog';
 
         const priority: RequestPriority = pick<RequestPriority>([
           'low',
@@ -931,12 +932,10 @@ async function main(): Promise<void> {
         ]);
 
         const claimer =
-          status === 'claimed' ? pick(seededUsers.filter((u) => u.isQueueManager)) : null;
+          status === 'active' ? pick(seededUsers.filter((u) => u.isQueueManager)) : null;
         const resolver =
-          status === 'resolved'
-            ? pick(seededUsers.filter((u) => u.isQueueManager || u.isAdmin))
-            : null;
-        const resolution: RequestResolution | null = status === 'resolved' ? 'approved' : null;
+          status === 'done' ? pick(seededUsers.filter((u) => u.isQueueManager || u.isAdmin)) : null;
+        const resolution: RequestResolution | null = status === 'done' ? 'approved' : null;
 
         const createdAt = recentDate(60);
         const claimedAt = claimer ? dateBetween(createdAt, SEED_NOW) : null;

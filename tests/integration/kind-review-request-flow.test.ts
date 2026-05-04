@@ -105,7 +105,7 @@ describe('createKindReviewRequest', () => {
     expect(mockRequestCreate).toHaveBeenCalledWith({
       data: {
         type: 'kind_review',
-        status: 'unclaimed',
+        status: 'backlog',
         priority: 'high',
         kindId: 'kind-tick-or-cross',
         context: { postId: POST_ID, source: 'publish_modal' },
@@ -146,7 +146,7 @@ describe('closeKindReviewRequest — verdict=publish', () => {
     mockRequestFindUnique.mockResolvedValue({
       id: REQUEST_ID,
       type: 'kind_review',
-      status: 'claimed',
+      status: 'active',
       deletedAt: null,
       createdByUserId: ORIGINATOR_ID,
       context: { postId: POST_ID, source: 'publish_modal' },
@@ -196,7 +196,7 @@ describe('closeKindReviewRequest — verdict=publish', () => {
       expect.objectContaining({
         where: { id: REQUEST_ID },
         data: expect.objectContaining({
-          status: 'resolved',
+          status: 'done',
           resolvedByUserId: REVIEWER_ID,
         }),
       }),
@@ -208,7 +208,7 @@ describe('closeKindReviewRequest — verdict=publish', () => {
     mockRequestFindUnique.mockResolvedValue({
       id: REQUEST_ID,
       type: 'kind_review',
-      status: 'in_review',
+      status: 'active',
       deletedAt: null,
       createdByUserId: ORIGINATOR_ID,
       context: { postId: POST_ID },
@@ -235,7 +235,7 @@ describe('closeKindReviewRequest — verdict=publish', () => {
     mockRequestFindUnique.mockResolvedValue({
       id: REQUEST_ID,
       type: 'kind_review',
-      status: 'claimed',
+      status: 'active',
       deletedAt: null,
       createdByUserId: ORIGINATOR_ID,
       context: { postId: POST_ID },
@@ -259,7 +259,7 @@ describe('closeKindReviewRequest — verdict=publish', () => {
     mockRequestFindUnique.mockResolvedValue({
       id: REQUEST_ID,
       type: 'kind_review',
-      status: 'claimed',
+      status: 'active',
       deletedAt: null,
       createdByUserId: ORIGINATOR_ID,
       context: { postId: POST_ID },
@@ -287,7 +287,7 @@ describe('closeKindReviewRequest — verdict=reject', () => {
     mockRequestFindUnique.mockResolvedValue({
       id: REQUEST_ID,
       type: 'kind_review',
-      status: 'claimed',
+      status: 'active',
       deletedAt: null,
       createdByUserId: ORIGINATOR_ID,
       context: { postId: POST_ID },
@@ -308,7 +308,7 @@ describe('closeKindReviewRequest — verdict=reject', () => {
     const requestUpdate = mockRequestUpdate.mock.calls[0]?.[0] as {
       data: { status: string; resolutionNotes: string | null };
     };
-    expect(requestUpdate.data.status).toBe('resolved');
+    expect(requestUpdate.data.status).toBe('done');
     expect(requestUpdate.data.resolutionNotes).toBe('needs more sourcing');
   });
 });
@@ -318,7 +318,7 @@ describe('closeKindReviewRequest — verdict=withdrawn', () => {
     mockRequestFindUnique.mockResolvedValue({
       id: REQUEST_ID,
       type: 'kind_review',
-      status: 'claimed',
+      status: 'active',
       deletedAt: null,
       createdByUserId: ORIGINATOR_ID,
       context: { postId: POST_ID },
@@ -344,7 +344,7 @@ describe('closeKindReviewRequest — guards', () => {
     mockRequestFindUnique.mockResolvedValue({
       id: REQUEST_ID,
       type: 'kind_review',
-      status: 'resolved',
+      status: 'done',
       deletedAt: null,
       createdByUserId: ORIGINATOR_ID,
       context: { postId: POST_ID },
@@ -362,7 +362,7 @@ describe('closeKindReviewRequest — guards', () => {
     mockRequestFindUnique.mockResolvedValue({
       id: REQUEST_ID,
       type: 'vetting',
-      status: 'claimed',
+      status: 'active',
       deletedAt: null,
       createdByUserId: ORIGINATOR_ID,
       context: { postId: POST_ID },
@@ -380,7 +380,7 @@ describe('closeKindReviewRequest — guards', () => {
     mockRequestFindUnique.mockResolvedValue({
       id: REQUEST_ID,
       type: 'kind_review',
-      status: 'claimed',
+      status: 'active',
       deletedAt: null,
       createdByUserId: ORIGINATOR_ID,
       context: {},

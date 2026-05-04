@@ -949,7 +949,8 @@ async function isReviewRequestOpen(
     select: { status: true, deletedAt: true },
   });
   if (!req || req.deletedAt) return false;
-  return req.status === 'unclaimed' || req.status === 'claimed' || req.status === 'in_review';
+  // ADR-0012: 'open' = backlog (not started) OR active (in progress).
+  return req.status === 'backlog' || req.status === 'active';
 }
 
 // ── publishPost ──────────────────────────────────────────────────────────

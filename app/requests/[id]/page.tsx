@@ -41,11 +41,11 @@ const TYPE_LABELS: Record<RequestType, string> = {
   kind_review: 'Post review',
 };
 
+// ADR-0012: status reframed to backlog | active | done | abandoned.
 const STATUS_LABELS: Record<string, string> = {
-  unclaimed: 'new',
-  claimed: 'in discussion',
-  in_review: 'in discussion',
-  resolved: 'done',
+  backlog: 'new',
+  active: 'in discussion',
+  done: 'done',
   abandoned: 'abandoned',
 };
 
@@ -120,18 +120,11 @@ export default async function RequestDetailPage({ params }: PageProps) {
       ? String((request.context as { summary?: unknown }).summary ?? '')
       : '';
 
-  const canAct =
-    isReviewer &&
-    (request.status === 'unclaimed' ||
-      request.status === 'claimed' ||
-      request.status === 'in_review');
+  const canAct = isReviewer && (request.status === 'backlog' || request.status === 'active');
   const firstAssignee = request.assignments[0] ?? null;
   const isClaimedByCaller = firstAssignee?.userId === userId;
-  const showClaim = canAct && request.status === 'unclaimed';
-  const showResolve =
-    canAct &&
-    (request.status === 'claimed' || request.status === 'in_review') &&
-    (isClaimedByCaller || hasAdmin);
+  const showClaim = canAct && request.status === 'backlog';
+  const showResolve = canAct && request.status === 'active' && (isClaimedByCaller || hasAdmin);
 
   return (
     <main

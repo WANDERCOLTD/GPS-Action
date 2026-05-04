@@ -30,7 +30,7 @@ function makeDbRequest(overrides: Record<string, unknown> = {}) {
   return {
     id: 'req-1',
     type: 'vetting' as const,
-    status: 'unclaimed' as const,
+    status: 'backlog' as const,
     priority: 'high' as const,
     context: { summary: 'Test summary' },
     regionSlug: null,
@@ -112,7 +112,7 @@ describe('RequestListItem shape — BU-requests-card-lift', () => {
   it('exposes avatarUrl on claimedBy when an Assignment is active (ADR-0011)', async () => {
     mockFindMany.mockResolvedValue([
       makeDbRequest({
-        status: 'claimed',
+        status: 'active',
         assignments: [
           {
             userId: 'u-claimer',

@@ -192,7 +192,7 @@ describe('post.sendForReview', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           type: 'kind_review',
-          status: 'unclaimed',
+          status: 'backlog',
           priority: 'high',
           createdByUserId: 'user-1',
           context: expect.objectContaining({ postId: POST_ID, source: 'publish_modal' }),
@@ -225,7 +225,7 @@ describe('post.sendForReview', () => {
   it('rejects when the post already has an open kind_review request', async () => {
     mockPostFindUnique.mockResolvedValue(postFixture({ reviewRequestId: REQUEST_ID }) as never);
     mockRequestFindUnique.mockResolvedValue({
-      status: 'unclaimed',
+      status: 'backlog',
       deletedAt: null,
     } as never);
 
@@ -305,11 +305,11 @@ describe('post.discard / post.restore', () => {
     // First lookup: isReviewRequestOpen → status unclaimed (open)
     // Second lookup: closeKindReviewRequest → full request snapshot
     mockRequestFindUnique
-      .mockResolvedValueOnce({ status: 'unclaimed', deletedAt: null } as never)
+      .mockResolvedValueOnce({ status: 'backlog', deletedAt: null } as never)
       .mockResolvedValueOnce({
         id: REQUEST_ID,
         type: 'kind_review',
-        status: 'unclaimed',
+        status: 'backlog',
         deletedAt: null,
         createdByUserId: 'user-1',
         context: { postId: POST_ID },
@@ -357,7 +357,7 @@ describe('post.autosaveDraft', () => {
   it('refuses to autosave when post is in review (D072 — edits paused)', async () => {
     mockPostFindUnique.mockResolvedValue(postFixture({ reviewRequestId: REQUEST_ID }) as never);
     mockRequestFindUnique.mockResolvedValue({
-      status: 'in_review',
+      status: 'active',
       deletedAt: null,
     } as never);
 
