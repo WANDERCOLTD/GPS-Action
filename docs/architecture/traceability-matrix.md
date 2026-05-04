@@ -61,7 +61,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057, D061, D064, D069, D072, D073 |
 | BU-comments-card-lift | 1 | SCN-20 | D052, D072 |
 | BU-composer | 8 | SCN-18, SCN-19, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D060, D061, D062, D064, D069, D072, D073, D076 |
-| BU-coordination-board | 2 | — | D054, D061, D065, D073, D078 |
+| BU-coordination-board | 1 | — | D054, D061, D065, D073, D078 |
 | BU-demo-mode | 2 | — | — |
 | BU-error-boundary | 2 | — | D003, D037, D065, D073 |
 | BU-event-time | 13 | SCN-19, SCN-20, SCN-26, SCN-27 | D045, D048, D052, D060, D061, D062, D064, D069, D070, D072, D073, D076 |
@@ -95,7 +95,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-versioning | 3 | — | D003, D065, D073 |
 | BU-whatsapp-share | 2 | — | D065, D067 |
 | bu-capabilities-mockup | 1 | — | — |
-| bu-coordination-board | 15 | — | — |
+| bu-coordination-board | 17 | — | — |
 
 ## ADRs (referenced by code)
 
