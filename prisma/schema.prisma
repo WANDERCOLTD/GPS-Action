@@ -625,7 +625,11 @@ enum GroupJoinPolicy {
 
 enum GroupMembershipRole {
   member
-  lead
+  // Tier-2 default #8 (bu-coordination-board v0.4): renamed from `lead`
+  // 2026-05-04 — admin reads consistently across the kanban surface
+  // ("group admin" vs "system admin"). Inline migration rides PR #1
+  // schema bundle. See decision-log entry for the full mapping.
+  admin
 }
 
 enum JoinSource {

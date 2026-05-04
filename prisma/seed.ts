@@ -566,8 +566,8 @@ async function main(): Promise<void> {
         });
         if (before) continue;
 
-        const isLead = member.isAdmin || member.isCoordinator;
-        const role: GroupMembershipRole = isLead ? 'lead' : 'member';
+        const isGroupAdmin = member.isAdmin || member.isCoordinator;
+        const role: GroupMembershipRole = isGroupAdmin ? 'admin' : 'member';
         const joinedVia: JoinSource =
           def.joinPolicy === 'request_to_join' ? 'request_approved' : 'self_join';
 
