@@ -41,6 +41,11 @@ const MIGRATION_SQL = readFileSync(
   'utf8',
 );
 
+const MIGRATION_SQL_2G1 = readFileSync(
+  join(process.cwd(), 'prisma/migrations/20260504120000_request_type_nullable/migration.sql'),
+  'utf8',
+);
+
 const RENAME_SQL = readFileSync(
   join(
     process.cwd(),
@@ -195,11 +200,18 @@ describe('coord-board schema — field additions on existing entities', () => {
     expect(MIGRATION_SQL).toMatch(/"reasonKind" "NotificationReasonKind"(?!\s+NOT NULL)/);
   });
 
-  it('legacy Request fields stay in place (deferred drops, PR #2)', () => {
-    // ADR-0005 + brief: Request.claimedByUserId and requestType drop in
-    // PR #2 alongside consumer-service migration. PR #1 leaves them.
+  it('Request.claimedByUserId still present (drop deferred to PR #2g.2)', () => {
     expect(fieldOf('Request', 'claimedByUserId').type).toBe('String');
+  });
+
+  it('Request.type is nullable per ADR-0010 (Option B)', () => {
+    // PR #2g.1: kanban tickets carry type = null; legacy reviewer flows
+    // keep their value. The migration just relaxes NOT NULL — no data
+    // change to existing rows. Prisma 7 DMMF strips `isRequired`, so we
+    // assert the relaxation via the migration SQL (the authoritative
+    // source per this file's header note).
     expect(fieldOf('Request', 'type').type).toBe('RequestType');
+    expect(MIGRATION_SQL_2G1).toMatch(/ALTER TABLE "Request" ALTER COLUMN "type" DROP NOT NULL/);
   });
 });
 

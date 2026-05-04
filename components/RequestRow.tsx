@@ -99,6 +99,12 @@ const INTERACTIVE_SELECTOR = 'a, button, input, label, form, textarea';
 export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
   const router = useRouter();
 
+  // ADR-0010: row.type is nullable. The reviewer queue surfaces don't
+  // render kanban tickets (those have type=null and live on /board), but
+  // the type system requires a fallback path here.
+  const typeLabel = row.type ? TYPE_LABELS[row.type] : 'Request';
+  const typeTone = row.type ? TYPE_TONES[row.type] : 'gps-chip--neutral';
+
   const ctxText =
     typeof row.context === 'object' &&
     row.context !== null &&
@@ -131,7 +137,7 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
     navigate();
   }
 
-  const ariaLabel = `Open request: ${TYPE_LABELS[row.type]}${ctxText ? ` — ${ctxText}` : ''}`;
+  const ariaLabel = `Open request: ${typeLabel}${ctxText ? ` — ${ctxText}` : ''}`;
 
   return (
     <li
@@ -180,15 +186,15 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
         )}
         <span
           data-testid="requests-row-type-chip"
-          data-type={row.type}
-          className={`gps-chip gps-chip--static ${TYPE_TONES[row.type]}`}
+          data-type={row.type ?? undefined}
+          className={`gps-chip gps-chip--static ${typeTone}`}
           style={{
             textTransform: 'uppercase',
             letterSpacing: '0.04em',
             fontWeight: 700,
           }}
         >
-          {TYPE_LABELS[row.type]}
+          {typeLabel}
         </span>
         {row.priority !== 'normal' && (
           <span
@@ -245,7 +251,7 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
           marginTop: 'var(--space-1)',
         }}
       >
-        {ctxText || TYPE_LABELS[row.type]}
+        {ctxText || typeLabel}
       </div>
       {/* Metadata row — timestamp + status + claimed-by, all subdued. */}
       <div
