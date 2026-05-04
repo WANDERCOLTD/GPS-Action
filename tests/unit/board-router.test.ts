@@ -20,6 +20,7 @@ vi.mock('@/server/services/board', async (importOriginal) => {
     ...actual,
     moveCard: vi.fn(),
     setRequestStatus: vi.fn(),
+    listBoardCardsForGroup: vi.fn(),
   };
 });
 
@@ -45,6 +46,7 @@ import { GroupAccessError } from '@/server/services/group-kanban';
 
 const mockMoveCard = vi.mocked(boardSvc.moveCard);
 const mockSetStatus = vi.mocked(boardSvc.setRequestStatus);
+const mockListCards = vi.mocked(boardSvc.listBoardCardsForGroup);
 const mockIsAssignee = vi.mocked(assignmentsSvc.isAssigneeActive);
 const mockAssertView = vi.mocked(groupKanbanSvc.assertCanViewBoard);
 
@@ -95,6 +97,44 @@ const moveInput = {
   groupId: 'g1',
   destination: { lane: 'active' as const, columnId: 'c1' },
 };
+
+describe('board.listCards', () => {
+  const listInput = { groupId: 'g1' };
+
+  it('rejects unauthenticated', async () => {
+    const caller = createCaller(publicContext());
+    await expect(caller.board.listCards(listInput)).rejects.toBeInstanceOf(TRPCError);
+  });
+
+  it("converts GroupAccessError('not_found') → NOT_FOUND", async () => {
+    mockAssertView.mockRejectedValue(new GroupAccessError('not_found', 'no access'));
+    const caller = createCaller(authedContext());
+    await expect(caller.board.listCards(listInput)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('returns the card list for an authorised viewer', async () => {
+    mockAssertView.mockResolvedValue(memberAccess);
+    mockListCards.mockResolvedValue([
+      {
+        id: 'r1',
+        title: 'X',
+        kindSlug: null,
+        kindDisplayName: null,
+        isUrgent: false,
+        status: 'active',
+        columnId: 'c1',
+        boardPosition: '0',
+        assignees: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+    const caller = createCaller(authedContext());
+    const result = await caller.board.listCards(listInput);
+    expect(result).toHaveLength(1);
+    expect(mockListCards).toHaveBeenCalledWith('g1');
+  });
+});
 
 describe('board.moveCard', () => {
   it('rejects unauthenticated', async () => {
