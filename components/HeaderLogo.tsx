@@ -19,8 +19,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-const HEIGHT = 24;
-const WIDTH = 26;
+const HEIGHT = 28;
+const WIDTH = 23;
 
 export function HeaderLogo() {
   return (
