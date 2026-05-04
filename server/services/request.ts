@@ -87,12 +87,21 @@ export interface RequestListItem {
 }
 
 type RequestWithJoins = Request & {
-  claimedBy: { id: string; displayName: string; avatarUrl: string | null } | null;
+  assignments: Array<{
+    userId: string;
+    assignedAt: Date;
+    user: { id: string; displayName: string; avatarUrl: string | null };
+  }>;
   createdBy: { id: string; displayName: string; avatarUrl: string | null } | null;
   kind: { slug: string; displayName: string } | null;
 };
 
 function mapRequest(row: RequestWithJoins): RequestListItem {
+  // ADR-0011: claimedBy / claimedByUserId / claimedAt are derived from the
+  // first active Assignment row (oldest by assignedAt). Reviewer queues
+  // surface the legacy single-owner shape for visual continuity; multi-
+  // assignee UX layers on at the kanban surface (Surface 2).
+  const firstAssignment = row.assignments[0] ?? null;
   return {
     id: row.id,
     type: row.type,
@@ -101,22 +110,31 @@ function mapRequest(row: RequestWithJoins): RequestListItem {
     regionSlug: row.regionSlug,
     createdAt: row.createdAt,
     createdByUserId: row.createdByUserId,
-    claimedByUserId: row.claimedByUserId,
-    claimedAt: row.claimedAt,
+    claimedByUserId: firstAssignment?.userId ?? null,
+    claimedAt: firstAssignment?.assignedAt ?? null,
     resolvedAt: row.resolvedAt,
     resolutionNotes: row.resolutionNotes,
     urgency: row.urgency,
     urgencyExpiresAt: row.urgencyExpiresAt,
     kindSlug: row.kind?.slug ?? null,
     kindDisplayName: row.kind?.displayName ?? null,
-    claimedBy: row.claimedBy,
+    claimedBy: firstAssignment?.user ?? null,
     createdBy: row.createdBy,
     priority: row.priority,
   };
 }
 
 const REQUEST_INCLUDE = {
-  claimedBy: { select: { id: true, displayName: true, avatarUrl: true } },
+  assignments: {
+    where: { unassignedAt: null },
+    orderBy: { assignedAt: 'asc' },
+    take: 1,
+    select: {
+      userId: true,
+      assignedAt: true,
+      user: { select: { id: true, displayName: true, avatarUrl: true } },
+    },
+  },
   createdBy: { select: { id: true, displayName: true, avatarUrl: true } },
   kind: { select: { slug: true, displayName: true } },
 } as const;
@@ -265,21 +283,30 @@ export type ClaimResult = { ok: true } | { ok: false; reason: 'not_found' | 'alr
  * Atomic claim — uses updateMany with a status='unclaimed' guard so two
  * reviewers can't double-claim. Returns reason='already_claimed' when the
  * row exists but a race lost. Per claim-and-lease.md.
+ *
+ * ADR-0011: ownership now lives on Assignment. The status flip is still
+ * the race lock; inside the same transaction we create the Assignment
+ * row that records the claimer.
  */
 export async function claimRequest(input: {
   requestId: string;
   userId: string;
 }): Promise<ClaimResult> {
-  const result = await prisma.request.updateMany({
-    where: { id: input.requestId, status: 'unclaimed', deletedAt: null },
-    data: {
-      status: 'claimed',
-      claimedByUserId: input.userId,
-      claimedAt: new Date(),
-    },
+  const claimed = await prisma.$transaction(async (tx) => {
+    const result = await tx.request.updateMany({
+      where: { id: input.requestId, status: 'unclaimed', deletedAt: null },
+      data: { status: 'claimed' },
+    });
+    if (result.count === 0) return false;
+    await tx.assignment.upsert({
+      where: { requestId_userId: { requestId: input.requestId, userId: input.userId } },
+      create: { requestId: input.requestId, userId: input.userId },
+      update: { unassignedAt: null, assignedAt: new Date() },
+    });
+    return true;
   });
 
-  if (result.count === 0) {
+  if (!claimed) {
     const exists = await prisma.request.findUnique({ where: { id: input.requestId } });
     return { ok: false, reason: exists ? 'already_claimed' : 'not_found' };
   }
@@ -338,8 +365,15 @@ export async function resolveRequest(input: {
   if (existing.status !== 'claimed' && existing.status !== 'in_review') {
     return { ok: false, reason: 'wrong_state' };
   }
-  if (!input.isAdmin && existing.claimedByUserId !== input.userId) {
-    return { ok: false, reason: 'not_claimer' };
+  if (!input.isAdmin) {
+    // ADR-0011: "must be claimer" now reads Assignment.
+    const isAssignee = await prisma.assignment.findFirst({
+      where: { requestId: input.requestId, userId: input.userId, unassignedAt: null },
+      select: { id: true },
+    });
+    if (!isAssignee) {
+      return { ok: false, reason: 'not_claimer' };
+    }
   }
 
   await prisma.request.update({

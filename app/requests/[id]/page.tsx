@@ -67,7 +67,13 @@ export default async function RequestDetailPage({ params }: PageProps) {
   const request = await prisma.request.findFirst({
     where: { id, deletedAt: null },
     include: {
-      claimedBy: { select: { id: true, displayName: true } },
+      // ADR-0011: claimedBy is now derived from the first active Assignment.
+      assignments: {
+        where: { unassignedAt: null },
+        orderBy: { assignedAt: 'asc' },
+        take: 1,
+        select: { userId: true, user: { select: { id: true, displayName: true } } },
+      },
       createdBy: { select: { id: true, displayName: true } },
       kind: { select: { slug: true, displayName: true } },
     },
@@ -119,7 +125,8 @@ export default async function RequestDetailPage({ params }: PageProps) {
     (request.status === 'unclaimed' ||
       request.status === 'claimed' ||
       request.status === 'in_review');
-  const isClaimedByCaller = request.claimedByUserId === userId;
+  const firstAssignee = request.assignments[0] ?? null;
+  const isClaimedByCaller = firstAssignee?.userId === userId;
   const showClaim = canAct && request.status === 'unclaimed';
   const showResolve =
     canAct &&
@@ -218,10 +225,10 @@ export default async function RequestDetailPage({ params }: PageProps) {
         {request.createdBy && (
           <div style={{ fontSize: 'var(--text-xs)', color: 'var(--colour-text-secondary)' }}>
             Submitted by <strong>{request.createdBy.displayName}</strong>
-            {request.claimedBy && (
+            {firstAssignee && (
               <>
                 {' · Picked up by '}
-                <strong>{request.claimedBy.displayName}</strong>
+                <strong>{firstAssignee.user.displayName}</strong>
               </>
             )}
           </div>

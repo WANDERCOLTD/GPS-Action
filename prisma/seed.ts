@@ -948,9 +948,6 @@ async function main(): Promise<void> {
           update: {
             status,
             priority,
-            claimedByUserId: claimer?.id ?? null,
-            claimedAt,
-            claimExpiresAt: claimer ? new Date(claimedAt!.getTime() + 4 * 60 * 60 * 1000) : null,
             resolvedAt,
             resolvedByUserId: resolver?.id ?? null,
             resolution,
@@ -973,15 +970,22 @@ async function main(): Promise<void> {
             ),
             createdAt,
             createdByUserId: pick(seededUsers).id,
-            claimedByUserId: claimer?.id ?? null,
-            claimedAt,
-            claimExpiresAt: claimer ? new Date(claimedAt!.getTime() + 4 * 60 * 60 * 1000) : null,
             resolvedAt,
             resolvedByUserId: resolver?.id ?? null,
             resolution,
             resolutionNotes: resolver ? 'Synthetic resolution note for fixture data.' : null,
           },
         });
+        // ADR-0011: ownership lives on Assignment now. Seed an Assignment
+        // row when there's a claimer so fixtures look identical to the
+        // legacy single-owner shape after the cutover.
+        if (claimer && claimedAt) {
+          await prisma.assignment.upsert({
+            where: { requestId_userId: { requestId: id, userId: claimer.id } },
+            create: { requestId: id, userId: claimer.id, assignedAt: claimedAt },
+            update: { unassignedAt: null, assignedAt: claimedAt },
+          });
+        }
         if (!before) requestsCreated += 1;
         wiIndex += 1;
       }
