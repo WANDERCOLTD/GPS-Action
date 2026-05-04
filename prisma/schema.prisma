@@ -284,8 +284,10 @@ model UserRegion {
 //   - Atomic claim: UPDATE ... WHERE status='unclaimed' (per claim-and-lease §"The race condition")
 //   - Sweeper releases expired claims every 5 min (TTL + 4-hour cap)
 model Request {
-  id       String          @id @default(uuid())
-  type     RequestType
+  id String @id @default(uuid())
+  // ADR-0010 — nullable: kanban tickets (PR #2g.1+) carry `type = null`;
+  // legacy reviewer flows (vetting, flag, kind_review, …) keep their value.
+  type     RequestType?
   status   RequestStatus   @default(unclaimed)
   priority RequestPriority @default(normal)
 

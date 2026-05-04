@@ -179,7 +179,7 @@ export default async function RequestDetailPage({ params }: PageProps) {
               {request.kind?.displayName ?? 'Urgent'}
             </span>
           )}
-          <strong>{TYPE_LABELS[request.type]}</strong>
+          <strong>{request.type ? TYPE_LABELS[request.type] : 'Request'}</strong>
           <span
             data-testid="requests-detail-status"
             style={{

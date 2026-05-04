@@ -52,7 +52,10 @@ async function writeSystemComment(input: { requestId: string; body: string }): P
 
 export interface RequestListItem {
   id: string;
-  type: RequestType;
+  // ADR-0010: kanban tickets carry `null`; legacy reviewer flows keep their
+  // value. Consumers that index a label/tone map by type need a null guard
+  // (or a caller-side filter — /requests pages filter to non-null).
+  type: RequestType | null;
   status: RequestStatus;
   context: Prisma.JsonValue;
   regionSlug: string | null;
