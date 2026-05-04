@@ -132,7 +132,7 @@ describe('board.listCards', () => {
     const caller = createCaller(authedContext());
     const result = await caller.board.listCards(listInput);
     expect(result).toHaveLength(1);
-    expect(mockListCards).toHaveBeenCalledWith('g1');
+    expect(mockListCards).toHaveBeenCalledWith('g1', { status: undefined });
   });
 });
 

@@ -141,6 +141,57 @@ describe('listBoardCardsForGroup', () => {
     expect(cards.map((c) => c.title)).toEqual(['(Untitled)', '(Untitled)', '(Untitled)']);
   });
 
+  it("filters by Request.status when status='backlog' is passed (off-board)", async () => {
+    mockedRequestGroup.findMany.mockResolvedValue([]);
+    await listBoardCardsForGroup('g1', { status: 'backlog' });
+    expect(mockedRequestGroup.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          groupId: 'g1',
+          deletedAt: null,
+          columnId: null,
+          request: { deletedAt: null, status: 'backlog' },
+        },
+        orderBy: [{ boardPosition: 'asc' }, { createdAt: 'asc' }],
+      }),
+    );
+  });
+
+  it("filters by Request.status when status='done' is passed (off-board)", async () => {
+    mockedRequestGroup.findMany.mockResolvedValue([]);
+    await listBoardCardsForGroup('g1', { status: 'done' });
+    expect(mockedRequestGroup.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          columnId: null,
+          request: { deletedAt: null, status: 'done' },
+        }),
+      }),
+    );
+  });
+
+  it('preserves columnId null in the BoardCard shape for off-board cards', async () => {
+    mockedRequestGroup.findMany.mockResolvedValue([
+      {
+        columnId: null,
+        boardPosition: new Prisma.Decimal(0),
+        isUrgent: false,
+        request: {
+          id: 'r1',
+          status: 'backlog',
+          context: { title: 'Pending' },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          kind: null,
+          assignments: [],
+        },
+      },
+    ]);
+    const cards = await listBoardCardsForGroup('g1', { status: 'backlog' });
+    expect(cards[0]?.columnId).toBeNull();
+    expect(cards[0]?.status).toBe('backlog');
+  });
+
   it('returns boardPosition as a string for client serialisation safety', async () => {
     mockedRequestGroup.findMany.mockResolvedValue([
       {

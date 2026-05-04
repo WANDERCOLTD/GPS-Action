@@ -11,12 +11,13 @@
  */
 
 import { notFound, redirect } from 'next/navigation';
-import Link from 'next/link';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { Column } from '@/components/board/Column';
 import type { CardProps } from '@/components/board/Card';
+import { BoardTabs } from '@/components/board/BoardTabs';
+import { BoardBackLink } from '@/components/board/BoardBackLink';
 
 interface BoardGroupPageProps {
   params: Promise<{ groupSlug: string }>;
@@ -50,9 +51,11 @@ export default async function BoardGroupPage({ params }: BoardGroupPageProps) {
     caller.board.listCards({ groupId: accessibleGroup.group.id }),
   ]);
 
-  // Group cards by columnId for the visual grid.
+  // Group cards by columnId for the visual grid. Active cards always
+  // have columnId set (service contract); the null guard is defensive.
   const cardsByColumn = new Map<string, CardProps['ticket'][]>();
   for (const card of cards) {
+    if (card.columnId === null) continue;
     const list = cardsByColumn.get(card.columnId) ?? [];
     list.push({
       id: card.id,
@@ -74,19 +77,7 @@ export default async function BoardGroupPage({ params }: BoardGroupPageProps) {
       }}
     >
       <header style={{ marginBottom: 'var(--space-4)' }}>
-        <Link
-          href="/board"
-          data-testid="board-view-back"
-          style={{
-            fontSize: 'var(--text-sm)',
-            color: 'var(--colour-text-link)',
-            textDecoration: 'none',
-            display: 'inline-block',
-            marginBottom: 'var(--space-2)',
-          }}
-        >
-          ← All boards
-        </Link>
+        <BoardBackLink />
         <h1
           style={{
             margin: 0,
@@ -96,16 +87,8 @@ export default async function BoardGroupPage({ params }: BoardGroupPageProps) {
         >
           {accessibleGroup.group.displayName}
         </h1>
-        <p
-          style={{
-            margin: 'var(--space-1) 0 0',
-            color: 'var(--colour-text-secondary)',
-            fontSize: 'var(--text-sm)',
-          }}
-        >
-          Active tickets — drag to reorder coming soon.
-        </p>
       </header>
+      <BoardTabs groupSlug={groupSlug} active="active" />
 
       {columns.length === 0 ? (
         <p
