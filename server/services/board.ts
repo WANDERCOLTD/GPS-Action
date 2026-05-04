@@ -1,12 +1,12 @@
 /**
- * @build-unit bu-coordination-board (build seq #4 — Surface 1, PR #4a)
+ * @build-unit bu-coordination-board (build seq #4 — Surface 1, PR #4a + #4d)
  * @spec build/session-briefs/bu-coordination-board.md
  * @adr 0006 0009 0011 0012
  *
  * Board service — drag-reorder + status transitions + position math
- * primitives for the kanban surface (Surface 1).
+ * + read query for the kanban surface (Surface 1).
  *
- * Three concerns, one service:
+ * Four concerns, one service:
  *
  *   1. Position math (pure): a Decimal between two siblings, padded by
  *      BOARD_POSITION_GAP when one side is open. Avoids renumbering on
@@ -18,6 +18,10 @@
  *      row only, never touches Request.status).
  *   3. Status transitions: explicit setRequestStatus for off-drag
  *      gestures (e.g. "Mark abandoned"). Drag moves go through moveCard.
+ *   4. Read query (PR #4d): listBoardCardsForGroup returns cards in a
+ *      group's active set, joined to assignees + kind. Per-link state
+ *      (column placement, isUrgent) lives on RequestGroup so the same
+ *      Request can sit on different columns in different groups.
  *
  * Off-board lanes (backlog / done / abandoned) only make sense on the
  * originating group's board — Request.status is global, not per-link.
@@ -365,4 +369,117 @@ export async function setRequestStatus(input: SetStatusInput): Promise<Request> 
   });
 
   return updated;
+}
+
+// ─── Read query: cards on a group's board ───────────────────────────────────
+
+export interface BoardCardAssignee {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface BoardCard {
+  /** Request.id — primary identifier; routes use this for ticket detail. */
+  id: string;
+  /**
+   * Display title. Read from `request.context.title` for kanban tickets;
+   * falls back to '(Untitled)' when missing. The schema does not (yet)
+   * carry a dedicated Request.title — kanban consumers store the title
+   * inside the existing `context: Json` blob alongside any future fields.
+   * If a typed `Request.title` is added in a future ADR, swap this read.
+   */
+  title: string;
+  kindSlug: string | null;
+  kindDisplayName: string | null;
+  /** Per-link urgency (RequestGroup.isUrgent). Independent of the global Request.urgency flag. */
+  isUrgent: boolean;
+  /** Global Request.status. Same value across every group's view. */
+  status: RequestStatus;
+  /** Per-link column placement (RequestGroup.columnId). */
+  columnId: string;
+  /** Per-link board position as a string for client serialisation safety. */
+  boardPosition: string;
+  /** Active assignees, ordered oldest assignment first (visual stability). */
+  assignees: BoardCardAssignee[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Read cards for a group's board (Active tab). Includes both originating
+ * cards and cards shared into this group from other groups.
+ *
+ * Joins via RequestGroup so the per-link state (`columnId`,
+ * `boardPosition`, `isUrgent`) drives the view — for the originating
+ * group these mirror Request, for shared groups they're independent.
+ *
+ * Filters:
+ *   - RequestGroup.deletedAt IS NULL (link is active).
+ *   - RequestGroup.columnId IS NOT NULL (card placed on a column).
+ *   - Request.deletedAt IS NULL (request not soft-deleted).
+ *   - Request.status === 'active' (off-board lanes belong to other tabs).
+ *
+ * Sort: by columnId then boardPosition asc — caller groups by columnId
+ * to render columns. The per-column ordering reflects manual reshuffles.
+ */
+export async function listBoardCardsForGroup(groupId: string): Promise<BoardCard[]> {
+  const rows = await prisma.requestGroup.findMany({
+    where: {
+      groupId,
+      deletedAt: null,
+      columnId: { not: null },
+      request: {
+        deletedAt: null,
+        status: 'active',
+      },
+    },
+    orderBy: [{ columnId: 'asc' }, { boardPosition: 'asc' }],
+    include: {
+      request: {
+        select: {
+          id: true,
+          status: true,
+          context: true,
+          createdAt: true,
+          updatedAt: true,
+          kind: { select: { slug: true, displayName: true } },
+          assignments: {
+            where: { unassignedAt: null },
+            orderBy: { assignedAt: 'asc' },
+            select: {
+              user: { select: { id: true, displayName: true, avatarUrl: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return rows.map((row): BoardCard => {
+    const ctx = row.request.context;
+    const title =
+      typeof ctx === 'object' && ctx !== null && !Array.isArray(ctx) && 'title' in ctx
+        ? typeof (ctx as { title: unknown }).title === 'string'
+          ? ((ctx as { title: string }).title as string)
+          : '(Untitled)'
+        : '(Untitled)';
+    return {
+      id: row.request.id,
+      title,
+      kindSlug: row.request.kind?.slug ?? null,
+      kindDisplayName: row.request.kind?.displayName ?? null,
+      isUrgent: row.isUrgent,
+      status: row.request.status,
+      columnId: row.columnId as string,
+      boardPosition: (row.boardPosition ?? new Prisma.Decimal(0)).toString(),
+      assignees: row.request.assignments.map((a) => ({
+        userId: a.user.id,
+        displayName: a.user.displayName,
+        avatarUrl: a.user.avatarUrl,
+      })),
+      createdAt: row.request.createdAt,
+      updatedAt: row.request.updatedAt,
+    };
+  });
 }

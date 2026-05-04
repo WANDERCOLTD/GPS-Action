@@ -29,7 +29,9 @@ import { router, authedProcedure } from '@/server/lib/trpc';
 import {
   moveCard,
   setRequestStatus,
+  listBoardCardsForGroup,
   BoardError,
+  type BoardCard,
   type MoveCardResult,
 } from '@/server/services/board';
 import { isAssigneeActive } from '@/server/services/assignments';
@@ -113,7 +115,28 @@ async function gateMoveOrStatus(opts: {
   return access;
 }
 
+const listCardsSchema = z.object({ groupId: z.string().min(1) });
+
 export const boardRouter = router({
+  /**
+   * Read the active cards for a group's kanban board. Joins via
+   * RequestGroup so per-link column placement drives the view.
+   */
+  listCards: authedProcedure
+    .input(listCardsSchema)
+    .query(async ({ ctx, input }): Promise<BoardCard[]> => {
+      try {
+        await assertCanViewBoard({
+          groupId: input.groupId,
+          userId: ctx.user.id,
+          isSystemAdmin: ctx.activeRoles.includes('admin'),
+        });
+      } catch (err) {
+        throw toTRPCError(err);
+      }
+      return listBoardCardsForGroup(input.groupId);
+    }),
+
   /**
    * Drag-and-drop a card. Service dispatches by origin: originating-
    * group writes Request + mirrors RequestGroup; shared-group writes
