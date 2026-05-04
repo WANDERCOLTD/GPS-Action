@@ -11,12 +11,16 @@
  * read; in the sticky header the mark-only crop avoids unreadable
  * micro-type. Colours are baked into the PNG, so this asset does not
  * invert in dark mode — accepted tradeoff for brand fidelity.
+ *
+ * Sized to match the surrounding 22px lucide nav glyphs (sits in the
+ * same row as `<AppNav>` icons). Both width and height are set in the
+ * style block so the rendered img cannot exceed the row height.
  */
 import Image from 'next/image';
 import Link from 'next/link';
 
-const HEIGHT = 32;
-const WIDTH = 35;
+const HEIGHT = 24;
+const WIDTH = 26;
 
 export function HeaderLogo() {
   return (
@@ -39,7 +43,12 @@ export function HeaderLogo() {
         width={WIDTH}
         height={HEIGHT}
         priority
-        style={{ display: 'block', height: HEIGHT, width: 'auto' }}
+        style={{
+          display: 'block',
+          width: WIDTH,
+          height: HEIGHT,
+          objectFit: 'contain',
+        }}
       />
     </Link>
   );
