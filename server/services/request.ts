@@ -244,7 +244,7 @@ export async function createUrgentRequest(input: CreateUrgentInput): Promise<{ i
   const created = await prisma.request.create({
     data: {
       type: 'incident',
-      status: 'unclaimed',
+      status: 'backlog',
       priority: 'urgent',
       urgency: true,
       urgencyExpiresAt: expiresAt,
@@ -280,13 +280,16 @@ export async function createUrgentRequest(input: CreateUrgentInput): Promise<{ i
 export type ClaimResult = { ok: true } | { ok: false; reason: 'not_found' | 'already_claimed' };
 
 /**
- * Atomic claim — uses updateMany with a status='unclaimed' guard so two
+ * Atomic claim — uses updateMany with a status='backlog' guard so two
  * reviewers can't double-claim. Returns reason='already_claimed' when the
  * row exists but a race lost. Per claim-and-lease.md.
  *
  * ADR-0011: ownership now lives on Assignment. The status flip is still
  * the race lock; inside the same transaction we create the Assignment
  * row that records the claimer.
+ *
+ * ADR-0012: 'unclaimed' → 'backlog' and 'claimed' → 'active' under the
+ * reframed RequestStatus enum.
  */
 export async function claimRequest(input: {
   requestId: string;
@@ -294,8 +297,8 @@ export async function claimRequest(input: {
 }): Promise<ClaimResult> {
   const claimed = await prisma.$transaction(async (tx) => {
     const result = await tx.request.updateMany({
-      where: { id: input.requestId, status: 'unclaimed', deletedAt: null },
-      data: { status: 'claimed' },
+      where: { id: input.requestId, status: 'backlog', deletedAt: null },
+      data: { status: 'active' },
     });
     if (result.count === 0) return false;
     await tx.assignment.upsert({
@@ -362,7 +365,7 @@ export async function resolveRequest(input: {
 }): Promise<ResolveResult> {
   const existing = await prisma.request.findUnique({ where: { id: input.requestId } });
   if (!existing || existing.deletedAt) return { ok: false, reason: 'not_found' };
-  if (existing.status !== 'claimed' && existing.status !== 'in_review') {
+  if (existing.status !== 'active') {
     return { ok: false, reason: 'wrong_state' };
   }
   if (!input.isAdmin) {
@@ -379,7 +382,7 @@ export async function resolveRequest(input: {
   await prisma.request.update({
     where: { id: input.requestId },
     data: {
-      status: 'resolved',
+      status: 'done',
       resolvedAt: new Date(),
       resolvedByUserId: input.userId,
       resolutionNotes: input.notes,
@@ -477,7 +480,7 @@ export async function createKindReviewRequest(
   const created = await db.request.create({
     data: {
       type: 'kind_review',
-      status: 'unclaimed',
+      status: 'backlog',
       priority,
       kindId: post.kindId,
       context: { postId: post.id, source: 'publish_modal' },
@@ -545,7 +548,7 @@ export async function closeKindReviewRequest(
   });
   if (!request || request.deletedAt) return { ok: false, reason: 'not_found' };
   if (request.type !== 'kind_review') return { ok: false, reason: 'wrong_type' };
-  if (request.status === 'resolved' || request.status === 'abandoned') {
+  if (request.status === 'done' || request.status === 'abandoned') {
     return { ok: false, reason: 'already_closed' };
   }
 
@@ -580,7 +583,7 @@ export async function closeKindReviewRequest(
   await prisma.request.update({
     where: { id: input.requestId },
     data: {
-      status: input.verdict === 'withdrawn' ? 'abandoned' : 'resolved',
+      status: input.verdict === 'withdrawn' ? 'abandoned' : 'done',
       resolvedAt: now,
       resolvedByUserId: input.reviewerId,
       resolutionNotes: input.reason ?? null,

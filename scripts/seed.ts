@@ -749,7 +749,7 @@ async function main(): Promise<void> {
       data: {
         id: eddieVettingId,
         type: 'vetting',
-        status: 'unclaimed',
+        status: 'backlog',
         priority: 'normal',
         context: {
           summary: 'Eddie Morales — vetting application',
@@ -785,7 +785,7 @@ async function main(): Promise<void> {
       data: {
         id: humphreyFlagId,
         type: 'flag',
-        status: 'unclaimed',
+        status: 'backlog',
         priority: 'normal',
         context: {
           summary: 'Possible misinformation — bias in linked source',
@@ -969,7 +969,7 @@ async function main(): Promise<void> {
       data: {
         id: mayaAlertId,
         type: 'content_submission',
-        status: 'unclaimed',
+        status: 'backlog',
         priority: 'urgent',
         urgency: true,
         urgencyExpiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000),

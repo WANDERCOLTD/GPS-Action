@@ -62,11 +62,13 @@ const PRIORITY_LABELS: Record<Exclude<RequestPriority, 'normal'>, string> = {
   low: 'low',
 };
 
+// ADR-0012: status reframed to backlog | active | done | abandoned.
+// Member-facing copy keeps the warm legacy verbs ("new" / "in discussion")
+// instead of the schema literal — the labels here are for humans.
 const STATUS_LABELS: Record<string, string> = {
-  unclaimed: 'new',
-  claimed: 'in discussion',
-  in_review: 'in discussion',
-  resolved: 'done',
+  backlog: 'new',
+  active: 'in discussion',
+  done: 'done',
   abandoned: 'abandoned',
 };
 
@@ -75,12 +77,11 @@ const STATUS_LABELS: Record<string, string> = {
 // chips). One source of truth for tone tokens.
 function statusToneClass(status: string): string {
   switch (status) {
-    case 'unclaimed':
+    case 'backlog':
       return 'gps-chip--info';
-    case 'claimed':
-    case 'in_review':
+    case 'active':
       return 'gps-chip--warning';
-    case 'resolved':
+    case 'done':
       return 'gps-chip--success';
     default:
       return '';
@@ -114,9 +115,8 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
       : '';
 
   const isClaimedByCaller = row.claimedByUserId === callerId;
-  const showClaim = canAct && row.status === 'unclaimed';
-  const showResolve =
-    canAct && (row.status === 'claimed' || row.status === 'in_review') && isClaimedByCaller;
+  const showClaim = canAct && row.status === 'backlog';
+  const showResolve = canAct && row.status === 'active' && isClaimedByCaller;
 
   const href = `/requests/${row.id}`;
 

@@ -67,11 +67,14 @@ enum RequestType {
   kind_review
 }
 
+// ADR-0012 (PR #2g.3) — reframe to kanban-aligned 4-state lifecycle.
+// `claimed` and `in_review` collapse into `active`; workflow nuance
+// (e.g. "in review") moves to BoardColumn placement on the kanban
+// surface (per ADR-0006).
 enum RequestStatus {
-  unclaimed
-  claimed
-  in_review
-  resolved
+  backlog
+  active
+  done
   abandoned
 }
 
@@ -288,7 +291,7 @@ model Request {
   // ADR-0010 — nullable: kanban tickets (PR #2g.1+) carry `type = null`;
   // legacy reviewer flows (vetting, flag, kind_review, …) keep their value.
   type     RequestType?
-  status   RequestStatus   @default(unclaimed)
+  status   RequestStatus   @default(backlog)
   priority RequestPriority @default(normal)
 
   // Type-specific payload — references to underlying entities + display summary.
