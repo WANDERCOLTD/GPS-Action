@@ -28,6 +28,14 @@ export const SEED_HERO_IMAGES: readonly SeedHeroImage[] = [
   { url: '/seed-images/06.svg', alt: 'Community meeting placeholder' },
   { url: '/seed-images/07.svg', alt: 'Vigil placeholder' },
   { url: '/seed-images/08.svg', alt: 'Direct action placeholder' },
+  {
+    url: '/seed-images/09-shabbat-shalom.jpg',
+    alt: 'Shabbat shalom — telescopes at sunset with greeting "Happy days are in sight"',
+  },
+  {
+    url: '/seed-images/10-writers-circle.jpg',
+    alt: 'The Writers’ Circle — join us, become part of our creative community',
+  },
 ] as const;
 
 export const allowedHeroImageUrls: ReadonlySet<string> = new Set(

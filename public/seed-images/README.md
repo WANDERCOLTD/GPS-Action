@@ -4,21 +4,30 @@ Demo-only image set for `<HeroImagePicker>` in BU-post-hero-demo.
 
 ## What's here
 
-8 SVG placeholders at 16:9 (1600×900 viewBox), each ≤6 KB. They
+8 SVG placeholders at 16:9 (1600×900 viewBox), each ≤6 KB, plus 2
+real raster heroes for cultural / community moments. The SVGs
 render recognizable scenes (silhouettes, banners, candles, stamps,
 typography) so the feed doesn't look empty before real photos drop
 in.
 
-| File     | Theme                     | Scene                                                    |
-| -------- | ------------------------- | -------------------------------------------------------- |
-| `01.svg` | Protest march             | Crowd silhouette + raised banners + sun + raised fist    |
-| `02.svg` | Banner rally              | "RAISE YOUR VOICE" banner held by crowd                  |
-| `03.svg` | Letter writing            | Letter to MP, fountain pen, opening line + ruled lines   |
-| `04.svg` | Community gathering       | Dense ring of figures + golden star centred              |
-| `05.svg` | Petition / signatures     | Petition document with handwritten signatures + pen      |
-| `06.svg` | Community meeting         | Ring of figures around a table with papers               |
-| `07.svg` | Vigil / remembrance       | Row of nine candles with flames against a deep night sky |
-| `08.svg` | Direct action / megaphone | Bullhorn + "ACT NOW" + emphasis lines and stars          |
+| File                    | Theme                     | Scene                                                                   |
+| ----------------------- | ------------------------- | ----------------------------------------------------------------------- |
+| `01.svg`                | Protest march             | Crowd silhouette + raised banners + sun + raised fist                   |
+| `02.svg`                | Banner rally              | "RAISE YOUR VOICE" banner held by crowd                                 |
+| `03.svg`                | Letter writing            | Letter to MP, fountain pen, opening line + ruled lines                  |
+| `04.svg`                | Community gathering       | Dense ring of figures + golden star centred                             |
+| `05.svg`                | Petition / signatures     | Petition document with handwritten signatures + pen                     |
+| `06.svg`                | Community meeting         | Ring of figures around a table with papers                              |
+| `07.svg`                | Vigil / remembrance       | Row of nine candles with flames against a deep night sky                |
+| `08.svg`                | Direct action / megaphone | Bullhorn + "ACT NOW" + emphasis lines and stars                         |
+| `09-shabbat-shalom.jpg` | Shabbat greeting          | Telescopes at sunset, "Happy days are in sight" / "Shabbat shalom" copy |
+| `10-writers-circle.jpg` | Recruitment               | "The Writers' Circle — join us, become part of our creative community"  |
+
+### Note on images with baked-in copy
+
+`09` and `10` carry their own headline text. They render fine as a
+hero on a card, but pairing them with a post title that repeats the
+same phrase will look duplicative. Authors choose accordingly.
 
 ## Shopping list — real photos to replace these
 
