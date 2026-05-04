@@ -203,6 +203,12 @@ model User {
   notificationsReceived Notification[] @relation("notificationsReceived")
   notificationsSent     Notification[] @relation("notificationsSent")
 
+  // Coord-board (Slice 3 — bu-coordination-board / ADRs 0005-0009)
+  assignments              Assignment[]          @relation("userAssignments")
+  requestSubscriptions     RequestSubscription[] @relation("userSubscriptions")
+  requestGroupSharedBy     RequestGroup[]        @relation("requestGroupSharedBy")
+  groupShareWorkflowsAdded GroupShareWorkflow[]  @relation("groupShareWorkflowsAdded")
+
   @@index([deletedAt])
   @@index([verifiedAt])
 }
@@ -331,6 +337,20 @@ model Request {
   // the FK declared on Post.
   postReview Post? @relation("PostReviewRequest")
 
+  // Coord-board (Slice 3 — bu-coordination-board / ADR-0005, ADR-0006, ADR-0009).
+  // `columnId` is the originating group's BoardColumn placement; per-group
+  // placements for shared groups live on `RequestGroup.columnId`.
+  // `boardPosition` carries the originating group's manual reshuffle position.
+  // Both nullable so existing Request rows (vetting, flag, kind_review, …) stay
+  // valid; kanban rows populate them via service code in PR #2.
+  columnId      String?
+  column        BoardColumn? @relation(fields: [columnId], references: [id], onDelete: SetNull)
+  boardPosition Decimal?
+
+  assignments   Assignment[]
+  requestGroups RequestGroup[]
+  subscriptions RequestSubscription[]
+
   @@index([status, priority, createdAt])
   @@index([claimedByUserId, status])
   @@index([type, status])
@@ -338,6 +358,7 @@ model Request {
   @@index([urgency, status])
   @@index([groupTags], type: Gin)
   @@index([deletedAt])
+  @@index([columnId, boardPosition])
 }
 
 // ─── PostKind ────────────────────────────────────────────────────────────────
@@ -604,7 +625,11 @@ enum GroupJoinPolicy {
 
 enum GroupMembershipRole {
   member
-  lead
+  // Tier-2 default #8 (bu-coordination-board v0.4): renamed from `lead`
+  // 2026-05-04 — admin reads consistently across the kanban surface
+  // ("group admin" vs "system admin"). Inline migration rides PR #1
+  // schema bundle. See decision-log entry for the full mapping.
+  admin
 }
 
 enum JoinSource {
@@ -645,9 +670,21 @@ model Group {
   createdByUserId String
   createdBy       User   @relation("groupsCreated", fields: [createdByUserId], references: [id], onDelete: Restrict)
 
+  // Coord-board (Slice 3 — bu-coordination-board / ADR-0006, ADR-0009).
+  // `kind` drives default BoardColumn names per ADR-0006 (table 1).
+  // Default `team` keeps existing Group rows valid post-migration; admins
+  // can re-classify via the admin surface.
+  kind GroupKind @default(team)
+
+  boardColumns    BoardColumn[]
+  requestGroups   RequestGroup[]       @relation("groupRequests")
+  workflowSources GroupShareWorkflow[] @relation("workflowSources")
+  workflowTargets GroupShareWorkflow[] @relation("workflowTargets")
+
   memberships GroupMembership[]
 
   @@index([deletedAt, isOfficial])
+  @@index([kind])
 }
 
 // ─── GroupMembership ─────────────────────────────────────────────────────────
@@ -969,6 +1006,14 @@ model Comment {
   // null = regular member comment, no special styling.
   systemKind CommentSystemKind?
 
+  // Coord-board (Slice 3 — ADR-0007). Coexists with `audience` and
+  // `systemKind`; service-layer dispatch table in ADR-0007.
+  // `kind`: comment vs internal note (per-group visibility envelope).
+  // `source`: human vs system (kanban transition events ride
+  //   source = system).
+  kind   CommentKind   @default(comment)
+  source CommentSource @default(human)
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -980,6 +1025,7 @@ model Comment {
   @@index([requestId, createdAt])
   @@index([authorId, createdAt])
   @@index([deletedAt])
+  @@index([requestId, kind, createdAt])
 }
 
 enum CommentAudience {
@@ -1005,28 +1051,39 @@ enum CommentSystemKind {
 // MVP: in-app polling only (no push, no email). Per-user notification
 // preferences are deferred to BU-account.
 model Notification {
-  id              String           @id @default(uuid())
+  id              String @id @default(uuid())
   recipientUserId String
-  recipient       User             @relation("notificationsReceived", fields: [recipientUserId], references: [id], onDelete: Cascade)
+  recipient       User   @relation("notificationsReceived", fields: [recipientUserId], references: [id], onDelete: Cascade)
 
-  type            NotificationType
+  type NotificationType
 
   // Optional polymorphic context — present when the notification refers
   // to a specific Request. (Future types may reference posts; currently
   // only Request-related notifications.)
-  requestId       String?
-  request         Request?         @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  requestId String?
+  request   Request? @relation(fields: [requestId], references: [id], onDelete: SetNull)
 
-  fromUserId      String?
-  fromUser        User?            @relation("notificationsSent", fields: [fromUserId], references: [id], onDelete: SetNull)
+  fromUserId String?
+  fromUser   User?   @relation("notificationsSent", fields: [fromUserId], references: [id], onDelete: SetNull)
 
-  message         String?
+  message String?
 
-  createdAt       DateTime         @default(now())
-  readAt          DateTime?
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  // Coord-board (Slice 3 — ADR-0008). Coexists with `type` and `readAt`;
+  // service-layer dispatch table in ADR-0008.
+  // `lifecycle`: 3-state (new / acknowledged / dismissed). On
+  //   acknowledge, services write BOTH lifecycle=acknowledged AND
+  //   readAt=now() so legacy queries keep working.
+  // `reasonKind`: trigger-shaped discriminator for kanban-era
+  //   notifications. Nullable on legacy rows.
+  lifecycle  NotificationLifecycle   @default(new)
+  reasonKind NotificationReasonKind?
 
   @@index([recipientUserId, readAt, createdAt])
   @@index([requestId])
+  @@index([recipientUserId, lifecycle, createdAt])
 }
 
 enum NotificationType {
@@ -1035,4 +1092,245 @@ enum NotificationType {
   request_resolved
   request_published
   request_archived
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SLICE 3 — Coordination board (bu-coordination-board / ADRs 0005-0009)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Build sequence #1 of 8: schema + ADRs only, no behaviour. Consumers
+// land in PR #2 (services). All rows here are dormant until pilot teams
+// flip `coord_board_v1` (registered, prod OFF, dev OFF by default).
+//
+// Slice content:
+//   - Enums: GroupKind, CommentKind, CommentSource, NotificationLifecycle,
+//     NotificationReasonKind, SubscriptionSource, RequestGroupOrigin.
+//   - New entities: Assignment (multi-assignee), RequestGroup (cross-team
+//     share with per-link state), GroupShareWorkflow (per-team allow-list),
+//     BoardColumn (per-Group configurable columns), RequestSubscription
+//     (subscriber registry per Request).
+//   - Field additions on existing models live inline (Group.kind,
+//     Request.columnId/boardPosition, Comment.kind/source,
+//     Notification.lifecycle/reasonKind).
+//
+// Deferred to PR #2 (alongside consumer-service migration):
+//   - Drop Request.claimedByUserId (replaced by Assignment join).
+//   - Drop Request.requestType.
+//   - Reframe RequestStatus enum to backlog | active | done | abandoned
+//     (ADR-0005 documents the target shape).
+//
+// See bu-coordination-board.md v0.4 for the build sequence and the
+// permission model.
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum GroupKind {
+  workstream
+  region
+  network
+  team
+  topic
+}
+
+enum CommentKind {
+  comment
+  note
+}
+
+enum CommentSource {
+  human
+  system
+}
+
+enum NotificationLifecycle {
+  new
+  acknowledged
+  dismissed
+}
+
+enum NotificationReasonKind {
+  assignment
+  mention
+  status_change
+  comment
+  urgent_flip
+  team_blast
+}
+
+enum SubscriptionSource {
+  auto_author
+  auto_assignee
+  auto_mention
+  explicit
+  team_blast_optin
+}
+
+enum RequestGroupOrigin {
+  originating
+  workflow_share
+  ad_hoc_share
+}
+
+// ─── Assignment ──────────────────────────────────────────────────────────────
+//
+// Multi-assignee join between Request and User (ADR-0009 references; per
+// brief v0.4 schema additions). Replaces the single-owner pattern of
+// Request.claimedByUserId — consumer-service migration in PR #2 drops the
+// old column. Until then, both coexist.
+//
+// App-level invariants (PR #2 enforces):
+//   - Self-assigning auto-subscribes (RequestSubscription created with
+//     source = auto_assignee).
+//   - Unassigning leaves any explicit subscription in place.
+//   - First-assignee gets no special status (no "owner" vocabulary).
+model Assignment {
+  id        String  @id @default(uuid())
+  requestId String
+  request   Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation("userAssignments", fields: [userId], references: [id], onDelete: Cascade)
+
+  assignedAt   DateTime  @default(now())
+  unassignedAt DateTime?
+
+  @@unique([requestId, userId])
+  @@index([userId, unassignedAt])
+  @@index([requestId, unassignedAt])
+}
+
+// ─── RequestGroup ────────────────────────────────────────────────────────────
+//
+// Per-link state for cross-team shares (ADR-0009). Each Request is linked
+// to its originating group (origin = originating) plus zero or more shared
+// groups (origin = workflow_share | ad_hoc_share). Each link carries its
+// own column placement and urgent flag, so Writers and IT can have
+// independent workflows on the same ticket.
+//
+// App-level invariants (PR #2 enforces):
+//   - Exactly one row per Request has origin = originating.
+//   - The originating row's columnId/boardPosition mirrors Request.columnId/
+//     boardPosition.
+//   - Soft-delete (deletedAt) is the "unshare" gesture; the row stays for
+//     audit. Re-share creates a new row or undeletes.
+model RequestGroup {
+  id        String  @id @default(uuid())
+  requestId String
+  request   Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  groupId   String
+  group     Group   @relation("groupRequests", fields: [groupId], references: [id], onDelete: Cascade)
+
+  // Per-link state. Independent of Request's own columnId / boardPosition
+  // (which mirror this row when origin = originating).
+  columnId      String?
+  column        BoardColumn? @relation("requestGroupColumn", fields: [columnId], references: [id], onDelete: SetNull)
+  boardPosition Decimal?
+  isUrgent      Boolean      @default(false)
+
+  origin RequestGroupOrigin @default(originating)
+
+  sharedByUserId String?
+  sharedBy       User?   @relation("requestGroupSharedBy", fields: [sharedByUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([requestId, groupId])
+  @@index([groupId, deletedAt])
+  @@index([requestId])
+  @@index([groupId, columnId, boardPosition])
+}
+
+// ─── GroupShareWorkflow ──────────────────────────────────────────────────────
+//
+// Per-team admin allow-list of share targets (ADR-0009). Constrains the
+// "Share with team" picker on Surface 2 — admin-pre-set targets surface
+// first; ad-hoc share to any group is gated separately by role.
+//
+// App-level invariants:
+//   - sourceGroupId != targetGroupId (a group cannot share to itself).
+//     PR #2 service enforces; not at DB level (no CHECK in Prisma 5).
+//   - Soft-delete preserves audit; re-add creates a new row or undeletes.
+model GroupShareWorkflow {
+  id            String @id @default(uuid())
+  sourceGroupId String
+  sourceGroup   Group  @relation("workflowSources", fields: [sourceGroupId], references: [id], onDelete: Cascade)
+  targetGroupId String
+  targetGroup   Group  @relation("workflowTargets", fields: [targetGroupId], references: [id], onDelete: Cascade)
+
+  addedByUserId String?
+  addedBy       User?   @relation("groupShareWorkflowsAdded", fields: [addedByUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([sourceGroupId, targetGroupId])
+  @@index([sourceGroupId, deletedAt])
+  @@index([targetGroupId, deletedAt])
+}
+
+// ─── BoardColumn ─────────────────────────────────────────────────────────────
+//
+// Per-Group configurable kanban column (ADR-0006). Defaults seeded by
+// service hook on Group creation in PR #2; default sets per GroupKind
+// live in shared/board-column-defaults.ts.
+//
+// App-level invariants (PR #2 enforces):
+//   - ordinal is 0-based and contiguous within a Group; reorder updates
+//     ordinals atomically.
+//   - displayName non-empty.
+//   - Cards on a deleted column must be relocated by an admin before the
+//     column is hard-deleted; soft-delete (deletedAt) is the normal path.
+model BoardColumn {
+  id          String @id @default(uuid())
+  groupId     String
+  group       Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  ordinal     Int
+  displayName String
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  requests          Request[]
+  requestGroupCells RequestGroup[] @relation("requestGroupColumn")
+
+  @@unique([groupId, ordinal])
+  @@index([groupId, deletedAt])
+}
+
+// ─── RequestSubscription ─────────────────────────────────────────────────────
+//
+// Subscriber registry per Request (bu-coordination-board v0.4 — schema
+// additions). Drives Surface 3 notification fan-out (Tier-2 default #4 +
+// #10: author + assignees + ever-mentioned + manually-subscribed).
+//
+// Note: the brief calls this "existing RequestSubscription" but no model
+// existed pre-PR; this introduces it. Acknowledged in PR #1 prep.
+//
+// App-level invariants (PR #2 enforces):
+//   - Auto-rules (auto_author / auto_assignee / auto_mention) populate
+//     this table from service-side hooks; explicit gestures use source
+//     = explicit.
+//   - Unsubscribing soft-deletes (deletedAt) — preserves history of
+//     "they were subscribed and deliberately left."
+//   - team_blast_optin records subscriber-driven opt-in to team-wide
+//     blast notifications (Surface 3 trigger rules).
+model RequestSubscription {
+  id        String  @id @default(uuid())
+  requestId String
+  request   Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation("userSubscriptions", fields: [userId], references: [id], onDelete: Cascade)
+
+  source SubscriptionSource
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([requestId, userId])
+  @@index([userId, deletedAt])
+  @@index([requestId, deletedAt])
 }

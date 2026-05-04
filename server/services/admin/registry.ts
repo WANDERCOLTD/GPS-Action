@@ -99,12 +99,14 @@ function meta(key: EntityKey): (typeof entityMetadata)[string] & object {
   return m;
 }
 
-function buildOrderBy(
+function buildOrderBy<T = Prisma.PostOrderByWithRelationInput>(
   defaultSort: unknown,
-): Prisma.PostOrderByWithRelationInput | Prisma.PostOrderByWithRelationInput[] | undefined {
+): T | T[] | undefined {
   if (!defaultSort) return undefined;
-  // Pass-through. The metadata's defaultSort is a Prisma-shaped orderBy.
-  return defaultSort as Prisma.PostOrderByWithRelationInput;
+  // Pass-through. The metadata's defaultSort is a Prisma-shaped orderBy
+  // for the entity that called buildOrderBy. The generic lets each entry
+  // bind its own entity's orderBy shape (Group, Request, Post, …).
+  return defaultSort as T;
 }
 
 function notImplemented(entity: EntityKey, op: string): never {
@@ -511,7 +513,7 @@ const groupEntry: EntityRegistryEntry = {
     const [rows, total] = await Promise.all([
       prisma.group.findMany({
         where,
-        orderBy: buildOrderBy(m.defaultSort),
+        orderBy: buildOrderBy<Prisma.GroupOrderByWithRelationInput>(m.defaultSort),
         take: take ?? 50,
         ...(Object.keys(include).length ? { include } : {}),
       }),

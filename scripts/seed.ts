@@ -1034,7 +1034,7 @@ async function main(): Promise<void> {
             id: membershipId,
             userId: memberId,
             groupId: groupId,
-            role: memberKey === group.createdByKey ? 'lead' : 'member',
+            role: memberKey === group.createdByKey ? 'admin' : 'member',
             joinedVia: memberKey === group.createdByKey ? 'self_join' : 'admin_added',
           },
         });
