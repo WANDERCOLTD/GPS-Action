@@ -131,7 +131,14 @@ export function BoardGrid({ groupSlug, groupId, columns, cardsByColumn }: BoardG
           {error}
         </div>
       )}
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      {/*
+        Stable `id` makes dnd-kit's auto-generated `aria-describedby` (and
+        the underlying useUniqueId counter in @dnd-kit/utilities) deterministic
+        across server/client renders. Without it, React StrictMode double-mount
+        in dev advances the global counter on the client past the server value
+        and hydration warns. One DndContext per page = one stable id.
+      */}
+      <DndContext id={`board-${groupSlug}`} sensors={sensors} onDragEnd={handleDragEnd}>
         <div
           data-testid="board-view-grid"
           data-pending={isPending ? 'true' : 'false'}
