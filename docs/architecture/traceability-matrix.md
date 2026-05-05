@@ -96,6 +96,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-whatsapp-share | 2 | — | D065, D067 |
 | bu-capabilities-mockup | 1 | — | — |
 | bu-coordination-board | 33 | — | — |
+| bu-group-identity | 2 | — | — |
 
 ## ADRs (referenced by code)
 
