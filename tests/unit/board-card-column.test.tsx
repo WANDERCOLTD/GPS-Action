@@ -169,4 +169,40 @@ describe('Column', () => {
     const wrapper = findByTestId(tree, 'board-column-card');
     expect((wrapper?.props as Record<string, unknown>)['data-column-id']).toBe('c-prep');
   });
+
+  it('renders cards via the renderCard prop when provided', () => {
+    const tree = Column({
+      columnId: 'c1',
+      displayName: 'Recruitment',
+      groupSlug: 'writers',
+      tickets: [ticketFixture({ id: 'r1' }), ticketFixture({ id: 'r2', title: 'Second' })],
+      renderCard: (t) => <span data-testid="custom-card-render" data-id={t.id} />,
+    }) as AnyElement;
+    const customs = findAllByTestId(tree, 'custom-card-render');
+    expect(customs).toHaveLength(2);
+    expect(findAllByTestId(tree, 'board-card-link')).toHaveLength(0);
+  });
+
+  it('exposes data-drop-over=true when isOver is set', () => {
+    const tree = Column({
+      columnId: 'c1',
+      displayName: 'Recruitment',
+      groupSlug: 'writers',
+      tickets: [],
+      isOver: true,
+    }) as AnyElement;
+    const wrapper = findByTestId(tree, 'board-column-card');
+    expect((wrapper?.props as Record<string, unknown>)['data-drop-over']).toBe('true');
+  });
+
+  it('defaults data-drop-over to "false" when isOver is omitted', () => {
+    const tree = Column({
+      columnId: 'c1',
+      displayName: 'Recruitment',
+      groupSlug: 'writers',
+      tickets: [],
+    }) as AnyElement;
+    const wrapper = findByTestId(tree, 'board-column-card');
+    expect((wrapper?.props as Record<string, unknown>)['data-drop-over']).toBe('false');
+  });
 });

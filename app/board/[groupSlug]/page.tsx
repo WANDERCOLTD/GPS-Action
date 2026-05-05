@@ -14,8 +14,7 @@ import { notFound, redirect } from 'next/navigation';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
-import { Column } from '@/components/board/Column';
-import type { CardProps } from '@/components/board/Card';
+import { BoardGrid, type CardsByColumn } from '@/components/board/BoardGrid';
 import { BoardTabs } from '@/components/board/BoardTabs';
 import { BoardBackLink } from '@/components/board/BoardBackLink';
 
@@ -53,10 +52,11 @@ export default async function BoardGroupPage({ params }: BoardGroupPageProps) {
 
   // Group cards by columnId for the visual grid. Active cards always
   // have columnId set (service contract); the null guard is defensive.
-  const cardsByColumn = new Map<string, CardProps['ticket'][]>();
+  // Plain object so the map serialises across the server→client boundary.
+  const cardsByColumn: CardsByColumn = {};
   for (const card of cards) {
     if (card.columnId === null) continue;
-    const list = cardsByColumn.get(card.columnId) ?? [];
+    const list = cardsByColumn[card.columnId] ?? [];
     list.push({
       id: card.id,
       title: card.title,
@@ -65,7 +65,7 @@ export default async function BoardGroupPage({ params }: BoardGroupPageProps) {
       assignees: card.assignees,
       updatedAt: card.updatedAt,
     });
-    cardsByColumn.set(card.columnId, list);
+    cardsByColumn[card.columnId] = list;
   }
 
   return (
@@ -104,25 +104,12 @@ export default async function BoardGroupPage({ params }: BoardGroupPageProps) {
           This group has no columns yet. Group admins can configure them.
         </p>
       ) : (
-        <div
-          data-testid="board-view-grid"
-          style={{
-            display: 'flex',
-            gap: 'var(--space-3)',
-            overflowX: 'auto',
-            paddingBottom: 'var(--space-3)',
-          }}
-        >
-          {columns.map((column) => (
-            <Column
-              key={column.id}
-              columnId={column.id}
-              displayName={column.displayName}
-              groupSlug={groupSlug}
-              tickets={cardsByColumn.get(column.id) ?? []}
-            />
-          ))}
-        </div>
+        <BoardGrid
+          groupSlug={groupSlug}
+          groupId={accessibleGroup.group.id}
+          columns={columns.map((c) => ({ id: c.id, displayName: c.displayName }))}
+          cardsByColumn={cardsByColumn}
+        />
       )}
     </main>
   );
