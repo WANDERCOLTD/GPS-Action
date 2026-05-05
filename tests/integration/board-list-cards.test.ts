@@ -1,5 +1,5 @@
 /**
- * Integration tests for listBoardCardsForGroup (PR #4d).
+ * Integration tests for listBoardCardsForGroup (PR #4d, updated PR #5a).
  *
  * Mocks the Prisma client; asserts:
  *   - filters by groupId, deletedAt null, columnId not null,
@@ -7,7 +7,9 @@
  *   - sorts by columnId, then boardPosition asc.
  *   - per-link state (columnId, boardPosition, isUrgent) drives the
  *     card; Request.status flows through unchanged.
- *   - title resolves from request.context.title with a sane fallback.
+ *   - title flows from typed Request.title (ADR-0013 / D079; no
+ *     runtime fallback — DB-level sentinel default covers missing
+ *     rows).
  *   - assignees come through ordered + mapped to the BoardCardAssignee
  *     shape.
  *   - boardPosition is serialised to string at the boundary.
@@ -60,7 +62,7 @@ describe('listBoardCardsForGroup', () => {
         request: {
           id: 'r1',
           status: 'active',
-          context: { title: 'Write press release' },
+          title: 'Write press release',
           createdAt: new Date('2026-05-01'),
           updatedAt: new Date('2026-05-04'),
           kind: { slug: 'task', displayName: 'Task' },
@@ -91,7 +93,10 @@ describe('listBoardCardsForGroup', () => {
     ]);
   });
 
-  it("falls back to '(Untitled)' when context.title is missing or non-string", async () => {
+  it("propagates the typed Request.title — DB sentinel '(Untitled)' covers missing rows", async () => {
+    // ADR-0013 / D079: with the typed column + DB-level default, the
+    // service no longer applies a runtime fallback. Rows that slipped
+    // past the back-fill arrive here already carrying '(Untitled)'.
     mockedRequestGroup.findMany.mockResolvedValue([
       {
         columnId: 'c1',
@@ -100,7 +105,7 @@ describe('listBoardCardsForGroup', () => {
         request: {
           id: 'r1',
           status: 'active',
-          context: { other: 'no title here' },
+          title: '(Untitled)',
           createdAt: new Date(),
           updatedAt: new Date(),
           kind: null,
@@ -114,21 +119,7 @@ describe('listBoardCardsForGroup', () => {
         request: {
           id: 'r2',
           status: 'active',
-          context: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          kind: null,
-          assignments: [],
-        },
-      },
-      {
-        columnId: 'c1',
-        boardPosition: new Prisma.Decimal(2),
-        isUrgent: false,
-        request: {
-          id: 'r3',
-          status: 'active',
-          context: { title: 42 },
+          title: 'Real title',
           createdAt: new Date(),
           updatedAt: new Date(),
           kind: null,
@@ -138,7 +129,7 @@ describe('listBoardCardsForGroup', () => {
     ]);
 
     const cards = await listBoardCardsForGroup('g1');
-    expect(cards.map((c) => c.title)).toEqual(['(Untitled)', '(Untitled)', '(Untitled)']);
+    expect(cards.map((c) => c.title)).toEqual(['(Untitled)', 'Real title']);
   });
 
   it("filters by Request.status when status='backlog' is passed (off-board)", async () => {
@@ -179,7 +170,7 @@ describe('listBoardCardsForGroup', () => {
         request: {
           id: 'r1',
           status: 'backlog',
-          context: { title: 'Pending' },
+          title: 'Pending',
           createdAt: new Date(),
           updatedAt: new Date(),
           kind: null,
@@ -201,7 +192,7 @@ describe('listBoardCardsForGroup', () => {
         request: {
           id: 'r1',
           status: 'active',
-          context: { title: 'X' },
+          title: 'X',
           createdAt: new Date(),
           updatedAt: new Date(),
           kind: null,

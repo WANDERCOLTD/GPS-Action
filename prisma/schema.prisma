@@ -298,6 +298,15 @@ model Request {
   // Per-type Zod schemas defined per Build Unit when each feature ships.
   context Json
 
+  // ADR-0013 / D079 — typed first-class display fields. Sentinel default
+  // on title keeps NOT NULL safe for any rows that slip past the
+  // back-fill. body is nullable — empty body = author has not yet
+  // written a description. Surface 2's edit affordances write here.
+  // `context.title` and `context.body` are deprecated as authoritative
+  // keys but kept on existing rows.
+  title String  @default("(Untitled)")
+  body  String?
+
   // Region tag — informational only in MVP (per D041)
   regionSlug String?
 
