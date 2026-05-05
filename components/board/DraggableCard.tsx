@@ -29,9 +29,7 @@ export function DraggableCard({ groupSlug, ticket }: DraggableCardProps) {
   });
 
   const style: CSSProperties = {
-    transform: transform
-      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-      : undefined,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     opacity: isDragging ? 0.5 : 1,
     cursor: isDragging ? 'grabbing' : 'grab',
     touchAction: 'none',

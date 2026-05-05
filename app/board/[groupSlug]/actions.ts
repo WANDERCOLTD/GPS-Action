@@ -36,9 +36,7 @@ export interface MoveCardActionInput {
   afterRequestId?: string | null;
 }
 
-export async function moveCardAction(
-  input: MoveCardActionInput,
-): Promise<MoveCardActionResult> {
+export async function moveCardAction(input: MoveCardActionInput): Promise<MoveCardActionResult> {
   try {
     const ctx = await createTRPCContext();
     const caller = createCaller(ctx);

@@ -4,10 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  computeMove,
-  type CardsByColumn,
-} from '@/components/board/computeMove';
+import { computeMove, type CardsByColumn } from '@/components/board/computeMove';
 import type { CardProps } from '@/components/board/Card';
 
 const NOW = new Date('2026-05-05T12:00:00Z');

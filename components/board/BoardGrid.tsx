@@ -82,9 +82,7 @@ export function BoardGrid({ groupSlug, groupId, columns, cardsByColumn }: BoardG
     setOptimistic(cardsByColumn);
   }, [cardsByColumn]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;

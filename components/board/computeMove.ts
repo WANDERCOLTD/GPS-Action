@@ -46,9 +46,7 @@ export function computeMove(
 
   const targetExisting = cardsByColumn[targetColumnId] ?? [];
   const next: CardsByColumn = { ...cardsByColumn };
-  next[sourceColumnId] = (cardsByColumn[sourceColumnId] ?? []).filter(
-    (c) => c.id !== requestId,
-  );
+  next[sourceColumnId] = (cardsByColumn[sourceColumnId] ?? []).filter((c) => c.id !== requestId);
   next[targetColumnId] = [...targetExisting, card];
 
   const lastInTarget = targetExisting[targetExisting.length - 1];
