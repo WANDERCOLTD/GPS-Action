@@ -32,6 +32,7 @@ import { VersionBadge } from '@/components/VersionBadge';
 import { DemoBanner } from '@/components/DemoBanner';
 import { createTRPCContext } from '@/server/routers/context';
 import { countUnreadForUser } from '@/server/services/notification';
+import { countNewForUser } from '@/server/services/notifications-kanban';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { isDemoMode } from '@/shared/demo-mode';
 
@@ -83,13 +84,22 @@ function RootErrorFallback() {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const ctx = await createTRPCContext();
 
-  const [unreadNotificationCount, calendarEnabled, coordBoardEnabled] = await Promise.all([
-    ctx.user ? countUnreadForUser(ctx.user.id) : Promise.resolve(0),
+  const [calendarEnabled, coordBoardEnabled] = await Promise.all([
     // BU-calendar-view / D073 — Calendar tab gated by `calendar_enabled`.
     isFeatureEnabled('calendar_enabled'),
     // BU-coordination-board — Board tab gated by `coord_board_v1`.
     isFeatureEnabled('coord_board_v1'),
   ]);
+
+  // Unread badge source switches by flag: kanban callers reach the new
+  // `/notifications` pane (lifecycle = new), legacy callers stay on the
+  // requests workspace (`readAt IS NULL`). Otherwise the badge counts
+  // would diverge from the pane it leads to.
+  const unreadNotificationCount = ctx.user
+    ? coordBoardEnabled
+      ? await countNewForUser(ctx.user.id)
+      : await countUnreadForUser(ctx.user.id)
+    : 0;
 
   // The sticky header is suppressed entirely when there is genuinely
   // nothing to render in it — production with no user (LoggedInAs is a

@@ -64,14 +64,26 @@ export interface KanbanNotificationSummary {
   type: NotificationType;
   lifecycle: 'new' | 'acknowledged' | 'dismissed';
   requestId: string | null;
+  /** Request title — null when the row has no request context (e.g. team blasts). */
+  requestTitle: string | null;
   fromUserId: string | null;
   fromDisplayName: string | null;
   message: string | null;
   createdAt: Date;
+  /**
+   * URL to open from the row. Resolved via the request's first non-deleted
+   * RequestGroup → Group.slug; null when there is no request context or no
+   * attached group. The page falls back to `/notifications` when null.
+   */
+  targetHref: string | null;
 }
 
 function mapKanbanRow(
-  row: Notification & { fromUser: { displayName: string } | null },
+  row: Notification & {
+    fromUser: { displayName: string } | null;
+    request: { title: string } | null;
+  },
+  targetHref: string | null,
 ): KanbanNotificationSummary {
   return {
     id: row.id,
@@ -79,10 +91,12 @@ function mapKanbanRow(
     type: row.type,
     lifecycle: row.lifecycle,
     requestId: row.requestId,
+    requestTitle: row.request?.title ?? null,
     fromUserId: row.fromUserId,
     fromDisplayName: row.fromUser?.displayName ?? null,
     message: row.message,
     createdAt: row.createdAt,
+    targetHref,
   };
 }
 
@@ -295,9 +309,37 @@ export async function listKanbanInboxForUser(
     where: { recipientUserId: input.userId, ...lifecycleFilter },
     orderBy: [{ createdAt: 'desc' }],
     take: Math.min(input.limit ?? 50, 100),
-    include: { fromUser: { select: { displayName: true } } },
+    include: {
+      fromUser: { select: { displayName: true } },
+      request: { select: { title: true } },
+    },
   });
-  return rows.map(mapKanbanRow);
+
+  // Resolve a navigation href for each row carrying a requestId. We pick
+  // the request's first non-deleted RequestGroup and route through that
+  // group's kanban surface. One batched query covers every row.
+  const requestIds = Array.from(
+    new Set(rows.map((r) => r.requestId).filter((id): id is string => id !== null)),
+  );
+  const slugByRequest = new Map<string, string>();
+  if (requestIds.length > 0) {
+    const links = await prisma.requestGroup.findMany({
+      where: { requestId: { in: requestIds }, deletedAt: null },
+      select: { requestId: true, group: { select: { slug: true } } },
+      orderBy: [{ createdAt: 'asc' }],
+    });
+    for (const link of links) {
+      if (!slugByRequest.has(link.requestId)) {
+        slugByRequest.set(link.requestId, link.group.slug);
+      }
+    }
+  }
+
+  return rows.map((row) => {
+    const slug = row.requestId ? slugByRequest.get(row.requestId) : undefined;
+    const targetHref = slug && row.requestId ? `/board/${slug}/${row.requestId}` : null;
+    return mapKanbanRow(row, targetHref);
+  });
 }
 
 /** Count of `lifecycle = new` rows. Drives the AppNav badge on Surface 3. */
