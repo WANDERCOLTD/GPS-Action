@@ -33,14 +33,17 @@ import {
   getTicketDetail,
   editTicketTitle,
   editTicketBody,
+  proposeKanbanTicket,
   BoardError,
   EditTicketError,
+  ProposeKanbanTicketError,
   TICKET_TITLE_MAX_LENGTH,
   TICKET_BODY_MAX_LENGTH,
   type BoardCard,
   type MoveCardResult,
   type TicketDetail,
 } from '@/server/services/board';
+import { boardProposeSchema } from '@/shared/validation/board';
 import { isAssigneeActive } from '@/server/services/assignments';
 import {
   assertCanViewBoard,
@@ -90,6 +93,9 @@ function toTRPCError(err: unknown): TRPCError {
         ? 'NOT_FOUND'
         : 'BAD_REQUEST';
     return new TRPCError({ code, message: err.message });
+  }
+  if (err instanceof ProposeKanbanTicketError) {
+    return new TRPCError({ code: 'BAD_REQUEST', message: err.message });
   }
   if (err instanceof Error) {
     return new TRPCError({ code: 'BAD_REQUEST', message: err.message });
@@ -292,6 +298,36 @@ export const boardRouter = router({
         throw toTRPCError(err);
       }
     }),
+
+  /**
+   * Propose a new ticket into the group's backlog. Any group viewer
+   * (member, group admin, or system admin) may propose. The resulting
+   * card sits off-board (status='backlog') until someone drags it onto
+   * a column on the Backlog tab — the brief's Tier-1 path for "Propose
+   * to backlog".
+   */
+  propose: authedProcedure.input(boardProposeSchema).mutation(async ({ ctx, input }) => {
+    try {
+      await assertCanViewBoard({
+        groupId: input.groupId,
+        userId: ctx.user.id,
+        isSystemAdmin: ctx.activeRoles.includes('admin'),
+      });
+    } catch (err) {
+      throw toTRPCError(err);
+    }
+    try {
+      const result = await proposeKanbanTicket({
+        groupId: input.groupId,
+        title: input.title,
+        body: input.body,
+        actorId: ctx.user.id,
+      });
+      return { ok: true as const, requestId: result.request.id };
+    } catch (err) {
+      throw toTRPCError(err);
+    }
+  }),
 
   /**
    * Explicit status change. For off-drag gestures (e.g. "Mark abandoned").

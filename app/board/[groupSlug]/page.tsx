@@ -17,6 +17,7 @@ import { isFeatureEnabled } from '@/server/services/flags';
 import { BoardGrid, type CardsByColumn } from '@/components/board/BoardGrid';
 import { BoardTabs } from '@/components/board/BoardTabs';
 import { BoardBackLink } from '@/components/board/BoardBackLink';
+import { ProposeTicketButton } from '@/components/board/ProposeTicketButton';
 
 interface BoardGroupPageProps {
   params: Promise<{ groupSlug: string }>;
@@ -78,15 +79,25 @@ export default async function BoardGroupPage({ params }: BoardGroupPageProps) {
     >
       <header style={{ marginBottom: 'var(--space-4)' }}>
         <BoardBackLink />
-        <h1
+        <div
           style={{
-            margin: 0,
-            fontSize: 'var(--text-xl)',
-            fontFamily: 'var(--font-ui)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 'var(--space-3)',
           }}
         >
-          {accessibleGroup.group.displayName}
-        </h1>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 'var(--text-xl)',
+              fontFamily: 'var(--font-ui)',
+            }}
+          >
+            {accessibleGroup.group.displayName}
+          </h1>
+          <ProposeTicketButton groupId={accessibleGroup.group.id} groupSlug={groupSlug} />
+        </div>
       </header>
       <BoardTabs groupSlug={groupSlug} active="active" />
 
