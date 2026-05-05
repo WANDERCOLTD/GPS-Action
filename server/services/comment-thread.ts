@@ -25,6 +25,7 @@
 
 import type { CommentKind, CommentSource } from '@prisma/client';
 import { prisma } from '@/server/db/client';
+import { auditLog } from '@/server/services/audit';
 
 export interface CommentThreadAuthor {
   id: string;
@@ -92,4 +93,120 @@ export async function listForKanbanTicket(
       avatarUrl: row.author.avatarUrl,
     },
   }));
+}
+
+// ── Permission gate (atom 5d-2) ──────────────────────────────────────────
+
+export interface CommentThreadAccess {
+  /** Viewer is a member of any active linked group OR system admin. */
+  canComment: boolean;
+  /**
+   * Viewer is a member of the originating group OR system admin.
+   * Gates note compose. Without this, a shared-team author would create
+   * a "ghost note" — invisible to themselves on the next page load.
+   */
+  canPostNote: boolean;
+}
+
+export interface CommentThreadAccessInput {
+  requestId: string;
+  userId: string;
+  isSystemAdmin: boolean;
+}
+
+/**
+ * Resolve compose access for a kanban ticket. The router uses this to
+ * gate `postComment` (canComment) and `postNote` (canPostNote).
+ *
+ * System admins bypass the membership check on both — consistent with
+ * the kanban surface's permission table where sysadmin sees and acts on
+ * any board.
+ */
+export async function getCommentThreadAccess(
+  input: CommentThreadAccessInput,
+): Promise<CommentThreadAccess> {
+  if (input.isSystemAdmin) {
+    return { canComment: true, canPostNote: true };
+  }
+
+  const links = await prisma.requestGroup.findMany({
+    where: { requestId: input.requestId, deletedAt: null },
+    select: { groupId: true, origin: true },
+  });
+  if (links.length === 0) {
+    return { canComment: false, canPostNote: false };
+  }
+
+  const memberships = await prisma.groupMembership.findMany({
+    where: {
+      userId: input.userId,
+      groupId: { in: links.map((l) => l.groupId) },
+      leftAt: null,
+      deletedAt: null,
+    },
+    select: { groupId: true },
+  });
+  if (memberships.length === 0) {
+    return { canComment: false, canPostNote: false };
+  }
+
+  const memberGroupIds = new Set(memberships.map((m) => m.groupId));
+  const originating = links.find((l) => l.origin === 'originating');
+  const canPostNote = originating !== undefined && memberGroupIds.has(originating.groupId);
+
+  return { canComment: true, canPostNote };
+}
+
+// ── Compose (atom 5d-2) ──────────────────────────────────────────────────
+
+export interface CreateCommentForKanbanInput {
+  requestId: string;
+  authorId: string;
+  body: string;
+  kind: CommentKind;
+}
+
+/**
+ * Write a Comment row attached to a kanban Request. `source` is forced
+ * to `'human'` — the system-event hook (atom 5d-3) writes its own rows
+ * with `source = 'system'`.
+ *
+ * Caller (router) has already gated permission via `getCommentThreadAccess`.
+ * This service trusts that gate.
+ */
+export async function createCommentForKanbanTicket(
+  input: CreateCommentForKanbanInput,
+): Promise<{ id: string }> {
+  const request = await prisma.request.findFirst({
+    where: { id: input.requestId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!request) {
+    throw new Error('Request not found or deleted');
+  }
+
+  const created = await prisma.comment.create({
+    data: {
+      requestId: input.requestId,
+      authorId: input.authorId,
+      body: input.body.trim(),
+      kind: input.kind,
+      source: 'human',
+    },
+    select: { id: true },
+  });
+
+  await auditLog({
+    action: input.kind === 'note' ? 'kanban_note.add' : 'kanban_comment.add',
+    entityType: 'comment',
+    entityId: created.id,
+    userId: input.authorId,
+    changes: {
+      requestId: input.requestId,
+      kind: input.kind,
+      bodyLength: input.body.length,
+    },
+  });
+
+  return created;
 }
