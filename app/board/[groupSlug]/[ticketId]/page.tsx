@@ -1,14 +1,19 @@
 /**
- * @build-unit bu-coordination-board (build seq #5 — Surface 2, PR #5a + #5b)
+ * @build-unit bu-coordination-board (build seq #5 — Surface 2, PR #5a, #5b, #5c, #5d.{1,2,4,5})
  * @spec docs/build/session-briefs/bu-coordination-board.md
  * @adr 0013
  *
  * Ticket-detail page. Renders the typed title, kind label, urgent
- * dot, the unified Assign-me / Follow action pair (PR #5b), the
- * assignee list, and a placeholder description.
+ * dot, the unified Assign-me / Follow action pair, the assignee list,
+ * the editable description, and the interleaved Comment + Note thread.
  *
- * The share-with-team picker, the editable description with audit,
- * and the comment / note thread land in 5c–5e.
+ * Note compose is gated to the originating-team viewer (or sysadmin);
+ * the read visibility filter is enforced server-side in the
+ * commentThread.listForRequest procedure.
+ *
+ * Still to land: the system-event hook (atom 5d-3) — fires
+ * Comment.source = 'system' rows on column moves and urgent flips,
+ * gated on bu-kanban-event-config landing first.
  *
  * Gated by `coord_board_v1`. Flag-off → /feed (mirrors the kanban
  * grid). Unauthed → /dev/login. Group resolved by slug; ticket
@@ -26,6 +31,7 @@ import { isFeatureEnabled } from '@/server/services/flags';
 import { BoardActionPair } from '@/components/board/BoardActionPair';
 import { EditableTicketTitle } from '@/components/board/EditableTicketTitle';
 import { EditableTicketBody } from '@/components/board/EditableTicketBody';
+import { CommentNoteThread } from '@/components/board/CommentNoteThread';
 
 interface BoardTicketDetailPageProps {
   params: Promise<{ groupSlug: string; ticketId: string }>;
@@ -77,6 +83,18 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
   const viewerId = ctx.user.id;
   const isMineActive = ticket.assignees.some((a) => a.userId === viewerId);
   const isMineSubscribed = ticket.subscribers.some((s) => s.userId === viewerId);
+
+  // Comment / Note thread (atom 5d-5). Note compose is gated to the
+  // originating-team viewer or sysadmin; visibility filter for read
+  // lives in the listForRequest service.
+  const isSystemAdmin = ctx.activeRoles.includes('admin');
+  const originatingGroup = ticket.groups.find((g) => g.origin === 'originating');
+  const isOnOriginatingBoard = originatingGroup?.groupId === accessibleGroup.group.id;
+  const canPostNote = isOnOriginatingBoard || isSystemAdmin;
+  const threadRows = await caller.commentThread.listForRequest({
+    requestId: ticket.id,
+    viewerGroupId: accessibleGroup.group.id,
+  });
 
   return (
     <main
@@ -237,6 +255,13 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
           initial={ticket.body}
         />
       </section>
+
+      <CommentNoteThread
+        rows={threadRows}
+        requestId={ticket.id}
+        groupSlug={groupSlug}
+        canPostNote={canPostNote}
+      />
 
       <footer
         data-testid="board-ticket-meta"

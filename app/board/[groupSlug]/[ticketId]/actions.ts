@@ -135,3 +135,41 @@ export async function editBodyAction(input: EditBodyInput): Promise<BoardActionR
   revalidatePath(ticketPath(input));
   return { ok: true };
 }
+
+// ── Comment / Note compose (atom 5d-2) ───────────────────────────────────
+
+interface ComposeInput extends BoardActionInput {
+  body: string;
+}
+
+export async function postCommentAction(input: ComposeInput): Promise<BoardActionResult> {
+  try {
+    const ctx = await createTRPCContext();
+    const caller = createCaller(ctx);
+    await caller.commentThread.postComment({
+      requestId: input.requestId,
+      body: input.body,
+    });
+  } catch (err) {
+    if (err instanceof TRPCError) return { ok: false, error: err.message };
+    return { ok: false, error: 'Could not post — try again.' };
+  }
+  revalidatePath(ticketPath(input));
+  return { ok: true };
+}
+
+export async function postNoteAction(input: ComposeInput): Promise<BoardActionResult> {
+  try {
+    const ctx = await createTRPCContext();
+    const caller = createCaller(ctx);
+    await caller.commentThread.postNote({
+      requestId: input.requestId,
+      body: input.body,
+    });
+  } catch (err) {
+    if (err instanceof TRPCError) return { ok: false, error: err.message };
+    return { ok: false, error: 'Could not post — try again.' };
+  }
+  revalidatePath(ticketPath(input));
+  return { ok: true };
+}

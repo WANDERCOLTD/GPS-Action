@@ -12,6 +12,7 @@ import { postRouter } from '@/server/routers/post';
 import { postKindRouter } from '@/server/routers/postKind';
 import { reactionRouter } from '@/server/routers/reaction';
 import { commentRouter } from '@/server/routers/comment';
+import { commentThreadRouter } from '@/server/routers/comment-thread';
 import { requestRouter } from '@/server/routers/request';
 import { assignmentRouter } from '@/server/routers/assignment';
 import { subscriptionRouter } from '@/server/routers/subscription';
@@ -33,6 +34,7 @@ export const appRouter = router({
   postKind: postKindRouter,
   reaction: reactionRouter,
   comment: commentRouter,
+  commentThread: commentThreadRouter,
   request: requestRouter,
   assignment: assignmentRouter,
   subscription: subscriptionRouter,
