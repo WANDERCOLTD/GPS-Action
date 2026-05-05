@@ -1,6 +1,6 @@
 {
   "name": "gps-action",
-  "version": "0.2.110",
+  "version": "0.2.111",
   "private": true,
   "description": "GPS Action — purpose-built platform for coordinated activism",
   "scripts": {
@@ -19,6 +19,7 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "db:seed": "tsx scripts/seed.ts",
+    "seed:demo": "tsx prisma/seed.ts && tsx scripts/seed.ts",
     "check:reference-data": "tsx scripts/check-reference-data.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
