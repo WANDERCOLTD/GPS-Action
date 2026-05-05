@@ -4,6 +4,13 @@
 > rationale for each. Per **D036** every flag must be listed here
 > alongside its purpose, default state, and rollout / TTL plan.
 >
+> **Per D070, every flag in this table must have an idempotent
+> migration entry.** New flag → add a row to the latest
+> `prisma/migrations/<ts>_seed_feature_flags*` migration (or a fresh
+> follow-up) with `INSERT … ON CONFLICT (name) DO NOTHING`. Without
+> the migration, prod boots with the row absent and the fail-closed
+> evaluator returns `false` regardless of the default in this table.
+>
 > The discipline (D036, abridged):
 >
 > 1. Every new feature lands with `enabledGlobally=false`. Default OFF.
