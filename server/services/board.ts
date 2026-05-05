@@ -1,5 +1,5 @@
 /**
- * @build-unit bu-coordination-board (build seq #4 — Surface 1, PR #4a + #4d; #5a — Surface 2 read)
+ * @build-unit bu-coordination-board (build seq #4 — Surface 1, PR #4a + #4d; #5a + #5c — Surface 2 read + edit)
  * @spec build/session-briefs/bu-coordination-board.md
  * @adr 0006 0009 0011 0012 0013
  *
@@ -661,4 +661,158 @@ export async function getTicketDetail(input: GetTicketDetailInput): Promise<Tick
     createdAt: request.createdAt,
     updatedAt: request.updatedAt,
   };
+}
+
+// ─── Edit ticket title / body (Surface 2 — PR #5c) ──────────────────────────
+
+export const TICKET_TITLE_MAX_LENGTH = 200;
+export const TICKET_BODY_MAX_LENGTH = 10000;
+
+export type EditTicketErrorKind =
+  | 'request_not_found'
+  | 'group_link_not_found'
+  | 'title_empty'
+  | 'title_too_long'
+  | 'body_too_long';
+
+export class EditTicketError extends Error {
+  constructor(
+    public readonly kind: EditTicketErrorKind,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'EditTicketError';
+  }
+}
+
+interface EditTicketBaseInput {
+  requestId: string;
+  /**
+   * The group whose board the editor is acting on. Service requires the
+   * ticket to be linked to this group (active link); router has already
+   * asserted the actor can view the group.
+   */
+  viewerGroupId: string;
+  actorId: string;
+}
+
+export interface EditTicketTitleInput extends EditTicketBaseInput {
+  title: string;
+}
+
+export interface EditTicketBodyInput extends EditTicketBaseInput {
+  /** null → clear the description; non-null string → set it. Whitespace-only collapses to null. */
+  body: string | null;
+}
+
+async function assertEditableTicket(input: EditTicketBaseInput): Promise<void> {
+  const link = await prisma.requestGroup.findUnique({
+    where: {
+      requestId_groupId: {
+        requestId: input.requestId,
+        groupId: input.viewerGroupId,
+      },
+    },
+    select: { id: true, deletedAt: true },
+  });
+  if (!link || link.deletedAt !== null) {
+    throw new EditTicketError(
+      'group_link_not_found',
+      `Request ${input.requestId} is not linked to group ${input.viewerGroupId}`,
+    );
+  }
+}
+
+/**
+ * Edit the typed `Request.title`. Permission is "any group member" per
+ * the brief — caller is asserted to view the group at the router layer;
+ * service additionally verifies the ticket is linked to that group.
+ *
+ * Idempotent: if the new title equals the existing title, returns the
+ * unchanged Request without an audit row.
+ */
+export async function editTicketTitle(input: EditTicketTitleInput): Promise<Request> {
+  const trimmed = input.title.trim();
+  if (trimmed.length === 0) {
+    throw new EditTicketError('title_empty', 'Title cannot be empty');
+  }
+  if (trimmed.length > TICKET_TITLE_MAX_LENGTH) {
+    throw new EditTicketError(
+      'title_too_long',
+      `Title exceeds ${TICKET_TITLE_MAX_LENGTH} characters`,
+    );
+  }
+
+  await assertEditableTicket(input);
+
+  const before = await prisma.request.findFirst({
+    where: { id: input.requestId, deletedAt: null },
+    select: { id: true, title: true },
+  });
+  if (!before) {
+    throw new EditTicketError('request_not_found', `Request ${input.requestId} not found`);
+  }
+  if (before.title === trimmed) {
+    return prisma.request.findUniqueOrThrow({ where: { id: input.requestId } });
+  }
+
+  const updated = await prisma.request.update({
+    where: { id: input.requestId },
+    data: { title: trimmed },
+  });
+
+  await auditLog({
+    action: 'ticket_title_edited',
+    entityType: 'Request',
+    entityId: input.requestId,
+    userId: input.actorId,
+    changes: { title: { from: before.title, to: trimmed } },
+    context: { groupId: input.viewerGroupId },
+  });
+
+  return updated;
+}
+
+/**
+ * Edit the typed `Request.body`. Permission identical to title edit.
+ *
+ * Whitespace-only input collapses to null (an empty description).
+ * Idempotent on no-change.
+ */
+export async function editTicketBody(input: EditTicketBodyInput): Promise<Request> {
+  const normalised: string | null =
+    input.body === null ? null : input.body.trim() === '' ? null : input.body;
+
+  if (normalised !== null && normalised.length > TICKET_BODY_MAX_LENGTH) {
+    throw new EditTicketError('body_too_long', `Body exceeds ${TICKET_BODY_MAX_LENGTH} characters`);
+  }
+
+  await assertEditableTicket(input);
+
+  const before = await prisma.request.findFirst({
+    where: { id: input.requestId, deletedAt: null },
+    select: { id: true, body: true },
+  });
+  if (!before) {
+    throw new EditTicketError('request_not_found', `Request ${input.requestId} not found`);
+  }
+  if (before.body === normalised) {
+    return prisma.request.findUniqueOrThrow({ where: { id: input.requestId } });
+  }
+
+  const updated = await prisma.request.update({
+    where: { id: input.requestId },
+    data: { body: normalised },
+  });
+
+  await auditLog({
+    action: 'ticket_body_edited',
+    entityType: 'Request',
+    entityId: input.requestId,
+    userId: input.actorId,
+    changes: { body: { from: before.body, to: normalised } },
+    context: { groupId: input.viewerGroupId },
+  });
+
+  return updated;
 }
