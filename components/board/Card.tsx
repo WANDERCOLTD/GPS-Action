@@ -60,12 +60,12 @@ export function Card({ groupSlug, ticket }: CardProps) {
         padding: 'var(--space-3)',
         borderRadius: 'var(--radius-md)',
         background: unclaimed
-          ? 'color-mix(in srgb, var(--colour-warning-strong) 8%, var(--colour-surface))'
-          : 'var(--colour-surface)',
+          ? 'color-mix(in srgb, var(--colour-warning) 8%, var(--colour-surface-raised))'
+          : 'var(--colour-surface-raised)',
         border: `1px solid ${
           unclaimed
-            ? 'color-mix(in srgb, var(--colour-warning-strong) 25%, var(--colour-border))'
-            : 'var(--colour-border)'
+            ? 'color-mix(in srgb, var(--colour-warning) 25%, var(--colour-border-subtle))'
+            : 'var(--colour-border-subtle)'
         }`,
         textDecoration: 'none',
         color: 'inherit',
@@ -83,7 +83,7 @@ export function Card({ groupSlug, ticket }: CardProps) {
             width: 8,
             height: 8,
             borderRadius: '50%',
-            background: 'var(--colour-danger-strong)',
+            background: 'var(--colour-danger)',
           }}
         />
       )}
@@ -139,7 +139,7 @@ export function Card({ groupSlug, ticket }: CardProps) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '1px solid var(--colour-border)',
+                border: '1px solid var(--colour-border-subtle)',
               }}
             >
               {a.avatarUrl ? '' : initials(a.displayName)}

@@ -113,7 +113,7 @@ export function EditableTicketTitle({
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                background: 'var(--colour-danger-strong)',
+                background: 'var(--colour-danger)',
                 flexShrink: 0,
               }}
             />

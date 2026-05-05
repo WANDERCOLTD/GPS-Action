@@ -81,8 +81,8 @@ export function BoardGroupPicker({ groups }: BoardGroupPickerProps) {
               display: 'block',
               padding: 'var(--space-4)',
               borderRadius: 'var(--radius-md)',
-              background: 'var(--colour-surface)',
-              border: '1px solid var(--colour-border)',
+              background: 'var(--colour-surface-raised)',
+              border: '1px solid var(--colour-border-subtle)',
               textDecoration: 'none',
               color: 'inherit',
             }}
@@ -121,8 +121,8 @@ export function BoardGroupPicker({ groups }: BoardGroupPickerProps) {
                     fontFamily: 'var(--font-ui)',
                     padding: '0 var(--space-2)',
                     borderRadius: 'var(--radius-sm)',
-                    background: 'var(--colour-accent-subtle)',
-                    color: 'var(--colour-accent-strong)',
+                    background: 'var(--colour-primary-subtle)',
+                    color: 'var(--colour-primary)',
                   }}
                 >
                   Admin
