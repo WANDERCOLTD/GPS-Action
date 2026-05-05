@@ -89,3 +89,49 @@ export async function unfollowSelfAction(input: BoardActionInput): Promise<Board
   revalidatePath(ticketPath(input));
   return { ok: true };
 }
+
+interface EditTitleInput extends BoardActionInput {
+  /** The group whose board the editor is acting on (drives the gate). */
+  groupId: string;
+  title: string;
+}
+
+interface EditBodyInput extends BoardActionInput {
+  groupId: string;
+  /** null clears the description. */
+  body: string | null;
+}
+
+export async function editTitleAction(input: EditTitleInput): Promise<BoardActionResult> {
+  try {
+    const ctx = await createTRPCContext();
+    const caller = createCaller(ctx);
+    await caller.board.editTitle({
+      requestId: input.requestId,
+      groupId: input.groupId,
+      title: input.title,
+    });
+  } catch (err) {
+    if (err instanceof TRPCError) return { ok: false, error: err.message };
+    return { ok: false, error: 'Could not save — try again.' };
+  }
+  revalidatePath(ticketPath(input));
+  return { ok: true };
+}
+
+export async function editBodyAction(input: EditBodyInput): Promise<BoardActionResult> {
+  try {
+    const ctx = await createTRPCContext();
+    const caller = createCaller(ctx);
+    await caller.board.editBody({
+      requestId: input.requestId,
+      groupId: input.groupId,
+      body: input.body,
+    });
+  } catch (err) {
+    if (err instanceof TRPCError) return { ok: false, error: err.message };
+    return { ok: false, error: 'Could not save — try again.' };
+  }
+  revalidatePath(ticketPath(input));
+  return { ok: true };
+}

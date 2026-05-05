@@ -1,5 +1,5 @@
 /**
- * @build-unit bu-coordination-board (build seq #4 — Surface 1, PR #4b; #5a — Surface 2 read)
+ * @build-unit bu-coordination-board (build seq #4 — Surface 1, PR #4b; #5a + #5c — Surface 2 read + edit)
  * @spec build/session-briefs/bu-coordination-board.md
  * @adr 0006 0009 0011 0012 0013
  *
@@ -31,7 +31,12 @@ import {
   setRequestStatus,
   listBoardCardsForGroup,
   getTicketDetail,
+  editTicketTitle,
+  editTicketBody,
   BoardError,
+  EditTicketError,
+  TICKET_TITLE_MAX_LENGTH,
+  TICKET_BODY_MAX_LENGTH,
   type BoardCard,
   type MoveCardResult,
   type TicketDetail,
@@ -77,6 +82,13 @@ function toTRPCError(err: unknown): TRPCError {
         : err.kind === 'shared_off_board_forbidden'
           ? 'FORBIDDEN'
           : 'BAD_REQUEST';
+    return new TRPCError({ code, message: err.message });
+  }
+  if (err instanceof EditTicketError) {
+    const code =
+      err.kind === 'request_not_found' || err.kind === 'group_link_not_found'
+        ? 'NOT_FOUND'
+        : 'BAD_REQUEST';
     return new TRPCError({ code, message: err.message });
   }
   if (err instanceof Error) {
@@ -133,6 +145,19 @@ const getTicketSchema = z.object({
   groupId: z.string().min(1),
 });
 
+const editTitleSchema = z.object({
+  requestId: z.string().min(1),
+  groupId: z.string().min(1),
+  title: z.string().min(1).max(TICKET_TITLE_MAX_LENGTH),
+});
+
+const editBodySchema = z.object({
+  requestId: z.string().min(1),
+  groupId: z.string().min(1),
+  /** null clears the description; non-null is trimmed server-side. */
+  body: z.string().max(TICKET_BODY_MAX_LENGTH).nullable(),
+});
+
 export const boardRouter = router({
   /**
    * Read the active cards for a group's kanban board. Joins via
@@ -184,6 +209,61 @@ export const boardRouter = router({
       }
       return ticket;
     }),
+
+  /**
+   * Edit the typed `Request.title`. Any group member of a group linked
+   * to the ticket may edit; brief Tier-1 ("any group member, audit-
+   * logged"). Audit row written by the service.
+   */
+  editTitle: authedProcedure.input(editTitleSchema).mutation(async ({ ctx, input }) => {
+    try {
+      await assertCanViewBoard({
+        groupId: input.groupId,
+        userId: ctx.user.id,
+        isSystemAdmin: ctx.activeRoles.includes('admin'),
+      });
+    } catch (err) {
+      throw toTRPCError(err);
+    }
+    try {
+      const updated = await editTicketTitle({
+        requestId: input.requestId,
+        viewerGroupId: input.groupId,
+        actorId: ctx.user.id,
+        title: input.title,
+      });
+      return { ok: true as const, title: updated.title };
+    } catch (err) {
+      throw toTRPCError(err);
+    }
+  }),
+
+  /**
+   * Edit the typed `Request.body`. Same permission shape as editTitle.
+   * Whitespace-only input collapses to null at the service layer.
+   */
+  editBody: authedProcedure.input(editBodySchema).mutation(async ({ ctx, input }) => {
+    try {
+      await assertCanViewBoard({
+        groupId: input.groupId,
+        userId: ctx.user.id,
+        isSystemAdmin: ctx.activeRoles.includes('admin'),
+      });
+    } catch (err) {
+      throw toTRPCError(err);
+    }
+    try {
+      const updated = await editTicketBody({
+        requestId: input.requestId,
+        viewerGroupId: input.groupId,
+        actorId: ctx.user.id,
+        body: input.body,
+      });
+      return { ok: true as const, body: updated.body };
+    } catch (err) {
+      throw toTRPCError(err);
+    }
+  }),
 
   /**
    * Drag-and-drop a card. Service dispatches by origin: originating-

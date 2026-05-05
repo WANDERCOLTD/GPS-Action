@@ -24,6 +24,8 @@ import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { BoardActionPair } from '@/components/board/BoardActionPair';
+import { EditableTicketTitle } from '@/components/board/EditableTicketTitle';
+import { EditableTicketBody } from '@/components/board/EditableTicketBody';
 
 interface BoardTicketDetailPageProps {
   params: Promise<{ groupSlug: string; ticketId: string }>;
@@ -99,33 +101,13 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
         >
           ← {accessibleGroup.group.displayName} board
         </Link>
-        <h1
-          data-testid="board-ticket-title"
-          style={{
-            margin: 0,
-            fontSize: 'var(--text-xl)',
-            fontFamily: 'var(--font-ui)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-          }}
-        >
-          {ticket.urgency && (
-            <span
-              data-testid="board-ticket-urgent-dot"
-              aria-label="Urgent"
-              style={{
-                display: 'inline-block',
-                width: 10,
-                height: 10,
-                borderRadius: '50%',
-                background: 'var(--colour-danger-strong)',
-                flexShrink: 0,
-              }}
-            />
-          )}
-          {ticket.title}
-        </h1>
+        <EditableTicketTitle
+          requestId={ticket.id}
+          groupSlug={groupSlug}
+          groupId={accessibleGroup.group.id}
+          initial={ticket.title}
+          urgent={ticket.urgency}
+        />
         {ticket.kindDisplayName && (
           <p
             data-testid="board-ticket-kind"
@@ -248,31 +230,12 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
         >
           Description
         </h2>
-        {ticket.body ? (
-          <p
-            data-testid="board-ticket-description-body"
-            style={{
-              margin: 0,
-              fontSize: 'var(--text-md)',
-              lineHeight: 1.5,
-              whiteSpace: 'pre-wrap',
-            }}
-          >
-            {ticket.body}
-          </p>
-        ) : (
-          <p
-            data-testid="board-ticket-description-empty"
-            style={{
-              margin: 0,
-              fontSize: 'var(--text-sm)',
-              color: 'var(--colour-text-secondary)',
-              fontStyle: 'italic',
-            }}
-          >
-            No description yet. Editing arrives in a follow-up.
-          </p>
-        )}
+        <EditableTicketBody
+          requestId={ticket.id}
+          groupSlug={groupSlug}
+          groupId={accessibleGroup.group.id}
+          initial={ticket.body}
+        />
       </section>
 
       <footer
