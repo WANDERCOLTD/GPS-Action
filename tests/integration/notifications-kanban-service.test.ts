@@ -44,6 +44,9 @@ vi.mock('@/server/db/client', () => ({
     groupMembership: {
       findMany: vi.fn(),
     },
+    requestGroup: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -65,6 +68,7 @@ import { listSubscribersForRequest } from '@/server/services/subscriptions';
 
 const mockedNotification = vi.mocked(prisma.notification);
 const mockedMembership = vi.mocked(prisma.groupMembership);
+const mockedRequestGroup = vi.mocked(prisma.requestGroup);
 const mockedSubs = vi.mocked(listSubscribersForRequest);
 
 beforeEach(() => {
@@ -273,6 +277,7 @@ describe('dismissNotification', () => {
 describe('listKanbanInboxForUser', () => {
   beforeEach(() => {
     mockedNotification.findMany.mockResolvedValue([] as never);
+    mockedRequestGroup.findMany.mockResolvedValue([] as never);
   });
 
   it("default scope is 'active' — filters new + acknowledged, excludes dismissed", async () => {
@@ -285,7 +290,10 @@ describe('listKanbanInboxForUser', () => {
       },
       orderBy: [{ createdAt: 'desc' }],
       take: 50,
-      include: { fromUser: { select: { displayName: true } } },
+      include: {
+        fromUser: { select: { displayName: true } },
+        request: { select: { title: true } },
+      },
     });
   });
 
@@ -315,6 +323,92 @@ describe('listKanbanInboxForUser', () => {
     expect(mockedNotification.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ take: 100 }),
     );
+  });
+
+  it('skips the requestGroup batch lookup when no rows carry a requestId', async () => {
+    mockedNotification.findMany.mockResolvedValue([
+      {
+        id: 'n1',
+        reasonKind: 'team_blast',
+        type: 'request_status_changed',
+        lifecycle: 'new',
+        requestId: null,
+        fromUserId: 'u-actor',
+        message: 'Group-wide notice',
+        createdAt: new Date('2026-05-05T08:00:00Z'),
+        fromUser: { displayName: 'Sharon' },
+        request: null,
+      },
+    ] as never);
+
+    const result = await listKanbanInboxForUser({ userId: 'u1' });
+
+    expect(mockedRequestGroup.findMany).not.toHaveBeenCalled();
+    expect(result[0]).toMatchObject({
+      id: 'n1',
+      requestId: null,
+      requestTitle: null,
+      targetHref: null,
+    });
+  });
+
+  it('resolves targetHref + requestTitle via the first non-deleted RequestGroup', async () => {
+    mockedNotification.findMany.mockResolvedValue([
+      {
+        id: 'n1',
+        reasonKind: 'comment',
+        type: 'request_status_changed',
+        lifecycle: 'new',
+        requestId: 'r1',
+        fromUserId: 'u-bette',
+        message: null,
+        createdAt: new Date('2026-05-05T08:00:00Z'),
+        fromUser: { displayName: 'Bette' },
+        request: { title: 'Hostages: 100-day silent vigil' },
+      },
+    ] as never);
+    mockedRequestGroup.findMany.mockResolvedValue([
+      { requestId: 'r1', group: { slug: 'writers' } },
+    ] as never);
+
+    const result = await listKanbanInboxForUser({ userId: 'u1' });
+
+    expect(mockedRequestGroup.findMany).toHaveBeenCalledWith({
+      where: { requestId: { in: ['r1'] }, deletedAt: null },
+      select: { requestId: true, group: { select: { slug: true } } },
+      orderBy: [{ createdAt: 'asc' }],
+    });
+    expect(result[0]).toMatchObject({
+      requestId: 'r1',
+      requestTitle: 'Hostages: 100-day silent vigil',
+      targetHref: '/board/writers/r1',
+    });
+  });
+
+  it('returns null targetHref when a request has no attached group', async () => {
+    mockedNotification.findMany.mockResolvedValue([
+      {
+        id: 'n2',
+        reasonKind: 'mention',
+        type: 'request_mention',
+        lifecycle: 'new',
+        requestId: 'r-orphan',
+        fromUserId: null,
+        message: null,
+        createdAt: new Date('2026-05-05T08:00:00Z'),
+        fromUser: null,
+        request: { title: 'Orphan ticket' },
+      },
+    ] as never);
+    mockedRequestGroup.findMany.mockResolvedValue([] as never);
+
+    const result = await listKanbanInboxForUser({ userId: 'u1' });
+
+    expect(result[0]).toMatchObject({
+      requestId: 'r-orphan',
+      requestTitle: 'Orphan ticket',
+      targetHref: null,
+    });
   });
 });
 

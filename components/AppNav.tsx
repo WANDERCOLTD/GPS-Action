@@ -68,6 +68,10 @@ function deriveActive(pathname: string | null): ActiveKey {
   if (pathname === '/calendar' || pathname.startsWith('/calendar/')) return 'calendar';
   if (pathname === '/compose' || pathname.startsWith('/compose/')) return 'compose';
   if (pathname === '/requests' || pathname.startsWith('/requests/')) return 'requests';
+  // BU-coordination-board / Surface 3: the inbox glyph routes to
+  // /notifications under `coord_board_v1`. Slot is shared with /requests
+  // so the same testid lights for both.
+  if (pathname === '/notifications' || pathname.startsWith('/notifications/')) return 'requests';
   if (pathname === '/search' || pathname.startsWith('/search/')) return 'search';
   // /data is no longer a top-level tab — reached via /settings → "Data" entry.
   // Treat /data and /data/[entity] as "settings" for active-tab highlighting
@@ -163,10 +167,10 @@ export function AppNav({
           </Link>
         </IconChipTooltip>
       )}
-      <IconChipTooltip label="Requests">
+      <IconChipTooltip label={coordBoardEnabled ? 'Notifications' : 'Requests'}>
         <Link
-          href="/requests"
-          aria-label="Requests"
+          href={coordBoardEnabled ? '/notifications' : '/requests'}
+          aria-label={coordBoardEnabled ? 'Notifications' : 'Requests'}
           data-testid="nav-requests-link"
           style={active === 'requests' ? activeStyle : linkStyle}
         >

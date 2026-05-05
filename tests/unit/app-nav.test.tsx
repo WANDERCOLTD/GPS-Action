@@ -292,4 +292,56 @@ describe('AppNav', () => {
     // The first test confirms the no-query-string pathname matches too.
     expect(findByTestId(tree, 'nav-calendar-link')).toBeDefined();
   });
+
+  // ── BU-coordination-board / Surface 3: inbox-glyph swap under flag ─────
+
+  it('inbox glyph routes to /requests by default with aria-label Requests', () => {
+    usePathnameMock.mockReturnValue('/feed');
+    const tree = AppNav({}) as AnyElement;
+    const link = findByTestId(tree, 'nav-requests-link');
+    expect(link?.props['href']).toBe('/requests');
+    expect(link?.props['aria-label']).toBe('Requests');
+  });
+
+  it('inbox glyph routes to /notifications when coordBoardEnabled', () => {
+    usePathnameMock.mockReturnValue('/feed');
+    const tree = AppNav({ coordBoardEnabled: true }) as AnyElement;
+    const link = findByTestId(tree, 'nav-requests-link');
+    expect(link?.props['href']).toBe('/notifications');
+    expect(link?.props['aria-label']).toBe('Notifications');
+  });
+
+  it('inbox tooltip label flips to Notifications under flag', () => {
+    usePathnameMock.mockReturnValue('/feed');
+    const tree = AppNav({ coordBoardEnabled: true }) as AnyElement;
+    const tooltips = flatChildren(tree).filter((e) => e.type === IconChipTooltip);
+    const wrapping = tooltips.find((t) => {
+      const child = t.props.children as AnyElement | undefined;
+      return child?.props?.['data-testid'] === 'nav-requests-link';
+    });
+    expect(wrapping?.props.label).toBe('Notifications');
+  });
+
+  it('lights the inbox slot when on /notifications', () => {
+    usePathnameMock.mockReturnValue('/notifications');
+    const tree = AppNav({ coordBoardEnabled: true }) as AnyElement;
+    expect(isActive(findByTestId(tree, 'nav-requests-link'))).toBe(true);
+  });
+
+  it('lights the inbox slot on /notifications/* sub-paths', () => {
+    usePathnameMock.mockReturnValue('/notifications/history');
+    const tree = AppNav({ coordBoardEnabled: true }) as AnyElement;
+    expect(isActive(findByTestId(tree, 'nav-requests-link'))).toBe(true);
+  });
+
+  it('preserves the unread-dot semantics under flag', () => {
+    usePathnameMock.mockReturnValue('/feed');
+    const tree = AppNav({
+      coordBoardEnabled: true,
+      unreadNotificationCount: 7,
+    }) as AnyElement;
+    const dot = findByTestId(tree, 'nav-requests-unread-dot');
+    expect(dot?.props['data-count']).toBe(7);
+    expect(dot?.props['aria-label']).toBe('7 unread notifications');
+  });
 });
