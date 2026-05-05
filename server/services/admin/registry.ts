@@ -855,6 +855,62 @@ const auditLogEntry: EntityRegistryEntry = {
   },
 };
 
+// KanbanEventConfig ------------------------------------------------------
+//
+// Reference data per ADR-0014 / D070. The nine rows are seeded by
+// migration; admin can flip `enabled` per row but cannot create or
+// delete rows. Update is the only mutation exposed.
+
+const kanbanEventConfigUpdateSchema = z.object({
+  enabled: z.boolean(),
+});
+
+const kanbanEventConfigEntry: EntityRegistryEntry = {
+  formFields: {
+    update: [{ type: 'boolean', name: 'enabled', label: 'Enabled' }],
+  },
+  async list({ search, take }) {
+    const m = meta('kanbanEventConfig');
+    const includePlan = planIncludeFromColumns(m.listColumns);
+    const include = planToPrismaInclude(includePlan);
+    const where: Prisma.KanbanEventConfigWhereInput = {
+      ...buildSearchFilter(m.searchableFields ?? [], search),
+    };
+    const [rows, total] = await Promise.all([
+      prisma.kanbanEventConfig.findMany({
+        where,
+        orderBy: buildOrderBy(m.defaultSort),
+        take: take ?? 50,
+        ...(Object.keys(include).length ? { include } : {}),
+      }),
+      prisma.kanbanEventConfig.count({ where }),
+    ]);
+    return {
+      rows: rows.map((r) => flattenRowForColumns(r as Record<string, unknown>, m.listColumns)),
+      total,
+    };
+  },
+  async get({ id }) {
+    const m = meta('kanbanEventConfig');
+    const includePlan = planIncludeFromColumns(m.listColumns);
+    const include = planToPrismaInclude(includePlan);
+    const row = await prisma.kanbanEventConfig.findUnique({
+      where: { id },
+      ...(Object.keys(include).length ? { include } : {}),
+    });
+    if (!row) return null;
+    return flattenRowForColumns(row as Record<string, unknown>, m.listColumns);
+  },
+  async update({ id, data, actorId }) {
+    const parsed = kanbanEventConfigUpdateSchema.parse(data);
+    return prisma.kanbanEventConfig.update({
+      where: { id },
+      data: { enabled: parsed.enabled, updatedByUserId: actorId },
+      select: { id: true },
+    });
+  },
+};
+
 // ── Registry ─────────────────────────────────────────────────────────────
 
 const registry: Partial<Record<EntityKey, EntityRegistryEntry>> = {
@@ -865,6 +921,7 @@ const registry: Partial<Record<EntityKey, EntityRegistryEntry>> = {
   roleGrant: roleGrantEntry,
   featureFlag: featureFlagEntry,
   auditLog: auditLogEntry,
+  kanbanEventConfig: kanbanEventConfigEntry,
 };
 
 export type AdminEntityKey = keyof typeof registry & EntityKey;

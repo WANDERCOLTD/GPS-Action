@@ -212,6 +212,9 @@ model User {
   requestGroupSharedBy     RequestGroup[]        @relation("requestGroupSharedBy")
   groupShareWorkflowsAdded GroupShareWorkflow[]  @relation("groupShareWorkflowsAdded")
 
+  // Kanban event-broadcast config (bu-kanban-event-config / ADR-0014)
+  kanbanEventConfigsUpdated KanbanEventConfig[] @relation("kanbanEventConfigsUpdated")
+
   @@index([deletedAt])
   @@index([verifiedAt])
 }
@@ -1373,4 +1376,42 @@ model RequestSubscription {
   @@unique([requestId, userId])
   @@index([userId, deletedAt])
   @@index([requestId, deletedAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SLICE 3 — bu-kanban-event-config (ADR-0014, D070)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Admin-controlled on/off per kanban event kind. The kanban thread on a
+// ticket interleaves human comments, internal notes, and system events
+// (Comment.kind='comment', Comment.source='system') like "Sharon moved this
+// to Preparation" or "Maya marked it Urgent". This table decides which
+// events earn a system-Comment row.
+//
+// Global (one row per event kind) — per-group is a future additive
+// migration if pilots want variation. No backfill: flipping a row affects
+// future events only; historical threads are not rewritten.
+
+enum KanbanEventKind {
+  column_move
+  status_change
+  urgent_on
+  urgent_off
+  assign_self
+  unassign_self
+  title_edit
+  body_edit
+  share_to_team
+}
+
+model KanbanEventConfig {
+  id        String          @id @default(uuid())
+  eventKind KanbanEventKind @unique
+  enabled   Boolean         @default(false)
+
+  updatedAt       DateTime @updatedAt
+  updatedByUserId String
+  updatedBy       User     @relation("kanbanEventConfigsUpdated", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([enabled])
 }

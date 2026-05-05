@@ -97,6 +97,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | bu-capabilities-mockup | 1 | — | — |
 | bu-coordination-board | 41 | SCN-34 | — |
 | bu-group-identity | 2 | — | — |
+| bu-kanban-event-config | 1 | — | — |
 
 ## ADRs (referenced by code)
 
