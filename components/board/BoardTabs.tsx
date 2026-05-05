@@ -31,7 +31,7 @@ export function BoardTabs({ groupSlug, active }: BoardTabsProps) {
         display: 'flex',
         gap: 'var(--space-1)',
         marginBottom: 'var(--space-4)',
-        borderBottom: '1px solid var(--colour-border)',
+        borderBottom: '1px solid var(--colour-border-subtle)',
       }}
     >
       {TABS.map((tab) => {
@@ -50,9 +50,7 @@ export function BoardTabs({ groupSlug, active }: BoardTabsProps) {
               fontWeight: isActive ? 600 : 400,
               color: isActive ? 'var(--colour-text-primary)' : 'var(--colour-text-secondary)',
               textDecoration: 'none',
-              borderBottom: isActive
-                ? '2px solid var(--colour-accent-strong)'
-                : '2px solid transparent',
+              borderBottom: isActive ? '2px solid var(--colour-primary)' : '2px solid transparent',
               marginBottom: -1,
             }}
           >

@@ -181,8 +181,8 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
                   gap: 'var(--space-2)',
                   padding: '4px 10px 4px 4px',
                   borderRadius: 'var(--radius-md)',
-                  background: 'var(--colour-surface)',
-                  border: '1px solid var(--colour-border)',
+                  background: 'var(--colour-surface-raised)',
+                  border: '1px solid var(--colour-border-subtle)',
                   fontSize: 'var(--text-sm)',
                 }}
               >
@@ -200,7 +200,7 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '1px solid var(--colour-border)',
+                    border: '1px solid var(--colour-border-subtle)',
                   }}
                 >
                   {a.avatarUrl ? '' : initials(a.displayName)}
@@ -244,7 +244,7 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
           fontSize: 'var(--text-xs)',
           color: 'var(--colour-text-secondary)',
           paddingTop: 'var(--space-3)',
-          borderTop: '1px solid var(--colour-border)',
+          borderTop: '1px solid var(--colour-border-subtle)',
         }}
       >
         Last updated {formatDistanceToNow(ticket.updatedAt, { addSuffix: true })}

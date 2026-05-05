@@ -46,13 +46,13 @@ export function Column({
         gap: 'var(--space-2)',
         padding: 'var(--space-3)',
         background: isOver
-          ? 'color-mix(in srgb, var(--colour-primary-strong) 8%, var(--colour-surface-sunken))'
+          ? 'color-mix(in srgb, var(--colour-primary) 8%, var(--colour-surface-sunken))'
           : 'var(--colour-surface-sunken)',
         borderRadius: 'var(--radius-md)',
         minWidth: 280,
         flex: '0 0 280px',
         outline: isOver
-          ? '2px dashed color-mix(in srgb, var(--colour-primary-strong) 40%, transparent)'
+          ? '2px dashed color-mix(in srgb, var(--colour-primary) 40%, transparent)'
           : '2px dashed transparent',
         outlineOffset: -2,
         transition: 'background 120ms, outline-color 120ms',
