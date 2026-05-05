@@ -725,3 +725,21 @@
     transition: none;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * BOARD GALLERY (bu-board-gallery — partial impl)
+ * Responsive grid for /board's group tiles. 2-up at >= 720px (the
+ * "tablet/desktop" breakpoint used elsewhere in the app), 1-up below.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+.gps-board-gallery {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+@media (min-width: 720px) {
+  .gps-board-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
