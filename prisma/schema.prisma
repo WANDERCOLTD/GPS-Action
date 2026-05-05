@@ -688,6 +688,15 @@ model Group {
   // can re-classify via the admin surface.
   kind GroupKind @default(team)
 
+  // bu-group-identity / ADR-0013. Curated palette accent for the
+  // <GroupBadge /> chip rendered on every surface that mentions this
+  // group. Auto-assigned at create via least-recently-used round-robin
+  // (server/services/group.ts → assignNextColourKey); admins can
+  // re-pick from the same 12-swatch palette. Default is `slate` so a
+  // create that bypasses the service still produces a valid row;
+  // services should always go through the helper.
+  colourKey GroupColourKey @default(slate)
+
   boardColumns    BoardColumn[]
   requestGroups   RequestGroup[]       @relation("groupRequests")
   workflowSources GroupShareWorkflow[] @relation("workflowSources")
@@ -1142,6 +1151,25 @@ enum GroupKind {
   network
   team
   topic
+}
+
+// bu-group-identity / ADR-0013. Curated 12-name palette for group
+// visual identity. Auto-assigned at create via least-recently-used
+// round-robin; admins can re-pick from the same palette but never
+// freeform hex. Token pairs live in styles/tokens.css.
+enum GroupColourKey {
+  slate
+  rust
+  moss
+  plum
+  ochre
+  teal
+  indigo
+  coral
+  sage
+  amber
+  rose
+  stone
 }
 
 enum CommentKind {

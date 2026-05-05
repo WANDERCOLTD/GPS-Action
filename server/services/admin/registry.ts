@@ -32,6 +32,7 @@ import {
   planToPrismaInclude,
 } from '@/server/services/admin/include';
 import { seedDefaultColumnsForGroup } from '@/server/services/board-column';
+import { assignNextColourKey } from '@/server/services/group';
 import type {
   AdminGetArgs,
   AdminListArgs,
@@ -538,6 +539,11 @@ const groupEntry: EntityRegistryEntry = {
   },
   async create({ data, actorId }) {
     const parsed = groupCreateSchema.parse(data);
+    // bu-group-identity / ADR-0013 — auto-assign colour at create
+    // via least-recently-used round-robin. Admins can re-pick later
+    // from the same palette (re-pick UI lands when the admin form
+    // is next touched; the field accepts the value already).
+    const colourKey = await assignNextColourKey();
     const created = await prisma.group.create({
       data: {
         slug: parsed.slug,
@@ -545,6 +551,7 @@ const groupEntry: EntityRegistryEntry = {
         description: parsed.description ?? null,
         joinPolicy: parsed.joinPolicy,
         isOfficial: parsed.isOfficial,
+        colourKey,
         createdByUserId: actorId,
       },
       select: { id: true, kind: true },

@@ -77,6 +77,40 @@
   --colour-brand-whatsapp: #25d366; /* WhatsApp green — trademark */
   --colour-brand-whatsapp-contrast: #ffffff;
 
+  /* ─── COLOURS · GROUP PALETTE (ADR-0013) ──────────────────────────── */
+  /* Twelve curated accents for the <GroupBadge /> chip. Each pair is
+     a muted background + a deep readable text colour in the same hue
+     family. Hand-checked at WCAG AA 4.5:1 for normal text. Names are
+     palette positions, not roles — never derive meaning from a name.
+     Colour is reinforcement, not the sole signifier (kind glyph +
+     visible group name carry the identity). See ADR-0013 for the
+     contrast methodology and colour-blindness honesty note. */
+
+  --colour-group-slate: #d6deea;
+  --colour-group-slate-text: #2a3a55;
+  --colour-group-rust: #ecd2c5;
+  --colour-group-rust-text: #6e3520;
+  --colour-group-moss: #d2dec3;
+  --colour-group-moss-text: #3a4f24;
+  --colour-group-plum: #e2d0e0;
+  --colour-group-plum-text: #5a2a55;
+  --colour-group-ochre: #ecdab2;
+  --colour-group-ochre-text: #6b4810;
+  --colour-group-teal: #c6dee0;
+  --colour-group-teal-text: #1d4f54;
+  --colour-group-indigo: #d6d4ee;
+  --colour-group-indigo-text: #2c2a72;
+  --colour-group-coral: #f0cfca;
+  --colour-group-coral-text: #7a2c25;
+  --colour-group-sage: #cfdfd2;
+  --colour-group-sage-text: #2d4f3a;
+  --colour-group-amber: #f0d6a8;
+  --colour-group-amber-text: #6e4810;
+  --colour-group-rose: #ecccd6;
+  --colour-group-rose-text: #6b2a45;
+  --colour-group-stone: #dcd8ce;
+  --colour-group-stone-text: #4a4538;
+
   /* ─── COLOURS · SURFACES ──────────────────────────────────────────── */
 
   --colour-surface-canvas: #f4f1ea; /* page background — warm cream */
@@ -242,6 +276,35 @@
   --colour-cultural-subtle: #311a22;
   --colour-cultural-contrast: #0e1628;
 
+  /* ─── COLOURS · GROUP PALETTE (ADR-0013) ──────────────────────────── */
+  /* Dark-theme inversion: deep saturated background + pale text in the
+     same hue family. Same WCAG AA 4.5:1 target. */
+
+  --colour-group-slate: #2a3a55;
+  --colour-group-slate-text: #d6deea;
+  --colour-group-rust: #5e2e1c;
+  --colour-group-rust-text: #ecd2c5;
+  --colour-group-moss: #344420;
+  --colour-group-moss-text: #d2dec3;
+  --colour-group-plum: #4a2347;
+  --colour-group-plum-text: #e2d0e0;
+  --colour-group-ochre: #5a3d0e;
+  --colour-group-ochre-text: #ecdab2;
+  --colour-group-teal: #1d4248;
+  --colour-group-teal-text: #c6dee0;
+  --colour-group-indigo: #2c2a72;
+  --colour-group-indigo-text: #d6d4ee;
+  --colour-group-coral: #6a261f;
+  --colour-group-coral-text: #f0cfca;
+  --colour-group-sage: #28433a;
+  --colour-group-sage-text: #cfdfd2;
+  --colour-group-amber: #5a3a0e;
+  --colour-group-amber-text: #f0d6a8;
+  --colour-group-rose: #5b2438;
+  --colour-group-rose-text: #ecccd6;
+  --colour-group-stone: #3e3a30;
+  --colour-group-stone-text: #dcd8ce;
+
   /* ─── COLOURS · SURFACES ──────────────────────────────────────────── */
 
   --colour-surface-canvas: #18171d; /* dark grey, not pure black */
@@ -306,6 +369,31 @@
     --colour-cultural: #c07a93;
     --colour-cultural-subtle: #311a22;
     --colour-cultural-contrast: #0e1628;
+    /* Group palette (ADR-0013) — dark-theme inversion. */
+    --colour-group-slate: #2a3a55;
+    --colour-group-slate-text: #d6deea;
+    --colour-group-rust: #5e2e1c;
+    --colour-group-rust-text: #ecd2c5;
+    --colour-group-moss: #344420;
+    --colour-group-moss-text: #d2dec3;
+    --colour-group-plum: #4a2347;
+    --colour-group-plum-text: #e2d0e0;
+    --colour-group-ochre: #5a3d0e;
+    --colour-group-ochre-text: #ecdab2;
+    --colour-group-teal: #1d4248;
+    --colour-group-teal-text: #c6dee0;
+    --colour-group-indigo: #2c2a72;
+    --colour-group-indigo-text: #d6d4ee;
+    --colour-group-coral: #6a261f;
+    --colour-group-coral-text: #f0cfca;
+    --colour-group-sage: #28433a;
+    --colour-group-sage-text: #cfdfd2;
+    --colour-group-amber: #5a3a0e;
+    --colour-group-amber-text: #f0d6a8;
+    --colour-group-rose: #5b2438;
+    --colour-group-rose-text: #ecccd6;
+    --colour-group-stone: #3e3a30;
+    --colour-group-stone-text: #dcd8ce;
     --colour-surface-canvas: #18171d;
     --colour-surface-raised: #26252d;
     --colour-surface-sunken: #111013;

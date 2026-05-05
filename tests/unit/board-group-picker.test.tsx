@@ -48,6 +48,8 @@ const fixtureItem = (overrides: Partial<BoardGroupPickerItem>): BoardGroupPicker
   displayName: 'Writers',
   description: null,
   kind: 'workstream',
+  colourKey: 'slate',
+  logoUrl: null,
   isAdmin: false,
   ...overrides,
 });

@@ -49,6 +49,8 @@ export default async function BoardPage() {
     displayName: row.group.displayName,
     description: row.group.description,
     kind: row.group.kind as BoardGroupKind,
+    colourKey: row.group.colourKey,
+    logoUrl: row.group.logoUrl,
     isAdmin: row.access.canAdminBoard,
   }));
 

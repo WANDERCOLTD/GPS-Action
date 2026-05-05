@@ -1,6 +1,10 @@
 /**
  * @build-unit bu-coordination-board (build seq #4 — Surface 1, PR #4c)
+ * @build-unit bu-group-identity (mounts <GroupBadge size="sm" /> in the
+ *             row chip slot — replaces the text KIND_LABEL chip)
  * @spec build/session-briefs/bu-coordination-board.md
+ * @spec build/session-briefs/bu-group-identity.md
+ * @spec docs/adrs/0013-group-colour-identity.md
  *
  * BoardGroupPicker — the `/board` landing page lists every working
  * group the caller can open a board for. Each row links to
@@ -12,6 +16,7 @@
  */
 
 import Link from 'next/link';
+import { GroupBadge, type GroupBadgeColourKey } from '@/components/group/GroupBadge';
 
 export type BoardGroupKind = 'workstream' | 'region' | 'network' | 'team' | 'topic';
 
@@ -21,20 +26,16 @@ export interface BoardGroupPickerItem {
   displayName: string;
   description: string | null;
   kind: BoardGroupKind;
+  /** bu-group-identity — accent for the row's <GroupBadge />. */
+  colourKey: GroupBadgeColourKey;
+  /** Optional logo; the badge falls back to initials if null. */
+  logoUrl: string | null;
   isAdmin: boolean;
 }
 
 interface BoardGroupPickerProps {
   groups: BoardGroupPickerItem[];
 }
-
-const KIND_LABEL: Record<BoardGroupKind, string> = {
-  workstream: 'Workstream',
-  region: 'Region',
-  network: 'Network',
-  team: 'Team',
-  topic: 'Topic',
-};
 
 export function BoardGroupPicker({ groups }: BoardGroupPickerProps) {
   if (groups.length === 0) {
@@ -95,6 +96,16 @@ export function BoardGroupPicker({ groups }: BoardGroupPickerProps) {
                 marginBottom: group.description ? 'var(--space-2)' : 0,
               }}
             >
+              <GroupBadge
+                group={{
+                  displayName: group.displayName,
+                  kind: group.kind,
+                  colourKey: group.colourKey,
+                  logoUrl: group.logoUrl,
+                }}
+                size="sm"
+                decorative
+              />
               <span
                 style={{
                   fontFamily: 'var(--font-ui)',
@@ -103,15 +114,6 @@ export function BoardGroupPicker({ groups }: BoardGroupPickerProps) {
                 }}
               >
                 {group.displayName}
-              </span>
-              <span
-                style={{
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--colour-text-secondary)',
-                  fontFamily: 'var(--font-ui)',
-                }}
-              >
-                {KIND_LABEL[group.kind]}
               </span>
               {group.isAdmin && (
                 <span

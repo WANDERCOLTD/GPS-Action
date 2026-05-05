@@ -1,6 +1,10 @@
 {
   "name": "gps-action",
+<<<<<<< HEAD
   "version": "0.2.107",
+=======
+  "version": "0.2.101",
+>>>>>>> d775cb8 (feat(group-identity): GroupBadge + 12-colour palette substrate (v0.2.101))
   "private": true,
   "description": "GPS Action — purpose-built platform for coordinated activism",
   "scripts": {
