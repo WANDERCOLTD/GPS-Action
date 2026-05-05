@@ -19,6 +19,7 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "db:seed": "tsx scripts/seed.ts",
+    "seed:demo": "tsx prisma/seed.ts && tsx scripts/seed.ts",
     "check:reference-data": "tsx scripts/check-reference-data.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
