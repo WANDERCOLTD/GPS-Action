@@ -8,6 +8,9 @@
  *
  * BU-001-lite: 5 demo users + 2 role grants.
  * BU-feed: 3 groups + 18 posts across 5 users.
+ * bu-coordination-board: default BoardColumns + 3 demo kanban tickets
+ *   per demo group, so `/board/<slug>` lands on a populated kanban for
+ *   smoke-testing Surface 1 + Surface 2 without manually inserting rows.
  */
 
 // Prisma 7 (D071): the runtime adapter reads DATABASE_URL at module
@@ -1343,6 +1346,208 @@ async function main(): Promise<void> {
     }
     console.warn(`  ✓ tick-bbc-correction warm comments (${warmCreated} new)`);
   }
+
+  // ── Seed coord-board defaults + demo kanban tickets ─────────────────
+  // bu-coordination-board: default BoardColumns + a small set of
+  // populated kanban cards per demo group, so `/board/<slug>` lands on a
+  // working board straight after `npm run db:seed`. Idempotent — uses
+  // deterministic IDs throughout.
+  //
+  // Seeded across 3 demo groups: writers, manchester, rapid-response.
+  // The F10 fixture seed (`prisma/seed.ts`) creates more groups; those
+  // stay empty for now (they get a populated board only when someone
+  // creates a ticket via the UI, or when this section grows).
+
+  const COORD_BOARD_DEFAULT_COLUMNS = [
+    'Recruitment',
+    'Preparation',
+    'Implementation',
+    'Monitoring',
+  ];
+
+  let columnsCreated = 0;
+  for (const slug of ['writers', 'manchester', 'rapid-response'] as const) {
+    const groupId = groupIds[slug];
+    if (!groupId) continue;
+    for (let ordinal = 0; ordinal < COORD_BOARD_DEFAULT_COLUMNS.length; ordinal++) {
+      const displayName = COORD_BOARD_DEFAULT_COLUMNS[ordinal]!;
+      const columnId = seedUuid('board-column', `${slug}:${ordinal}`);
+      const existing = await prisma.boardColumn.findUnique({ where: { id: columnId } });
+      if (!existing) {
+        await prisma.boardColumn.create({
+          data: { id: columnId, groupId, ordinal, displayName },
+        });
+        columnsCreated++;
+      }
+    }
+  }
+  console.warn(`  ✓ Default BoardColumns seeded for 3 demo groups (${columnsCreated} new)`);
+
+  interface SeedKanbanTicket {
+    seedKey: string;
+    groupSlug: 'writers' | 'manchester' | 'rapid-response';
+    /** 0-indexed BoardColumn ordinal within the group's default set. */
+    columnOrdinal: number;
+    title: string;
+    body: string | null;
+    urgency: boolean;
+    assigneeKey: string | null;
+    /** Order within the column (lower = top). Multiplied by 1024 for boardPosition. */
+    positionWithinColumn: number;
+  }
+
+  const SEED_KANBAN_TICKETS: SeedKanbanTicket[] = [
+    // Writers
+    {
+      seedKey: 'writers-press-vigil',
+      groupSlug: 'writers',
+      columnOrdinal: 1,
+      title: "Press release — Tuesday's vigil",
+      body: 'Two-paragraph release with a quote from Bette. Send to the local paper desk by Tuesday lunchtime so it makes the evening edition.',
+      urgency: true,
+      assigneeKey: 'bette',
+      positionWithinColumn: 0,
+    },
+    {
+      seedKey: 'writers-guardian-pitch',
+      groupSlug: 'writers',
+      columnOrdinal: 2,
+      title: 'Op-ed pitch to The Guardian',
+      body: 'Drafting an angle around community resilience after this month. 800 words. Eddie has the draft going through Ingrid for a read.',
+      urgency: false,
+      assigneeKey: 'eddie',
+      positionWithinColumn: 0,
+    },
+    {
+      seedKey: 'writers-energy-letter',
+      groupSlug: 'writers',
+      columnOrdinal: 0,
+      title: 'Letter template — energy bills',
+      body: null,
+      urgency: false,
+      assigneeKey: null,
+      positionWithinColumn: 0,
+    },
+
+    // Manchester
+    {
+      seedKey: 'manchester-town-hall',
+      groupSlug: 'manchester',
+      columnOrdinal: 0,
+      title: 'Town hall booking — Saturday week',
+      body: 'Need confirmed venue + AV setup. Cary has a contact at the Friends Meeting House — check availability.',
+      urgency: true,
+      assigneeKey: 'cary',
+      positionWithinColumn: 0,
+    },
+    {
+      seedKey: 'manchester-leafleting',
+      groupSlug: 'manchester',
+      columnOrdinal: 1,
+      title: 'Door-to-door leafleting plan',
+      body: 'Three streets prioritised. Eddie has the route map; needs another two volunteers for Saturday morning.',
+      urgency: false,
+      assigneeKey: 'eddie',
+      positionWithinColumn: 0,
+    },
+    {
+      seedKey: 'manchester-photographer',
+      groupSlug: 'manchester',
+      columnOrdinal: 0,
+      title: 'Photographer for Saturday action',
+      body: null,
+      urgency: false,
+      assigneeKey: null,
+      positionWithinColumn: 1,
+    },
+
+    // Rapid Response
+    {
+      seedKey: 'rapid-bbc-interview',
+      groupSlug: 'rapid-response',
+      columnOrdinal: 2,
+      title: 'BBC interview — Cary on Newsnight',
+      body: "Producer wants 90 seconds, live. Cary's prepping the three key points; Bette is on standby for backup quotes.",
+      urgency: true,
+      assigneeKey: 'cary',
+      positionWithinColumn: 0,
+    },
+    {
+      seedKey: 'rapid-itv-followup',
+      groupSlug: 'rapid-response',
+      columnOrdinal: 1,
+      title: 'ITV regional — pitch follow-up',
+      body: 'Sent the brief on Monday; chasing for a slot this week.',
+      urgency: false,
+      assigneeKey: 'bette',
+      positionWithinColumn: 0,
+    },
+    {
+      seedKey: 'rapid-quote-bank',
+      groupSlug: 'rapid-response',
+      columnOrdinal: 3,
+      title: 'Quote bank for press',
+      body: null,
+      urgency: false,
+      assigneeKey: null,
+      positionWithinColumn: 0,
+    },
+  ];
+
+  let ticketsCreated = 0;
+  for (const t of SEED_KANBAN_TICKETS) {
+    const groupId = groupIds[t.groupSlug];
+    if (!groupId) continue;
+    const requestId = seedUuid('coord-ticket', t.seedKey);
+    const columnId = seedUuid('board-column', `${t.groupSlug}:${t.columnOrdinal}`);
+    const boardPosition = (t.positionWithinColumn + 1) * 1024;
+    const requestGroupId = seedUuid('coord-rg', t.seedKey);
+
+    const existing = await prisma.request.findUnique({ where: { id: requestId } });
+    if (!existing) {
+      await prisma.request.create({
+        data: {
+          id: requestId,
+          type: null,
+          status: 'active',
+          priority: 'normal',
+          title: t.title,
+          body: t.body,
+          context: {},
+          urgency: t.urgency,
+          columnId,
+          boardPosition,
+          createdByUserId: userIds[t.assigneeKey ?? 'bette']!,
+        },
+      });
+      await prisma.requestGroup.create({
+        data: {
+          id: requestGroupId,
+          requestId,
+          groupId,
+          origin: 'originating',
+          columnId,
+          boardPosition,
+          isUrgent: t.urgency,
+          sharedByUserId: userIds[t.assigneeKey ?? 'bette']!,
+        },
+      });
+      if (t.assigneeKey) {
+        const assignmentId = seedUuid('coord-assign', t.seedKey);
+        await prisma.assignment.create({
+          data: {
+            id: assignmentId,
+            requestId,
+            userId: userIds[t.assigneeKey]!,
+          },
+        });
+      }
+      ticketsCreated++;
+    }
+  }
+  console.warn(
+    `  ✓ Demo kanban tickets seeded across writers / manchester / rapid-response (${ticketsCreated} new)`,
+  );
 
   console.warn('✓ Seed complete.');
 }
