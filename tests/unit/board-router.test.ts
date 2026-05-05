@@ -21,6 +21,7 @@ vi.mock('@/server/services/board', async (importOriginal) => {
     moveCard: vi.fn(),
     setRequestStatus: vi.fn(),
     listBoardCardsForGroup: vi.fn(),
+    getTicketDetail: vi.fn(),
   };
 });
 
@@ -47,6 +48,7 @@ import { GroupAccessError } from '@/server/services/group-kanban';
 const mockMoveCard = vi.mocked(boardSvc.moveCard);
 const mockSetStatus = vi.mocked(boardSvc.setRequestStatus);
 const mockListCards = vi.mocked(boardSvc.listBoardCardsForGroup);
+const mockGetTicket = vi.mocked(boardSvc.getTicketDetail);
 const mockIsAssignee = vi.mocked(assignmentsSvc.isAssigneeActive);
 const mockAssertView = vi.mocked(groupKanbanSvc.assertCanViewBoard);
 
@@ -133,6 +135,74 @@ describe('board.listCards', () => {
     const result = await caller.board.listCards(listInput);
     expect(result).toHaveLength(1);
     expect(mockListCards).toHaveBeenCalledWith('g1', { status: undefined });
+  });
+});
+
+describe('board.getTicket', () => {
+  const ticketInput = { requestId: 'r1', groupId: 'g1' };
+  const stubTicket = {
+    id: 'r1',
+    title: 'Write press release',
+    body: null,
+    status: 'active' as const,
+    urgency: false,
+    kindSlug: null,
+    kindDisplayName: null,
+    assignees: [],
+    subscribers: [],
+    groups: [
+      {
+        groupId: 'g1',
+        slug: 'writers',
+        displayName: 'Writers',
+        origin: 'originating' as const,
+        isUrgent: false,
+        columnId: 'c1',
+      },
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  it('rejects unauthenticated', async () => {
+    const caller = createCaller(publicContext());
+    await expect(caller.board.getTicket(ticketInput)).rejects.toBeInstanceOf(TRPCError);
+  });
+
+  it("converts GroupAccessError('not_found') → NOT_FOUND", async () => {
+    mockAssertView.mockRejectedValue(new GroupAccessError('not_found', 'no access'));
+    const caller = createCaller(authedContext());
+    await expect(caller.board.getTicket(ticketInput)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mockGetTicket).not.toHaveBeenCalled();
+  });
+
+  it('returns NOT_FOUND when the ticket is not linked to the viewer group', async () => {
+    mockAssertView.mockResolvedValue(memberAccess);
+    mockGetTicket.mockResolvedValue(null);
+    const caller = createCaller(authedContext());
+    await expect(caller.board.getTicket(ticketInput)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('returns the ticket detail when authorised + linked', async () => {
+    mockAssertView.mockResolvedValue(memberAccess);
+    mockGetTicket.mockResolvedValue(stubTicket);
+    const caller = createCaller(authedContext());
+    const result = await caller.board.getTicket(ticketInput);
+    expect(result.id).toBe('r1');
+    expect(result.title).toBe('Write press release');
+    expect(mockGetTicket).toHaveBeenCalledWith({ requestId: 'r1', viewerGroupId: 'g1' });
+  });
+
+  it('passes isSystemAdmin from active roles', async () => {
+    mockAssertView.mockResolvedValue({ ...memberAccess, isSystemAdmin: true });
+    mockGetTicket.mockResolvedValue(stubTicket);
+    const caller = createCaller(authedContext(['admin']));
+    await caller.board.getTicket(ticketInput);
+    expect(mockAssertView).toHaveBeenCalledWith({
+      groupId: 'g1',
+      userId: 'u1',
+      isSystemAdmin: true,
+    });
   });
 });
 

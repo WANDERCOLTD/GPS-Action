@@ -1,7 +1,7 @@
 /**
- * @build-unit bu-coordination-board (build seq #4 — Surface 1, PR #4a + #4d)
+ * @build-unit bu-coordination-board (build seq #4 — Surface 1, PR #4a + #4d; #5a — Surface 2 read)
  * @spec build/session-briefs/bu-coordination-board.md
- * @adr 0006 0009 0011 0012
+ * @adr 0006 0009 0011 0012 0013
  *
  * Board service — drag-reorder + status transitions + position math
  * + read query for the kanban surface (Surface 1).
@@ -383,11 +383,10 @@ export interface BoardCard {
   /** Request.id — primary identifier; routes use this for ticket detail. */
   id: string;
   /**
-   * Display title. Read from `request.context.title` for kanban tickets;
-   * falls back to '(Untitled)' when missing. The schema does not (yet)
-   * carry a dedicated Request.title — kanban consumers store the title
-   * inside the existing `context: Json` blob alongside any future fields.
-   * If a typed `Request.title` is added in a future ADR, swap this read.
+   * Display title. Read from typed `Request.title` (ADR-0013 / D079).
+   * The DB-level sentinel default ('(Untitled)') keeps NOT NULL safe
+   * for any rows that slipped past the back-fill, so no runtime
+   * fallback is needed here.
    */
   title: string;
   kindSlug: string | null;
@@ -465,7 +464,7 @@ export async function listBoardCardsForGroup(
         select: {
           id: true,
           status: true,
-          context: true,
+          title: true,
           createdAt: true,
           updatedAt: true,
           kind: { select: { slug: true, displayName: true } },
@@ -481,17 +480,10 @@ export async function listBoardCardsForGroup(
     },
   });
 
-  return rows.map((row): BoardCard => {
-    const ctx = row.request.context;
-    const title =
-      typeof ctx === 'object' && ctx !== null && !Array.isArray(ctx) && 'title' in ctx
-        ? typeof (ctx as { title: unknown }).title === 'string'
-          ? ((ctx as { title: string }).title as string)
-          : '(Untitled)'
-        : '(Untitled)';
-    return {
+  return rows.map(
+    (row): BoardCard => ({
       id: row.request.id,
-      title,
+      title: row.request.title,
       kindSlug: row.request.kind?.slug ?? null,
       kindDisplayName: row.request.kind?.displayName ?? null,
       isUrgent: row.isUrgent,
@@ -505,6 +497,168 @@ export async function listBoardCardsForGroup(
       })),
       createdAt: row.request.createdAt,
       updatedAt: row.request.updatedAt,
-    };
+    }),
+  );
+}
+
+// ─── Read query: ticket detail (Surface 2 — PR #5a) ─────────────────────────
+
+export interface TicketDetailAssignee {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  assignedAt: Date;
+}
+
+export interface TicketDetailSubscriber {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface TicketDetailGroupLink {
+  groupId: string;
+  slug: string;
+  displayName: string;
+  origin: 'originating' | 'workflow_share' | 'ad_hoc_share';
+  /** Per-link urgency (RequestGroup.isUrgent). Independent of Request.urgency. */
+  isUrgent: boolean;
+  /** Per-link column placement (null when off-board for this link). */
+  columnId: string | null;
+}
+
+export interface TicketDetail {
+  id: string;
+  /** Typed display title (ADR-0013 / D079). */
+  title: string;
+  /** Typed editable description. Null when no description has been written. */
+  body: string | null;
+  status: RequestStatus;
+  /**
+   * Global Request.urgency — the canonical "this ticket is urgent" flag.
+   * Per-link urgency lives on each `groups[i].isUrgent`.
+   */
+  urgency: boolean;
+  kindSlug: string | null;
+  kindDisplayName: string | null;
+  assignees: TicketDetailAssignee[];
+  subscribers: TicketDetailSubscriber[];
+  /**
+   * Every active group link for this ticket. Includes the originating group
+   * plus any teams it has been shared with. Soft-deleted links are excluded.
+   * Stable order: originating first (by createdAt), then shares oldest-first.
+   */
+  groups: TicketDetailGroupLink[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface GetTicketDetailInput {
+  requestId: string;
+  /**
+   * The group whose board the viewer is acting on. The router must already
+   * have asserted the viewer can see this group (via assertCanViewBoard).
+   * The service additionally requires the ticket to be linked to this
+   * group — so a member of group A cannot read a ticket that lives in
+   * group B (no cross-group disclosure).
+   */
+  viewerGroupId: string;
+}
+
+/**
+ * Read full detail for a single ticket, scoped to a viewer group.
+ *
+ * Returns null when:
+ *   - The Request does not exist or is soft-deleted.
+ *   - The Request is not linked to `viewerGroupId` (or the link is
+ *     soft-deleted).
+ *
+ * The router converts null → NOT_FOUND. We avoid distinguishing "doesn't
+ * exist" from "you can't see it" — the router has already established
+ * the viewer can see the group; mismatching ticket-group binding is a
+ * 404 from the viewer's perspective.
+ */
+export async function getTicketDetail(input: GetTicketDetailInput): Promise<TicketDetail | null> {
+  const viewerLink = await prisma.requestGroup.findUnique({
+    where: {
+      requestId_groupId: {
+        requestId: input.requestId,
+        groupId: input.viewerGroupId,
+      },
+    },
+    select: { id: true, deletedAt: true },
   });
+  if (!viewerLink || viewerLink.deletedAt !== null) return null;
+
+  const request = await prisma.request.findFirst({
+    where: { id: input.requestId, deletedAt: null },
+    select: {
+      id: true,
+      title: true,
+      body: true,
+      status: true,
+      urgency: true,
+      createdAt: true,
+      updatedAt: true,
+      kind: { select: { slug: true, displayName: true } },
+      assignments: {
+        where: { unassignedAt: null },
+        orderBy: { assignedAt: 'asc' },
+        select: {
+          assignedAt: true,
+          user: { select: { id: true, displayName: true, avatarUrl: true } },
+        },
+      },
+      subscriptions: {
+        where: { deletedAt: null },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          user: { select: { id: true, displayName: true, avatarUrl: true } },
+        },
+      },
+      requestGroups: {
+        where: { deletedAt: null },
+        orderBy: [{ origin: 'asc' }, { createdAt: 'asc' }],
+        select: {
+          groupId: true,
+          origin: true,
+          isUrgent: true,
+          columnId: true,
+          group: { select: { slug: true, displayName: true } },
+        },
+      },
+    },
+  });
+  if (!request) return null;
+
+  return {
+    id: request.id,
+    title: request.title,
+    body: request.body,
+    status: request.status,
+    urgency: request.urgency,
+    kindSlug: request.kind?.slug ?? null,
+    kindDisplayName: request.kind?.displayName ?? null,
+    assignees: request.assignments.map((a) => ({
+      userId: a.user.id,
+      displayName: a.user.displayName,
+      avatarUrl: a.user.avatarUrl,
+      assignedAt: a.assignedAt,
+    })),
+    subscribers: request.subscriptions.map((s) => ({
+      userId: s.user.id,
+      displayName: s.user.displayName,
+      avatarUrl: s.user.avatarUrl,
+    })),
+    groups: request.requestGroups.map((rg) => ({
+      groupId: rg.groupId,
+      slug: rg.group.slug,
+      displayName: rg.group.displayName,
+      origin: rg.origin,
+      isUrgent: rg.isUrgent,
+      columnId: rg.columnId,
+    })),
+    createdAt: request.createdAt,
+    updatedAt: request.updatedAt,
+  };
 }

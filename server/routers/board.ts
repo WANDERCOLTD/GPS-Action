@@ -1,7 +1,7 @@
 /**
- * @build-unit bu-coordination-board (build seq #4 — Surface 1, PR #4b)
+ * @build-unit bu-coordination-board (build seq #4 — Surface 1, PR #4b; #5a — Surface 2 read)
  * @spec build/session-briefs/bu-coordination-board.md
- * @adr 0006 0009 0011 0012
+ * @adr 0006 0009 0011 0012 0013
  *
  * Board router — drag-reorder + explicit status change.
  *
@@ -30,9 +30,11 @@ import {
   moveCard,
   setRequestStatus,
   listBoardCardsForGroup,
+  getTicketDetail,
   BoardError,
   type BoardCard,
   type MoveCardResult,
+  type TicketDetail,
 } from '@/server/services/board';
 import { isAssigneeActive } from '@/server/services/assignments';
 import {
@@ -121,6 +123,16 @@ const listCardsSchema = z.object({
   status: z.enum(['backlog', 'active', 'done', 'abandoned']).optional(),
 });
 
+const getTicketSchema = z.object({
+  requestId: z.string().min(1),
+  /**
+   * The group whose board the viewer is acting on. Drives both the
+   * permission gate (assertCanViewBoard) and the cross-group disclosure
+   * scope (the ticket must be linked to this group).
+   */
+  groupId: z.string().min(1),
+});
+
 export const boardRouter = router({
   /**
    * Read the active cards for a group's kanban board. Joins via
@@ -139,6 +151,38 @@ export const boardRouter = router({
         throw toTRPCError(err);
       }
       return listBoardCardsForGroup(input.groupId, { status: input.status });
+    }),
+
+  /**
+   * Read full detail for a ticket, scoped to the viewer's group context.
+   * The viewer must be able to see `groupId`, AND the ticket must be
+   * linked to that group — otherwise NOT_FOUND. We collapse missing-link
+   * and missing-request to the same code so the router does not leak
+   * cross-group ticket existence.
+   */
+  getTicket: authedProcedure
+    .input(getTicketSchema)
+    .query(async ({ ctx, input }): Promise<TicketDetail> => {
+      try {
+        await assertCanViewBoard({
+          groupId: input.groupId,
+          userId: ctx.user.id,
+          isSystemAdmin: ctx.activeRoles.includes('admin'),
+        });
+      } catch (err) {
+        throw toTRPCError(err);
+      }
+      const ticket = await getTicketDetail({
+        requestId: input.requestId,
+        viewerGroupId: input.groupId,
+      });
+      if (!ticket) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Ticket ${input.requestId} not found in group ${input.groupId}`,
+        });
+      }
+      return ticket;
     }),
 
   /**

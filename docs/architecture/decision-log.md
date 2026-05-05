@@ -5350,3 +5350,74 @@ The nine sub-decisions, in brief-table order:
 - §3.30 partner orgs (referenced in §9; not yet a numbered ADR/D).
 - `docs/product/research/search-surfaces.md` — design rationale.
 - SCN-31 — Sharon searches for Hendon (companion scenario).
+
+# D079 — Typed `Request.title` + `Request.body` (closes ADR-0013)
+
+**Status:** decided · 2026-05-05
+
+## Context
+
+Surface 1 of bu-coordination-board (PR #4d) reads each kanban
+card's display title from `request.context.title` — an untyped
+JSON-blob key — with a `'(Untitled)'` runtime fallback. The
+choice was a punt; the handoff
+(`bu-coordination-board-2026-05-04c.md`) flagged "title field
+convention is unresolved" as the gating question for Surface 2.
+
+Surface 2 (ticket detail) needs an editable, audit-logged title
+and an editable, audit-logged description. Audit-logging a
+JSON-blob mutation is awkward (nested-key diffs, silent typo
+drift); typed columns make the edit a plain `UPDATE`.
+
+The brief (bu-coordination-board v0.4) implicitly assumed
+typed fields (it references `Request.body` directly in the
+Surface 2 layout) but did not list them in the consolidated
+schema-additions block.
+
+## Decision
+
+- Add `Request.title: String` (NOT NULL, default
+  `'(Untitled)'`) and `Request.body: String?` to the schema.
+- Forward-only migration back-fills both from
+  `context->>'title'` and `context->>'body'` respectively, then
+  applies the NOT NULL + default to `title`. Idempotent via
+  `COALESCE`.
+- `server/services/board.ts · listBoardCardsForGroup` swaps
+  from `context.title` to `request.title` in the same PR; the
+  runtime `'(Untitled)'` fallback is dropped (DB-level sentinel
+  default covers it).
+- `server/services/board.ts · getTicketDetail` (new in this PR)
+  returns `title` and `body` typed.
+- `context.title` / `context.body` are deprecated as
+  authoritative keys but not stripped from existing rows. A
+  later cleanup migration may strip them.
+
+ADR-0013 carries the full reasoning and migration SQL.
+
+## Consequences
+
+- **Schema:** ADR-0013 governs the typed columns + back-fill.
+  Migration is forward-only and additive. Sentinel default keeps
+  the NOT NULL constraint safe for any rows that slipped past
+  the back-fill.
+- **Surface 2 unblocked.** PR #5a (read query + stub page) can
+  ship using the typed shape; PRs #5b–5e (action pair, editable
+  description, comment thread, share-with-team) all assume
+  typed `title` / `body` going forward.
+- **Surface 1 read updated in same PR.** Avoids a transient state
+  where the typed columns exist but the kanban card still reads
+  the JSON blob.
+- **Composer not yet updated.** No code path in this PR creates
+  kanban tickets; the migration's back-fill is enough. Later
+  composer BUs write directly to the typed columns.
+
+## Related
+
+- ADR-0013 — the executing ADR.
+- ADR-0005 / ADR-0012 — `RequestStatus` shape (independent).
+- ADR-0010 / ADR-0011 — earlier `Request` reshape (nullable
+  type, drop claim trio).
+- D070 — idempotent migration discipline.
+- bu-coordination-board v0.4 — Surface 2 needs the typed fields.
+- Handoff `bu-coordination-board-2026-05-04c.md` — flagged the
+  punt this D resolves.

@@ -1,0 +1,282 @@
+/**
+ * @build-unit bu-coordination-board (build seq #5 — Surface 2, PR #5a)
+ * @spec docs/build/session-briefs/bu-coordination-board.md
+ * @adr 0013
+ *
+ * Ticket-detail stub. Renders the typed title, kind label, urgent dot,
+ * and the assignee list — the foundation for Surface 2.
+ *
+ * The action pair (Assign-me / Follow), the share-with-team picker,
+ * the editable description with audit, and the comment / note thread
+ * all land in subsequent PRs (5b–5e). This PR only proves the read
+ * path: the new typed `Request.title` / `Request.body` columns
+ * (ADR-0013 / D079) flow through the new `getTicketDetail` service +
+ * `board.getTicket` router into a server-rendered page.
+ *
+ * Gated by `coord_board_v1`. Flag-off → /feed (mirrors the kanban
+ * grid). Unauthed → /dev/login. Group resolved by slug; ticket
+ * resolved by id within the group's link scope. Either lookup
+ * returning null → 404.
+ */
+
+import Link from 'next/link';
+import { notFound, redirect } from 'next/navigation';
+import { formatDistanceToNow } from 'date-fns';
+import { TRPCError } from '@trpc/server';
+import { createCaller } from '@/server/routers/_app';
+import { createTRPCContext } from '@/server/routers/context';
+import { isFeatureEnabled } from '@/server/services/flags';
+
+interface BoardTicketDetailPageProps {
+  params: Promise<{ groupSlug: string; ticketId: string }>;
+}
+
+export const metadata = {
+  title: 'Ticket — GPS Action',
+};
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0]?.[0] ?? '';
+  const second = parts[1]?.[0] ?? '';
+  return (first + second).toUpperCase();
+}
+
+export default async function BoardTicketDetailPage({ params }: BoardTicketDetailPageProps) {
+  const flagEnabled = await isFeatureEnabled('coord_board_v1');
+  if (!flagEnabled) {
+    redirect('/feed');
+  }
+
+  const ctx = await createTRPCContext();
+  if (!ctx.user) {
+    redirect('/dev/login');
+  }
+
+  const { groupSlug, ticketId } = await params;
+  const caller = createCaller(ctx);
+
+  const accessibleGroup = await caller.groupKanban.bySlug({ slug: groupSlug });
+  if (!accessibleGroup) {
+    notFound();
+  }
+
+  let ticket;
+  try {
+    ticket = await caller.board.getTicket({
+      requestId: ticketId,
+      groupId: accessibleGroup.group.id,
+    });
+  } catch (err) {
+    if (err instanceof TRPCError && err.code === 'NOT_FOUND') {
+      notFound();
+    }
+    throw err;
+  }
+
+  return (
+    <main
+      data-testid="board-ticket-detail"
+      style={{
+        padding: 'var(--space-5) var(--space-4) var(--space-6)',
+        margin: '0 auto',
+        maxWidth: 720,
+      }}
+    >
+      <header style={{ marginBottom: 'var(--space-4)' }}>
+        <Link
+          href={`/board/${groupSlug}`}
+          data-testid="board-ticket-back"
+          style={{
+            fontSize: 'var(--text-sm)',
+            color: 'var(--colour-text-link)',
+            textDecoration: 'none',
+            display: 'inline-block',
+            marginBottom: 'var(--space-2)',
+          }}
+        >
+          ← {accessibleGroup.group.displayName} board
+        </Link>
+        <h1
+          data-testid="board-ticket-title"
+          style={{
+            margin: 0,
+            fontSize: 'var(--text-xl)',
+            fontFamily: 'var(--font-ui)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+          }}
+        >
+          {ticket.urgency && (
+            <span
+              data-testid="board-ticket-urgent-dot"
+              aria-label="Urgent"
+              style={{
+                display: 'inline-block',
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: 'var(--colour-danger-strong)',
+                flexShrink: 0,
+              }}
+            />
+          )}
+          {ticket.title}
+        </h1>
+        {ticket.kindDisplayName && (
+          <p
+            data-testid="board-ticket-kind"
+            style={{
+              margin: 'var(--space-1) 0 0 0',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--colour-text-secondary)',
+            }}
+          >
+            {ticket.kindDisplayName}
+          </p>
+        )}
+      </header>
+
+      <section
+        data-testid="board-ticket-assignees"
+        aria-label="Assignees"
+        style={{
+          marginBottom: 'var(--space-4)',
+          padding: 'var(--space-3)',
+          background: 'var(--colour-surface-sunken)',
+          borderRadius: 'var(--radius-md)',
+        }}
+      >
+        <h2
+          style={{
+            margin: '0 0 var(--space-2) 0',
+            fontSize: 'var(--text-xs)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            color: 'var(--colour-text-secondary)',
+          }}
+        >
+          Assignees
+        </h2>
+        {ticket.assignees.length === 0 ? (
+          <p
+            data-testid="board-ticket-assignees-empty"
+            style={{
+              margin: 0,
+              fontSize: 'var(--text-sm)',
+              color: 'var(--colour-text-secondary)',
+            }}
+          >
+            No one is assigned yet.
+          </p>
+        ) : (
+          <ul
+            style={{
+              listStyle: 'none',
+              padding: 0,
+              margin: 0,
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 'var(--space-2)',
+            }}
+          >
+            {ticket.assignees.map((a) => (
+              <li
+                key={a.userId}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  padding: '4px 10px 4px 4px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--colour-surface)',
+                  border: '1px solid var(--colour-border)',
+                  fontSize: 'var(--text-sm)',
+                }}
+              >
+                <span
+                  title={a.displayName}
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    background: a.avatarUrl
+                      ? `center / cover no-repeat url(${a.avatarUrl})`
+                      : 'var(--colour-surface-sunken)',
+                    color: 'var(--colour-text-secondary)',
+                    fontSize: 10,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid var(--colour-border)',
+                  }}
+                >
+                  {a.avatarUrl ? '' : initials(a.displayName)}
+                </span>
+                {a.displayName}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section
+        data-testid="board-ticket-description"
+        aria-label="Description"
+        style={{
+          marginBottom: 'var(--space-4)',
+        }}
+      >
+        <h2
+          style={{
+            margin: '0 0 var(--space-2) 0',
+            fontSize: 'var(--text-xs)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            color: 'var(--colour-text-secondary)',
+          }}
+        >
+          Description
+        </h2>
+        {ticket.body ? (
+          <p
+            data-testid="board-ticket-description-body"
+            style={{
+              margin: 0,
+              fontSize: 'var(--text-md)',
+              lineHeight: 1.5,
+              whiteSpace: 'pre-wrap',
+            }}
+          >
+            {ticket.body}
+          </p>
+        ) : (
+          <p
+            data-testid="board-ticket-description-empty"
+            style={{
+              margin: 0,
+              fontSize: 'var(--text-sm)',
+              color: 'var(--colour-text-secondary)',
+              fontStyle: 'italic',
+            }}
+          >
+            No description yet. Editing arrives in a follow-up.
+          </p>
+        )}
+      </section>
+
+      <footer
+        data-testid="board-ticket-meta"
+        style={{
+          fontSize: 'var(--text-xs)',
+          color: 'var(--colour-text-secondary)',
+          paddingTop: 'var(--space-3)',
+          borderTop: '1px solid var(--colour-border)',
+        }}
+      >
+        Last updated {formatDistanceToNow(ticket.updatedAt, { addSuffix: true })}
+      </footer>
+    </main>
+  );
+}
