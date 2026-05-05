@@ -1,17 +1,14 @@
 /**
- * @build-unit bu-coordination-board (build seq #5 — Surface 2, PR #5a)
+ * @build-unit bu-coordination-board (build seq #5 — Surface 2, PR #5a + #5b)
  * @spec docs/build/session-briefs/bu-coordination-board.md
  * @adr 0013
  *
- * Ticket-detail stub. Renders the typed title, kind label, urgent dot,
- * and the assignee list — the foundation for Surface 2.
+ * Ticket-detail page. Renders the typed title, kind label, urgent
+ * dot, the unified Assign-me / Follow action pair (PR #5b), the
+ * assignee list, and a placeholder description.
  *
- * The action pair (Assign-me / Follow), the share-with-team picker,
- * the editable description with audit, and the comment / note thread
- * all land in subsequent PRs (5b–5e). This PR only proves the read
- * path: the new typed `Request.title` / `Request.body` columns
- * (ADR-0013 / D079) flow through the new `getTicketDetail` service +
- * `board.getTicket` router into a server-rendered page.
+ * The share-with-team picker, the editable description with audit,
+ * and the comment / note thread land in 5c–5e.
  *
  * Gated by `coord_board_v1`. Flag-off → /feed (mirrors the kanban
  * grid). Unauthed → /dev/login. Group resolved by slug; ticket
@@ -26,6 +23,7 @@ import { TRPCError } from '@trpc/server';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
+import { BoardActionPair } from '@/components/board/BoardActionPair';
 
 interface BoardTicketDetailPageProps {
   params: Promise<{ groupSlug: string; ticketId: string }>;
@@ -73,6 +71,10 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
     }
     throw err;
   }
+
+  const viewerId = ctx.user.id;
+  const isMineActive = ticket.assignees.some((a) => a.userId === viewerId);
+  const isMineSubscribed = ticket.subscribers.some((s) => s.userId === viewerId);
 
   return (
     <main
@@ -137,6 +139,13 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
           </p>
         )}
       </header>
+
+      <BoardActionPair
+        requestId={ticket.id}
+        groupSlug={groupSlug}
+        assigned={isMineActive}
+        following={isMineSubscribed}
+      />
 
       <section
         data-testid="board-ticket-assignees"
