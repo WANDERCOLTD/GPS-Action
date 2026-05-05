@@ -235,6 +235,20 @@ export const entityMetadata: Record<string, EntityMetadataEntry> = {
     notes:
       'Core content entity. Visibility defaults to public (D045). groupTags are informational only (D041). Full Slice 2 adds Comment, Reaction, Attachment.',
   },
+
+  // ── bu-kanban-event-config (ADR-0014) ──────────────────────────────────────
+
+  kanbanEventConfig: {
+    displayField: 'eventKind',
+    listColumns: ['eventKind', 'enabled', 'updatedAt', 'updatedBy.displayName'],
+    searchableFields: ['eventKind'],
+    defaultSort: { eventKind: 'asc' },
+    requiresRole: { view: 'admin', edit: 'admin' },
+    workflow: null,
+    softDelete: false,
+    notes:
+      'Reference data per D070 — nine event kinds seeded by migration 20260507100000. Toggling `enabled` decides whether the named kanban event writes a system-Comment row in the ticket thread. No backfill: flips affect future events only.',
+  },
 };
 
 export type EntityKey = keyof typeof entityMetadata;

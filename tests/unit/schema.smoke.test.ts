@@ -105,7 +105,7 @@ describe('schema smoke — Slice 2 (minimal) entities (Post)', () => {
     expect(entityMetadata).toHaveProperty('post');
   });
 
-  it('metadata covers all Slice 1 + 1.5 + 2m entities', () => {
+  it('metadata covers all Slice 1 + 1.5 + 2m + kanban-event-config entities', () => {
     const expectedKeys = [
       'auditLog',
       'coordinatorGroup',
@@ -113,6 +113,7 @@ describe('schema smoke — Slice 2 (minimal) entities (Post)', () => {
       'featureFlag',
       'group',
       'groupMembership',
+      'kanbanEventConfig',
       'post',
       'region',
       'request',

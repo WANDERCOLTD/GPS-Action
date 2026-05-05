@@ -29,6 +29,7 @@ export const ADMIN_ENTITY_KEYS = [
   'roleGrant',
   'featureFlag',
   'auditLog',
+  'kanbanEventConfig',
 ] as const;
 
 export type AdminEntityKeyShared = (typeof ADMIN_ENTITY_KEYS)[number];
