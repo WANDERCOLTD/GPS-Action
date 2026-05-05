@@ -54,3 +54,38 @@ export async function moveCardAction(input: MoveCardActionInput): Promise<MoveCa
   revalidatePath(`/board/${input.groupSlug}`);
   return { ok: true };
 }
+
+// ── Propose to backlog ───────────────────────────────────────────────────
+
+export interface ProposeTicketActionInput {
+  groupId: string;
+  groupSlug: string;
+  title: string;
+  body: string | null;
+}
+
+export interface ProposeTicketActionResult {
+  ok: boolean;
+  requestId?: string;
+  error?: string;
+}
+
+export async function proposeTicketAction(
+  input: ProposeTicketActionInput,
+): Promise<ProposeTicketActionResult> {
+  try {
+    const ctx = await createTRPCContext();
+    const caller = createCaller(ctx);
+    const result = await caller.board.propose({
+      groupId: input.groupId,
+      title: input.title,
+      body: input.body,
+    });
+    revalidatePath(`/board/${input.groupSlug}`);
+    revalidatePath(`/board/${input.groupSlug}/backlog`);
+    return { ok: true, requestId: result.requestId };
+  } catch (err) {
+    if (err instanceof TRPCError) return { ok: false, error: err.message };
+    return { ok: false, error: 'Could not propose ticket — try again.' };
+  }
+}

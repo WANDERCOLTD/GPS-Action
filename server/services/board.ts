@@ -816,3 +816,127 @@ export async function editTicketBody(input: EditTicketBodyInput): Promise<Reques
 
   return updated;
 }
+
+// ─── Propose to backlog (Surface 1 — header `+ Propose` button) ─────────────
+
+export type ProposeKanbanTicketErrorKind = 'title_empty' | 'title_too_long' | 'body_too_long';
+
+export class ProposeKanbanTicketError extends Error {
+  constructor(
+    public readonly kind: ProposeKanbanTicketErrorKind,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ProposeKanbanTicketError';
+  }
+}
+
+export interface ProposeKanbanTicketInput {
+  groupId: string;
+  title: string;
+  /** null → no description (matches the EditableTicketBody empty-state). */
+  body: string | null;
+  actorId: string;
+}
+
+export interface ProposeKanbanTicketResult {
+  request: Request;
+  requestGroup: RequestGroup;
+}
+
+/**
+ * Create a kanban ticket in the group's backlog. Mirrors the seed
+ * pattern (`scripts/seed.ts` — kanban seed block):
+ *
+ *   - Request.type = null (kanban tickets carry no legacy RequestType).
+ *   - Request.status = 'backlog' — off-board until someone drags it
+ *     onto a column.
+ *   - Request.context = {} — kanban tickets have no per-type payload;
+ *     authoritative display fields are `title` + `body`.
+ *   - Request.columnId / boardPosition = null (off-board).
+ *   - RequestGroup.origin = 'originating', no column placement, not urgent.
+ *
+ * Caller (router) gates "viewer can see this group" upstream. Author
+ * is recorded on Request.createdByUserId AND RequestGroup.sharedByUserId,
+ * matching the seed-pattern shape.
+ *
+ * Whitespace-only body collapses to null (same rule as `editTicketBody`).
+ *
+ * Audit row: `kanban_ticket_proposed` with the groupId + lengths.
+ */
+export async function proposeKanbanTicket(
+  input: ProposeKanbanTicketInput,
+): Promise<ProposeKanbanTicketResult> {
+  const trimmedTitle = input.title.trim();
+  if (trimmedTitle.length === 0) {
+    throw new ProposeKanbanTicketError('title_empty', 'Title cannot be empty');
+  }
+  if (trimmedTitle.length > TICKET_TITLE_MAX_LENGTH) {
+    throw new ProposeKanbanTicketError(
+      'title_too_long',
+      `Title exceeds ${TICKET_TITLE_MAX_LENGTH} characters`,
+    );
+  }
+
+  const normalisedBody: string | null =
+    input.body === null ? null : input.body.trim() === '' ? null : input.body;
+  if (normalisedBody !== null && normalisedBody.length > TICKET_BODY_MAX_LENGTH) {
+    throw new ProposeKanbanTicketError(
+      'body_too_long',
+      `Body exceeds ${TICKET_BODY_MAX_LENGTH} characters`,
+    );
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const request = await tx.request.create({
+      data: {
+        type: null,
+        status: 'backlog',
+        priority: 'normal',
+        title: trimmedTitle,
+        body: normalisedBody,
+        context: {},
+        urgency: false,
+        columnId: null,
+        boardPosition: null,
+        createdByUserId: input.actorId,
+      },
+    });
+    const requestGroup = await tx.requestGroup.create({
+      data: {
+        requestId: request.id,
+        groupId: input.groupId,
+        origin: 'originating',
+        columnId: null,
+        boardPosition: null,
+        isUrgent: false,
+        sharedByUserId: input.actorId,
+      },
+    });
+    // Auto-subscribe author per Tier-2 default #4 ("Author + all
+    // assignees + ever-mentioned"). Source = auto_author so the row
+    // doesn't get clobbered by later auto-rules.
+    await tx.requestSubscription.create({
+      data: {
+        requestId: request.id,
+        userId: input.actorId,
+        source: 'auto_author',
+      },
+    });
+    return { request, requestGroup };
+  });
+
+  await auditLog({
+    action: 'kanban_ticket_proposed',
+    entityType: 'Request',
+    entityId: result.request.id,
+    userId: input.actorId,
+    changes: {
+      titleLength: trimmedTitle.length,
+      bodyLength: normalisedBody?.length ?? 0,
+    },
+    context: { groupId: input.groupId },
+  });
+
+  return result;
+}
