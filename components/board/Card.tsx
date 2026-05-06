@@ -7,7 +7,9 @@
  *
  * Visual contract per the brief's "Surface 1 — Kanban board":
  *   - Title (one line, ellipsised at narrow widths).
- *   - Kind label (small text under the title; future glyph swap).
+ *   - Kind glyph + label (small row under the title). The glyph
+ *     mirrors the FAB intent picker (`KindPickerSheet`) so members
+ *     see the same icon when creating and when triaging the kind.
  *   - Multi-assignee avatar row with `+N` overflow.
  *   - Urgent flag — red dot in the top-right.
  *   - Last-updated relative time.
@@ -16,8 +18,34 @@
 
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import {
+  AlertTriangle,
+  CalendarDays,
+  CheckSquare,
+  Feather,
+  Link as LinkIcon,
+  Megaphone,
+  MessageCircle,
+  Pin,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 
 const AVATAR_VISIBLE_LIMIT = 3;
+
+const KIND_GLYPH_SIZE = 14;
+
+const KIND_GLYPH: Record<string, LucideIcon> = {
+  happening_now: AlertTriangle,
+  tick_or_cross: CheckSquare,
+  link_share: LinkIcon,
+  call_to_action: Megaphone,
+  cultural: Feather,
+  outcome: Pin,
+  thought: MessageCircle,
+  event: CalendarDays,
+  meeting: Users,
+};
 
 export interface CardAssignee {
   userId: string;
@@ -30,6 +58,7 @@ export interface CardProps {
   ticket: {
     id: string;
     title: string;
+    kindSlug: string | null;
     kindDisplayName: string | null;
     isUrgent: boolean;
     assignees: CardAssignee[];
@@ -48,6 +77,9 @@ export function Card({ groupSlug, ticket }: CardProps) {
   const unclaimed = ticket.assignees.length === 0;
   const visible = ticket.assignees.slice(0, AVATAR_VISIBLE_LIMIT);
   const overflow = ticket.assignees.length - visible.length;
+  const KindGlyph: LucideIcon | null = ticket.kindSlug
+    ? (KIND_GLYPH[ticket.kindSlug] ?? null)
+    : null;
 
   return (
     <Link
@@ -103,12 +135,23 @@ export function Card({ groupSlug, ticket }: CardProps) {
         <div
           data-testid="board-card-kind"
           style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-1)',
             fontSize: 'var(--text-xs)',
             color: 'var(--colour-text-secondary)',
             marginBottom: 'var(--space-2)',
           }}
         >
-          {ticket.kindDisplayName}
+          {KindGlyph && (
+            <KindGlyph
+              size={KIND_GLYPH_SIZE}
+              aria-hidden="true"
+              data-testid="board-card-kind-glyph"
+              data-kind-slug={ticket.kindSlug}
+            />
+          )}
+          <span>{ticket.kindDisplayName}</span>
         </div>
       )}
       <div

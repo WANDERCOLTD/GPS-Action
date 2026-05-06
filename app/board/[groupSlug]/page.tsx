@@ -61,6 +61,7 @@ export default async function BoardGroupPage({ params }: BoardGroupPageProps) {
     list.push({
       id: card.id,
       title: card.title,
+      kindSlug: card.kindSlug,
       kindDisplayName: card.kindDisplayName,
       isUrgent: card.isUrgent,
       assignees: card.assignees,

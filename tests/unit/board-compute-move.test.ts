@@ -12,6 +12,7 @@ const NOW = new Date('2026-05-05T12:00:00Z');
 const card = (id: string): CardProps['ticket'] => ({
   id,
   title: `Card ${id}`,
+  kindSlug: null,
   kindDisplayName: null,
   isUrgent: false,
   assignees: [],
