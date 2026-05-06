@@ -23,25 +23,24 @@ is a separate, opt-in step. Don't merge them.
 
 ---
 
-## Skipped builds (Ignored Build Step)
+## Git-triggered deploys are OFF
 
-`scripts/vercel-ignore-build.sh` is wired in the Vercel dashboard
-(Project Settings → Git → Ignored Build Step → command:
-`bash scripts/vercel-ignore-build.sh`). It causes Vercel to **skip
-every git-triggered build** — both PR previews and merges to `main`.
+`vercel.json` at the repo root sets `git.deploymentEnabled: false`.
+Vercel **does not create a deploy record** on any git push (preview
+or main). No PR check is reported. This is the durable evolution of
+the earlier `scripts/vercel-ignore-build.sh` approach.
 
-Why blanket-skip: Vercel's free tier caps daily deploys at 100, and
-we were burning through it on previews-per-PR + every merge, none
-of which represented a real demo-refresh request. PR previews
-weren't part of the workflow (local dev on `localhost:3001` covers
-the loop) and main auto-deploys created stale-but-superseded
-artefacts as fast as we could merge.
+Why the change: the Ignored Build Step skipped the _build_ but
+Vercel still created a deployment record per push, counting against
+the Hobby tier's `api-deployments-free-per-day` (100/day) hard
+quota. With our stacked-atom workflow that capped out by mid-
+afternoon. Disabling git deployments at the project level avoids
+the quota entirely.
 
-Manual deploys still work — the Vercel CLI doesn't go through the
-Ignored Build Step. See Option 2 below for the canonical refresh
+Manual deploys still work — the Vercel CLI's `deploy` command goes
+through a different code path that respects this flag's
+"manual-only" intent. See Option 2 below for the canonical refresh
 flow.
-
-Skipped deploys do **not** count against the daily build-rate quota.
 
 ---
 
@@ -163,7 +162,8 @@ After a manual deploy or seed:
 
 ## Related
 
-- `scripts/vercel-ignore-build.sh` — the deploy-skip script.
+- `vercel.json` — `git.deploymentEnabled: false` disables all
+  git-triggered deploys at the project level.
 - `prisma.config.ts` — `DIRECT_URL` vs `DATABASE_URL` rationale
   (PgBouncer can't hold the locks `prisma migrate` needs).
 - D070 (decision log) — required reference data ships in
