@@ -25,6 +25,7 @@
 import type { Assignment } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
+import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
 
 export interface AssigneeSummary {
   userId: string;
@@ -112,6 +113,14 @@ export async function assignToRequest(
       targetUserId: userId,
       context: { requestId },
     });
+
+    if (actorId === userId) {
+      await emitKanbanSystemEvent({
+        requestId,
+        actorId,
+        event: { kind: 'assign_self' },
+      });
+    }
   }
 
   return result;
@@ -148,6 +157,14 @@ export async function unassign(input: UnassignInput): Promise<Assignment | null>
     targetUserId: userId,
     context: { requestId },
   });
+
+  if (actorId === userId) {
+    await emitKanbanSystemEvent({
+      requestId,
+      actorId,
+      event: { kind: 'unassign_self' },
+    });
+  }
 
   return updated;
 }

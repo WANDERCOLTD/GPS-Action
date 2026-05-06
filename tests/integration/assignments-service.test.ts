@@ -39,6 +39,10 @@ vi.mock('@/server/services/audit', () => ({
   auditLog: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/server/services/kanban-system-events', () => ({
+  emitKanbanSystemEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   assignToRequest,
   unassign,
@@ -47,11 +51,13 @@ import {
 } from '@/server/services/assignments';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
+import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
 
 const mockedTransaction = vi.mocked(prisma.$transaction);
 const mockedAssignment = vi.mocked(prisma.assignment);
 const mockedSubscription = vi.mocked(prisma.requestSubscription);
 const mockedAudit = vi.mocked(auditLog);
+const mockedEmitSystemEvent = vi.mocked(emitKanbanSystemEvent);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -295,6 +301,123 @@ describe('listAssigneesForRequest', () => {
       },
       { userId: 'u2', displayName: 'Maya', avatarUrl: null, assignedAt: new Date('2026-05-02') },
     ]);
+  });
+});
+
+describe('system event emission (atom 5d-3)', () => {
+  it('emits assign_self when actor === userId on a real state change', async () => {
+    const tx = makeTxStub();
+    tx.assignment.findUnique.mockResolvedValue(null);
+    tx.assignment.create.mockResolvedValue({
+      id: 'a1',
+      requestId: 'r1',
+      userId: 'u1',
+      assignedAt: new Date(),
+      unassignedAt: null,
+    });
+    tx.requestSubscription.findUnique.mockResolvedValue(null);
+    tx.requestSubscription.create.mockResolvedValue({});
+    mockedTransaction.mockImplementation(async (fn: any) => fn(tx));
+
+    await assignToRequest({ requestId: 'r1', userId: 'u1', actorId: 'u1' });
+
+    expect(mockedEmitSystemEvent).toHaveBeenCalledWith({
+      requestId: 'r1',
+      actorId: 'u1',
+      event: { kind: 'assign_self' },
+    });
+  });
+
+  it('does NOT emit assign_self when actor is a different user (admin assigning someone)', async () => {
+    const tx = makeTxStub();
+    tx.assignment.findUnique.mockResolvedValue(null);
+    tx.assignment.create.mockResolvedValue({
+      id: 'a1',
+      requestId: 'r1',
+      userId: 'u-target',
+      assignedAt: new Date(),
+      unassignedAt: null,
+    });
+    tx.requestSubscription.findUnique.mockResolvedValue(null);
+    tx.requestSubscription.create.mockResolvedValue({});
+    mockedTransaction.mockImplementation(async (fn: any) => fn(tx));
+
+    await assignToRequest({ requestId: 'r1', userId: 'u-target', actorId: 'u-admin' });
+
+    expect(mockedEmitSystemEvent).not.toHaveBeenCalled();
+  });
+
+  it('does NOT emit assign_self when re-assigning an already-active user (no state change)', async () => {
+    const existing = {
+      id: 'a1',
+      requestId: 'r1',
+      userId: 'u1',
+      assignedAt: new Date('2026-05-01'),
+      unassignedAt: null,
+    };
+    const tx = makeTxStub();
+    tx.assignment.findUnique.mockResolvedValue(existing);
+    tx.requestSubscription.findUnique.mockResolvedValue({
+      id: 's1',
+      source: 'auto_assignee',
+      deletedAt: null,
+    });
+    mockedTransaction.mockImplementation(async (fn: any) => fn(tx));
+
+    await assignToRequest({ requestId: 'r1', userId: 'u1', actorId: 'u1' });
+
+    expect(mockedEmitSystemEvent).not.toHaveBeenCalled();
+  });
+
+  it('emits unassign_self when actor === userId on a real state change', async () => {
+    const active = {
+      id: 'a1',
+      requestId: 'r1',
+      userId: 'u1',
+      assignedAt: new Date('2026-05-01'),
+      unassignedAt: null,
+    };
+    mockedAssignment.findUnique.mockResolvedValue(active);
+    mockedAssignment.update.mockResolvedValue({ ...active, unassignedAt: new Date() });
+
+    await unassign({ requestId: 'r1', userId: 'u1', actorId: 'u1' });
+
+    expect(mockedEmitSystemEvent).toHaveBeenCalledWith({
+      requestId: 'r1',
+      actorId: 'u1',
+      event: { kind: 'unassign_self' },
+    });
+  });
+
+  it('does NOT emit unassign_self when actor is a different user', async () => {
+    const active = {
+      id: 'a1',
+      requestId: 'r1',
+      userId: 'u-target',
+      assignedAt: new Date('2026-05-01'),
+      unassignedAt: null,
+    };
+    mockedAssignment.findUnique.mockResolvedValue(active);
+    mockedAssignment.update.mockResolvedValue({ ...active, unassignedAt: new Date() });
+
+    await unassign({ requestId: 'r1', userId: 'u-target', actorId: 'u-admin' });
+
+    expect(mockedEmitSystemEvent).not.toHaveBeenCalled();
+  });
+
+  it('does NOT emit unassign_self on idempotent no-op', async () => {
+    const alreadyUnassigned = {
+      id: 'a1',
+      requestId: 'r1',
+      userId: 'u1',
+      assignedAt: new Date('2026-05-01'),
+      unassignedAt: new Date('2026-05-02'),
+    };
+    mockedAssignment.findUnique.mockResolvedValue(alreadyUnassigned);
+
+    await unassign({ requestId: 'r1', userId: 'u1', actorId: 'u1' });
+
+    expect(mockedEmitSystemEvent).not.toHaveBeenCalled();
   });
 });
 

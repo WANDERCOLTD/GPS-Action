@@ -39,6 +39,10 @@ vi.mock('@/server/services/audit', () => ({
   auditLog: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/server/services/kanban-system-events', () => ({
+  emitKanbanSystemEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   BOARD_POSITION_GAP,
   BoardError,
@@ -48,6 +52,7 @@ import {
 } from '@/server/services/board';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
+import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
 
 // Loose `any` casts on the Prisma mocks: Prisma client types are deeply
 // specific (Prisma__XClient with method chains) which makes
@@ -61,6 +66,7 @@ const mockedRequest = vi.mocked(prisma.request) as any;
 const mockedRequestGroup = vi.mocked(prisma.requestGroup) as any;
 const mockedBoardColumn = vi.mocked(prisma.boardColumn) as any;
 const mockedAudit = vi.mocked(auditLog);
+const mockedEmitSystemEvent = vi.mocked(emitKanbanSystemEvent);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -551,5 +557,162 @@ describe('setRequestStatus', () => {
     await expect(
       setRequestStatus({ requestId: 'r-missing', status: 'done', actorId: 'u1' }),
     ).rejects.toMatchObject({ kind: 'request_not_found' });
+  });
+});
+
+describe('system event emission (atom 5d-3)', () => {
+  it('emits column_move + status_change when an originating move crosses both', async () => {
+    mockedRequest.findUnique.mockResolvedValue({
+      id: 'r1',
+      columnId: null,
+      status: 'backlog',
+      boardPosition: null,
+    } as never);
+    mockedRequestGroup.findUnique.mockResolvedValue({
+      id: 'rg1',
+      origin: 'originating',
+      columnId: null,
+      boardPosition: null,
+      deletedAt: null,
+    } as never);
+    mockedBoardColumn.findUnique.mockResolvedValue({
+      groupId: 'g1',
+      deletedAt: null,
+    } as never);
+    mockedTransaction.mockImplementation(async (cb: any) => {
+      const tx = {
+        request: {
+          update: vi.fn().mockResolvedValue({
+            id: 'r1',
+            columnId: 'c-new',
+            status: 'active',
+            boardPosition: new Prisma.Decimal(0),
+          }),
+        },
+        requestGroup: {
+          update: vi.fn().mockResolvedValue({ id: 'rg1' }),
+        },
+      };
+      return cb(tx);
+    });
+
+    await moveCard({
+      requestId: 'r1',
+      groupId: 'g1',
+      destination: { lane: 'active', columnId: 'c-new' },
+      actorId: 'u1',
+    });
+
+    expect(mockedEmitSystemEvent).toHaveBeenCalledWith({
+      requestId: 'r1',
+      actorId: 'u1',
+      event: { kind: 'column_move', newColumnId: 'c-new' },
+    });
+    expect(mockedEmitSystemEvent).toHaveBeenCalledWith({
+      requestId: 'r1',
+      actorId: 'u1',
+      event: { kind: 'status_change', newStatus: 'active' },
+    });
+  });
+
+  it('skips column_move on a same-column reorder (no column change)', async () => {
+    mockedRequest.findUnique.mockResolvedValue({
+      id: 'r1',
+      columnId: 'c-same',
+      status: 'active',
+      boardPosition: new Prisma.Decimal(100),
+    } as never);
+    mockedRequestGroup.findUnique.mockResolvedValue({
+      id: 'rg1',
+      origin: 'originating',
+      columnId: 'c-same',
+      boardPosition: new Prisma.Decimal(100),
+      deletedAt: null,
+    } as never);
+    mockedBoardColumn.findUnique.mockResolvedValue({
+      groupId: 'g1',
+      deletedAt: null,
+    } as never);
+    mockedTransaction.mockImplementation(async (cb: any) => {
+      const tx = {
+        request: { update: vi.fn().mockResolvedValue({ id: 'r1' }) },
+        requestGroup: { update: vi.fn().mockResolvedValue({ id: 'rg1' }) },
+      };
+      return cb(tx);
+    });
+
+    await moveCard({
+      requestId: 'r1',
+      groupId: 'g1',
+      destination: { lane: 'active', columnId: 'c-same' },
+      actorId: 'u1',
+    });
+
+    expect(mockedEmitSystemEvent).not.toHaveBeenCalled();
+  });
+
+  it('emits column_move on a shared-group move; never emits status_change', async () => {
+    mockedRequest.findUnique.mockResolvedValue({
+      id: 'r1',
+      columnId: 'c-orig',
+      status: 'active',
+      boardPosition: new Prisma.Decimal(0),
+    } as never);
+    mockedRequestGroup.findUnique.mockResolvedValue({
+      id: 'rg-shared',
+      origin: 'workflow_share',
+      columnId: 'c-shared-old',
+      boardPosition: new Prisma.Decimal(50),
+      deletedAt: null,
+    } as never);
+    mockedBoardColumn.findUnique.mockResolvedValue({
+      groupId: 'g-shared',
+      deletedAt: null,
+    } as never);
+    mockedRequestGroup.update.mockResolvedValue({
+      id: 'rg-shared',
+      columnId: 'c-shared-new',
+      boardPosition: new Prisma.Decimal(100),
+    } as never);
+    mockedRequest.findUniqueOrThrow.mockResolvedValue({
+      id: 'r1',
+      status: 'active',
+    } as never);
+
+    await moveCard({
+      requestId: 'r1',
+      groupId: 'g-shared',
+      destination: { lane: 'active', columnId: 'c-shared-new' },
+      actorId: 'u1',
+    });
+
+    expect(mockedEmitSystemEvent).toHaveBeenCalledTimes(1);
+    expect(mockedEmitSystemEvent).toHaveBeenCalledWith({
+      requestId: 'r1',
+      actorId: 'u1',
+      event: { kind: 'column_move', newColumnId: 'c-shared-new' },
+    });
+  });
+
+  it('emits status_change from setRequestStatus on actual change', async () => {
+    mockedRequest.findUnique.mockResolvedValue({ id: 'r1', status: 'active' } as never);
+    mockedRequest.update.mockResolvedValue({ id: 'r1', status: 'done' } as never);
+
+    await setRequestStatus({ requestId: 'r1', status: 'done', actorId: 'u1' });
+
+    expect(mockedEmitSystemEvent).toHaveBeenCalledWith({
+      requestId: 'r1',
+      actorId: 'u1',
+      event: { kind: 'status_change', newStatus: 'done' },
+    });
+  });
+
+  it('does not emit from setRequestStatus on idempotent no-op', async () => {
+    mockedRequest.findUnique.mockResolvedValue({ id: 'r1', status: 'done' } as never);
+    mockedRequest.findUniqueOrThrow.mockResolvedValue({ id: 'r1', status: 'done' } as never);
+
+    await setRequestStatus({ requestId: 'r1', status: 'done', actorId: 'u1' });
+
+    expect(mockedEmitSystemEvent).not.toHaveBeenCalled();
   });
 });

@@ -30,6 +30,7 @@ import type { Group, GroupShareWorkflow, RequestGroup, RequestGroupOrigin } from
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
+import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
 
 export type ShareMode = 'workflow' | 'ad_hoc';
 
@@ -195,6 +196,12 @@ export async function shareRequestToGroup(
         targetGroupId: input.targetGroupId,
         mode: input.mode,
       },
+    });
+
+    await emitKanbanSystemEvent({
+      requestId: input.requestId,
+      actorId: input.actorId,
+      event: { kind: 'share_to_team', targetGroupId: input.targetGroupId },
     });
   }
 
