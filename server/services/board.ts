@@ -1033,3 +1033,116 @@ export async function proposeKanbanTicket(
 
   return result;
 }
+
+export interface QuickAddKanbanTicketInput {
+  groupId: string;
+  columnId: string;
+  title: string;
+  actorId: string;
+}
+
+export interface QuickAddKanbanTicketResult {
+  request: Request;
+  requestGroup: RequestGroup;
+}
+
+/**
+ * Quick-add: creates a kanban ticket directly in a specific column on
+ * the Active board, bypassing the backlog → triage → place flow that
+ * `proposeKanbanTicket` covers. The card lands at the END of the
+ * destination column (max boardPosition + gap).
+ *
+ * Body is intentionally omitted — the brief's quick-add path is
+ * "I know exactly where this goes, just put it there"; further detail
+ * goes on Surface 2 via `editTicketBody` after creation.
+ *
+ * Validates that the destination column belongs to the group + isn't
+ * soft-deleted (mirrors `moveCard`).
+ *
+ * Audit row: `kanban_ticket_quick_added` with the groupId + columnId
+ * + title length.
+ */
+export async function quickAddKanbanTicket(
+  input: QuickAddKanbanTicketInput,
+): Promise<QuickAddKanbanTicketResult> {
+  const trimmedTitle = input.title.trim();
+  if (trimmedTitle.length === 0) {
+    throw new ProposeKanbanTicketError('title_empty', 'Title cannot be empty');
+  }
+  if (trimmedTitle.length > TICKET_TITLE_MAX_LENGTH) {
+    throw new ProposeKanbanTicketError(
+      'title_too_long',
+      `Title exceeds ${TICKET_TITLE_MAX_LENGTH} characters`,
+    );
+  }
+
+  const column = await prisma.boardColumn.findUnique({
+    where: { id: input.columnId },
+    select: { groupId: true, deletedAt: true },
+  });
+  if (!column || column.deletedAt !== null || column.groupId !== input.groupId) {
+    throw new BoardError(
+      'column_not_in_group',
+      `BoardColumn ${input.columnId} does not belong to group ${input.groupId}`,
+    );
+  }
+
+  // Place at the end of the column. Find the current max boardPosition
+  // among originating-active rows for this column; new card goes after.
+  const tail = await prisma.request.findFirst({
+    where: { columnId: input.columnId, status: 'active' },
+    orderBy: { boardPosition: 'desc' },
+    select: { boardPosition: true },
+  });
+  const newPosition = positionBetween(toDecimal(tail?.boardPosition ?? null), null);
+
+  const result = await prisma.$transaction(async (tx) => {
+    const request = await tx.request.create({
+      data: {
+        type: null,
+        status: 'active',
+        priority: 'normal',
+        title: trimmedTitle,
+        body: null,
+        context: {},
+        urgency: false,
+        columnId: input.columnId,
+        boardPosition: newPosition,
+        createdByUserId: input.actorId,
+      },
+    });
+    const requestGroup = await tx.requestGroup.create({
+      data: {
+        requestId: request.id,
+        groupId: input.groupId,
+        origin: 'originating',
+        columnId: input.columnId,
+        boardPosition: newPosition,
+        isUrgent: false,
+        sharedByUserId: input.actorId,
+      },
+    });
+    await tx.requestSubscription.create({
+      data: {
+        requestId: request.id,
+        userId: input.actorId,
+        source: 'auto_author',
+      },
+    });
+    return { request, requestGroup };
+  });
+
+  await auditLog({
+    action: 'kanban_ticket_quick_added',
+    entityType: 'Request',
+    entityId: result.request.id,
+    userId: input.actorId,
+    changes: {
+      titleLength: trimmedTitle.length,
+      columnId: input.columnId,
+    },
+    context: { groupId: input.groupId, columnId: input.columnId },
+  });
+
+  return result;
+}

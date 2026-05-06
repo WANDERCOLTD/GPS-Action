@@ -35,6 +35,7 @@ import {
   editTicketTitle,
   editTicketBody,
   proposeKanbanTicket,
+  quickAddKanbanTicket,
   BoardError,
   EditTicketError,
   ProposeKanbanTicketError,
@@ -44,7 +45,7 @@ import {
   type MoveCardResult,
   type TicketDetail,
 } from '@/server/services/board';
-import { boardProposeSchema } from '@/shared/validation/board';
+import { boardProposeSchema, boardQuickAddSchema } from '@/shared/validation/board';
 import { isAssigneeActive } from '@/server/services/assignments';
 import {
   assertCanViewBoard,
@@ -328,6 +329,35 @@ export const boardRouter = router({
         groupId: input.groupId,
         title: input.title,
         body: input.body,
+        actorId: ctx.user.id,
+      });
+      return { ok: true as const, requestId: result.request.id };
+    } catch (err) {
+      throw toTRPCError(err);
+    }
+  }),
+
+  /**
+   * Quick-add a ticket directly into a column on the Active board.
+   * Skips the backlog → triage → place flow that `propose` covers —
+   * the brief's "I know exactly where this goes" path. Same viewer
+   * gate as propose.
+   */
+  quickAdd: authedProcedure.input(boardQuickAddSchema).mutation(async ({ ctx, input }) => {
+    try {
+      await assertCanViewBoard({
+        groupId: input.groupId,
+        userId: ctx.user.id,
+        isSystemAdmin: ctx.activeRoles.includes('admin'),
+      });
+    } catch (err) {
+      throw toTRPCError(err);
+    }
+    try {
+      const result = await quickAddKanbanTicket({
+        groupId: input.groupId,
+        columnId: input.columnId,
+        title: input.title,
         actorId: ctx.user.id,
       });
       return { ok: true as const, requestId: result.request.id };

@@ -36,6 +36,7 @@ import { Card, type CardProps } from '@/components/board/Card';
 import { Column } from '@/components/board/Column';
 import { DraggableCard } from '@/components/board/DraggableCard';
 import { BoardList } from '@/components/board/BoardList';
+import { QuickAddCard } from '@/components/board/QuickAddCard';
 import { computeMove, type CardsByColumn } from '@/components/board/computeMove';
 import { moveCardAction } from '@/app/board/[groupSlug]/actions';
 
@@ -94,6 +95,14 @@ function DroppableColumn(props: {
           }}
         />
       )}
+      footer={
+        <QuickAddCard
+          groupId={props.groupId}
+          groupSlug={props.groupSlug}
+          columnId={props.columnId}
+          columnDisplayName={props.displayName}
+        />
+      }
     />
   );
 }
