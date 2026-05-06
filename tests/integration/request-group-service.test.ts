@@ -29,6 +29,7 @@ vi.mock('@/server/db/client', () => ({
     $transaction: vi.fn(),
     requestGroup: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
@@ -38,6 +39,12 @@ vi.mock('@/server/db/client', () => ({
       findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+    },
+    request: {
+      findUnique: vi.fn(),
+    },
+    boardColumn: {
+      findFirst: vi.fn(),
     },
   },
 }));
@@ -67,6 +74,8 @@ import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
 const mockedTransaction = vi.mocked(prisma.$transaction);
 const mockedRequestGroup = vi.mocked(prisma.requestGroup);
 const mockedWorkflow = vi.mocked(prisma.groupShareWorkflow);
+const mockedRequest = vi.mocked(prisma.request);
+const mockedBoardColumn = vi.mocked(prisma.boardColumn);
 const mockedAudit = vi.mocked(auditLog);
 const mockedEmitSystemEvent = vi.mocked(emitKanbanSystemEvent);
 
@@ -233,6 +242,12 @@ describe('shareRequestToGroup — create / reactivate / no-op', () => {
       id: 'w1',
       deletedAt: null,
     } as never);
+    // Default: Request status null (placement skipped) so existing tests
+    // observe columnId: null, boardPosition: null. The "places on first
+    // active column" test below overrides this.
+    mockedRequest.findUnique.mockResolvedValue(null);
+    mockedBoardColumn.findFirst.mockResolvedValue(null);
+    mockedRequestGroup.findFirst.mockResolvedValue(null);
   });
 
   it('creates a new RequestGroup row on first share (workflow mode)', async () => {
@@ -263,11 +278,106 @@ describe('shareRequestToGroup — create / reactivate / no-op', () => {
         groupId: 'g2',
         origin: 'workflow_share',
         sharedByUserId: 'u1',
+        columnId: null,
+        boardPosition: null,
       },
     });
     expect(mockedAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'request_group_shared' }),
     );
+  });
+
+  it("places the share at the tail of the target group's first active column", async () => {
+    mockedRequest.findUnique.mockResolvedValue({ status: 'active' } as never);
+    mockedBoardColumn.findFirst.mockResolvedValue({ id: 'col1' } as never);
+    mockedRequestGroup.findFirst.mockResolvedValue({
+      // Tail of column 'col1' currently sits at boardPosition 2048.
+      boardPosition: new (require('@prisma/client').Prisma.Decimal)(2048),
+    } as never);
+
+    const tx = makeTxStub();
+    tx.requestGroup.findUnique.mockResolvedValue(null);
+    tx.requestGroup.create.mockResolvedValue({
+      id: 'rg1',
+      origin: 'workflow_share',
+      deletedAt: null,
+    });
+    mockedTransaction.mockImplementation(async (fn: any) => fn(tx));
+
+    await shareRequestToGroup({
+      requestId: 'r1',
+      sourceGroupId: 'g1',
+      targetGroupId: 'g2',
+      mode: 'workflow',
+      actorId: 'u1',
+      isSystemAdmin: false,
+      isGroupAdminOfSource: false,
+    });
+
+    // First-column lookup uses ordinal asc on the target group only.
+    expect(mockedBoardColumn.findFirst).toHaveBeenCalledWith({
+      where: { groupId: 'g2', deletedAt: null },
+      orderBy: { ordinal: 'asc' },
+      select: { id: true },
+    });
+    // Tail lookup is on the target group's first column.
+    expect(mockedRequestGroup.findFirst).toHaveBeenCalledWith({
+      where: { groupId: 'g2', columnId: 'col1', deletedAt: null },
+      orderBy: { boardPosition: 'desc' },
+      select: { boardPosition: true },
+    });
+    // Created with columnId set + a boardPosition past the tail.
+    const createCall = (tx.requestGroup.create as any).mock.calls[0][0];
+    expect(createCall.data.columnId).toBe('col1');
+    expect(createCall.data.boardPosition.toString()).toBe('3072'); // 2048 + GAP(1024)
+  });
+
+  it('leaves columnId null when the target group has no columns', async () => {
+    mockedRequest.findUnique.mockResolvedValue({ status: 'active' } as never);
+    mockedBoardColumn.findFirst.mockResolvedValue(null);
+
+    const tx = makeTxStub();
+    tx.requestGroup.findUnique.mockResolvedValue(null);
+    tx.requestGroup.create.mockResolvedValue({ id: 'rg1' });
+    mockedTransaction.mockImplementation(async (fn: any) => fn(tx));
+
+    await shareRequestToGroup({
+      requestId: 'r1',
+      sourceGroupId: 'g1',
+      targetGroupId: 'g2',
+      mode: 'workflow',
+      actorId: 'u1',
+      isSystemAdmin: false,
+      isGroupAdminOfSource: false,
+    });
+
+    const createCall = (tx.requestGroup.create as any).mock.calls[0][0];
+    expect(createCall.data.columnId).toBeNull();
+    expect(createCall.data.boardPosition).toBeNull();
+  });
+
+  it('leaves columnId null for non-active Requests (backlog / done / abandoned)', async () => {
+    mockedRequest.findUnique.mockResolvedValue({ status: 'backlog' } as never);
+
+    const tx = makeTxStub();
+    tx.requestGroup.findUnique.mockResolvedValue(null);
+    tx.requestGroup.create.mockResolvedValue({ id: 'rg1' });
+    mockedTransaction.mockImplementation(async (fn: any) => fn(tx));
+
+    await shareRequestToGroup({
+      requestId: 'r1',
+      sourceGroupId: 'g1',
+      targetGroupId: 'g2',
+      mode: 'workflow',
+      actorId: 'u1',
+      isSystemAdmin: false,
+      isGroupAdminOfSource: false,
+    });
+
+    expect(mockedBoardColumn.findFirst).not.toHaveBeenCalled();
+    const createCall = (tx.requestGroup.create as any).mock.calls[0][0];
+    expect(createCall.data.columnId).toBeNull();
+    expect(createCall.data.boardPosition).toBeNull();
   });
 
   it('reactivates a soft-deleted row + audits "reshared"', async () => {
