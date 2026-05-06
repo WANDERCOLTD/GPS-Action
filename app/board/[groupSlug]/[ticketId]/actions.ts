@@ -198,3 +198,29 @@ export async function setUrgentAction(input: SetUrgentInput): Promise<BoardActio
   revalidatePath(ticketPath(input));
   return { ok: true };
 }
+
+// ── Share with team (atom 5e) ────────────────────────────────────────────
+
+interface ShareWithTeamInput extends BoardActionInput {
+  /** Caller's current group context (drives the workflow lookup). */
+  sourceGroupId: string;
+  targetGroupId: string;
+}
+
+export async function shareWithTeamAction(input: ShareWithTeamInput): Promise<BoardActionResult> {
+  try {
+    const ctx = await createTRPCContext();
+    const caller = createCaller(ctx);
+    await caller.share.toGroup({
+      requestId: input.requestId,
+      sourceGroupId: input.sourceGroupId,
+      targetGroupId: input.targetGroupId,
+      mode: 'workflow',
+    });
+  } catch (err) {
+    if (err instanceof TRPCError) return { ok: false, error: err.message };
+    return { ok: false, error: 'Could not share — try again.' };
+  }
+  revalidatePath(ticketPath(input));
+  return { ok: true };
+}
