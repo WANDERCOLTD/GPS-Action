@@ -27,14 +27,20 @@ vi.mock('@/server/services/audit', () => ({
   auditLog: vi.fn(),
 }));
 
+vi.mock('@/server/services/kanban-system-events', () => ({
+  emitKanbanSystemEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { editTicketTitle, editTicketBody, EditTicketError } from '@/server/services/board';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
+import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const mockedRequestGroup = vi.mocked(prisma.requestGroup) as any;
 const mockedRequest = vi.mocked(prisma.request) as any;
 const mockedAudit = vi.mocked(auditLog) as any;
+const mockedEmitSystemEvent = vi.mocked(emitKanbanSystemEvent);
 
 const baseInput = {
   requestId: 'r1',
@@ -115,6 +121,26 @@ describe('editTicketTitle', () => {
     expect(mockedRequest.update).not.toHaveBeenCalled();
     expect(mockedAudit).not.toHaveBeenCalled();
   });
+
+  it('emits a title_edit system event on actual change', async () => {
+    mockedRequestGroup.findUnique.mockResolvedValue({ id: 'rg1', deletedAt: null });
+    mockedRequest.findFirst.mockResolvedValue({ id: 'r1', title: 'Old' });
+    mockedRequest.update.mockResolvedValue({ id: 'r1', title: 'New' });
+    await editTicketTitle({ ...baseInput, title: 'New' });
+    expect(mockedEmitSystemEvent).toHaveBeenCalledWith({
+      requestId: 'r1',
+      actorId: 'u1',
+      event: { kind: 'title_edit' },
+    });
+  });
+
+  it('does not emit a title_edit system event on idempotent no-op', async () => {
+    mockedRequestGroup.findUnique.mockResolvedValue({ id: 'rg1', deletedAt: null });
+    mockedRequest.findFirst.mockResolvedValue({ id: 'r1', title: 'Same' });
+    mockedRequest.findUniqueOrThrow.mockResolvedValue({ id: 'r1', title: 'Same' });
+    await editTicketTitle({ ...baseInput, title: 'Same' });
+    expect(mockedEmitSystemEvent).not.toHaveBeenCalled();
+  });
 });
 
 describe('editTicketBody', () => {
@@ -177,5 +203,25 @@ describe('editTicketBody', () => {
     await editTicketBody({ ...baseInput, body: '' });
     expect(mockedRequest.update).not.toHaveBeenCalled();
     expect(mockedAudit).not.toHaveBeenCalled();
+  });
+
+  it('emits a body_edit system event on actual change', async () => {
+    mockedRequestGroup.findUnique.mockResolvedValue({ id: 'rg1', deletedAt: null });
+    mockedRequest.findFirst.mockResolvedValue({ id: 'r1', body: 'Old' });
+    mockedRequest.update.mockResolvedValue({ id: 'r1', body: 'New' });
+    await editTicketBody({ ...baseInput, body: 'New' });
+    expect(mockedEmitSystemEvent).toHaveBeenCalledWith({
+      requestId: 'r1',
+      actorId: 'u1',
+      event: { kind: 'body_edit' },
+    });
+  });
+
+  it('does not emit a body_edit system event on idempotent no-op', async () => {
+    mockedRequestGroup.findUnique.mockResolvedValue({ id: 'rg1', deletedAt: null });
+    mockedRequest.findFirst.mockResolvedValue({ id: 'r1', body: null });
+    mockedRequest.findUniqueOrThrow.mockResolvedValue({ id: 'r1', body: null });
+    await editTicketBody({ ...baseInput, body: '' });
+    expect(mockedEmitSystemEvent).not.toHaveBeenCalled();
   });
 });

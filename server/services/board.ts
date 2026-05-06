@@ -41,6 +41,7 @@ import type { Request, RequestGroup, RequestStatus } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
+import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
 
 /**
  * Step between adjacent cards when one side has no constraint. Powers of
@@ -267,6 +268,21 @@ export async function moveCard(input: MoveCardInput): Promise<MoveCardResult> {
       },
     });
 
+    if (targetColumnId !== null && targetColumnId !== request.columnId) {
+      await emitKanbanSystemEvent({
+        requestId: input.requestId,
+        actorId: input.actorId,
+        event: { kind: 'column_move', newColumnId: targetColumnId },
+      });
+    }
+    if (newStatus !== request.status) {
+      await emitKanbanSystemEvent({
+        requestId: input.requestId,
+        actorId: input.actorId,
+        event: { kind: 'status_change', newStatus },
+      });
+    }
+
     return {
       request: result.request,
       requestGroup: result.requestGroup,
@@ -307,6 +323,14 @@ export async function moveCard(input: MoveCardInput): Promise<MoveCardResult> {
       scope: 'shared',
     },
   });
+
+  if (targetColumnId !== null && targetColumnId !== link.columnId) {
+    await emitKanbanSystemEvent({
+      requestId: input.requestId,
+      actorId: input.actorId,
+      event: { kind: 'column_move', newColumnId: targetColumnId },
+    });
+  }
 
   return {
     request: requestRow,
@@ -366,6 +390,12 @@ export async function setRequestStatus(input: SetStatusInput): Promise<Request> 
     entityId: input.requestId,
     userId: input.actorId,
     changes: { status: { from: before.status, to: input.status } },
+  });
+
+  await emitKanbanSystemEvent({
+    requestId: input.requestId,
+    actorId: input.actorId,
+    event: { kind: 'status_change', newStatus: input.status },
   });
 
   return updated;
@@ -770,6 +800,12 @@ export async function editTicketTitle(input: EditTicketTitleInput): Promise<Requ
     context: { groupId: input.viewerGroupId },
   });
 
+  await emitKanbanSystemEvent({
+    requestId: input.requestId,
+    actorId: input.actorId,
+    event: { kind: 'title_edit' },
+  });
+
   return updated;
 }
 
@@ -812,6 +848,12 @@ export async function editTicketBody(input: EditTicketBodyInput): Promise<Reques
     userId: input.actorId,
     changes: { body: { from: before.body, to: normalised } },
     context: { groupId: input.viewerGroupId },
+  });
+
+  await emitKanbanSystemEvent({
+    requestId: input.requestId,
+    actorId: input.actorId,
+    event: { kind: 'body_edit' },
   });
 
   return updated;

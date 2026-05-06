@@ -46,6 +46,10 @@ vi.mock('@/server/services/audit', () => ({
   auditLog: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/server/services/kanban-system-events', () => ({
+  emitKanbanSystemEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   createOriginatingRequestGroup,
   shareRequestToGroup,
@@ -58,11 +62,13 @@ import {
 } from '@/server/services/request-group';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
+import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
 
 const mockedTransaction = vi.mocked(prisma.$transaction);
 const mockedRequestGroup = vi.mocked(prisma.requestGroup);
 const mockedWorkflow = vi.mocked(prisma.groupShareWorkflow);
 const mockedAudit = vi.mocked(auditLog);
+const mockedEmitSystemEvent = vi.mocked(emitKanbanSystemEvent);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -324,6 +330,83 @@ describe('shareRequestToGroup — create / reactivate / no-op', () => {
     expect(tx.requestGroup.create).not.toHaveBeenCalled();
     expect(tx.requestGroup.update).not.toHaveBeenCalled();
     expect(mockedAudit).not.toHaveBeenCalled();
+  });
+
+  it('emits a share_to_team system event on first share (atom 5d-3)', async () => {
+    const tx = makeTxStub();
+    tx.requestGroup.findUnique.mockResolvedValue(null);
+    tx.requestGroup.create.mockResolvedValue({
+      id: 'rg1',
+      origin: 'workflow_share',
+      deletedAt: null,
+    });
+    mockedTransaction.mockImplementation(async (fn: any) => fn(tx));
+
+    await shareRequestToGroup({
+      requestId: 'r1',
+      sourceGroupId: 'g1',
+      targetGroupId: 'g2',
+      mode: 'workflow',
+      actorId: 'u1',
+      isSystemAdmin: false,
+      isGroupAdminOfSource: false,
+    });
+
+    expect(mockedEmitSystemEvent).toHaveBeenCalledWith({
+      requestId: 'r1',
+      actorId: 'u1',
+      event: { kind: 'share_to_team', targetGroupId: 'g2' },
+    });
+  });
+
+  it('emits a share_to_team system event on reshare of a soft-deleted row', async () => {
+    const tx = makeTxStub();
+    tx.requestGroup.findUnique.mockResolvedValue({
+      id: 'rg1',
+      requestId: 'r1',
+      groupId: 'g2',
+      deletedAt: new Date('2026-04-30'),
+    });
+    tx.requestGroup.update.mockResolvedValue({
+      id: 'rg1',
+      deletedAt: null,
+    });
+    mockedTransaction.mockImplementation(async (fn: any) => fn(tx));
+
+    await shareRequestToGroup({
+      requestId: 'r1',
+      sourceGroupId: 'g1',
+      targetGroupId: 'g2',
+      mode: 'workflow',
+      actorId: 'u1',
+      isSystemAdmin: false,
+      isGroupAdminOfSource: false,
+    });
+
+    expect(mockedEmitSystemEvent).toHaveBeenCalledWith({
+      requestId: 'r1',
+      actorId: 'u1',
+      event: { kind: 'share_to_team', targetGroupId: 'g2' },
+    });
+  });
+
+  it('does NOT emit a share_to_team system event on no-op (already-active row)', async () => {
+    const tx = makeTxStub();
+    const active = { id: 'rg1', requestId: 'r1', groupId: 'g2', deletedAt: null };
+    tx.requestGroup.findUnique.mockResolvedValue(active);
+    mockedTransaction.mockImplementation(async (fn: any) => fn(tx));
+
+    await shareRequestToGroup({
+      requestId: 'r1',
+      sourceGroupId: 'g1',
+      targetGroupId: 'g2',
+      mode: 'workflow',
+      actorId: 'u1',
+      isSystemAdmin: false,
+      isGroupAdminOfSource: false,
+    });
+
+    expect(mockedEmitSystemEvent).not.toHaveBeenCalled();
   });
 });
 
