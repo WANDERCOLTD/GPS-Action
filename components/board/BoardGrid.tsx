@@ -93,6 +93,12 @@ function DroppableColumn(props: {
             currentColumnId: props.columnId,
             columns: props.allColumns,
           }}
+          lifecycle={{
+            status: 'active',
+            groupId: props.groupId,
+            currentColumnId: props.columnId,
+            activeColumns: props.allColumns,
+          }}
         />
       )}
       footer={

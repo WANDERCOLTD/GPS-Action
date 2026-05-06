@@ -33,8 +33,7 @@ import { EditableTicketTitle } from '@/components/board/EditableTicketTitle';
 import { EditableTicketBody } from '@/components/board/EditableTicketBody';
 import { CommentNoteThread } from '@/components/board/CommentNoteThread';
 import { UrgentToggle } from '@/components/board/UrgentToggle';
-import { MarkDoneButton } from '@/components/board/MarkDoneButton';
-import { UndoToastProvider } from '@/components/board/UndoToastContext';
+import { CardLifecycleActions } from '@/components/board/CardLifecycleActions';
 import { ShareWithTeamButton } from '@/components/board/ShareWithTeamButton';
 
 interface BoardTicketDetailPageProps {
@@ -95,15 +94,22 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
   const originatingGroup = ticket.groups.find((g) => g.origin === 'originating');
   const isOnOriginatingBoard = originatingGroup?.groupId === accessibleGroup.group.id;
   const canPostNote = isOnOriginatingBoard || isSystemAdmin;
-  const threadRows = await caller.commentThread.listForRequest({
-    requestId: ticket.id,
-    viewerGroupId: accessibleGroup.group.id,
-  });
+  const [threadRows, activeColumns] = await Promise.all([
+    caller.commentThread.listForRequest({
+      requestId: ticket.id,
+      viewerGroupId: accessibleGroup.group.id,
+    }),
+    caller.boardColumn.listForGroup({ groupId: accessibleGroup.group.id }),
+  ]);
 
   // Where the card currently lives — captured for undo when the user
-  // marks done. The originating link is the source of truth for column.
+  // moves it via the lifecycle actions. The originating link is the
+  // source of truth for column.
   const currentColumnId = originatingGroup?.columnId ?? null;
-  const isActive = ticket.status === 'active';
+  const cardLifecycleStatus =
+    ticket.status === 'active' || ticket.status === 'backlog' || ticket.status === 'done'
+      ? ticket.status
+      : null;
 
   // Share-with-team picker (atom 5e). Workflow allow-list targets minus
   // any group already linked. Service errors fall through silently —
@@ -122,7 +128,6 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
     .filter((t) => !linkedGroupIds.has(t.groupId));
 
   return (
-    <UndoToastProvider>
       <main
         data-testid="board-ticket-detail"
         style={{
@@ -187,13 +192,17 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
             groupSlug={groupSlug}
             urgent={ticket.urgency}
           />
-          <MarkDoneButton
-            requestId={ticket.id}
-            groupId={accessibleGroup.group.id}
-            groupSlug={groupSlug}
-            currentColumnId={currentColumnId}
-            isActive={isActive}
-          />
+          {cardLifecycleStatus && (
+            <CardLifecycleActions
+              requestId={ticket.id}
+              groupId={accessibleGroup.group.id}
+              groupSlug={groupSlug}
+              status={cardLifecycleStatus}
+              currentColumnId={currentColumnId}
+              activeColumns={activeColumns.map((c) => ({ id: c.id, displayName: c.displayName }))}
+              variant="surface-2"
+            />
+          )}
         </div>
 
         <section
@@ -403,6 +412,5 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
           Last updated {formatDistanceToNow(ticket.updatedAt, { addSuffix: true })}
         </footer>
       </main>
-    </UndoToastProvider>
   );
 }
