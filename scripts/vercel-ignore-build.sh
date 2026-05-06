@@ -17,10 +17,14 @@
 #
 # What this skips
 # ---------------
-#   0. Dependabot branches (`dependabot/...`). Dependency-bump previews
-#      consume the daily deploy quota faster than feature work and add
-#      no demo-relevant signal — production deploys (post-merge to
-#      main) still build normally.
+#   0a. The `main` branch (production auto-deploys). Since the daily
+#       quota is finite and most merges don't need an immediate demo
+#       refresh, we deploy main manually via `vercel deploy --prebuilt
+#       --prod` per docs/process/vercel-deploy.md Option 2.
+#
+#   0b. Dependabot branches (`dependabot/...`). Dependency-bump previews
+#       consume the daily deploy quota faster than feature work and add
+#       no demo-relevant signal.
 #
 #   1. Changes only inside non-runtime paths:
 #        docs/             — design docs, briefs, ADRs, handoffs
@@ -41,15 +45,23 @@
 
 set -euo pipefail
 
-# Step 0: skip Dependabot preview deploys outright. Dependency-bump PRs
+# Step 0a: skip auto-deploys on `main`. Vercel's free tier caps daily
+# deploys at 100, and every merge to main was triggering a build whether
+# the demo URL needed a refresh or not. We've moved to manual prod
+# deploys via `vercel deploy --prebuilt --prod` (per
+# docs/process/vercel-deploy.md Option 2) so the daily quota covers
+# genuine demo refreshes, not the steady stream of merges.
+if [[ "${VERCEL_GIT_COMMIT_REF:-}" == "main" ]]; then
+  echo "[vercel-ignore] main branch — auto-deploy disabled. Run 'vercel deploy --prebuilt --prod' when a demo refresh is needed."
+  exit 0
+fi
+
+# Step 0b: skip Dependabot preview deploys outright. Dependency-bump PRs
 # trigger a preview deploy on every push and consume the "100 deploys
 # per day" quota faster than feature work does, often failing at build
 # time (preview env vars differ from production), which still consumes
 # quota for no signal. The merge to main is blocked by GH checks anyway,
 # so a Vercel preview adds nothing here.
-#
-# Production deploys (post-merge) are unaffected — VERCEL_GIT_COMMIT_REF
-# is `main` for those.
 if [[ "${VERCEL_GIT_COMMIT_REF:-}" == dependabot/* ]]; then
   echo "[vercel-ignore] dependabot branch (${VERCEL_GIT_COMMIT_REF}) — skipping"
   exit 0
