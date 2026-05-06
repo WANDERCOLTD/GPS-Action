@@ -58,7 +58,7 @@ time. Eight rules:
   `eslint-rules/README.md`)
 
 Plus the boundaries plugin (layer enforcement) and the trace
-script (`npm run trace:check` — D038 §6).
+script (`pnpm trace:check` — D038 §6).
 
 The rules are not suggestions. CI fails on violation. If a rule
 is firing on legitimate code, the rule is wrong — open an ADR,
@@ -138,13 +138,13 @@ must be true:
 
 ### Mechanical
 
-- [ ] `npm run typecheck` clean — zero errors, zero `any`, zero
+- [ ] `pnpm typecheck` clean — zero errors, zero `any`, zero
       `@ts-ignore`
-- [ ] `npm run lint` clean — zero errors (warnings are OK if
+- [ ] `pnpm lint` clean — zero errors (warnings are OK if
       pre-existing)
-- [ ] `npm run test` all passing
-- [ ] `npx prettier --check .` clean
-- [ ] `npm run trace:check` clean (D038 §6)
+- [ ] `pnpm test` all passing
+- [ ] `pnpm exec prettier --check .` clean
+- [ ] `pnpm trace:check` clean (D038 §6)
 
 ### Discipline
 

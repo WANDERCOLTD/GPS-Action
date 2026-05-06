@@ -15,7 +15,7 @@ demo DB.
 | `next build`                                                               | ❌ **Manual**           | Run on demand via `vercel deploy --prebuilt --prod` (Option 2 below). Auto-deploy on `main` is OFF.       |
 | Schema migrations (`prisma migrate deploy`)                                | ❌ **Manual**           | Run by hand against the demo DB after schema PRs                                                          |
 | Required reference data (FF rows, PostKind slugs, BoardColumn defaults, …) | ✅ Auto with migrations | Lives in `prisma/migrations/` per [D070](../architecture/decision-log.md#d070); ships when migrations run |
-| Demo data (Eddie / Bette / etc, demo posts, kanban tickets)                | ❌ **Manual**           | Run by hand via `npm run seed:demo` against the demo DB                                                   |
+| Demo data (Eddie / Bette / etc, demo posts, kanban tickets)                | ❌ **Manual**           | Run by hand via `pnpm seed:demo` against the demo DB                                                      |
 
 The **required vs. optional** split is deliberate: required reference
 data ships with the schema migration that needs it (D070); demo data
@@ -71,13 +71,13 @@ Build locally, push only the artefact:
 
 ```sh
 # One-time setup:
-npm install -g vercel
+pnpm install -g vercel
 cd /Users/paulwander/projects/gps-action
 vercel link            # follow prompts to attach to the right project
 
 # Each deploy:
 git checkout main && git pull --ff-only
-npm install
+pnpm install
 next build             # produces .next/ locally
 vercel deploy --prebuilt --prod
 ```
@@ -112,14 +112,14 @@ export DIRECT_URL="postgresql://...neon.tech/.../prod"
 
 # Apply pending schema migrations (idempotent — Prisma tracks
 # which have run via _prisma_migrations table).
-npx prisma migrate deploy
+pnpm exec prisma migrate deploy
 
 # Load demo data (idempotent — both seed scripts use deterministic
 # IDs and skip existing rows).
-npm run seed:demo
+pnpm seed:demo
 ```
 
-`npm run seed:demo` is the convenience wrapper:
+`pnpm seed:demo` is the convenience wrapper:
 `tsx prisma/seed.ts && tsx scripts/seed.ts`. The two scripts cover
 different data:
 
@@ -138,8 +138,8 @@ Don't do this on the demo DB unless you're fine losing any
 manually-created rows from member testing:
 
 ```sh
-DIRECT_URL=... npx prisma migrate reset    # drops all data, reapplies migrations, runs prisma/seed.ts
-DIRECT_URL=... npm run db:seed             # adds the curated demo overlay
+DIRECT_URL=... pnpm exec prisma migrate reset    # drops all data, reapplies migrations, runs prisma/seed.ts
+DIRECT_URL=... pnpm db:seed             # adds the curated demo overlay
 ```
 
 ---

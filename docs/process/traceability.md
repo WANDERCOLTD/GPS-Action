@@ -93,7 +93,7 @@ Files (or briefs) can declare explicit BU-level dependencies:
 
 The tag has no lint rule — it's a developer-authored signal, not an
 F-rule. The trace tool aggregates declarations into a per-BU
-dependency graph and surfaces them via `npm run impact`. Use when
+dependency graph and surfaces them via `pnpm impact`. Use when
 the dependency is non-obvious (e.g. a service relies on a contract
 shape another BU establishes); skip when it's already implicit via
 imports.
@@ -125,10 +125,10 @@ and answers any traceability question.
 ### Lookup mode
 
 ```bash
-npm run trace SCN-20
-npm run trace BU-comments
-npm run trace D052
-npm run trace components/CommentList.tsx
+pnpm trace SCN-20
+pnpm trace BU-comments
+pnpm trace D052
+pnpm trace components/CommentList.tsx
 ```
 
 Resolves any of: scenario ID, BU name, ADR ID, file path. Prints
@@ -137,7 +137,7 @@ the forward + reverse dependency tree.
 ### Impact mode
 
 ```bash
-npm run impact server/services/comment.ts
+pnpm impact server/services/comment.ts
 ```
 
 Given a file path, prints:
@@ -157,7 +157,7 @@ affect?" Use before any non-trivial edit to surface blast radius.
 ### Check mode (CI)
 
 ```bash
-npm run trace:check
+pnpm trace:check
 ```
 
 Exits non-zero on any of:
@@ -171,7 +171,7 @@ Wired into CI between lint and tests.
 ### Matrix mode
 
 ```bash
-npm run trace:matrix
+pnpm trace:matrix
 ```
 
 Regenerates `docs/architecture/traceability-matrix.md` — the
@@ -238,7 +238,7 @@ architecture/decision-log.md (D0NN)`.
 
 Look at the matrix. New `⚠ gap` rows surface unintended drift.
 New `✓ shipped` rows surface scenario coverage. Run
-`npm run trace <ID>` if you want to see the full tree.
+`pnpm trace <ID>` if you want to see the full tree.
 
 ---
 
@@ -264,7 +264,7 @@ New `✓ shipped` rows surface scenario coverage. Run
 A typical lookup:
 
 ```
-$ npm run trace SCN-20
+$ pnpm trace SCN-20
 SCN-20 — Eddie reads the Sky News post and writes his first comment
 
   Build Units (1):
@@ -289,7 +289,7 @@ SCN-20 — Eddie reads the Sky News post and writes his first comment
 Any of those file paths can themselves be traced:
 
 ```
-$ npm run trace components/CommentList.tsx
+$ pnpm trace components/CommentList.tsx
 components/CommentList.tsx
 
   Build Units (1):

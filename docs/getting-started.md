@@ -100,15 +100,16 @@ Should show it listed.
 ```bash
 git clone https://github.com/paw2paw/GPS-Action.git
 cd GPS-Action
-npm install
+pnpm install
 ```
 
 This also installs pre-commit hooks (Husky) automatically via the
 `prepare` script.
 
 If the install has vulnerabilities reported, you can ignore them for
-now — they're mostly transitive and do not affect local dev. Do not
-run `npm audit fix --force` unless you know what you're doing.
+now — they're mostly transitive and do not affect local dev. Don't
+blanket-upgrade the affected packages without checking the call-sites
+(use `pnpm update <package>` per-package, not a sweeping `pnpm update`).
 
 ---
 
@@ -153,13 +154,13 @@ Should echo back the value you just set.
 ## Step 5 — Generate Prisma client + run migrations
 
 ```bash
-npm run db:generate
+pnpm db:generate
 ```
 
 Generates the TypeScript client from the schema.
 
 ```bash
-npx prisma migrate deploy
+pnpm exec prisma migrate deploy
 ```
 
 Applies all committed migrations to your database. Should print
@@ -178,7 +179,7 @@ Applies all committed migrations to your database. Should print
 ## Step 6 — Seed the database
 
 ```bash
-npx tsx scripts/seed.ts
+pnpm exec tsx scripts/seed.ts
 ```
 
 Creates 5 demo users with appropriate roles. Expected output:
@@ -204,7 +205,7 @@ Re-running is safe — the script uses `upsert`, won't duplicate.
 ## Step 7 — Start the dev server
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 You should see:
@@ -236,10 +237,10 @@ Open http://localhost:3001 in your browser.
 Before committing anything, the standard checks:
 
 ```bash
-npm run typecheck   # TypeScript
-npm run lint        # ESLint (including F06 custom rules)
-npm run format:check  # Prettier
-npm test            # Vitest
+pnpm typecheck   # TypeScript
+pnpm lint        # ESLint (including F06 custom rules)
+pnpm format:check  # Prettier
+pnpm test            # Vitest
 ```
 
 All four should pass. If any fail, fix before committing — the
@@ -255,7 +256,7 @@ but a typecheck failure will still break the commit.
 After editing `prisma/schema.prisma`:
 
 ```bash
-npx prisma migrate dev --name descriptive_name
+pnpm exec prisma migrate dev --name descriptive_name
 ```
 
 This creates a new migration folder under `prisma/migrations/` with
@@ -267,7 +268,7 @@ files along with the schema change.
 Useful when migrations get tangled during development:
 
 ```bash
-npx prisma migrate reset
+pnpm exec prisma migrate reset
 ```
 
 Deletes all data, re-applies all migrations, and re-seeds. Don't do
@@ -285,10 +286,10 @@ Your `.env` has placeholder values. Go back to Step 4.
 
 If you hit this after cloning fresh, the project expects
 `@tailwindcss/postcss` which should be in `package.json` and
-installed by `npm install`. If it's missing:
+installed by `pnpm install`. If it's missing:
 
 ```bash
-npm install -D @tailwindcss/postcss
+pnpm install -D @tailwindcss/postcss
 ```
 
 Check that `postcss.config.mjs` exists at the repo root with
@@ -313,7 +314,7 @@ right branch.
 If 3001 is taken, override:
 
 ```bash
-PORT=3002 npm run dev
+PORT=3002 pnpm dev
 ```
 
 ### Husky hooks not running on commit
@@ -321,7 +322,7 @@ PORT=3002 npm run dev
 If pre-commit hooks skip (shouldn't happen after fresh clone but can):
 
 ```bash
-npm run prepare
+pnpm prepare
 ```
 
 Re-installs the hooks.
@@ -331,7 +332,7 @@ Re-installs the hooks.
 You could run tests without a database — they're unit-level mostly:
 
 ```bash
-npm test
+pnpm test
 ```
 
 But the dev server (step 7) and anything touching `/dev/login` needs
@@ -369,27 +370,27 @@ The **shortest path to understanding the codebase** is probably:
 
 ```bash
 # Dev server
-npm run dev
+pnpm dev
 
 # Validation (all must pass)
-npm run typecheck
-npm run lint
-npm run format:check
-npm test
+pnpm typecheck
+pnpm lint
+pnpm format:check
+pnpm test
 
 # Database
-npx prisma migrate dev --name NAME    # new migration
-npx prisma migrate deploy             # apply pending
-npx prisma migrate reset              # nuke + re-seed
-npx prisma studio                     # DB GUI in browser
-npx tsx scripts/seed.ts               # re-run seed
+pnpm exec prisma migrate dev --name NAME    # new migration
+pnpm exec prisma migrate deploy             # apply pending
+pnpm exec prisma migrate reset              # nuke + re-seed
+pnpm exec prisma studio                     # DB GUI in browser
+pnpm exec tsx scripts/seed.ts               # re-run seed
 
 # Prisma client
-npm run db:generate                   # after schema changes
+pnpm db:generate                   # after schema changes
 
 # Format
-npm run format                        # write
-npm run format:check                  # check only
+pnpm format                        # write
+pnpm format:check                  # check only
 ```
 
 ---

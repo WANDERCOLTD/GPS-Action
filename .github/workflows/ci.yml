@@ -12,25 +12,29 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.6
+
       - uses: actions/setup-node@v6
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: '22'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: npm run db:generate
+        run: pnpm db:generate
 
       - name: Typecheck
-        run: npm run typecheck
+        run: pnpm typecheck
 
       - name: Lint
-        run: npm run lint
+        run: pnpm lint
 
       - name: Audit dependencies
-        run: npm audit --audit-level=high
+        run: pnpm audit --audit-level high
 
       - name: Install gitleaks
         run: |
@@ -42,16 +46,16 @@ jobs:
         run: gitleaks detect --redact --no-banner -s . -v
 
       - name: Format check
-        run: npm run format:check
+        run: pnpm format:check
 
       - name: Traceability check
-        run: npm run trace:check
+        run: pnpm trace:check
 
       - name: Test
-        run: npm test
+        run: pnpm test
 
       - name: Coverage
-        run: npm run test:coverage
+        run: pnpm test:coverage
 
   migrations:
     runs-on: ubuntu-latest
@@ -72,23 +76,27 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.6
+
       - uses: actions/setup-node@v6
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: '22'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: npm run db:generate
+        run: pnpm db:generate
 
       - name: Apply migrations
-        run: npx prisma migrate deploy
+        run: pnpm exec prisma migrate deploy
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/test
 
       - name: Validate Prisma schema
-        run: npx prisma validate
+        run: pnpm exec prisma validate
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/test

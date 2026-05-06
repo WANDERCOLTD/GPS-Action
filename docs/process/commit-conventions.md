@@ -102,7 +102,7 @@ The pre-commit hook runs lint-staged, which:
 
 Only staged files are checked. The hook is fast (<5 seconds typical).
 
-Prisma files (`*.prisma`) are excluded — use `npx prisma format` for those.
+Prisma files (`*.prisma`) are excluded — use `pnpm exec prisma format` for those.
 
 ---
 
@@ -111,7 +111,7 @@ Prisma files (`*.prisma`) are excluded — use `npx prisma format` for those.
 After cloning the repo:
 
 ```bash
-npm install    # triggers `prepare` script which sets up Husky
+pnpm install    # triggers `prepare` script which sets up Husky
 ```
 
 That's it. Hooks are active immediately.

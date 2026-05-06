@@ -50,7 +50,7 @@ Are the right things tested?
 - [ ] **Unit tests for service functions** (the non-UI logic that doesn't need HTTP).
 - [ ] **Integration test for the primary happy-path flow.**
 - [ ] **Tests for critical edge cases** the brief flagged (e.g. "already dispatched" state, "permission denied" state).
-- [ ] **All tests pass.** `npm test` returns green.
+- [ ] **All tests pass.** `pnpm test` returns green.
 - [ ] **No tests commented out or `skip`'d without justification.**
 - [ ] **No tests with assertions against hardcoded values that will break with reasonable data changes.** Tests should be resilient.
 - [ ] **Accessibility tests present** for new UI components (axe or equivalent).
@@ -148,7 +148,7 @@ Does the feature actually work as intended?
 - [ ] **Primary edge cases work.** Especially permission-gated actions.
 - [ ] **Error recovery works.** Network dies mid-flow; retry sensibly.
 - [ ] **Feature flag off-state works.** With the feature disabled, the app doesn't break.
-- [ ] **Seed data compatible.** `npm run seed` then use the feature — no fixture violations.
+- [ ] **Seed data compatible.** `pnpm seed` then use the feature — no fixture violations.
 - [ ] **No console errors** in normal use.
 - [ ] **No TypeScript warnings** in normal use.
 
@@ -199,13 +199,13 @@ For a standard session, here's the order:
 
 **Minute 4-7: Types and tests**
 
-- Run `tsc` and `npm test`
+- Run `tsc` and `pnpm test`
 - Scan for `any` / `@ts-ignore` / skipped tests
 - Quick check coverage of new code
 
 **Minute 8-14: Manual walk-through**
 
-- `npm run dev`
+- `pnpm dev`
 - Open the feature
 - Click through each scenario from the brief
 - Toggle light/dark mode; check tab navigation

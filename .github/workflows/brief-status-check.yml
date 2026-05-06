@@ -2,7 +2,7 @@ name: brief-status-check
 
 # BU-brief-status-mechanism. Two gates:
 #
-#   1. Trackers freshness — `npm run trackers:check` must pass. The
+#   1. Trackers freshness — `pnpm trackers:check` must pass. The
 #      AUTOGEN regions in docs/build/bu-sequence.md must reflect
 #      current front-matter on every brief.
 #
@@ -29,19 +29,23 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.6
+
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
-          cache: 'npm'
+          cache: 'pnpm'
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
-      - name: Trackers freshness (npm run trackers:check)
-        run: npm run trackers:check
+      - name: Trackers freshness (pnpm trackers:check)
+        run: pnpm trackers:check
 
       - name: Brief ship-flip enforcement
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: npx tsx scripts/check-brief-flip.ts
+        run: pnpm exec tsx scripts/check-brief-flip.ts
