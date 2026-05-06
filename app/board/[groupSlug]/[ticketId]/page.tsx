@@ -35,6 +35,7 @@ import { CommentNoteThread } from '@/components/board/CommentNoteThread';
 import { UrgentToggle } from '@/components/board/UrgentToggle';
 import { MarkDoneButton } from '@/components/board/MarkDoneButton';
 import { UndoToastProvider } from '@/components/board/UndoToastContext';
+import { ShareWithTeamButton } from '@/components/board/ShareWithTeamButton';
 
 interface BoardTicketDetailPageProps {
   params: Promise<{ groupSlug: string; ticketId: string }>;
@@ -103,6 +104,22 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
   // marks done. The originating link is the source of truth for column.
   const currentColumnId = originatingGroup?.columnId ?? null;
   const isActive = ticket.status === 'active';
+
+  // Share-with-team picker (atom 5e). Workflow allow-list targets minus
+  // any group already linked. Service errors fall through silently —
+  // the picker just renders with an empty target list and a disabled
+  // button; the rest of the page stays usable.
+  const workflowTargetsRaw = await caller.share
+    .listWorkflowTargets({ sourceGroupId: accessibleGroup.group.id })
+    .catch(() => []);
+  const linkedGroupIds = new Set(ticket.groups.map((g) => g.groupId));
+  const availableShareTargets = workflowTargetsRaw
+    .map((t) => ({
+      groupId: t.group.id,
+      displayName: t.group.displayName,
+      slug: t.group.slug,
+    }))
+    .filter((t) => !linkedGroupIds.has(t.groupId));
 
   return (
     <UndoToastProvider>
@@ -260,6 +277,85 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
               ))}
             </ul>
           )}
+        </section>
+
+        <section
+          data-testid="board-ticket-shared-with"
+          aria-label="Shared with"
+          style={{
+            marginBottom: 'var(--space-4)',
+            padding: 'var(--space-3)',
+            background: 'var(--colour-surface-sunken)',
+            borderRadius: 'var(--radius-md)',
+          }}
+        >
+          <h2
+            style={{
+              margin: '0 0 var(--space-2) 0',
+              fontSize: 'var(--text-xs)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              color: 'var(--colour-text-secondary)',
+            }}
+          >
+            Shared with
+          </h2>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+            }}
+          >
+            <ul
+              data-testid="board-ticket-shared-with-list"
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 'var(--space-2)',
+              }}
+            >
+              {ticket.groups.map((g) => (
+                <li
+                  key={g.groupId}
+                  data-testid="board-ticket-shared-with-pill"
+                  data-origin={g.origin}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--colour-surface-raised)',
+                    border: '1px solid var(--colour-border-subtle)',
+                    fontSize: 'var(--text-sm)',
+                  }}
+                >
+                  {g.displayName}
+                  {g.origin === 'originating' && (
+                    <span
+                      style={{
+                        marginLeft: 'var(--space-1)',
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--colour-text-secondary)',
+                      }}
+                    >
+                      · originating
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <ShareWithTeamButton
+              requestId={ticket.id}
+              groupSlug={groupSlug}
+              sourceGroupId={accessibleGroup.group.id}
+              availableTargets={availableShareTargets}
+            />
+          </div>
         </section>
 
         <section
