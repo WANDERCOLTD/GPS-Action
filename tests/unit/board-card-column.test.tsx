@@ -8,6 +8,7 @@ import { describe, it, expect } from 'vitest';
 import type { ReactElement } from 'react';
 import { Card, type CardProps } from '@/components/board/Card';
 import { Column } from '@/components/board/Column';
+import { MobileTagSwitcher } from '@/components/board/MobileTagSwitcher';
 
 type AnyElement = ReactElement<Record<string, unknown>>;
 
@@ -38,6 +39,26 @@ function findByTestId(root: unknown, testid: string): AnyElement | null {
   const list = Array.isArray(children) ? children.flat(Infinity) : [children];
   for (const child of list) {
     const found = findByTestId(child, testid);
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
+ * Walk the tree without invoking function components. Returns the first
+ * element whose `type` strictly equals the given component reference.
+ * Use this for client components (e.g. anything with `useState`) where
+ * `expand()` would otherwise execute hooks outside a React render.
+ */
+function findByComponent(root: unknown, component: unknown): AnyElement | null {
+  if (!root || typeof root !== 'object' || !('props' in root)) return null;
+  const el = root as AnyElement;
+  if (el.type === component) return el;
+  const children = (el.props as { children?: unknown }).children;
+  if (children == null) return null;
+  const list = Array.isArray(children) ? children.flat(Infinity) : [children];
+  for (const child of list) {
+    const found = findByComponent(child, component);
     if (found) return found;
   }
   return null;
@@ -76,10 +97,38 @@ const ticketFixture = (overrides: Partial<CardProps['ticket']> = {}): CardProps[
 describe('Card', () => {
   it('renders the title and links to the ticket detail route', () => {
     const tree = Card({ groupSlug: 'writers', ticket: ticketFixture() }) as AnyElement;
-    expect(findByTestId(tree, 'board-card-link')).not.toBeNull();
-    const props = tree.props as Record<string, unknown>;
+    const link = findByTestId(tree, 'board-card-link');
+    expect(link).not.toBeNull();
+    const props = (link?.props ?? {}) as Record<string, unknown>;
     expect(props.href).toBe('/board/writers/r1');
     expect(props['data-ticket-id']).toBe('r1');
+  });
+
+  it('omits the mobile tag-switcher when no mobileSwitch context is passed', () => {
+    const tree = Card({ groupSlug: 'g', ticket: ticketFixture() }) as AnyElement;
+    expect(findByComponent(tree, MobileTagSwitcher)).toBeNull();
+  });
+
+  it('mounts MobileTagSwitcher with the right column context when mobileSwitch is passed', () => {
+    const tree = Card({
+      groupSlug: 'g',
+      ticket: ticketFixture(),
+      mobileSwitch: {
+        groupId: 'grp1',
+        currentColumnId: 'c-prep',
+        columns: [
+          { id: 'c-rec', displayName: 'Recruitment' },
+          { id: 'c-prep', displayName: 'Preparation' },
+        ],
+      },
+    }) as AnyElement;
+    const switcher = findByComponent(tree, MobileTagSwitcher);
+    expect(switcher).not.toBeNull();
+    const props = (switcher?.props ?? {}) as Record<string, unknown>;
+    expect(props.requestId).toBe('r1');
+    expect(props.groupId).toBe('grp1');
+    expect(props.currentColumnId).toBe('c-prep');
+    expect((props.columns as unknown[]).length).toBe(2);
   });
 
   it('shows the urgent dot only when the ticket is urgent', () => {
