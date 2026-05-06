@@ -26,6 +26,7 @@ import {
   addShareWorkflow,
   removeShareWorkflow,
   listShareWorkflowTargets,
+  listAddableShareTargets,
   ShareError,
 } from '@/server/services/request-group';
 import {
@@ -199,5 +200,23 @@ export const shareRouter = router({
       throw shareErrorToTRPC(err);
     }
     return listShareWorkflowTargets(input.sourceGroupId);
+  }),
+
+  /**
+   * List groups eligible to be added as workflow targets from this
+   * source. Admin-only — drives the "Add target" picker on
+   * `/board/<slug>/settings`.
+   */
+  listAddableTargets: authedProcedure.input(sourceGroupSchema).query(async ({ ctx, input }) => {
+    try {
+      await assertCanAdminBoard({
+        groupId: input.sourceGroupId,
+        userId: ctx.user.id,
+        isSystemAdmin: ctx.activeRoles.includes('admin'),
+      });
+    } catch (err) {
+      throw shareErrorToTRPC(err);
+    }
+    return listAddableShareTargets(input.sourceGroupId);
   }),
 });

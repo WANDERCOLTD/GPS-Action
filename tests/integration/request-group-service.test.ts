@@ -46,6 +46,9 @@ vi.mock('@/server/db/client', () => ({
     boardColumn: {
       findFirst: vi.fn(),
     },
+    group: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -65,6 +68,7 @@ import {
   addShareWorkflow,
   removeShareWorkflow,
   listShareWorkflowTargets,
+  listAddableShareTargets,
   ShareError,
 } from '@/server/services/request-group';
 import { prisma } from '@/server/db/client';
@@ -76,6 +80,7 @@ const mockedRequestGroup = vi.mocked(prisma.requestGroup);
 const mockedWorkflow = vi.mocked(prisma.groupShareWorkflow);
 const mockedRequest = vi.mocked(prisma.request);
 const mockedBoardColumn = vi.mocked(prisma.boardColumn);
+const mockedGroup = vi.mocked(prisma.group);
 const mockedAudit = vi.mocked(auditLog);
 const mockedEmitSystemEvent = vi.mocked(emitKanbanSystemEvent);
 
@@ -775,6 +780,48 @@ describe('listShareWorkflowTargets', () => {
       { group: { id: 'g2' }, workflow: { id: 'w1' } },
       { group: { id: 'g3' }, workflow: { id: 'w2' } },
     ]);
+  });
+});
+
+describe('listAddableShareTargets', () => {
+  it('excludes the source group, active workflow targets, and orders by displayName', async () => {
+    mockedWorkflow.findMany.mockResolvedValue([
+      { targetGroupId: 'g2' },
+      { targetGroupId: 'g3' },
+    ] as never);
+    mockedGroup.findMany.mockResolvedValue([
+      { id: 'g4', displayName: 'Radio' },
+      { id: 'g5', displayName: 'Social' },
+    ] as never);
+
+    const result = await listAddableShareTargets('g1');
+
+    expect(mockedWorkflow.findMany).toHaveBeenCalledWith({
+      where: { sourceGroupId: 'g1', deletedAt: null },
+      select: { targetGroupId: true },
+    });
+    expect(mockedGroup.findMany).toHaveBeenCalledWith({
+      where: {
+        deletedAt: null,
+        id: { notIn: expect.arrayContaining(['g1', 'g2', 'g3']) },
+      },
+      orderBy: { displayName: 'asc' },
+    });
+    // Source-group exclusion: 'g1' is included in notIn even though no
+    // workflow row references it.
+    const callArgs = (mockedGroup.findMany as any).mock.calls[0][0];
+    expect(callArgs.where.id.notIn).toHaveLength(3);
+    expect(result).toHaveLength(2);
+  });
+
+  it('still excludes source group even when there are no workflow rows', async () => {
+    mockedWorkflow.findMany.mockResolvedValue([] as never);
+    mockedGroup.findMany.mockResolvedValue([] as never);
+
+    await listAddableShareTargets('g1');
+
+    const callArgs = (mockedGroup.findMany as any).mock.calls[0][0];
+    expect(callArgs.where.id.notIn).toEqual(['g1']);
   });
 });
 

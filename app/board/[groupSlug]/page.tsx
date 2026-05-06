@@ -10,6 +10,7 @@
  * Unauthed → /dev/login. Group resolved by slug; null result → 404.
  */
 
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
@@ -97,7 +98,25 @@ export default async function BoardGroupPage({ params }: BoardGroupPageProps) {
           >
             {accessibleGroup.group.displayName}
           </h1>
-          <ProposeTicketButton groupId={accessibleGroup.group.id} groupSlug={groupSlug} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            {accessibleGroup.access.canAdminBoard && (
+              <Link
+                href={`/board/${groupSlug}/settings`}
+                data-testid="board-view-settings-link"
+                style={{
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--colour-text-link)',
+                  textDecoration: 'none',
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--colour-border-subtle)',
+                }}
+              >
+                Settings
+              </Link>
+            )}
+            <ProposeTicketButton groupId={accessibleGroup.group.id} groupSlug={groupSlug} />
+          </div>
         </div>
       </header>
       <BoardTabs groupSlug={groupSlug} active="active" />
