@@ -67,7 +67,7 @@ export async function EntityListPage({ entity, ctx, search, bulkAction }: Entity
 
   const tableMarkup = (
     <>
-      <BulkResultBanner />
+      {bulkEnabled ? <BulkResultBanner /> : null}
       {rows.length === 0 ? (
         <div
           data-testid="admin-list-empty"
