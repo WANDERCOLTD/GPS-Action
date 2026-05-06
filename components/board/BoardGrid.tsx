@@ -31,11 +31,23 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
+import { LayoutGrid, List } from 'lucide-react';
 import { Card, type CardProps } from '@/components/board/Card';
 import { Column } from '@/components/board/Column';
 import { DraggableCard } from '@/components/board/DraggableCard';
+import { BoardList } from '@/components/board/BoardList';
 import { computeMove, type CardsByColumn } from '@/components/board/computeMove';
 import { moveCardAction } from '@/app/board/[groupSlug]/actions';
+
+type Layout = 'grid' | 'list';
+
+const LAYOUT_STORAGE_KEY = 'gps-board-active-layout';
+
+function readStoredLayout(): Layout {
+  if (typeof window === 'undefined') return 'grid';
+  const raw = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
+  return raw === 'list' ? 'list' : 'grid';
+}
 
 export type { CardsByColumn } from '@/components/board/computeMove';
 
@@ -91,6 +103,23 @@ export function BoardGrid({ groupSlug, groupId, columns, cardsByColumn }: BoardG
   const [activeId, setActiveId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Layout choice — grid (default, with drag) or list (flat sections,
+  // no drag). Persisted in localStorage so it sticks across nav. SSR
+  // always renders 'grid'; the client effect upgrades to 'list' if
+  // that's the saved preference. Brief flicker is acceptable for a
+  // power-user toggle.
+  const [layout, setLayout] = useState<Layout>('grid');
+  useEffect(() => {
+    setLayout(readStoredLayout());
+  }, []);
+
+  function chooseLayout(next: Layout) {
+    setLayout(next);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(LAYOUT_STORAGE_KEY, next);
+    }
+  }
 
   // When the server revalidates the route after a successful move,
   // the page re-renders with fresh `cardsByColumn`; sync local state.
@@ -150,6 +179,51 @@ export function BoardGrid({ groupSlug, groupId, columns, cardsByColumn }: BoardG
 
   return (
     <>
+      <div
+        data-testid="board-layout-toggle"
+        role="group"
+        aria-label="Board layout"
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: 'var(--space-1)',
+          marginBottom: 'var(--space-2)',
+        }}
+      >
+        <button
+          type="button"
+          data-testid="board-layout-toggle-grid"
+          aria-pressed={layout === 'grid'}
+          onClick={() => chooseLayout('grid')}
+          className="gps-btn gps-btn--ghost gps-btn--sm"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--space-1)',
+            opacity: layout === 'grid' ? 1 : 0.55,
+          }}
+        >
+          <LayoutGrid size={14} aria-hidden="true" />
+          Grid
+        </button>
+        <button
+          type="button"
+          data-testid="board-layout-toggle-list"
+          aria-pressed={layout === 'list'}
+          onClick={() => chooseLayout('list')}
+          className="gps-btn gps-btn--ghost gps-btn--sm"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--space-1)',
+            opacity: layout === 'list' ? 1 : 0.55,
+          }}
+        >
+          <List size={14} aria-hidden="true" />
+          List
+        </button>
+      </div>
+
       {error && (
         <div
           role="alert"
@@ -166,54 +240,59 @@ export function BoardGrid({ groupSlug, groupId, columns, cardsByColumn }: BoardG
           {error}
         </div>
       )}
-      {/*
-        Stable `id` makes dnd-kit's auto-generated `aria-describedby` (and
-        the underlying useUniqueId counter in @dnd-kit/utilities) deterministic
-        across server/client renders. Without it, React StrictMode double-mount
-        in dev advances the global counter on the client past the server value
-        and hydration warns. One DndContext per page = one stable id.
-      */}
-      <DndContext
-        id={`board-${groupSlug}`}
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
-      >
-        <div
-          className="gps-board-grid"
-          data-testid="board-view-grid"
-          data-pending={isPending ? 'true' : 'false'}
+
+      {layout === 'list' ? (
+        <BoardList groupSlug={groupSlug} columns={columns} cardsByColumn={optimistic} />
+      ) : (
+        /*
+          Stable `id` makes dnd-kit's auto-generated `aria-describedby` (and
+          the underlying useUniqueId counter in @dnd-kit/utilities) deterministic
+          across server/client renders. Without it, React StrictMode double-mount
+          in dev advances the global counter on the client past the server value
+          and hydration warns. One DndContext per page = one stable id.
+        */
+        <DndContext
+          id={`board-${groupSlug}`}
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
         >
-          {columns.map((column) => (
-            <DroppableColumn
-              key={column.id}
-              columnId={column.id}
-              displayName={column.displayName}
-              groupSlug={groupSlug}
-              groupId={groupId}
-              tickets={optimistic[column.id] ?? []}
-              allColumns={columns}
-            />
-          ))}
-        </div>
-        <DragOverlay dropAnimation={{ duration: 180 }}>
-          {activeCard ? (
-            <div
-              data-testid="board-card-drag-overlay"
-              style={{
-                cursor: 'grabbing',
-                transform: 'rotate(2deg)',
-                boxShadow: 'var(--shadow-xl)',
-                borderRadius: 'var(--radius-md)',
-              }}
-            >
-              <Card groupSlug={groupSlug} ticket={activeCard} />
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+          <div
+            className="gps-board-grid"
+            data-testid="board-view-grid"
+            data-pending={isPending ? 'true' : 'false'}
+          >
+            {columns.map((column) => (
+              <DroppableColumn
+                key={column.id}
+                columnId={column.id}
+                displayName={column.displayName}
+                groupSlug={groupSlug}
+                groupId={groupId}
+                tickets={optimistic[column.id] ?? []}
+                allColumns={columns}
+              />
+            ))}
+          </div>
+          <DragOverlay dropAnimation={{ duration: 180 }}>
+            {activeCard ? (
+              <div
+                data-testid="board-card-drag-overlay"
+                style={{
+                  cursor: 'grabbing',
+                  transform: 'rotate(2deg)',
+                  boxShadow: 'var(--shadow-xl)',
+                  borderRadius: 'var(--radius-md)',
+                }}
+              >
+                <Card groupSlug={groupSlug} ticket={activeCard} />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      )}
     </>
   );
 }
