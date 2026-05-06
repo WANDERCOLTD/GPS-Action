@@ -31,7 +31,7 @@ clone to logged-in Eddie in about 15 minutes.
 1. Read the session brief in `docs/build/session-briefs/` for the
    Build Unit you're working on
 2. Branch from `main` (e.g., `phase-1/bu-feed`)
-3. Implement; run `npm test && npm run lint && npm run typecheck`
+3. Implement; run `pnpm test && pnpm lint && pnpm typecheck`
 4. Commit — Husky runs pre-commit hooks automatically
 5. Push, open PR, wait for CI, merge
 

@@ -157,10 +157,10 @@ Expected:
 ## Run validation before committing
 
 ```bash
-npm run typecheck
-npm run lint
-npm test
-npm run format:check
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm format:check
 ```
 
 All should pass. The changes are comment-only, so no functional change.

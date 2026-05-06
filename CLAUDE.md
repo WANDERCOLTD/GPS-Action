@@ -55,8 +55,9 @@ discipline is:
        `feat/feed-filter-20260428`). The date suffix prevents two
        parallel sessions colliding on the same branch name.
   2. `cd .claude/worktrees/<slug>` and run **all** subsequent commands
-     from there — including `npm install` if needed (each worktree has
-     its own `node_modules`).
+     from there — including `pnpm install` if needed (each worktree has
+     its own `node_modules`). Project uses **pnpm** (v11+) — see the
+     `packageManager` field in `package.json`.
   3. Verify in one call:
      `git branch --show-current && git rev-parse --show-toplevel`
      — confirm both the branch name and that the path ends in
@@ -108,10 +109,10 @@ Violations are errors, not warnings. Don't bypass.
 4. Read the session brief (provided by user)
 5. Build only what the brief specifies
 6. Update README.md in directories you touch
-7. Run `npm run typecheck && npm run lint && npm test` before declaring done
+7. Run `pnpm typecheck && pnpm lint && pnpm test` before declaring done
 8. **If shipping a named BU:** flip `status: shipped` and add `shipped_in:
 "#<PR>"` to its front-matter in `docs/build/session-briefs/<slug>.md`.
-   Run `npm run trackers` to refresh the AUTOGEN regions in
+   Run `pnpm trackers` to refresh the AUTOGEN regions in
    `bu-sequence.md`. CI blocks merge otherwise. (Per D068.)
 
 ## What NOT to do

@@ -9,7 +9,7 @@ _Version: 0.2 · April 2026_
 ## Front-matter (required, per D067)
 
 Every brief file in `docs/build/session-briefs/` opens with YAML
-front-matter. The generator (`npm run trackers`) reads this to emit
+front-matter. The generator (`pnpm trackers`) reads this to emit
 the lifecycle tables in `bu-sequence.md`. CI blocks merge if a BU PR
 ships without flipping status to `shipped`.
 
@@ -204,8 +204,8 @@ All these must pass before calling the session complete.
 - [ ] All files in "Build" list created; all files in "Don't touch" list untouched
 - [ ] TypeScript compiles with zero errors, zero `any`, zero `@ts-ignore`
 - [ ] All acceptance criteria verified with test or manual click-through
-- [ ] Tests pass: npm run test
-- [ ] Lint passes: npm run lint
+- [ ] Tests pass: pnpm test
+- [ ] Lint passes: pnpm lint
 - [ ] Manual click-through of each scenario completed
 - [ ] README files updated with: purpose, contracts, state, known issues
 - [ ] No TODOs left in committed code
