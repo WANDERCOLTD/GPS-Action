@@ -788,6 +788,22 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+ * EDITABLE TRIGGER (Surface 2 — click-to-edit)
+ * Subtle hover affordance for click-to-edit fields. The text itself is
+ * the click target; the pencil icon next to it is rendered always (not
+ * hover-only) so touch devices have the affordance hint too.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+.gps-editable-trigger {
+  transition: background 120ms;
+}
+
+.gps-editable-trigger:hover,
+.gps-editable-trigger:focus-visible {
+  background: var(--colour-surface-sunken);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
  * MOBILE TAG-PILL SWITCHER (bu-coordination-board — Surface 1, B2)
  * Hidden on desktop; shown as an inline-flex pill on mobile (≤768px).
  * The 768px breakpoint matches the B1 vertical-reflow cutover so pill +

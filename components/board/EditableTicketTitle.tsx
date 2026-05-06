@@ -1,23 +1,24 @@
 'use client';
 
 /**
- * @build-unit bu-coordination-board (build seq #5 — Surface 2, PR #5c)
+ * @build-unit bu-coordination-board (Surface 2 — click-to-edit title)
  * @spec docs/build/session-briefs/bu-coordination-board.md
  *
- * Click-to-edit title row for the ticket-detail page. Idle state
- * renders the title with an "Edit" affordance; clicking enters edit
- * mode (input + Save / Cancel). The save path calls the
- * `editTitleAction` server action which writes via `board.editTitle`,
- * audit-logs the change, and revalidates the ticket route — the
- * server then re-renders with the new title.
+ * Click-to-edit title for the ticket-detail page.
  *
- * Permission ("any group member can edit") is enforced server-side;
- * the component renders the edit button unconditionally. If a
- * non-member somehow lands here, the mutation throws and the inline
- * error surfaces.
+ *   - Idle: title text is itself the click target. A faint pencil
+ *     icon sits to the right as a discoverability hint.
+ *   - Click (or focus + Enter for keyboard): swap to an inline input.
+ *   - Enter or blur: save. Escape: cancel.
+ *
+ * No separate "Edit" button — the title text *is* the affordance.
+ * Permission ("any group member can edit") is enforced server-side
+ * via `editTitleAction`; the click trigger renders unconditionally,
+ * and a non-member's mutation surfaces an inline error.
  */
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { Pencil } from 'lucide-react';
 import { editTitleAction } from '@/app/board/[groupSlug]/[ticketId]/actions';
 
 const TITLE_MAX_LENGTH = 200;
@@ -42,6 +43,11 @@ export function EditableTicketTitle({
   const [draft, setDraft] = useState(initial);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (mode === 'editing') inputRef.current?.focus();
+  }, [mode]);
 
   function startEdit() {
     setDraft(initial);
@@ -59,6 +65,12 @@ export function EditableTicketTitle({
     const trimmed = draft.trim();
     if (trimmed.length === 0) {
       setError('Title cannot be empty.');
+      return;
+    }
+    if (trimmed.length === initial.trim().length && trimmed === initial.trim()) {
+      // No change — quietly leave edit mode.
+      setError(null);
+      setMode('idle');
       return;
     }
     if (trimmed.length > TITLE_MAX_LENGTH) {
@@ -93,40 +105,63 @@ export function EditableTicketTitle({
           flexWrap: 'wrap',
         }}
       >
-        <h1
-          data-testid="board-ticket-title"
-          style={{
-            margin: 0,
-            fontSize: 'var(--text-xl)',
-            fontFamily: 'var(--font-ui)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-          }}
-        >
-          {urgent && (
-            <span
-              data-testid="board-ticket-urgent-dot"
-              aria-label="Urgent"
-              style={{
-                display: 'inline-block',
-                width: 10,
-                height: 10,
-                borderRadius: '50%',
-                background: 'var(--colour-danger)',
-                flexShrink: 0,
-              }}
-            />
-          )}
-          {initial}
-        </h1>
         <button
           type="button"
-          data-testid="board-ticket-title-edit-btn"
+          data-testid="board-ticket-title-trigger"
+          aria-label="Edit title"
           onClick={startEdit}
-          className="gps-btn gps-btn--ghost gps-btn--sm"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            padding: 'var(--space-1) var(--space-2)',
+            margin: 'calc(-1 * var(--space-1)) calc(-1 * var(--space-2))',
+            border: 'none',
+            background: 'transparent',
+            color: 'inherit',
+            cursor: 'text',
+            textAlign: 'left',
+            font: 'inherit',
+            borderRadius: 'var(--radius-sm)',
+          }}
+          className="gps-editable-trigger"
         >
-          Edit
+          <h1
+            data-testid="board-ticket-title"
+            style={{
+              margin: 0,
+              fontSize: 'var(--text-xl)',
+              fontFamily: 'var(--font-ui)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+            }}
+          >
+            {urgent && (
+              <span
+                data-testid="board-ticket-urgent-dot"
+                aria-label="Urgent"
+                style={{
+                  display: 'inline-block',
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  background: 'var(--colour-danger)',
+                  flexShrink: 0,
+                }}
+              />
+            )}
+            {initial}
+          </h1>
+          <Pencil
+            size={14}
+            aria-hidden="true"
+            data-testid="board-ticket-title-pencil"
+            style={{
+              color: 'var(--colour-text-tertiary)',
+              flexShrink: 0,
+            }}
+          />
         </button>
       </div>
     );
@@ -143,12 +178,22 @@ export function EditableTicketTitle({
       }}
     >
       <input
+        ref={inputRef}
         type="text"
         data-testid="board-ticket-title-input"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            save();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancel();
+          }
+        }}
+        onBlur={save}
         maxLength={TITLE_MAX_LENGTH}
-        autoFocus
         disabled={isPending}
         className="gps-input"
         style={{
@@ -157,35 +202,15 @@ export function EditableTicketTitle({
           width: '100%',
         }}
       />
-      <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-        <button
-          type="button"
-          data-testid="board-ticket-title-save-btn"
-          onClick={save}
-          disabled={isPending}
-          className="gps-btn gps-btn--primary gps-btn--sm"
+      {error && (
+        <span
+          role="alert"
+          data-testid="board-ticket-title-error"
+          style={{ color: 'var(--colour-danger)', fontSize: 'var(--text-xs)' }}
         >
-          {isPending ? 'Saving…' : 'Save'}
-        </button>
-        <button
-          type="button"
-          data-testid="board-ticket-title-cancel-btn"
-          onClick={cancel}
-          disabled={isPending}
-          className="gps-btn gps-btn--ghost gps-btn--sm"
-        >
-          Cancel
-        </button>
-        {error && (
-          <span
-            role="alert"
-            data-testid="board-ticket-title-error"
-            style={{ color: 'var(--colour-danger)', fontSize: 'var(--text-xs)' }}
-          >
-            {error}
-          </span>
-        )}
-      </div>
+          {error}
+        </span>
+      )}
     </div>
   );
 }

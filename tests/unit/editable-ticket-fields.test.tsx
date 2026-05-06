@@ -1,9 +1,10 @@
 /**
- * Unit tests for EditableTicketTitle + EditableTicketBody (PR #5c).
+ * Unit tests for EditableTicketTitle + EditableTicketBody after the
+ * click-to-edit refactor — the title/body text itself is the trigger,
+ * with a faint pencil icon as a hint and Enter / blur to save.
  *
- * Same plain-function-as-component pattern as board-action-pair.test.tsx.
- * Mocks useState + useTransition + the server actions; walks the
- * returned tree.
+ * Same plain-function-as-component pattern. Mocks useState +
+ * useTransition + useEffect + the server actions; walks the tree.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -26,6 +27,8 @@ vi.mock('react', async () => {
     ...actual,
     useTransition: () => useTransitionMock(),
     useState: <T,>(initial: T) => useStateMock(initial),
+    useEffect: () => undefined,
+    useRef: () => ({ current: null }),
   };
 });
 
@@ -79,11 +82,12 @@ beforeEach(() => {
 });
 
 describe('EditableTicketTitle — idle mode', () => {
-  it('renders the title and an Edit button', () => {
+  it('renders the title as the click target with a pencil icon hint', () => {
     const tree = EditableTicketTitle(titleProps) as AnyElement;
     const row = findByTestId(tree, 'board-ticket-title-row');
     expect(row?.props['data-mode']).toBe('idle');
-    expect(findByTestId(tree, 'board-ticket-title-edit-btn')).toBeDefined();
+    expect(findByTestId(tree, 'board-ticket-title-trigger')).toBeDefined();
+    expect(findByTestId(tree, 'board-ticket-title-pencil')).toBeDefined();
   });
 
   it('renders the urgent dot when urgent is true', () => {
@@ -96,35 +100,33 @@ describe('EditableTicketTitle — idle mode', () => {
     expect(findByTestId(tree, 'board-ticket-urgent-dot')).toBeUndefined();
   });
 
-  it('switches to editing mode when Edit is clicked', () => {
+  it('switches to editing mode when the title trigger is clicked', () => {
     const tree = EditableTicketTitle(titleProps) as AnyElement;
-    const editBtn = findByTestId(tree, 'board-ticket-title-edit-btn');
-    (editBtn?.props.onClick as () => void)();
+    const trigger = findByTestId(tree, 'board-ticket-title-trigger');
+    (trigger?.props.onClick as () => void)();
     const next = EditableTicketTitle(titleProps) as AnyElement;
     expect(findByTestId(next, 'board-ticket-title-row')?.props['data-mode']).toBe('editing');
     expect(findByTestId(next, 'board-ticket-title-input')).toBeDefined();
-    expect(findByTestId(next, 'board-ticket-title-save-btn')).toBeDefined();
-    expect(findByTestId(next, 'board-ticket-title-cancel-btn')).toBeDefined();
   });
 });
 
 describe('EditableTicketTitle — save flow', () => {
-  it('calls editTitleAction with the trimmed title', () => {
-    // Enter edit mode first.
+  it('calls editTitleAction with the trimmed title on Enter', () => {
     EditableTicketTitle(titleProps) as AnyElement;
     const tree = EditableTicketTitle(titleProps) as AnyElement;
-    const editBtn = findByTestId(tree, 'board-ticket-title-edit-btn');
-    (editBtn?.props.onClick as () => void)();
-    // Mutate the draft state via the input's onChange.
+    const trigger = findByTestId(tree, 'board-ticket-title-trigger');
+    (trigger?.props.onClick as () => void)();
     const editing = EditableTicketTitle(titleProps) as AnyElement;
     const input = findByTestId(editing, 'board-ticket-title-input');
     (input?.props.onChange as (e: { target: { value: string } }) => void)({
       target: { value: '  New title  ' },
     });
-    // Click Save.
     const final = EditableTicketTitle(titleProps) as AnyElement;
-    const saveBtn = findByTestId(final, 'board-ticket-title-save-btn');
-    (saveBtn?.props.onClick as () => void)();
+    const finalInput = findByTestId(final, 'board-ticket-title-input');
+    (finalInput?.props.onKeyDown as (e: { key: string; preventDefault: () => void }) => void)({
+      key: 'Enter',
+      preventDefault: () => undefined,
+    });
     expect(editTitleSpy).toHaveBeenCalledWith({
       requestId: 'r1',
       groupSlug: 'writers',
@@ -135,26 +137,23 @@ describe('EditableTicketTitle — save flow', () => {
 });
 
 describe('EditableTicketBody — idle mode', () => {
-  it('renders the body when initial is non-empty', () => {
+  it('renders the body and pencil hint when initial is non-empty', () => {
     const tree = EditableTicketBody(bodyProps) as AnyElement;
     expect(findByTestId(tree, 'board-ticket-description-body')).toBeDefined();
-    expect(findByTestId(tree, 'board-ticket-body-edit-btn')?.props.children).toBe(
-      'Edit description',
-    );
+    expect(findByTestId(tree, 'board-ticket-body-trigger')).toBeDefined();
+    expect(findByTestId(tree, 'board-ticket-body-pencil')).toBeDefined();
   });
 
-  it('renders the empty placeholder + Add button when initial is null', () => {
+  it('renders the empty placeholder when initial is null', () => {
     const tree = EditableTicketBody({ ...bodyProps, initial: null }) as AnyElement;
     expect(findByTestId(tree, 'board-ticket-description-empty')).toBeDefined();
-    expect(findByTestId(tree, 'board-ticket-body-edit-btn')?.props.children).toBe(
-      'Add description',
-    );
+    expect(findByTestId(tree, 'board-ticket-body-trigger')).toBeDefined();
   });
 
-  it('switches to editing mode on Edit click', () => {
+  it('switches to editing mode on body trigger click', () => {
     const tree = EditableTicketBody(bodyProps) as AnyElement;
-    const editBtn = findByTestId(tree, 'board-ticket-body-edit-btn');
-    (editBtn?.props.onClick as () => void)();
+    const trigger = findByTestId(tree, 'board-ticket-body-trigger');
+    (trigger?.props.onClick as () => void)();
     const next = EditableTicketBody(bodyProps) as AnyElement;
     expect(findByTestId(next, 'board-ticket-body-row')?.props['data-mode']).toBe('editing');
     expect(findByTestId(next, 'board-ticket-body-input')).toBeDefined();
@@ -162,19 +161,22 @@ describe('EditableTicketBody — idle mode', () => {
 });
 
 describe('EditableTicketBody — save flow', () => {
-  it('passes null to editBodyAction when textarea is whitespace-only', () => {
-    EditableTicketBody(bodyProps) as AnyElement;
-    const tree = EditableTicketBody(bodyProps) as AnyElement;
-    const editBtn = findByTestId(tree, 'board-ticket-body-edit-btn');
-    (editBtn?.props.onClick as () => void)();
-    const editing = EditableTicketBody(bodyProps) as AnyElement;
+  it('passes null to editBodyAction when textarea is whitespace-only and saved on blur', () => {
+    EditableTicketBody({ ...bodyProps, initial: 'something' }) as AnyElement;
+    const tree = EditableTicketBody({ ...bodyProps, initial: 'something' }) as AnyElement;
+    const trigger = findByTestId(tree, 'board-ticket-body-trigger');
+    (trigger?.props.onClick as () => void)();
+    const editing = EditableTicketBody({
+      ...bodyProps,
+      initial: 'something',
+    }) as AnyElement;
     const input = findByTestId(editing, 'board-ticket-body-input');
     (input?.props.onChange as (e: { target: { value: string } }) => void)({
       target: { value: '  \n  ' },
     });
-    const final = EditableTicketBody(bodyProps) as AnyElement;
-    const saveBtn = findByTestId(final, 'board-ticket-body-save-btn');
-    (saveBtn?.props.onClick as () => void)();
+    const final = EditableTicketBody({ ...bodyProps, initial: 'something' }) as AnyElement;
+    const finalInput = findByTestId(final, 'board-ticket-body-input');
+    (finalInput?.props.onBlur as () => void)();
     expect(editBodySpy).toHaveBeenCalledWith({
       requestId: 'r1',
       groupSlug: 'writers',
@@ -183,19 +185,19 @@ describe('EditableTicketBody — save flow', () => {
     });
   });
 
-  it('preserves the original string when textarea has content', () => {
+  it('passes the literal string to editBodyAction when content is provided', () => {
     EditableTicketBody({ ...bodyProps, initial: null }) as AnyElement;
     const tree = EditableTicketBody({ ...bodyProps, initial: null }) as AnyElement;
-    const editBtn = findByTestId(tree, 'board-ticket-body-edit-btn');
-    (editBtn?.props.onClick as () => void)();
+    const trigger = findByTestId(tree, 'board-ticket-body-trigger');
+    (trigger?.props.onClick as () => void)();
     const editing = EditableTicketBody({ ...bodyProps, initial: null }) as AnyElement;
     const input = findByTestId(editing, 'board-ticket-body-input');
     (input?.props.onChange as (e: { target: { value: string } }) => void)({
       target: { value: 'Hello world' },
     });
     const final = EditableTicketBody({ ...bodyProps, initial: null }) as AnyElement;
-    const saveBtn = findByTestId(final, 'board-ticket-body-save-btn');
-    (saveBtn?.props.onClick as () => void)();
+    const finalInput = findByTestId(final, 'board-ticket-body-input');
+    (finalInput?.props.onBlur as () => void)();
     expect(editBodySpy).toHaveBeenCalledWith(expect.objectContaining({ body: 'Hello world' }));
   });
 });
