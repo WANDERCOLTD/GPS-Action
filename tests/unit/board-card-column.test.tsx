@@ -233,4 +233,15 @@ describe('Column', () => {
     const wrapper = findByTestId(tree, 'board-column-card');
     expect((wrapper?.props as Record<string, unknown>)['data-drop-over']).toBe('false');
   });
+
+  it('applies the gps-board-column class so the mobile media query can target it', () => {
+    const tree = Column({
+      columnId: 'c1',
+      displayName: 'Recruitment',
+      groupSlug: 'writers',
+      tickets: [],
+    }) as AnyElement;
+    const wrapper = findByTestId(tree, 'board-column-card');
+    expect((wrapper?.props as Record<string, unknown>).className).toBe('gps-board-column');
+  });
 });
