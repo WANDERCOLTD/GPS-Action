@@ -4,7 +4,7 @@
  * @build-unit BU-versioning BU-feed-card-affordances
  * @spec docs/process/versioning.md
  *
- * App version badge — small fixed-position chip, bottom-right of every
+ * App version badge — small fixed-position chip, bottom-left of every
  * page. Reads build-time env vars set by next.config.mjs:
  *   - NEXT_PUBLIC_APP_VERSION   (from package.json)
  *   - NEXT_PUBLIC_APP_SHA       (best-effort short git sha)
@@ -14,15 +14,20 @@
  * which version is deployed is useful). Colour shifts by environment so
  * "am I on staging or prod?" is unambiguous.
  *
- * BU-feed-card-affordances — tap to hard-reload. iPhone Chrome and
- * Safari standalone PWAs cache JS aggressively; pull-to-refresh
- * sometimes uses the cached bundle. Tapping the badge forces a
- * fresh navigation by appending a unique `_cb` query param, which
- * bypasses URL-based caching. The user can then read the SHA on
- * the badge itself to confirm a new build loaded.
+ * Two affordances on the badge:
+ *
+ *   - Tap the version text → hard-reload (cache-bust). iPhone Chrome
+ *     and Safari standalone PWAs cache JS aggressively; pull-to-refresh
+ *     sometimes uses the cached bundle. Tapping forces a fresh
+ *     navigation by appending a unique `_cb` query param.
+ *
+ *   - Tap the copy icon → copies "v0.2.X · dev · sha · /current/path"
+ *     to the clipboard. For paste-into-bug-report. Briefly flips the
+ *     icon to a check-mark on success.
  */
 
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
+import { Copy, Check } from 'lucide-react';
 
 type AppEnv = 'development' | 'preview' | 'production' | (string & {});
 
@@ -59,6 +64,7 @@ export function VersionBadge() {
   const sha = process.env.NEXT_PUBLIC_APP_SHA ?? '';
   const env = (process.env.NEXT_PUBLIC_APP_ENV ?? 'development') as AppEnv;
   const palette = paletteFor(env);
+  const [copied, setCopied] = useState(false);
 
   const containerStyle: CSSProperties = {
     position: 'fixed',
@@ -71,47 +77,105 @@ export function VersionBadge() {
     zIndex: 50,
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 'var(--space-2)',
-    padding: '4px 10px',
     borderRadius: 'var(--radius-pill)',
     background: palette.bg,
-    color: palette.fg,
     border: `1px solid ${palette.fg}`,
     fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, monospace)',
     fontSize: 'var(--text-2xs)',
     lineHeight: 1.2,
-    cursor: 'pointer',
-    userSelect: 'all',
     backdropFilter: 'blur(6px)',
+    overflow: 'hidden',
   };
 
+  const reloadButtonStyle: CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 'var(--space-2)',
+    padding: '4px 10px',
+    background: 'transparent',
+    border: 'none',
+    color: palette.fg,
+    fontFamily: 'inherit',
+    fontSize: 'inherit',
+    lineHeight: 'inherit',
+    cursor: 'pointer',
+    userSelect: 'all',
+  };
+
+  const copyButtonStyle: CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '4px 8px',
+    background: 'transparent',
+    border: 'none',
+    borderLeft: `1px solid ${palette.fg}`,
+    color: palette.fg,
+    cursor: 'pointer',
+  };
+
+  function buildClipboardText(): string {
+    const path =
+      typeof window !== 'undefined' ? window.location.pathname + window.location.search : '';
+    const parts = [`v${version}`, palette.label, sha, path].filter((p) => p.length > 0);
+    return parts.join(' · ');
+  }
+
+  function handleCopyClick(): void {
+    const text = buildClipboardText();
+    if (typeof navigator === 'undefined' || !navigator.clipboard) return;
+    void navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      })
+      .catch(() => {
+        // Clipboard write failures are non-fatal (e.g. focus issues
+        // on Safari) — silently ignore; user can long-press the badge
+        // and copy text the native way.
+      });
+  }
+
   return (
-    <button
-      type="button"
-      onClick={handleReloadClick}
-      data-testid="nav-version-badge"
-      data-app-env={env}
-      title="Tap to hard-reload (cache-bust)"
-      aria-label={`v${version} ${palette.label} ${sha} — tap to hard-reload`}
-      style={containerStyle}
-    >
-      <span data-testid="version-badge-version">v{version}</span>
-      <span aria-hidden="true" style={{ opacity: 0.6 }}>
-        ·
-      </span>
-      <span data-testid="version-badge-env">{palette.label}</span>
-      {sha ? (
-        <>
-          <span aria-hidden="true" style={{ opacity: 0.6 }}>
-            ·
-          </span>
-          <span data-testid="version-badge-sha">{sha}</span>
-        </>
-      ) : null}
-      <span aria-hidden="true" style={{ opacity: 0.6, marginLeft: 2 }}>
-        ↻
-      </span>
-    </button>
+    <div data-testid="nav-version-badge" data-app-env={env} style={containerStyle}>
+      <button
+        type="button"
+        onClick={handleReloadClick}
+        data-testid="nav-version-badge-reload"
+        title="Tap to hard-reload (cache-bust)"
+        aria-label={`v${version} ${palette.label} ${sha} — tap to hard-reload`}
+        style={reloadButtonStyle}
+      >
+        <span data-testid="version-badge-version">v{version}</span>
+        <span aria-hidden="true" style={{ opacity: 0.6 }}>
+          ·
+        </span>
+        <span data-testid="version-badge-env">{palette.label}</span>
+        {sha ? (
+          <>
+            <span aria-hidden="true" style={{ opacity: 0.6 }}>
+              ·
+            </span>
+            <span data-testid="version-badge-sha">{sha}</span>
+          </>
+        ) : null}
+        <span aria-hidden="true" style={{ opacity: 0.6, marginLeft: 2 }}>
+          ↻
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={handleCopyClick}
+        data-testid="nav-version-badge-copy"
+        data-copied={copied ? 'true' : 'false'}
+        title="Copy version + path"
+        aria-label="Copy version and current path to clipboard"
+        style={copyButtonStyle}
+      >
+        {copied ? <Check size={12} aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
+      </button>
+    </div>
   );
 }
 
