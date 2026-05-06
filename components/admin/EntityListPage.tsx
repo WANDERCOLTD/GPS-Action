@@ -206,7 +206,7 @@ export async function EntityListPage({ entity, ctx, search, bulkAction }: Entity
           </table>
         </div>
       )}
-      <BulkActionBar />
+      {bulkEnabled ? <BulkActionBar /> : null}
     </>
   );
 
