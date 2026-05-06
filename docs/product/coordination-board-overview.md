@@ -1,414 +1,296 @@
 # Coordination Board — overview for non-technical readers
 
-_Date: 2026-05-03 (revised PM — Broadcast companion added) · Audience: working-group leads, partner-org reps, anyone evaluating GPS without a developer in the room_
+_Date: 2026-05-06 · Audience: working-group leads, partner-org reps,
+pilot members, anyone evaluating GPS without a developer in the room_
 
-This is the plain-language companion to the build brief at
-`docs/build/session-briefs/bu-coordination-board.md`. It captures
-what we're proposing to build, why, and which decisions are still open.
+This is the plain-language walkthrough of the coordination board as it
+currently ships. It describes what's actually built — the kanban
+(Direction A), the ticket detail surface, the notifications pane, the
+mobile reflow, and the admin event-config — and points to where each
+sits in the app.
 
-> **Two shapes for the inbound side, plus one outbound companion.**
-> This document describes **Shape A** (the kanban board, Leonid's
-> original pitch). A second shape — **Shape B**, a "shared inbox"
-> inspired by [sleekflow.io](https://sleekflow.io/inbox) — is
-> described after Shape A. Both are inbound surfaces: how teams
-> manage work coming at them.
->
-> A third surface — **Companion: Broadcast** — handles the _outbound_
-> side: when GPS sends a campaign to a Group, Network, or Region.
-> Inspired by SleekFlow's
-> [Broadcast](https://sleekflow.io/broadcast) wizard. It's described
-> at the end and is being weighed alongside the inbound shapes; if
-> tech review prefers, it can be split into its own build later.
->
-> The technical review meeting will pick the inbound shape (A, B, or
-> a hybrid) and decide whether the outbound Companion ships in the
-> same BU or as a follow-on. The shapes share most of the underlying
-> machinery; the day-to-day experience differs.
+For the build-side detail (schema, ADRs, build sequence), see
+`docs/build/session-briefs/bu-coordination-board.md`.
+
+> **Status.** Code is in `main` through v0.2.143. The feature flag
+> `coord_board_v1` is OFF in production until the named pilot teams
+> (Writers + one IT-team member) have used the board end-to-end. Dev
+> environments have it enabled. Direction B (the SleekFlow-style
+> "shared inbox" alternative) was considered and rejected; Broadcast
+> moved to its own build unit (`bu-broadcast`). See the brief for the
+> reasoning.
 
 ---
 
-## What we're proposing
+## What it is
 
 A shared workspace inside GPS where each team — Writers, Radio, Social
-Media, IT, Face-to-face, and so on — sees a colourful board of the
-work they're doing. Cards move across the board as work progresses.
-Admins see every team's board; members see only the boards they belong
-to. The same job can be sent to more than one team at once (for
-example, a campaign that needs both Writing and Social Media).
+Media, IT, Face-to-face, regional groups, and partner networks like
+CUFI — sees a colourful board of the work they're doing. Cards (called
+"tickets") move across columns as work progresses. The same ticket can
+be directed at more than one team at once, with each team tracking its
+own progress.
 
-Today, all of this happens in WhatsApp threads. People volunteer
-verbally, status lives in someone's head, and handover between teams
-is invisible. The board makes the work and its progress visible
-without changing how members like to communicate (WhatsApp, email,
-in-app — their choice per team).
-
----
-
-## What it looks like
-
-**On a laptop or tablet**, each team's board is a row of columns —
-for example: Recruitment → Preparation → Implementation → Monitoring.
-Each card is one job. Cards move left to right as work progresses.
-Admins can drag cards to reorder them by priority.
-
-**On a phone**, columns are too cramped. Instead, jobs appear as a
-single scrolling list, and the column name becomes a coloured tag
-on each card.
-
-**Two extra views** sit alongside the active board:
-
-- **Backlog** — jobs that have been proposed but aren't yet on the
-  active board. Admins prioritise here, then move the chosen jobs
-  onto the board.
-- **Done** — completed jobs, archived as a list for reference and
-  reporting.
-
-Both Backlog and Done can be displayed as cards or as a plain list.
+Today the equivalent happens in WhatsApp threads. People volunteer
+verbally, status lives in someone's head, handover between teams is
+invisible. The board makes the work and its progress visible without
+changing how members like to communicate (WhatsApp, email, in-app —
+their choice per team).
 
 ---
 
-## Who uses it, and what they can do
+## How to get to it
 
-| Role                 | What they can do                                                                                                                                                                                            |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Member of a team** | See the team's board, claim cards, move cards they own through the columns, comment, subscribe to specific jobs                                                                                             |
-| **Team admin**       | Everything above, plus: approve people who want to join the team, promote a member to team admin, configure the team's columns, drag cards to reorder priority, accept jobs sent to the team from elsewhere |
-| **System admin**     | Everything above, across every team. Plus: create new teams, archive teams that are no longer active, intervene if a team admin is unavailable                                                              |
+Members who have access to at least one group see a **Board** tab as
+the first slot in the bottom navigation. Tap it to land on the group
+picker (only groups they belong to are listed). Pick a group → land on
+that group's Active board.
 
-Joining a team needs admin approval (with one exception — see
-"Networks" below). The Tech team specifically remains
+URL pattern: `/board/<group-slug>`. Available pilot groups in the seed
+data: `writers`, `manchester`, `rapid-response`.
+
+If a member belongs to only one group, they could be auto-routed
+straight to that group's board — currently we still show the picker
+once. (Pilot feedback may change this.)
+
+---
+
+## The three surfaces
+
+### Surface 1 — Kanban board
+
+The default view of a group. Three tabs along the top:
+
+- **Active** — the columns. This is where day-to-day work moves.
+- **Backlog** — proposed jobs that aren't on the active board yet. List
+  view by default.
+- **Done** — completed jobs, archived for reference. List view by
+  default.
+
+A "**+ Propose to backlog**" outline button sits in the header. Anyone
+in the group can propose; the group admin promotes proposals onto the
+Active board.
+
+#### Active tab — desktop
+
+Default columns are `Recruitment → Preparation → Implementation →
+Monitoring`. Group admins can rename, add, or remove columns to suit
+their team — Writers might use `Draft → Edit → Publish → Distribute`
+instead.
+
+Each card on the Active board shows:
+
+- Title
+- Kind glyph (icon indicating the type of work)
+- Multi-assignee avatar row, with a `+N` overflow if many
+- Urgent badge (only shown when the ticket is flagged urgent)
+- Last-updated time
+
+Unclaimed cards have a soft yellow background to make them visible at
+a glance.
+
+**Drag** to move a card between columns or to reorder within a column.
+Reordering writes a new `boardPosition`; column changes write an audit
+row. The first time someone self-assigns to a card in Recruitment, the
+card auto-advances to Preparation.
+
+**Grid ↔ list toggle.** A small toggle (top right of the Active tab)
+switches between the kanban grid and a flat list view of the same
+cards, grouped by column. The list view is **read-mostly** — there's
+no drag in list view, because dragging between flat sections doesn't
+have an obvious gesture. Members who want to move cards switch back to
+grid. The choice is remembered per browser (localStorage).
+
+#### Active tab — mobile (≤768px)
+
+Columns are too cramped on a phone, so they flatten into a single
+vertical scrolling stack. Each card carries a coloured **tag-switcher
+pill** showing its column; tapping the pill opens a small popover to
+move it. Card content otherwise matches the desktop card.
+
+The tag-switcher palette runs from warmer to calmer (yellow → blue →
+brand teal → green → neutral grey) — the Sharon-warmth principle: the
+start of the workflow feels engaging, the end feels settled.
+Admin-configured per-column colours are deferred; if pilot feedback
+asks for them they'll come in a follow-up.
+
+#### Backlog and Done tabs
+
+Both default to a list view. Backlog is the inbox for proposed work;
+admins prioritise here, then drag onto Active. Done is read-only; it's
+where finished tickets archive.
+
+### Surface 2 — Ticket detail
+
+Where the work itself happens. Reached by tapping any card.
+
+URL pattern: `/board/<group-slug>/<ticket-id>`.
+
+The page lays out as:
+
+- **Title row**, with an inline edit affordance. Any group member can
+  edit; edits are audit-logged.
+- **Action pair (unified):** **Assign me / Unassign** sits adjacent to
+  **Follow / Unfollow**. Self-assigning auto-subscribes you (so
+  notifications start arriving). An explicit unfollow is a separate
+  gesture, and it survives unassign — so members can keep watching a
+  ticket they've handed off.
+- **Multi-assignee row** — anyone assigned shows here. No "owner"
+  vocabulary; first-assignee gets no special status.
+- **Urgent flag.** Toggleable; flipping it on notifies subscribers.
+- **Editable description.** Any group member can edit the body;
+  audit-logged.
+- **Interleaved thread** — three event types interleaved on the same
+  timeline:
+  - **Comments** — visible to everyone with access to the ticket.
+  - **Internal notes** — visible only to the team that owns this share
+    of the ticket. Visually tinted yellow.
+  - **System events** — auto-written when something happens (column
+    change, assign, urgent flip, edit, etc.).
+  - The compose box at the bottom switches between "Comment" and
+    "Note" modes.
+- **Share with team** — single control replacing the earlier
+  "Share-with-team + Invite group" pair. The picker shows allowed
+  teams (constrained by the group admin's allow-list); picking creates
+  a share row so the ticket appears on the receiving team's board too.
+- **Right meta sidebar** — assignees, subscribers (read-only list,
+  `+N` overflow if long), labels, kind glyph, group(s) the ticket is
+  shared with, last activity.
+
+Multiple teams sharing a ticket each track their own column state.
+Writers can be in Implementation while Social Media is still in
+Preparation, both viewing the same conversation.
+
+### Surface 3 — Notifications pane
+
+Thin alerts list, separate from the boards. Reached via the existing
+**Inbox** glyph in the bottom navigation.
+
+- Tinted (light brand-teal) row background = unacknowledged.
+- Plain white = acknowledged.
+- Tapping a row jumps to the source ticket and auto-acknowledges. No
+  separate "mark read" gesture.
+- The list is capped (with a `View all` link if there are more) to
+  protect against floods.
+
+Default trigger rules — subscriber-driven:
+
+- Authors, assignees, and anyone ever-mentioned get notified on
+  column transitions, comments, and urgent flips.
+- Group admins can opt to send a team-wide blast via the Notifications
+  path; recipients can mute that specific blast type per-flag.
+
+Per-user notification preferences (channel + frequency) live in
+account settings. Per-group overrides are allowed — e.g. "everything
+for Writers, mentions only for IT".
+
+---
+
+## Who can do what
+
+| Action                           | Member of group       | Group admin  | System admin |
+| -------------------------------- | --------------------- | ------------ | ------------ |
+| View this group's board          | ✓                     | ✓            | ✓            |
+| Claim (Assign me)                | ✓                     | ✓            | ✓            |
+| Move own card between columns    | ✓                     | ✓            | ✓            |
+| Move any card                    | —                     | ✓            | ✓            |
+| Edit description (audit-logged)  | ✓                     | ✓            | ✓            |
+| Reorder column (drag-prioritise) | —                     | ✓            | ✓            |
+| Configure columns                | —                     | ✓            | ✓            |
+| Approve join requests            | —                     | ✓            | ✓            |
+| Promote member → group admin     | —                     | ✓            | ✓            |
+| Share ticket to another team     | ✓ (within allow-list) | ✓ (any team) | ✓            |
+| Send team-blast notification     | —                     | ✓            | ✓            |
+| Configure share allow-list       | —                     | ✓            | ✓            |
+| Create new group                 | —                     | —            | ✓            |
+| Archive group                    | —                     | —            | ✓            |
+
+Joining a team needs admin approval, with one exception: networks like
+CUFI can be configured at creation to allow members to self-attest
+their affiliation. The Tech team specifically remains
 invitation-only to prevent overload.
 
 ---
 
-## How a job moves through the board
+## How to create a board
 
-1. **Backlog.** Anyone authorised can propose a job. It lands in the
-   relevant team's backlog. Sits there until an admin prioritises it.
-2. **Recruitment.** Admin moves it onto the active board. Job is
-   visible but not yet claimed. Anyone in the team can pick it up.
-3. **Preparation → Implementation → Monitoring.** Whoever claimed it
-   moves the card across as work progresses. The exact column names
-   are configurable per team — Writers might use "Draft → Edit →
-   Publish → Distribute" instead. The four-column shape is the
-   default; teams can rename, add, or remove columns to suit how they
-   actually work.
-4. **Done.** When the work is complete, the card moves to Done and
-   leaves the active board. Available in the Done archive for
-   reference.
+There's no separate "create a board" flow — every group has a board.
+A system admin creates the group (kind, name, slug, share allow-list);
+the group admin configures the column set on the new group's settings
+page. System defaults seed in per group kind:
 
-A job can be sent to more than one team. Each team tracks its own
-progress on the same job — Writers might be in Implementation while
-Social Media is still in Preparation. Both teams can see each other's
-state by default; we can hide one team from another for sensitive
-work if needed.
+- **Workstream / team** groups: Recruitment / Preparation /
+  Implementation / Monitoring.
+- **Topic / region / network** groups: same defaults; admins commonly
+  rename to fit their work.
+
+Group kinds — `workstream`, `region`, `network`, `team`, `topic` —
+control the default column set and where the group appears in the
+picker.
 
 ---
 
-## Networks (CUFI and partner organisations)
+## Admin: kanban event configuration
 
-Networks like CUFI work the same way as internal teams underneath the
-hood, but they show up in a separate area of the picker. Two practical
-differences:
+System admins control which kanban events write a system entry into
+the ticket thread. The setting is per-event-kind, with a simple
+on/off toggle on each row of the admin entity page (the inline toggle
+landed in v0.2.139).
 
-- A user saying "I'm affiliated with CUFI" might not need network-admin
-  approval the way joining Writers does — networks can be set up to
-  let members self-attest. (To be confirmed per network.)
-- A network may have many more members than an internal team. The
-  data model supports both equally well.
+Defaults — most events default ON (column changes, assignment,
+urgent on, comment posted). A handful default **OFF** to reduce noise:
 
-A job can be directed at one or more networks alongside one or more
-teams — for example, an action sent to Writers, Social Media, and
-CUFI simultaneously, with each tracking their own progress.
+- `title_edit`
+- `body_edit`
+- `urgent_off`
+- `assign_self`
+- `unassign_self`
 
----
-
-## How members stay informed
-
-Every member chooses two things in their settings:
-
-**How much to be notified about:**
-
-- Everything on my boards
-- Only jobs I've subscribed to
-- Only when I'm @mentioned
-- Nothing
-
-**Where to be notified:**
-
-- Inside GPS
-- WhatsApp
-- Email
-- (Any combination)
-
-These can be set globally and overridden per team — e.g. "everything
-for Writers, mentions only for IT."
-
-A member can open any job and tap **Subscribe** to follow it
-specifically, or **Unsubscribe** to stop hearing about a job they're
-auto-following (because they authored it, claimed it, or were
-mentioned in it).
+Admins can flip any of these on if their team finds them useful.
+System events are written into the same comment thread as human
+comments and notes, distinguished by their `source: system` flag.
 
 ---
 
-## Drilling between teams
+## Pilot rollout
 
-Members who belong to several teams switch between boards through a
-**team picker**. The picker shows only teams they have access to —
-no leakage of teams they don't belong to. They can switch between
-boards as often as they like.
+Before the flag flips on in production, two pilot acceptance tests
+need to pass:
 
-Within a board, a member can also choose to see only their subscribed
-jobs, hiding everything else.
+1. **One Writer** uses the board end-to-end (proposes, claims, moves
+   through columns, comments, marks done) without intervention.
+2. **One IT-team member** does the same, including the Share-with-team
+   path to a second team.
+
+Once both have signed off, the `coord_board_v1` flag flips on globally
+(via a small data migration) and the board appears for everyone with
+access to a group.
+
+The pilot teams in the seed data are `writers`, `manchester`, and
+`rapid-response`; production pilots will use real teams Paul nominates
+when the slot is booked.
 
 ---
 
 ## What this is NOT (yet)
 
-- It is not real-time collaborative editing of cards.
-- It is not a time-tracker or SLA tool.
-- It does not replace WhatsApp for ad-hoc chat — it sits alongside.
-- It does not surface jobs across teams the member doesn't belong to.
-- It does not yet support recurring jobs or templates.
-- It does not yet have a public read-only view for transparency
-  partners.
+Saying "no" to these now keeps the first version evaluable:
 
-These can come later if useful. Saying "no" now keeps the first
-version evaluable.
-
----
-
-## Open questions for stakeholders
-
-Before we lock the build, we'd value views on:
-
-1. **Default column names.** Recruitment / Preparation / Implementation
-   / Monitoring is the proposed system default. Teams can override.
-   Are these the right defaults?
-2. **Card front face.** What's the most useful information on top of
-   each card at a glance? Job title is obvious. Beyond that — claimer
-   name, priority chip, last-updated time, subscriber count, a short
-   excerpt? Pick three.
-3. **Sending a job to a team you don't run.** Can any member direct
-   a job at any team, or does the team admin need to accept it before
-   it appears on their board?
-4. **Network membership.** For each network we onboard, who decides
-   whether membership is self-attestation or admin-approval? Per
-   network, or one rule for all?
-5. **Cross-team visibility on shared jobs.** When a job is sent to
-   two teams, default is full transparency (each team sees the
-   other's progress). Are there cases where teams should be hidden
-   from each other on the same job?
-6. **Notification defaults for new members.** When someone joins a
-   team, what notification level should they default to? "All" risks
-   overwhelm; "subscribed only" risks invisibility. "Mentions" is
-   probably the safe middle.
-
----
-
-## What happens next
-
-1. Technical review meeting: Simon, Harry, Grant, Paul. Leonid is
-   booking. Output: confirmation that the build is feasible as
-   described.
-2. UI prototype: a clickable mock of the friendly version, in our
-   colours, on a real device. Output: something non-technical
-   stakeholders can react to.
-3. Non-technical review: writers, radio, partner-org reps walk
-   through the prototype. Output: changes to the brief.
-4. Build, in the order the brief lists.
-
-This document will be updated as those steps complete.
-
----
-
-## Shape B — the "shared inbox" alternative
-
-Shape A above describes a kanban-style board. The technical team is
-also weighing **Shape B**, a "shared inbox" approach inspired by a
-product called [SleekFlow](https://sleekflow.io/inbox). It's worth
-opening their tour page in another tab to feel the difference — the
-underlying machinery is similar, but the day-to-day experience is
-quite different.
-
-### What's different about Shape B
-
-Instead of a board with columns, each team has an **inbox** — a
-list of jobs you can filter:
-
-- **Open** — currently being worked on
-- **Snoozed** — set aside until a date you choose ("come back to me
-  tomorrow")
-- **Closed** — completed
-- **All** — everything
-
-Each member also has three personal lenses on the side, the same
-ones SleekFlow uses:
-
-- **Assigned to me** — jobs I've taken ownership of
-- **Collaborating** — jobs I've subscribed to but don't own
-- **Mentions** — jobs where someone has @-mentioned me
-
-Switching between teams works the same way as Shape A — a team
-picker that only shows you teams you belong to.
-
-### How a job feels in Shape B
-
-You open your team inbox. There's a list of conversations. You see
-who owns each one (or "Unassigned"), the last message, when it last
-moved. You filter by Open, or scroll. You click in. You see the full
-thread — what's been said, what's been decided. You add a comment, or
-@-mention a Writer to pull them in for a quick view. They get 24
-hours of access to that one job, even if they're not in your team —
-no ceremony.
-
-When you're done, you mark it Closed. No dragging cards. The "stage
-of work" is captured in the conversation itself, not in which column
-the card sits in.
-
-### What we'd lose in Shape B
-
-The visual at-a-glance of a board. Some people read a kanban faster
-than a list — you can see in two seconds that there are three jobs
-in Recruitment and one in Implementation. With a list, you have to
-filter to see the same thing.
-
-### What we'd gain in Shape B
-
-- Simpler to build, faster to ship.
-- Easier for non-technical members to learn — most people understand
-  email-style inboxes intuitively.
-- The "snooze for a day" pattern is genuinely useful for activist
-  work where context shifts.
-- Natural cross-team collaboration through @-mentions with temporary
-  access, rather than having to formally direct work.
-
-### The hybrid option
-
-Build Shape B first (simpler, faster), and add Shape A's kanban view
-as an optional toggle in a later phase, for admins who want the
-visual workflow. Both shapes share most of the same data underneath.
-
-### Questions Shape B raises that Shape A doesn't
-
-1. **How does someone become "the owner" of a job?** SleekFlow's
-   default is "first person to reply automatically becomes owner."
-   For activist work, that might be too implicit — you might comment
-   helpfully without intending to take it on. We'd probably want an
-   explicit Claim button instead.
-2. **What's the right snooze duration default?** A day? Until
-   Monday? Custom each time?
-3. **How long should an @-mention give someone temporary access?**
-   24 hours like SleekFlow, or shorter? Should this be configurable
-   per team for sensitive work?
-4. **Where do you land when you log in?** Your "Assigned to me"
-   list, or the team inbox? SleekFlow defaults to "Assigned to me"
-   (focus); the alternative is the team inbox (situational
-   awareness).
-
-### When we'll decide
-
-The technical review meeting (Simon, Harry, Grant, Paul, Leonid)
-will pick between Shape A, Shape B, and the hybrid. After that, the
-prototype is built in the chosen shape, and you'll see something
-clickable.
-
----
-
-## Companion: Broadcast — sending out to Groups and Networks
-
-Shapes A and B describe how GPS handles the **inbound** side:
-incoming jobs, requests, conversations a team manages. There is a
-matching **outbound** need — when GPS itself sends a structured
-message to a Group (Writers, Radio, Social) or a Network (CUFI,
-partner orgs) or a Region (Hendon, Edgware). Today this also lives
-in WhatsApp threads with no audit and no measurement.
-
-The Companion borrows directly from
-[SleekFlow's Broadcast](https://sleekflow.io/broadcast) product, a
-4-step wizard non-technical staff find easy to learn:
-
-1. **Pick the audience.** Filter members — by Group, Network,
-   Region, role, language, recent activity. The wizard shows you a
-   live count of who'd receive the message before you send.
-2. **Write the message.** Choose channels (WhatsApp, email, in-app,
-   maybe SMS later). Compose the message with **personalisation
-   slots** ("Hi {first name}, your region {region} has..."). Add
-   buttons for the recipient to tap — "I'm in", "Share", "RSVP".
-3. **Pick when it goes.** Send now, schedule for later, repeat
-   weekly, or trigger when something happens (e.g. when a post
-   reaches 100 shares, broadcast a thank-you to everyone who shared).
-4. **Watch what happened.** After it sends, see how many were
-   delivered, how many opened, how many took the action you asked
-   for, and how many opted out.
-
-### Why this matters
-
-GPS already sends WhatsApp messages out as part of dispatch. What's
-missing is the structured layer above it: an audience picker, a
-personalised template, scheduling, audit, and analytics. Without
-this, sending a "thank you to everyone who shared this week" is a
-manual job that doesn't get done.
-
-The Companion also catches the **replies**. When someone replies to
-a broadcast (in-app or via WhatsApp), the reply lands in the team's
-inbox as a job — so the inbound and outbound surfaces feed each
-other.
-
-### What changes vs. how we send today
-
-- Bigger sends need a **second person to approve** before they go
-  out (anti-mistake, anti-hijack).
-- Members can **opt out** per category — "no campaign messages",
-  "operational only", or "all off."
-- A small **anti-spam cap** stops any one member from being
-  broadcast-bombarded by multiple senders on the same day.
-- All sends are **logged** — who sent what, to whom, when, with
-  what results. Today this is invisible.
-
-### Open questions on the Companion
-
-Before we lock it in:
-
-a. **Who's allowed to broadcast to whom?** Members to their own
-teams? Group admins to their group? Sysadmins to anyone? Network
-admins to their network only? Need to draw the matrix.
-b. **What's a "big" send that needs a second approver?** A specific
-number of recipients? Any cross-organisation reach? Both?
-c. **What does a recipient see if their preference disagrees with
-the sender?** If a member chose "WhatsApp only" and the broadcast
-is email, do they get nothing, or does sender choice override?
-d. **One Broadcast in two languages, or two Broadcasts?** Hebrew +
-English: send one with both variants and pick by member language,
-or send two with shared audience?
-e. **What language do we use in the UI?** "Send to..." reads
-friendly to members. "Broadcast" sounds like power-user
-terminology. Recommend "Send to..." in the member-facing UI;
-"Broadcast" stays in admin/analytics views.
-f. **Aggregate analytics or per-recipient?** Aggregate ("87% opened")
-is safe and useful. Per-recipient read receipts may feel
-surveillance-y. Likely default to aggregate-only for non-sysadmins.
-
-### Should the Companion ship in the same BU?
-
-Two views, both reasonable:
-
-- **Together** — Inbox and Broadcast share most of their plumbing
-  (Groups, Networks, channels, labels, audit). Building them as one
-  BU avoids two divergent audience pickers and two notification
-  engines.
-- **Apart** — Inbox is the team workspace; Broadcast is a
-  marketing/operations workspace. Different audiences review them.
-  Splitting `bu-broadcast` keeps each brief focused.
-
-The tech review will decide. Either way, the schema spine is the
-same.
+- Real-time presence (who's looking at this card right now).
+- Time-tracking / SLA timers.
+- Cross-board templates or recurring tickets.
+- Inline file attachments on cards (use the linked Request).
+- Public / external read-only board view.
+- Temporary-access @mentions (Direction B carve-out, dropped).
+- Outbound broadcasting — that's `bu-broadcast`, a separate build.
 
 ---
 
 ## Where to find more
 
-- **Build brief** (technical): `docs/build/session-briefs/bu-coordination-board.md`
-- **How GPS uses the word "Group"**: `docs/product/groups.md`
-- **Existing data model**: `prisma/schema.prisma` (the team, member,
-  and job entities are already mostly in place)
+- Build brief (schema + ADRs): `docs/build/session-briefs/bu-coordination-board.md`
+- POC sketches: `docs/product/coordination-board-sketches/`
+- How GPS uses "Group": `docs/product/groups.md`
+- Feature-flag register: `docs/product/feature-flag-register.md` (`coord_board_v1`)
+- Scenarios: SCN-32 (Leonid claims), SCN-33 (Sharon shares), SCN-34 (Maya acknowledges).
+- Outbound sister BU (not yet built): `docs/build/session-briefs/bu-broadcast.md`
