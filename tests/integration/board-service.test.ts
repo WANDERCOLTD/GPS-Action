@@ -49,6 +49,7 @@ import {
   moveCard,
   positionBetween,
   setRequestStatus,
+  setRequestUrgency,
 } from '@/server/services/board';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
@@ -556,6 +557,67 @@ describe('setRequestStatus', () => {
     mockedRequest.findUnique.mockResolvedValue(null);
     await expect(
       setRequestStatus({ requestId: 'r-missing', status: 'done', actorId: 'u1' }),
+    ).rejects.toMatchObject({ kind: 'request_not_found' });
+  });
+});
+
+describe('setRequestUrgency', () => {
+  it('flips false → true, audits, emits urgent_on', async () => {
+    mockedRequest.findUnique.mockResolvedValue({ id: 'r1', urgency: false } as never);
+    mockedRequest.update.mockResolvedValue({ id: 'r1', urgency: true } as never);
+
+    const result = await setRequestUrgency({
+      requestId: 'r1',
+      urgent: true,
+      actorId: 'u1',
+    });
+
+    expect(result.urgency).toBe(true);
+    expect(mockedRequest.update).toHaveBeenCalledWith({
+      where: { id: 'r1' },
+      data: { urgency: true },
+    });
+    expect(mockedAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'request_urgency_changed',
+        changes: { urgency: { from: false, to: true } },
+      }),
+    );
+    expect(mockedEmitSystemEvent).toHaveBeenCalledWith({
+      requestId: 'r1',
+      actorId: 'u1',
+      event: { kind: 'urgent_on' },
+    });
+  });
+
+  it('flips true → false, audits, emits urgent_off', async () => {
+    mockedRequest.findUnique.mockResolvedValue({ id: 'r1', urgency: true } as never);
+    mockedRequest.update.mockResolvedValue({ id: 'r1', urgency: false } as never);
+
+    await setRequestUrgency({ requestId: 'r1', urgent: false, actorId: 'u1' });
+
+    expect(mockedEmitSystemEvent).toHaveBeenCalledWith({
+      requestId: 'r1',
+      actorId: 'u1',
+      event: { kind: 'urgent_off' },
+    });
+  });
+
+  it('is idempotent when the flag already matches — no audit, no system event', async () => {
+    mockedRequest.findUnique.mockResolvedValue({ id: 'r1', urgency: true } as never);
+    mockedRequest.findUniqueOrThrow.mockResolvedValue({ id: 'r1', urgency: true } as never);
+
+    await setRequestUrgency({ requestId: 'r1', urgent: true, actorId: 'u1' });
+
+    expect(mockedRequest.update).not.toHaveBeenCalled();
+    expect(mockedAudit).not.toHaveBeenCalled();
+    expect(mockedEmitSystemEvent).not.toHaveBeenCalled();
+  });
+
+  it('throws request_not_found when the Request is missing', async () => {
+    mockedRequest.findUnique.mockResolvedValue(null);
+    await expect(
+      setRequestUrgency({ requestId: 'r-missing', urgent: true, actorId: 'u1' }),
     ).rejects.toMatchObject({ kind: 'request_not_found' });
   });
 });

@@ -173,3 +173,28 @@ export async function postNoteAction(input: ComposeInput): Promise<BoardActionRe
   revalidatePath(ticketPath(input));
   return { ok: true };
 }
+
+// ── Urgent flip ──────────────────────────────────────────────────────────
+
+interface SetUrgentInput extends BoardActionInput {
+  /** The group whose board the editor is acting on (drives the gate). */
+  groupId: string;
+  urgent: boolean;
+}
+
+export async function setUrgentAction(input: SetUrgentInput): Promise<BoardActionResult> {
+  try {
+    const ctx = await createTRPCContext();
+    const caller = createCaller(ctx);
+    await caller.board.setUrgent({
+      requestId: input.requestId,
+      groupId: input.groupId,
+      urgent: input.urgent,
+    });
+  } catch (err) {
+    if (err instanceof TRPCError) return { ok: false, error: err.message };
+    return { ok: false, error: 'Could not update — try again.' };
+  }
+  revalidatePath(ticketPath(input));
+  return { ok: true };
+}

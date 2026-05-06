@@ -32,6 +32,7 @@ import { BoardActionPair } from '@/components/board/BoardActionPair';
 import { EditableTicketTitle } from '@/components/board/EditableTicketTitle';
 import { EditableTicketBody } from '@/components/board/EditableTicketBody';
 import { CommentNoteThread } from '@/components/board/CommentNoteThread';
+import { UrgentToggle } from '@/components/board/UrgentToggle';
 
 interface BoardTicketDetailPageProps {
   params: Promise<{ groupSlug: string; ticketId: string }>;
@@ -140,12 +141,28 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
         )}
       </header>
 
-      <BoardActionPair
-        requestId={ticket.id}
-        groupSlug={groupSlug}
-        assigned={isMineActive}
-        following={isMineSubscribed}
-      />
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'flex-start',
+          gap: 'var(--space-3)',
+          marginBottom: 'var(--space-4)',
+        }}
+      >
+        <BoardActionPair
+          requestId={ticket.id}
+          groupSlug={groupSlug}
+          assigned={isMineActive}
+          following={isMineSubscribed}
+        />
+        <UrgentToggle
+          requestId={ticket.id}
+          groupId={accessibleGroup.group.id}
+          groupSlug={groupSlug}
+          urgent={ticket.urgency}
+        />
+      </div>
 
       <section
         data-testid="board-ticket-assignees"

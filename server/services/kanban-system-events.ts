@@ -43,8 +43,7 @@ import { isEventEnabled } from '@/server/services/kanban-event-config';
 
 /**
  * Discriminated union of kanban events that may produce a system Comment.
- * Mirrors `KanbanEventKind` minus `urgent_on` / `urgent_off` — no
- * urgent-flip mutation exists yet (it lands in a follow-up atom).
+ * Covers every value of the `KanbanEventKind` enum.
  */
 export type KanbanSystemEvent =
   | { kind: 'column_move'; newColumnId: string }
@@ -53,7 +52,9 @@ export type KanbanSystemEvent =
   | { kind: 'body_edit' }
   | { kind: 'share_to_team'; targetGroupId: string }
   | { kind: 'assign_self' }
-  | { kind: 'unassign_self' };
+  | { kind: 'unassign_self' }
+  | { kind: 'urgent_on' }
+  | { kind: 'urgent_off' };
 
 export interface EmitKanbanSystemEventInput {
   requestId: string;
@@ -95,6 +96,10 @@ function toKanbanEventKind(kind: KanbanSystemEvent['kind']): KanbanEventKind {
       return 'assign_self';
     case 'unassign_self':
       return 'unassign_self';
+    case 'urgent_on':
+      return 'urgent_on';
+    case 'urgent_off':
+      return 'urgent_off';
   }
 }
 
@@ -133,6 +138,10 @@ async function buildBody(actorId: string, event: KanbanSystemEvent): Promise<str
       return `${name} claimed this ticket.`;
     case 'unassign_self':
       return `${name} unclaimed this ticket.`;
+    case 'urgent_on':
+      return `${name} marked this Urgent.`;
+    case 'urgent_off':
+      return `${name} cleared the Urgent flag.`;
   }
 }
 
