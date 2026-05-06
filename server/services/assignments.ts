@@ -25,6 +25,7 @@
 import type { Assignment } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
+import { moveCard } from '@/server/services/board';
 import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
 
 export interface AssigneeSummary {
@@ -120,10 +121,63 @@ export async function assignToRequest(
         actorId,
         event: { kind: 'assign_self' },
       });
+      await maybeAutoAdvanceFromRecruitment({ requestId, actorId });
     }
   }
 
   return result;
+}
+
+/**
+ * Tier-2 default #3 — auto-advance from Recruitment to the next column on
+ * a self-assign. Best-effort: silently no-ops when:
+ *
+ *   - the ticket is off-board (`Request.columnId === null`)
+ *   - the originating column has been soft-deleted
+ *   - the originating column's `displayName` is not "Recruitment"
+ *     (case-insensitive — admins who rename their first column have
+ *     opted out of this rule)
+ *   - there is no next column in the same group (Recruitment is the
+ *     last column, or the group has been re-ordered to drop it)
+ *
+ * Reads `Request.columnId` directly: it mirrors the originating
+ * `RequestGroup.columnId` per ADR-0009, and shared-group moves never
+ * touch it. So `BoardColumn.groupId` for that column is the
+ * originating group — no extra join needed to find the right board.
+ */
+async function maybeAutoAdvanceFromRecruitment(input: {
+  requestId: string;
+  actorId: string;
+}): Promise<void> {
+  const request = await prisma.request.findUnique({
+    where: { id: input.requestId },
+    select: { columnId: true },
+  });
+  if (!request?.columnId) return;
+
+  const currentColumn = await prisma.boardColumn.findUnique({
+    where: { id: request.columnId },
+    select: { groupId: true, ordinal: true, displayName: true, deletedAt: true },
+  });
+  if (!currentColumn || currentColumn.deletedAt !== null) return;
+  if (currentColumn.displayName.trim().toLowerCase() !== 'recruitment') return;
+
+  const nextColumn = await prisma.boardColumn.findFirst({
+    where: {
+      groupId: currentColumn.groupId,
+      ordinal: currentColumn.ordinal + 1,
+      deletedAt: null,
+    },
+    select: { id: true },
+  });
+  if (!nextColumn) return;
+
+  await moveCard({
+    requestId: input.requestId,
+    groupId: currentColumn.groupId,
+    destination: { lane: 'active', columnId: nextColumn.id },
+    actorId: input.actorId,
+  });
 }
 
 /**
