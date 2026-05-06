@@ -89,3 +89,37 @@ export async function proposeTicketAction(
     return { ok: false, error: 'Could not propose ticket — try again.' };
   }
 }
+
+// ── Quick-add into a column ──────────────────────────────────────────────
+
+export interface QuickAddCardActionInput {
+  groupId: string;
+  groupSlug: string;
+  columnId: string;
+  title: string;
+}
+
+export interface QuickAddCardActionResult {
+  ok: boolean;
+  requestId?: string;
+  error?: string;
+}
+
+export async function quickAddCardAction(
+  input: QuickAddCardActionInput,
+): Promise<QuickAddCardActionResult> {
+  try {
+    const ctx = await createTRPCContext();
+    const caller = createCaller(ctx);
+    const result = await caller.board.quickAdd({
+      groupId: input.groupId,
+      columnId: input.columnId,
+      title: input.title,
+    });
+    revalidatePath(`/board/${input.groupSlug}`);
+    return { ok: true, requestId: result.requestId };
+  } catch (err) {
+    if (err instanceof TRPCError) return { ok: false, error: err.message };
+    return { ok: false, error: 'Could not add card — try again.' };
+  }
+}

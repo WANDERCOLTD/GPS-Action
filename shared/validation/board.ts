@@ -22,3 +22,17 @@ export const boardProposeSchema = z.object({
 });
 
 export type BoardProposeInput = z.infer<typeof boardProposeSchema>;
+
+/**
+ * Quick-add: creates a ticket directly in a column on the Active board
+ * (status='active', columnId=X), skipping the backlog triage step.
+ * Body is omitted on the quick path — author can fill it in on Surface 2
+ * after creation.
+ */
+export const boardQuickAddSchema = z.object({
+  groupId: z.string().min(1),
+  columnId: z.string().min(1),
+  title: z.string().trim().min(TITLE_MIN).max(TITLE_MAX),
+});
+
+export type BoardQuickAddInput = z.infer<typeof boardQuickAddSchema>;

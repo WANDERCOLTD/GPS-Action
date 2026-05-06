@@ -23,6 +23,8 @@ export interface ColumnProps {
   dropRef?: (el: HTMLElement | null) => void;
   /** True while a draggable is hovering this column. */
   isOver?: boolean;
+  /** Rendered after the card list — typically a quick-add affordance. */
+  footer?: ReactNode;
 }
 
 export function Column({
@@ -33,6 +35,7 @@ export function Column({
   renderCard,
   dropRef,
   isOver,
+  footer,
 }: ColumnProps) {
   return (
     <section
@@ -102,6 +105,7 @@ export function Column({
           ),
         )
       )}
+      {footer}
     </section>
   );
 }
