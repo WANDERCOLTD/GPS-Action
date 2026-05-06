@@ -65,6 +65,7 @@ const NOW = new Date('2026-05-04T12:00:00Z');
 const ticketFixture = (overrides: Partial<CardProps['ticket']> = {}): CardProps['ticket'] => ({
   id: 'r1',
   title: 'Write the press release',
+  kindSlug: null,
   kindDisplayName: 'Task',
   isUrgent: false,
   assignees: [],
@@ -131,6 +132,33 @@ describe('Card', () => {
       ticket: ticketFixture({ kindDisplayName: null }),
     }) as AnyElement;
     expect(findByTestId(tree, 'board-card-kind')).toBeNull();
+  });
+
+  it('renders a kind glyph when the slug has a known mapping', () => {
+    const tree = Card({
+      groupSlug: 'g',
+      ticket: ticketFixture({ kindSlug: 'happening_now', kindDisplayName: 'Urgent' }),
+    }) as AnyElement;
+    const glyph = findByTestId(tree, 'board-card-kind-glyph');
+    expect(glyph).not.toBeNull();
+    expect((glyph?.props as Record<string, unknown>)['data-kind-slug']).toBe('happening_now');
+  });
+
+  it('omits the glyph when the slug is unknown but keeps the label', () => {
+    const tree = Card({
+      groupSlug: 'g',
+      ticket: ticketFixture({ kindSlug: 'mystery_kind', kindDisplayName: 'Mystery' }),
+    }) as AnyElement;
+    expect(findByTestId(tree, 'board-card-kind-glyph')).toBeNull();
+    expect(findByTestId(tree, 'board-card-kind')).not.toBeNull();
+  });
+
+  it('omits the glyph when kindSlug is null', () => {
+    const tree = Card({
+      groupSlug: 'g',
+      ticket: ticketFixture({ kindSlug: null, kindDisplayName: 'Task' }),
+    }) as AnyElement;
+    expect(findByTestId(tree, 'board-card-kind-glyph')).toBeNull();
   });
 });
 

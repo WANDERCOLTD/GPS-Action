@@ -50,6 +50,7 @@ export default async function BoardDonePage({ params }: BoardDonePageProps) {
   const tickets: CardProps['ticket'][] = cards.map((card) => ({
     id: card.id,
     title: card.title,
+    kindSlug: card.kindSlug,
     kindDisplayName: card.kindDisplayName,
     isUrgent: card.isUrgent,
     assignees: card.assignees,
