@@ -30,6 +30,7 @@ import type { Group, GroupShareWorkflow, RequestGroup, RequestGroupOrigin } from
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
+import { positionBetween } from '@/server/services/board';
 import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
 
 export type ShareMode = 'workflow' | 'ad_hoc';
@@ -151,6 +152,42 @@ export async function shareRequestToGroup(
 
   const origin: RequestGroupOrigin = input.mode === 'workflow' ? 'workflow_share' : 'ad_hoc_share';
 
+  // Place the share on the target group's Active board when the Request
+  // is active — otherwise the kanban list filter (columnId IS NOT NULL)
+  // hides it and Sharon's IT-share scenario silently fails. Backlog /
+  // done / abandoned shares leave columnId null; they surface via the
+  // matching off-board view's Request.status filter.
+  const request = await prisma.request.findUnique({
+    where: { id: input.requestId },
+    select: { status: true },
+  });
+
+  let targetColumnId: string | null = null;
+  let targetBoardPosition: Prisma.Decimal | null = null;
+  if (request?.status === 'active') {
+    const firstColumn = await prisma.boardColumn.findFirst({
+      where: { groupId: input.targetGroupId, deletedAt: null },
+      orderBy: { ordinal: 'asc' },
+      select: { id: true },
+    });
+    if (firstColumn) {
+      const tail = await prisma.requestGroup.findFirst({
+        where: {
+          groupId: input.targetGroupId,
+          columnId: firstColumn.id,
+          deletedAt: null,
+        },
+        orderBy: { boardPosition: 'desc' },
+        select: { boardPosition: true },
+      });
+      targetColumnId = firstColumn.id;
+      targetBoardPosition = positionBetween(
+        (tail?.boardPosition ?? null) as Prisma.Decimal | null,
+        null,
+      );
+    }
+  }
+
   const result = await prisma.$transaction(async (tx) => {
     const existing = await tx.requestGroup.findUnique({
       where: {
@@ -168,6 +205,8 @@ export async function shareRequestToGroup(
           deletedAt: null,
           origin,
           sharedByUserId: input.actorId,
+          columnId: targetColumnId,
+          boardPosition: targetBoardPosition,
           updatedAt: new Date(),
         },
       });
@@ -179,6 +218,8 @@ export async function shareRequestToGroup(
         groupId: input.targetGroupId,
         origin,
         sharedByUserId: input.actorId,
+        columnId: targetColumnId,
+        boardPosition: targetBoardPosition,
       },
     });
     return { row, created: true, reactivated: false };
