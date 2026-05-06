@@ -27,25 +27,21 @@ is a separate, opt-in step. Don't merge them.
 
 `scripts/vercel-ignore-build.sh` is wired in the Vercel dashboard
 (Project Settings → Git → Ignored Build Step → command:
-`bash scripts/vercel-ignore-build.sh`). It causes Vercel to **skip**
-deploys for:
+`bash scripts/vercel-ignore-build.sh`). It causes Vercel to **skip
+every git-triggered build** — both PR previews and merges to `main`.
 
-- **The `main` branch.** Auto-deploy on production is OFF — every
-  merge would otherwise eat a slot of the 100/day Vercel quota.
-  Refresh the demo URL with `vercel deploy --prebuilt --prod`
-  (Option 2 below) when you genuinely want it updated.
-- **Dependabot branches** (`dependabot/...`). Dependency-bump
-  previews add no demo signal and consume quota.
-- Docs-only changes on PR previews (`docs/`, `tests/`, `.github/`,
-  `eslint-rules/`, `.claude/`, `CLAUDE.md`, `README.md`).
-- PATCH-version-only changes to `package.json` /
-  `package-lock.json`.
+Why blanket-skip: Vercel's free tier caps daily deploys at 100, and
+we were burning through it on previews-per-PR + every merge, none
+of which represented a real demo-refresh request. PR previews
+weren't part of the workflow (local dev on `localhost:3001` covers
+the loop) and main auto-deploys created stale-but-superseded
+artefacts as fast as we could merge.
+
+Manual deploys still work — the Vercel CLI doesn't go through the
+Ignored Build Step. See Option 2 below for the canonical refresh
+flow.
 
 Skipped deploys do **not** count against the daily build-rate quota.
-
-If a docs-only PR _did_ deploy and you don't see the change, the
-script may have skipped it — that's expected. The next runtime change
-will pick it up.
 
 ---
 
