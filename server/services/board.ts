@@ -401,6 +401,57 @@ export async function setRequestStatus(input: SetStatusInput): Promise<Request> 
   return updated;
 }
 
+export interface SetUrgencyInput {
+  requestId: string;
+  urgent: boolean;
+  actorId: string;
+}
+
+/**
+ * Toggle the global `Request.urgency` flag. Idempotent: returns the
+ * existing row unchanged when the flag already matches; no audit, no
+ * system event. On change writes an audit row and emits the matching
+ * system event (`urgent_on` or `urgent_off`), gated by the admin
+ * toggle in `kanban-event-config`.
+ *
+ * Per-link urgency (`RequestGroup.isUrgent`) is independent and not
+ * touched here — the brief calls `Request.urgency` the canonical
+ * "this ticket is urgent" flag.
+ */
+export async function setRequestUrgency(input: SetUrgencyInput): Promise<Request> {
+  const before = await prisma.request.findUnique({
+    where: { id: input.requestId },
+    select: { id: true, urgency: true },
+  });
+  if (!before) {
+    throw new BoardError('request_not_found', `Request ${input.requestId} not found`);
+  }
+  if (before.urgency === input.urgent) {
+    return prisma.request.findUniqueOrThrow({ where: { id: input.requestId } });
+  }
+
+  const updated = await prisma.request.update({
+    where: { id: input.requestId },
+    data: { urgency: input.urgent },
+  });
+
+  await auditLog({
+    action: 'request_urgency_changed',
+    entityType: 'Request',
+    entityId: input.requestId,
+    userId: input.actorId,
+    changes: { urgency: { from: before.urgency, to: input.urgent } },
+  });
+
+  await emitKanbanSystemEvent({
+    requestId: input.requestId,
+    actorId: input.actorId,
+    event: { kind: input.urgent ? 'urgent_on' : 'urgent_off' },
+  });
+
+  return updated;
+}
+
 // ─── Read query: cards on a group's board ───────────────────────────────────
 
 export interface BoardCardAssignee {

@@ -29,6 +29,7 @@ import { router, authedProcedure } from '@/server/lib/trpc';
 import {
   moveCard,
   setRequestStatus,
+  setRequestUrgency,
   listBoardCardsForGroup,
   getTicketDetail,
   editTicketTitle,
@@ -162,6 +163,12 @@ const editBodySchema = z.object({
   groupId: z.string().min(1),
   /** null clears the description; non-null is trimmed server-side. */
   body: z.string().max(TICKET_BODY_MAX_LENGTH).nullable(),
+});
+
+const setUrgentSchema = z.object({
+  requestId: z.string().min(1),
+  groupId: z.string().min(1),
+  urgent: z.boolean(),
 });
 
 export const boardRouter = router({
@@ -346,6 +353,34 @@ export const boardRouter = router({
         status: input.status,
         actorId: ctx.user.id,
       });
+    } catch (err) {
+      throw toTRPCError(err);
+    }
+  }),
+
+  /**
+   * Toggle the global `Request.urgency` flag. Same permission shape as
+   * `editTitle` / `editBody`: any group member of a group linked to
+   * the ticket may flip; brief Tier-1 ("any group member, audit-
+   * logged"). Service writes the audit row + system event.
+   */
+  setUrgent: authedProcedure.input(setUrgentSchema).mutation(async ({ ctx, input }) => {
+    try {
+      await assertCanViewBoard({
+        groupId: input.groupId,
+        userId: ctx.user.id,
+        isSystemAdmin: ctx.activeRoles.includes('admin'),
+      });
+    } catch (err) {
+      throw toTRPCError(err);
+    }
+    try {
+      const updated = await setRequestUrgency({
+        requestId: input.requestId,
+        urgent: input.urgent,
+        actorId: ctx.user.id,
+      });
+      return { ok: true as const, urgency: updated.urgency };
     } catch (err) {
       throw toTRPCError(err);
     }

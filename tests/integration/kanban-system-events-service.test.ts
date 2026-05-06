@@ -178,4 +178,22 @@ describe('emitKanbanSystemEvent — phrasing', () => {
     });
     expect(commentCreate.mock.calls[0][0].data.body).toBe('Sharon unclaimed this ticket.');
   });
+
+  it('phrases urgent_on', async () => {
+    await emitKanbanSystemEvent({
+      requestId: 'r1',
+      actorId: 'u1',
+      event: { kind: 'urgent_on' },
+    });
+    expect(commentCreate.mock.calls[0][0].data.body).toBe('Sharon marked this Urgent.');
+  });
+
+  it('phrases urgent_off', async () => {
+    await emitKanbanSystemEvent({
+      requestId: 'r1',
+      actorId: 'u1',
+      event: { kind: 'urgent_off' },
+    });
+    expect(commentCreate.mock.calls[0][0].data.body).toBe('Sharon cleared the Urgent flag.');
+  });
 });
