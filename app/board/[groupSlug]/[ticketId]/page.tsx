@@ -33,6 +33,8 @@ import { EditableTicketTitle } from '@/components/board/EditableTicketTitle';
 import { EditableTicketBody } from '@/components/board/EditableTicketBody';
 import { CommentNoteThread } from '@/components/board/CommentNoteThread';
 import { UrgentToggle } from '@/components/board/UrgentToggle';
+import { MarkDoneButton } from '@/components/board/MarkDoneButton';
+import { UndoToastProvider } from '@/components/board/UndoToastContext';
 
 interface BoardTicketDetailPageProps {
   params: Promise<{ groupSlug: string; ticketId: string }>;
@@ -97,200 +99,214 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
     viewerGroupId: accessibleGroup.group.id,
   });
 
+  // Where the card currently lives — captured for undo when the user
+  // marks done. The originating link is the source of truth for column.
+  const currentColumnId = originatingGroup?.columnId ?? null;
+  const isActive = ticket.status === 'active';
+
   return (
-    <main
-      data-testid="board-ticket-detail"
-      style={{
-        padding: 'var(--space-5) var(--space-4) var(--space-6)',
-        margin: '0 auto',
-        maxWidth: 720,
-      }}
-    >
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <Link
-          href={`/board/${groupSlug}`}
-          data-testid="board-ticket-back"
+    <UndoToastProvider>
+      <main
+        data-testid="board-ticket-detail"
+        style={{
+          padding: 'var(--space-5) var(--space-4) var(--space-6)',
+          margin: '0 auto',
+          maxWidth: 720,
+        }}
+      >
+        <header style={{ marginBottom: 'var(--space-4)' }}>
+          <Link
+            href={`/board/${groupSlug}`}
+            data-testid="board-ticket-back"
+            style={{
+              fontSize: 'var(--text-sm)',
+              color: 'var(--colour-text-link)',
+              textDecoration: 'none',
+              display: 'inline-block',
+              marginBottom: 'var(--space-2)',
+            }}
+          >
+            ← {accessibleGroup.group.displayName} board
+          </Link>
+          <EditableTicketTitle
+            requestId={ticket.id}
+            groupSlug={groupSlug}
+            groupId={accessibleGroup.group.id}
+            initial={ticket.title}
+            urgent={ticket.urgency}
+          />
+          {ticket.kindDisplayName && (
+            <p
+              data-testid="board-ticket-kind"
+              style={{
+                margin: 'var(--space-1) 0 0 0',
+                fontSize: 'var(--text-sm)',
+                color: 'var(--colour-text-secondary)',
+              }}
+            >
+              {ticket.kindDisplayName}
+            </p>
+          )}
+        </header>
+
+        <div
           style={{
-            fontSize: 'var(--text-sm)',
-            color: 'var(--colour-text-link)',
-            textDecoration: 'none',
-            display: 'inline-block',
-            marginBottom: 'var(--space-2)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'flex-start',
+            gap: 'var(--space-3)',
+            marginBottom: 'var(--space-4)',
           }}
         >
-          ← {accessibleGroup.group.displayName} board
-        </Link>
-        <EditableTicketTitle
-          requestId={ticket.id}
-          groupSlug={groupSlug}
-          groupId={accessibleGroup.group.id}
-          initial={ticket.title}
-          urgent={ticket.urgency}
-        />
-        {ticket.kindDisplayName && (
-          <p
-            data-testid="board-ticket-kind"
+          <BoardActionPair
+            requestId={ticket.id}
+            groupSlug={groupSlug}
+            assigned={isMineActive}
+            following={isMineSubscribed}
+          />
+          <UrgentToggle
+            requestId={ticket.id}
+            groupId={accessibleGroup.group.id}
+            groupSlug={groupSlug}
+            urgent={ticket.urgency}
+          />
+          <MarkDoneButton
+            requestId={ticket.id}
+            groupId={accessibleGroup.group.id}
+            groupSlug={groupSlug}
+            currentColumnId={currentColumnId}
+            isActive={isActive}
+          />
+        </div>
+
+        <section
+          data-testid="board-ticket-assignees"
+          aria-label="Assignees"
+          style={{
+            marginBottom: 'var(--space-4)',
+            padding: 'var(--space-3)',
+            background: 'var(--colour-surface-sunken)',
+            borderRadius: 'var(--radius-md)',
+          }}
+        >
+          <h2
             style={{
-              margin: 'var(--space-1) 0 0 0',
-              fontSize: 'var(--text-sm)',
+              margin: '0 0 var(--space-2) 0',
+              fontSize: 'var(--text-xs)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
               color: 'var(--colour-text-secondary)',
             }}
           >
-            {ticket.kindDisplayName}
-          </p>
-        )}
-      </header>
-
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'flex-start',
-          gap: 'var(--space-3)',
-          marginBottom: 'var(--space-4)',
-        }}
-      >
-        <BoardActionPair
-          requestId={ticket.id}
-          groupSlug={groupSlug}
-          assigned={isMineActive}
-          following={isMineSubscribed}
-        />
-        <UrgentToggle
-          requestId={ticket.id}
-          groupId={accessibleGroup.group.id}
-          groupSlug={groupSlug}
-          urgent={ticket.urgency}
-        />
-      </div>
-
-      <section
-        data-testid="board-ticket-assignees"
-        aria-label="Assignees"
-        style={{
-          marginBottom: 'var(--space-4)',
-          padding: 'var(--space-3)',
-          background: 'var(--colour-surface-sunken)',
-          borderRadius: 'var(--radius-md)',
-        }}
-      >
-        <h2
-          style={{
-            margin: '0 0 var(--space-2) 0',
-            fontSize: 'var(--text-xs)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            color: 'var(--colour-text-secondary)',
-          }}
-        >
-          Assignees
-        </h2>
-        {ticket.assignees.length === 0 ? (
-          <p
-            data-testid="board-ticket-assignees-empty"
-            style={{
-              margin: 0,
-              fontSize: 'var(--text-sm)',
-              color: 'var(--colour-text-secondary)',
-            }}
-          >
-            No one is assigned yet.
-          </p>
-        ) : (
-          <ul
-            style={{
-              listStyle: 'none',
-              padding: 0,
-              margin: 0,
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 'var(--space-2)',
-            }}
-          >
-            {ticket.assignees.map((a) => (
-              <li
-                key={a.userId}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  padding: '4px 10px 4px 4px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--colour-surface-raised)',
-                  border: '1px solid var(--colour-border-subtle)',
-                  fontSize: 'var(--text-sm)',
-                }}
-              >
-                <span
-                  title={a.displayName}
+            Assignees
+          </h2>
+          {ticket.assignees.length === 0 ? (
+            <p
+              data-testid="board-ticket-assignees-empty"
+              style={{
+                margin: 0,
+                fontSize: 'var(--text-sm)',
+                color: 'var(--colour-text-secondary)',
+              }}
+            >
+              No one is assigned yet.
+            </p>
+          ) : (
+            <ul
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 'var(--space-2)',
+              }}
+            >
+              {ticket.assignees.map((a) => (
+                <li
+                  key={a.userId}
                   style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50%',
-                    background: a.avatarUrl
-                      ? `center / cover no-repeat url(${a.avatarUrl})`
-                      : 'var(--colour-surface-sunken)',
-                    color: 'var(--colour-text-secondary)',
-                    fontSize: 10,
                     display: 'inline-flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
+                    gap: 'var(--space-2)',
+                    padding: '4px 10px 4px 4px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--colour-surface-raised)',
                     border: '1px solid var(--colour-border-subtle)',
+                    fontSize: 'var(--text-sm)',
                   }}
                 >
-                  {a.avatarUrl ? '' : initials(a.displayName)}
-                </span>
-                {a.displayName}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                  <span
+                    title={a.displayName}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      background: a.avatarUrl
+                        ? `center / cover no-repeat url(${a.avatarUrl})`
+                        : 'var(--colour-surface-sunken)',
+                      color: 'var(--colour-text-secondary)',
+                      fontSize: 10,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1px solid var(--colour-border-subtle)',
+                    }}
+                  >
+                    {a.avatarUrl ? '' : initials(a.displayName)}
+                  </span>
+                  {a.displayName}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-      <section
-        data-testid="board-ticket-description"
-        aria-label="Description"
-        style={{
-          marginBottom: 'var(--space-4)',
-        }}
-      >
-        <h2
+        <section
+          data-testid="board-ticket-description"
+          aria-label="Description"
           style={{
-            margin: '0 0 var(--space-2) 0',
-            fontSize: 'var(--text-xs)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            color: 'var(--colour-text-secondary)',
+            marginBottom: 'var(--space-4)',
           }}
         >
-          Description
-        </h2>
-        <EditableTicketBody
+          <h2
+            style={{
+              margin: '0 0 var(--space-2) 0',
+              fontSize: 'var(--text-xs)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              color: 'var(--colour-text-secondary)',
+            }}
+          >
+            Description
+          </h2>
+          <EditableTicketBody
+            requestId={ticket.id}
+            groupSlug={groupSlug}
+            groupId={accessibleGroup.group.id}
+            initial={ticket.body}
+          />
+        </section>
+
+        <CommentNoteThread
+          rows={threadRows}
           requestId={ticket.id}
           groupSlug={groupSlug}
-          groupId={accessibleGroup.group.id}
-          initial={ticket.body}
+          canPostNote={canPostNote}
         />
-      </section>
 
-      <CommentNoteThread
-        rows={threadRows}
-        requestId={ticket.id}
-        groupSlug={groupSlug}
-        canPostNote={canPostNote}
-      />
-
-      <footer
-        data-testid="board-ticket-meta"
-        style={{
-          fontSize: 'var(--text-xs)',
-          color: 'var(--colour-text-secondary)',
-          paddingTop: 'var(--space-3)',
-          borderTop: '1px solid var(--colour-border-subtle)',
-        }}
-      >
-        Last updated {formatDistanceToNow(ticket.updatedAt, { addSuffix: true })}
-      </footer>
-    </main>
+        <footer
+          data-testid="board-ticket-meta"
+          style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--colour-text-secondary)',
+            paddingTop: 'var(--space-3)',
+            borderTop: '1px solid var(--colour-border-subtle)',
+          }}
+        >
+          Last updated {formatDistanceToNow(ticket.updatedAt, { addSuffix: true })}
+        </footer>
+      </main>
+    </UndoToastProvider>
   );
 }

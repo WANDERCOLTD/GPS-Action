@@ -17,6 +17,8 @@ import { isFeatureEnabled } from '@/server/services/flags';
 import { Card, type CardProps } from '@/components/board/Card';
 import { BoardTabs } from '@/components/board/BoardTabs';
 import { BoardBackLink } from '@/components/board/BoardBackLink';
+import { BacklogQuickAdd } from '@/components/board/BacklogQuickAdd';
+import { PlaceOnBoardButton } from '@/components/board/PlaceOnBoardButton';
 
 interface BoardBacklogPageProps {
   params: Promise<{ groupSlug: string }>;
@@ -45,10 +47,13 @@ export default async function BoardBacklogPage({ params }: BoardBacklogPageProps
     notFound();
   }
 
-  const cards = await caller.board.listCards({
-    groupId: accessibleGroup.group.id,
-    status: 'backlog',
-  });
+  const [cards, columns] = await Promise.all([
+    caller.board.listCards({
+      groupId: accessibleGroup.group.id,
+      status: 'backlog',
+    }),
+    caller.boardColumn.listForGroup({ groupId: accessibleGroup.group.id }),
+  ]);
 
   const tickets: CardProps['ticket'][] = cards.map((card) => ({
     id: card.id,
@@ -82,18 +87,21 @@ export default async function BoardBacklogPage({ params }: BoardBacklogPageProps
       </header>
       <BoardTabs groupSlug={groupSlug} active="backlog" />
       {tickets.length === 0 ? (
-        <p
-          data-testid="board-backlog-empty"
-          style={{
-            padding: 'var(--space-5)',
-            background: 'var(--colour-surface-sunken)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--colour-text-secondary)',
-            textAlign: 'center',
-          }}
-        >
-          No tickets in the backlog. New tickets land here before being placed on a column.
-        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <p
+            data-testid="board-backlog-empty"
+            style={{
+              padding: 'var(--space-5)',
+              background: 'var(--colour-surface-sunken)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--colour-text-secondary)',
+              textAlign: 'center',
+            }}
+          >
+            No tickets in the backlog. New tickets land here before being placed on a column.
+          </p>
+          <BacklogQuickAdd groupId={accessibleGroup.group.id} groupSlug={groupSlug} />
+        </div>
       ) : (
         <ul
           data-testid="board-backlog-list"
@@ -107,10 +115,29 @@ export default async function BoardBacklogPage({ params }: BoardBacklogPageProps
           }}
         >
           {tickets.map((ticket) => (
-            <li key={ticket.id} style={{ margin: 0 }}>
+            <li
+              key={ticket.id}
+              style={{
+                margin: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-2)',
+              }}
+            >
               <Card groupSlug={groupSlug} ticket={ticket} />
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <PlaceOnBoardButton
+                  requestId={ticket.id}
+                  groupId={accessibleGroup.group.id}
+                  groupSlug={groupSlug}
+                  columns={columns.map((c) => ({ id: c.id, displayName: c.displayName }))}
+                />
+              </div>
             </li>
           ))}
+          <li style={{ margin: 0, marginTop: 'var(--space-2)' }}>
+            <BacklogQuickAdd groupId={accessibleGroup.group.id} groupSlug={groupSlug} />
+          </li>
         </ul>
       )}
     </main>
