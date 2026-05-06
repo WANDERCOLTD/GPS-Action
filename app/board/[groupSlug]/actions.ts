@@ -51,7 +51,13 @@ export async function moveCardAction(input: MoveCardActionInput): Promise<MoveCa
     if (err instanceof TRPCError) return { ok: false, error: err.message };
     return { ok: false, error: 'Could not move the card — try again.' };
   }
+  // Revalidate every list-view that could now be stale: the source
+  // page (where the card was) and the destination page (where it's
+  // going). Cheaper than narrowly tracking source — three Next.js
+  // revalidations is negligible vs. risking a stale render.
   revalidatePath(`/board/${input.groupSlug}`);
+  revalidatePath(`/board/${input.groupSlug}/backlog`);
+  revalidatePath(`/board/${input.groupSlug}/done`);
   return { ok: true };
 }
 
