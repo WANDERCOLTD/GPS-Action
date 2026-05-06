@@ -17,9 +17,14 @@ describe('isInlineToggleAllowed', () => {
     expect(isInlineToggleAllowed('featureFlag', 'enabledGlobally')).toBe(true);
   });
 
+  it('allows kanbanEventConfig.enabled', () => {
+    expect(isInlineToggleAllowed('kanbanEventConfig', 'enabled')).toBe(true);
+  });
+
   it('rejects an unknown field on a known entity', () => {
     expect(isInlineToggleAllowed('featureFlag', 'rolloutPercentage')).toBe(false);
     expect(isInlineToggleAllowed('featureFlag', 'deletedAt')).toBe(false);
+    expect(isInlineToggleAllowed('kanbanEventConfig', 'eventKind')).toBe(false);
   });
 
   it('rejects every field on an unknown entity', () => {
@@ -27,9 +32,10 @@ describe('isInlineToggleAllowed', () => {
     expect(isInlineToggleAllowed('post', 'visibility')).toBe(false);
   });
 
-  it('keeps the allowlist tightly scoped — exactly one entity, one field today', () => {
-    const entries = Object.entries(INLINE_TOGGLE_ALLOWLIST);
-    expect(entries).toHaveLength(1);
-    expect(entries[0]).toEqual(['featureFlag', ['enabledGlobally']]);
+  it('keeps the allowlist tightly scoped to known reference-data toggles', () => {
+    expect(INLINE_TOGGLE_ALLOWLIST).toEqual({
+      featureFlag: ['enabledGlobally'],
+      kanbanEventConfig: ['enabled'],
+    });
   });
 });

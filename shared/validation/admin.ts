@@ -45,6 +45,7 @@ export type AdminEntityKeyShared = (typeof ADMIN_ENTITY_KEYS)[number];
  */
 export const INLINE_TOGGLE_ALLOWLIST: Readonly<Record<string, ReadonlyArray<string>>> = {
   featureFlag: ['enabledGlobally'],
+  kanbanEventConfig: ['enabled'],
 };
 
 export function isInlineToggleAllowed(entity: string, field: string): boolean {
