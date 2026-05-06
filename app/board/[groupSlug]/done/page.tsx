@@ -14,6 +14,7 @@ import { isFeatureEnabled } from '@/server/services/flags';
 import { Card, type CardProps } from '@/components/board/Card';
 import { BoardTabs } from '@/components/board/BoardTabs';
 import { BoardBackLink } from '@/components/board/BoardBackLink';
+import { ReopenButton } from '@/components/board/ReopenButton';
 
 interface BoardDonePageProps {
   params: Promise<{ groupSlug: string }>;
@@ -42,10 +43,13 @@ export default async function BoardDonePage({ params }: BoardDonePageProps) {
     notFound();
   }
 
-  const cards = await caller.board.listCards({
-    groupId: accessibleGroup.group.id,
-    status: 'done',
-  });
+  const [cards, columns] = await Promise.all([
+    caller.board.listCards({
+      groupId: accessibleGroup.group.id,
+      status: 'done',
+    }),
+    caller.boardColumn.listForGroup({ groupId: accessibleGroup.group.id }),
+  ]);
 
   const tickets: CardProps['ticket'][] = cards.map((card) => ({
     id: card.id,
@@ -104,8 +108,24 @@ export default async function BoardDonePage({ params }: BoardDonePageProps) {
           }}
         >
           {tickets.map((ticket) => (
-            <li key={ticket.id} style={{ margin: 0 }}>
+            <li
+              key={ticket.id}
+              style={{
+                margin: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-2)',
+              }}
+            >
               <Card groupSlug={groupSlug} ticket={ticket} />
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <ReopenButton
+                  requestId={ticket.id}
+                  groupId={accessibleGroup.group.id}
+                  groupSlug={groupSlug}
+                  columns={columns.map((c) => ({ id: c.id, displayName: c.displayName }))}
+                />
+              </div>
             </li>
           ))}
         </ul>
