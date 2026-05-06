@@ -743,3 +743,46 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * KANBAN BOARD GRID (bu-coordination-board — Surface 1, mobile reflow)
+ * Desktop: horizontal flex of fixed-width columns with x-overflow scroll.
+ * Mobile (≤768px): columns stack vertically; each column reads as a
+ * full-width section. The 768px breakpoint matches the brief's
+ * "Columns flatten to a vertical list on mobile" guidance.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+.gps-board-grid {
+  display: flex;
+  gap: var(--space-3);
+  overflow-x: auto;
+  padding-bottom: var(--space-3);
+}
+
+.gps-board-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  min-width: 280px;
+  flex: 0 0 280px;
+  outline-offset: -3px;
+  transition:
+    background 120ms,
+    outline-color 120ms,
+    box-shadow 120ms;
+}
+
+@media (max-width: 768px) {
+  .gps-board-grid {
+    flex-direction: column;
+    overflow-x: visible;
+  }
+
+  .gps-board-column {
+    min-width: 0;
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}

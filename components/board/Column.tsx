@@ -37,26 +37,18 @@ export function Column({
   return (
     <section
       ref={dropRef}
+      className="gps-board-column"
       data-testid="board-column-card"
       data-column-id={columnId}
       data-drop-over={isOver ? 'true' : 'false'}
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-2)',
-        padding: 'var(--space-3)',
         background: isOver
           ? 'color-mix(in srgb, var(--colour-primary) 14%, var(--colour-surface-sunken))'
           : 'var(--colour-surface-sunken)',
-        borderRadius: 'var(--radius-md)',
-        minWidth: 280,
-        flex: '0 0 280px',
         outline: isOver ? '3px solid var(--colour-primary)' : '3px solid transparent',
-        outlineOffset: -3,
         boxShadow: isOver
           ? '0 0 0 6px color-mix(in srgb, var(--colour-primary) 18%, transparent)'
           : 'none',
-        transition: 'background 120ms, outline-color 120ms, box-shadow 120ms',
       }}
     >
       <header

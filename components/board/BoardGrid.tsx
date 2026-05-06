@@ -170,14 +170,9 @@ export function BoardGrid({ groupSlug, groupId, columns, cardsByColumn }: BoardG
         onDragCancel={handleDragCancel}
       >
         <div
+          className="gps-board-grid"
           data-testid="board-view-grid"
           data-pending={isPending ? 'true' : 'false'}
-          style={{
-            display: 'flex',
-            gap: 'var(--space-3)',
-            overflowX: 'auto',
-            paddingBottom: 'var(--space-3)',
-          }}
         >
           {columns.map((column) => (
             <DroppableColumn
