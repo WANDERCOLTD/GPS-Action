@@ -13,10 +13,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { QuickAddCard } from '@/components/board/QuickAddCard';
 
 describe('QuickAddCard', () => {
-  it('exports a QuickAddCard symbol from components/board/QuickAddCard', async () => {
-    const mod = await import('@/components/board/QuickAddCard');
-    expect(typeof mod.QuickAddCard).toBe('function');
+  it('exports as a function component', () => {
+    expect(typeof QuickAddCard).toBe('function');
   });
 });
