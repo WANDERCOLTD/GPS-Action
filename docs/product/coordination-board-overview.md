@@ -188,22 +188,22 @@ for Writers, mentions only for IT".
 
 ## Who can do what
 
-| Action | Member of group | Group admin | System admin |
-|---|---|---|---|
-| View this group's board | ✓ | ✓ | ✓ |
-| Claim (Assign me) | ✓ | ✓ | ✓ |
-| Move own card between columns | ✓ | ✓ | ✓ |
-| Move any card | — | ✓ | ✓ |
-| Edit description (audit-logged) | ✓ | ✓ | ✓ |
-| Reorder column (drag-prioritise) | — | ✓ | ✓ |
-| Configure columns | — | ✓ | ✓ |
-| Approve join requests | — | ✓ | ✓ |
-| Promote member → group admin | — | ✓ | ✓ |
-| Share ticket to another team | ✓ (within allow-list) | ✓ (any team) | ✓ |
-| Send team-blast notification | — | ✓ | ✓ |
-| Configure share allow-list | — | ✓ | ✓ |
-| Create new group | — | — | ✓ |
-| Archive group | — | — | ✓ |
+| Action                           | Member of group       | Group admin  | System admin |
+| -------------------------------- | --------------------- | ------------ | ------------ |
+| View this group's board          | ✓                     | ✓            | ✓            |
+| Claim (Assign me)                | ✓                     | ✓            | ✓            |
+| Move own card between columns    | ✓                     | ✓            | ✓            |
+| Move any card                    | —                     | ✓            | ✓            |
+| Edit description (audit-logged)  | ✓                     | ✓            | ✓            |
+| Reorder column (drag-prioritise) | —                     | ✓            | ✓            |
+| Configure columns                | —                     | ✓            | ✓            |
+| Approve join requests            | —                     | ✓            | ✓            |
+| Promote member → group admin     | —                     | ✓            | ✓            |
+| Share ticket to another team     | ✓ (within allow-list) | ✓ (any team) | ✓            |
+| Send team-blast notification     | —                     | ✓            | ✓            |
+| Configure share allow-list       | —                     | ✓            | ✓            |
+| Create new group                 | —                     | —            | ✓            |
+| Archive group                    | —                     | —            | ✓            |
 
 Joining a team needs admin approval, with one exception: networks like
 CUFI can be configured at creation to allow members to self-attest
