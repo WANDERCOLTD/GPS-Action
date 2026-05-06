@@ -786,3 +786,20 @@
     width: 100%;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * MOBILE TAG-PILL SWITCHER (bu-coordination-board — Surface 1, B2)
+ * Hidden on desktop; shown as an inline-flex pill on mobile (≤768px).
+ * The 768px breakpoint matches the B1 vertical-reflow cutover so pill +
+ * stacked layout appear together.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+.gps-mobile-tag-switcher {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .gps-mobile-tag-switcher {
+    display: inline-flex;
+  }
+}

@@ -95,7 +95,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-versioning | 3 | — | D003, D065, D073 |
 | BU-whatsapp-share | 2 | — | D065, D067 |
 | bu-capabilities-mockup | 1 | — | — |
-| bu-coordination-board | 45 | SCN-34 | — |
+| bu-coordination-board | 46 | SCN-34 | — |
 | bu-group-identity | 2 | — | — |
 | bu-kanban-event-config | 1 | — | — |
 
