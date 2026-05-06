@@ -5,9 +5,15 @@
  * BoardTabs — Active / Backlog / Done tab strip on the per-group
  * board pages. Pure presentational; the page passes the active tab
  * key. Uses Next.js Link so each tab is a real URL (deep-linkable).
+ *
+ * Icons come from the shared `BOARD_LANE_META` map so the tab strip
+ * and the per-card lifecycle actions stay visually aligned (the same
+ * Inbox icon you tap on a card to send to backlog is the same icon
+ * sitting on the Backlog tab).
  */
 
 import Link from 'next/link';
+import { BOARD_LANE_META } from '@/components/board/lane-icons';
 
 export type BoardTab = 'active' | 'backlog' | 'done';
 
@@ -16,11 +22,7 @@ interface BoardTabsProps {
   active: BoardTab;
 }
 
-const TABS: Array<{ key: BoardTab; label: string; suffix: string }> = [
-  { key: 'active', label: 'Active', suffix: '' },
-  { key: 'backlog', label: 'Backlog', suffix: '/backlog' },
-  { key: 'done', label: 'Done', suffix: '/done' },
-];
+const TABS: ReadonlyArray<BoardTab> = ['active', 'backlog', 'done'];
 
 export function BoardTabs({ groupSlug, active }: BoardTabsProps) {
   return (
@@ -35,15 +37,20 @@ export function BoardTabs({ groupSlug, active }: BoardTabsProps) {
       }}
     >
       {TABS.map((tab) => {
-        const isActive = tab.key === active;
+        const meta = BOARD_LANE_META[tab];
+        const isActive = tab === active;
+        const Icon = meta.icon;
         return (
           <Link
-            key={tab.key}
-            href={`/board/${groupSlug}${tab.suffix}`}
+            key={tab}
+            href={`/board/${groupSlug}${meta.href}`}
             data-testid="board-tabs-link"
-            data-tab={tab.key}
+            data-tab={tab}
             aria-current={isActive ? 'page' : undefined}
             style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-1)',
               padding: 'var(--space-2) var(--space-3)',
               fontSize: 'var(--text-sm)',
               fontFamily: 'var(--font-ui)',
@@ -54,7 +61,8 @@ export function BoardTabs({ groupSlug, active }: BoardTabsProps) {
               marginBottom: -1,
             }}
           >
-            {tab.label}
+            <Icon size={14} aria-hidden="true" />
+            <span>{meta.label}</span>
           </Link>
         );
       })}

@@ -19,6 +19,10 @@
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import {
+  CardLifecycleActions,
+  type CardLifecycleStatus,
+} from '@/components/board/CardLifecycleActions';
+import {
   MobileTagSwitcher,
   type MobileTagSwitcherColumn,
 } from '@/components/board/MobileTagSwitcher';
@@ -79,6 +83,17 @@ export interface CardProps {
     currentColumnId: string;
     columns: MobileTagSwitcherColumn[];
   };
+  /**
+   * Lifecycle context. When provided, the card renders the embedded
+   * "move to other lane" icon row at the bottom of the card. Omit
+   * inside `DragOverlay` where the affordance would be redundant.
+   */
+  lifecycle?: {
+    status: CardLifecycleStatus;
+    groupId: string;
+    currentColumnId: string | null;
+    activeColumns: Array<{ id: string; displayName: string }>;
+  };
 }
 
 function initials(name: string): string {
@@ -88,7 +103,7 @@ function initials(name: string): string {
   return (first + second).toUpperCase();
 }
 
-export function Card({ groupSlug, ticket, mobileSwitch }: CardProps) {
+export function Card({ groupSlug, ticket, mobileSwitch, lifecycle }: CardProps) {
   const unclaimed = ticket.assignees.length === 0;
   const visible = ticket.assignees.slice(0, AVATAR_VISIBLE_LIMIT);
   const overflow = ticket.assignees.length - visible.length;
@@ -236,15 +251,33 @@ export function Card({ groupSlug, ticket, mobileSwitch }: CardProps) {
               </span>
             )}
           </div>
-          <span
-            data-testid="board-card-updated"
+          <div
             style={{
-              fontSize: 'var(--text-xs)',
-              color: 'var(--colour-text-secondary)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
             }}
           >
-            {formatDistanceToNow(ticket.updatedAt, { addSuffix: true })}
-          </span>
+            {lifecycle && (
+              <CardLifecycleActions
+                requestId={ticket.id}
+                groupId={lifecycle.groupId}
+                groupSlug={groupSlug}
+                status={lifecycle.status}
+                currentColumnId={lifecycle.currentColumnId}
+                activeColumns={lifecycle.activeColumns}
+              />
+            )}
+            <span
+              data-testid="board-card-updated"
+              style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--colour-text-secondary)',
+              }}
+            >
+              {formatDistanceToNow(ticket.updatedAt, { addSuffix: true })}
+            </span>
+          </div>
         </div>
       </Link>
     </div>

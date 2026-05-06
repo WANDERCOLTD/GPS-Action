@@ -21,9 +21,10 @@ export interface DraggableCardProps {
   groupSlug: string;
   ticket: CardProps['ticket'];
   mobileSwitch?: CardProps['mobileSwitch'];
+  lifecycle?: CardProps['lifecycle'];
 }
 
-export function DraggableCard({ groupSlug, ticket, mobileSwitch }: DraggableCardProps) {
+export function DraggableCard({ groupSlug, ticket, mobileSwitch, lifecycle }: DraggableCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: ticket.id,
     data: { type: 'card', requestId: ticket.id },
@@ -46,7 +47,12 @@ export function DraggableCard({ groupSlug, ticket, mobileSwitch }: DraggableCard
       data-request-id={ticket.id}
       data-dragging={isDragging ? 'true' : 'false'}
     >
-      <Card groupSlug={groupSlug} ticket={ticket} mobileSwitch={mobileSwitch} />
+      <Card
+        groupSlug={groupSlug}
+        ticket={ticket}
+        mobileSwitch={mobileSwitch}
+        lifecycle={lifecycle}
+      />
     </div>
   );
 }

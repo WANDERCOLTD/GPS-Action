@@ -18,7 +18,6 @@ import { Card, type CardProps } from '@/components/board/Card';
 import { BoardTabs } from '@/components/board/BoardTabs';
 import { BoardBackLink } from '@/components/board/BoardBackLink';
 import { BacklogQuickAdd } from '@/components/board/BacklogQuickAdd';
-import { PlaceOnBoardButton } from '@/components/board/PlaceOnBoardButton';
 
 interface BoardBacklogPageProps {
   params: Promise<{ groupSlug: string }>;
@@ -115,24 +114,17 @@ export default async function BoardBacklogPage({ params }: BoardBacklogPageProps
           }}
         >
           {tickets.map((ticket) => (
-            <li
-              key={ticket.id}
-              style={{
-                margin: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--space-2)',
-              }}
-            >
-              <Card groupSlug={groupSlug} ticket={ticket} />
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <PlaceOnBoardButton
-                  requestId={ticket.id}
-                  groupId={accessibleGroup.group.id}
-                  groupSlug={groupSlug}
-                  columns={columns.map((c) => ({ id: c.id, displayName: c.displayName }))}
-                />
-              </div>
+            <li key={ticket.id} style={{ margin: 0 }}>
+              <Card
+                groupSlug={groupSlug}
+                ticket={ticket}
+                lifecycle={{
+                  status: 'backlog',
+                  groupId: accessibleGroup.group.id,
+                  currentColumnId: null,
+                  activeColumns: columns.map((c) => ({ id: c.id, displayName: c.displayName })),
+                }}
+              />
             </li>
           ))}
           <li style={{ margin: 0, marginTop: 'var(--space-2)' }}>

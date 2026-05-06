@@ -51,6 +51,13 @@ export interface MoveCardSheetProps {
   renderTrigger: (args: { open: () => void; isOpen: boolean; isPending: boolean }) => ReactNode;
   /** Heading inside the sheet. Defaults to "Move card". */
   heading?: string;
+  /**
+   * Called after a successful move. Caller typically uses this to fire
+   * an undo toast — they know the pre-move state and the inverse
+   * payload. The sheet itself is destination-agnostic and doesn't try
+   * to compute undo on its own.
+   */
+  onSuccess?: (option: MoveDestinationOption) => void;
 }
 
 /**
@@ -104,6 +111,7 @@ export function MoveCardSheet({
   destinations,
   renderTrigger,
   heading = 'Move card',
+  onSuccess,
 }: MoveCardSheetProps) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,6 +134,7 @@ export function MoveCardSheet({
       });
       if (result.ok) {
         setOpen(false);
+        onSuccess?.(option);
       } else {
         setError(result.error ?? 'Could not move the card — try again.');
       }
