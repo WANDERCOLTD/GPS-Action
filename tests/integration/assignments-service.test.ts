@@ -32,6 +32,13 @@ vi.mock('@/server/db/client', () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
+    request: {
+      findUnique: vi.fn(),
+    },
+    boardColumn: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+    },
   },
 }));
 
@@ -43,6 +50,10 @@ vi.mock('@/server/services/kanban-system-events', () => ({
   emitKanbanSystemEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/server/services/board', () => ({
+  moveCard: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   assignToRequest,
   unassign,
@@ -52,15 +63,25 @@ import {
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
 import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
+import { moveCard } from '@/server/services/board';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const mockedTransaction = vi.mocked(prisma.$transaction);
 const mockedAssignment = vi.mocked(prisma.assignment);
 const mockedSubscription = vi.mocked(prisma.requestSubscription);
+const mockedRequest = vi.mocked(prisma.request) as any;
+const mockedBoardColumn = vi.mocked(prisma.boardColumn) as any;
 const mockedAudit = vi.mocked(auditLog);
 const mockedEmitSystemEvent = vi.mocked(emitKanbanSystemEvent);
+const mockedMoveCard = vi.mocked(moveCard);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Default the auto-advance lookups to off-board so existing tests
+  // that don't care about the Recruitment rule short-circuit cleanly.
+  mockedRequest.findUnique.mockResolvedValue({ columnId: null });
+  mockedBoardColumn.findUnique.mockResolvedValue(null);
+  mockedBoardColumn.findFirst.mockResolvedValue(null);
 });
 
 /**
@@ -418,6 +439,165 @@ describe('system event emission (atom 5d-3)', () => {
     await unassign({ requestId: 'r1', userId: 'u1', actorId: 'u1' });
 
     expect(mockedEmitSystemEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe('Recruitment → Preparation auto-advance (Tier-2 default #3)', () => {
+  function mockSelfAssignCreate() {
+    const tx = makeTxStub();
+    tx.assignment.findUnique.mockResolvedValue(null);
+    tx.assignment.create.mockResolvedValue({
+      id: 'a1',
+      requestId: 'r1',
+      userId: 'u1',
+      assignedAt: new Date(),
+      unassignedAt: null,
+    });
+    tx.requestSubscription.findUnique.mockResolvedValue(null);
+    tx.requestSubscription.create.mockResolvedValue({});
+    mockedTransaction.mockImplementation(async (fn: any) => fn(tx));
+  }
+
+  it('moves the card to the next column on self-assign while on Recruitment', async () => {
+    mockSelfAssignCreate();
+    mockedRequest.findUnique.mockResolvedValue({ columnId: 'c-recruitment' });
+    mockedBoardColumn.findUnique.mockResolvedValue({
+      groupId: 'g1',
+      ordinal: 0,
+      displayName: 'Recruitment',
+      deletedAt: null,
+    });
+    mockedBoardColumn.findFirst.mockResolvedValue({ id: 'c-preparation' });
+
+    await assignToRequest({ requestId: 'r1', userId: 'u1', actorId: 'u1' });
+
+    expect(mockedBoardColumn.findFirst).toHaveBeenCalledWith({
+      where: { groupId: 'g1', ordinal: 1, deletedAt: null },
+      select: { id: true },
+    });
+    expect(mockedMoveCard).toHaveBeenCalledWith({
+      requestId: 'r1',
+      groupId: 'g1',
+      destination: { lane: 'active', columnId: 'c-preparation' },
+      actorId: 'u1',
+    });
+  });
+
+  it('matches Recruitment case-insensitively (admin renamed casing)', async () => {
+    mockSelfAssignCreate();
+    mockedRequest.findUnique.mockResolvedValue({ columnId: 'c-recruitment' });
+    mockedBoardColumn.findUnique.mockResolvedValue({
+      groupId: 'g1',
+      ordinal: 0,
+      displayName: '  recruitment  ',
+      deletedAt: null,
+    });
+    mockedBoardColumn.findFirst.mockResolvedValue({ id: 'c-preparation' });
+
+    await assignToRequest({ requestId: 'r1', userId: 'u1', actorId: 'u1' });
+
+    expect(mockedMoveCard).toHaveBeenCalled();
+  });
+
+  it('does NOT advance when on a non-Recruitment column', async () => {
+    mockSelfAssignCreate();
+    mockedRequest.findUnique.mockResolvedValue({ columnId: 'c-prep' });
+    mockedBoardColumn.findUnique.mockResolvedValue({
+      groupId: 'g1',
+      ordinal: 1,
+      displayName: 'Preparation',
+      deletedAt: null,
+    });
+
+    await assignToRequest({ requestId: 'r1', userId: 'u1', actorId: 'u1' });
+
+    expect(mockedBoardColumn.findFirst).not.toHaveBeenCalled();
+    expect(mockedMoveCard).not.toHaveBeenCalled();
+  });
+
+  it('does NOT advance when an admin assigns someone else (not self-assign)', async () => {
+    const tx = makeTxStub();
+    tx.assignment.findUnique.mockResolvedValue(null);
+    tx.assignment.create.mockResolvedValue({
+      id: 'a1',
+      requestId: 'r1',
+      userId: 'u-target',
+      assignedAt: new Date(),
+      unassignedAt: null,
+    });
+    tx.requestSubscription.findUnique.mockResolvedValue(null);
+    tx.requestSubscription.create.mockResolvedValue({});
+    mockedTransaction.mockImplementation(async (fn: any) => fn(tx));
+
+    await assignToRequest({ requestId: 'r1', userId: 'u-target', actorId: 'u-admin' });
+
+    expect(mockedRequest.findUnique).not.toHaveBeenCalled();
+    expect(mockedMoveCard).not.toHaveBeenCalled();
+  });
+
+  it('does NOT advance when the ticket is off-board (columnId null)', async () => {
+    mockSelfAssignCreate();
+    mockedRequest.findUnique.mockResolvedValue({ columnId: null });
+
+    await assignToRequest({ requestId: 'r1', userId: 'u1', actorId: 'u1' });
+
+    expect(mockedBoardColumn.findUnique).not.toHaveBeenCalled();
+    expect(mockedMoveCard).not.toHaveBeenCalled();
+  });
+
+  it('does NOT advance when the originating column has been soft-deleted', async () => {
+    mockSelfAssignCreate();
+    mockedRequest.findUnique.mockResolvedValue({ columnId: 'c-recruitment' });
+    mockedBoardColumn.findUnique.mockResolvedValue({
+      groupId: 'g1',
+      ordinal: 0,
+      displayName: 'Recruitment',
+      deletedAt: new Date(),
+    });
+
+    await assignToRequest({ requestId: 'r1', userId: 'u1', actorId: 'u1' });
+
+    expect(mockedBoardColumn.findFirst).not.toHaveBeenCalled();
+    expect(mockedMoveCard).not.toHaveBeenCalled();
+  });
+
+  it('does NOT advance when there is no next column (Recruitment is last)', async () => {
+    mockSelfAssignCreate();
+    mockedRequest.findUnique.mockResolvedValue({ columnId: 'c-recruitment' });
+    mockedBoardColumn.findUnique.mockResolvedValue({
+      groupId: 'g1',
+      ordinal: 0,
+      displayName: 'Recruitment',
+      deletedAt: null,
+    });
+    mockedBoardColumn.findFirst.mockResolvedValue(null);
+
+    await assignToRequest({ requestId: 'r1', userId: 'u1', actorId: 'u1' });
+
+    expect(mockedMoveCard).not.toHaveBeenCalled();
+  });
+
+  it('does NOT advance on idempotent re-assign of an already-active user', async () => {
+    const existing = {
+      id: 'a1',
+      requestId: 'r1',
+      userId: 'u1',
+      assignedAt: new Date('2026-05-01'),
+      unassignedAt: null,
+    };
+    const tx = makeTxStub();
+    tx.assignment.findUnique.mockResolvedValue(existing);
+    tx.requestSubscription.findUnique.mockResolvedValue({
+      id: 's1',
+      source: 'auto_assignee',
+      deletedAt: null,
+    });
+    mockedTransaction.mockImplementation(async (fn: any) => fn(tx));
+
+    await assignToRequest({ requestId: 'r1', userId: 'u1', actorId: 'u1' });
+
+    expect(mockedRequest.findUnique).not.toHaveBeenCalled();
+    expect(mockedMoveCard).not.toHaveBeenCalled();
   });
 });
 
