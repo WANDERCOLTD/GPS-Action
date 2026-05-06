@@ -440,3 +440,35 @@ export async function listShareWorkflowTargets(
   });
   return rows.map(({ targetGroup, ...workflow }) => ({ group: targetGroup, workflow }));
 }
+
+/**
+ * List groups eligible to be added as workflow targets from a source
+ * group. Drives the "Add target" picker on `/board/<slug>/settings`.
+ *
+ * Excludes:
+ *   - the source group itself (no self-share);
+ *   - soft-deleted groups;
+ *   - groups that already have an active GroupShareWorkflow row from
+ *     this source.
+ *
+ * Soft-deleted workflow rows are NOT excluded — those targets are
+ * eligible to be re-added (re-add reactivates the soft-deleted row).
+ *
+ * Ordered by displayName asc.
+ */
+export async function listAddableShareTargets(sourceGroupId: string): Promise<Group[]> {
+  const activeTargets = await prisma.groupShareWorkflow.findMany({
+    where: { sourceGroupId, deletedAt: null },
+    select: { targetGroupId: true },
+  });
+  const excludedIds = new Set(activeTargets.map((t) => t.targetGroupId));
+  excludedIds.add(sourceGroupId);
+
+  return prisma.group.findMany({
+    where: {
+      deletedAt: null,
+      id: { notIn: Array.from(excludedIds) },
+    },
+    orderBy: { displayName: 'asc' },
+  });
+}
