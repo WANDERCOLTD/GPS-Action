@@ -1549,6 +1549,39 @@ async function main(): Promise<void> {
     `  ✓ Demo kanban tickets seeded across writers / manchester / rapid-response (${ticketsCreated} new)`,
   );
 
+  // ── Group share workflow allow-list (atom 5e) ──────────────────────────
+  // Wire every demo group as a workflow target of every other demo group,
+  // so the Surface 2 Share-with-team picker has populated targets out of
+  // the box. Without these rows the picker renders disabled and pilot
+  // smoke-tests can't exercise SCN-33.
+  const SEED_SHARE_WORKFLOWS: Array<{ source: string; target: string }> = [
+    { source: 'writers', target: 'manchester' },
+    { source: 'writers', target: 'rapid-response' },
+    { source: 'manchester', target: 'writers' },
+    { source: 'manchester', target: 'rapid-response' },
+    { source: 'rapid-response', target: 'writers' },
+    { source: 'rapid-response', target: 'manchester' },
+  ];
+  let shareWorkflowsCreated = 0;
+  for (const w of SEED_SHARE_WORKFLOWS) {
+    const id = seedUuid('group-share-workflow', `${w.source}->${w.target}`);
+    const existing = await prisma.groupShareWorkflow.findUnique({ where: { id } });
+    if (!existing) {
+      await prisma.groupShareWorkflow.create({
+        data: {
+          id,
+          sourceGroupId: groupIds[w.source]!,
+          targetGroupId: groupIds[w.target]!,
+          addedByUserId: userIds.bette!,
+        },
+      });
+      shareWorkflowsCreated++;
+    }
+  }
+  console.warn(
+    `  ✓ GroupShareWorkflow allow-list seeded (${shareWorkflowsCreated} new across ${SEED_SHARE_WORKFLOWS.length} pairs)`,
+  );
+
   console.warn('✓ Seed complete.');
 }
 
