@@ -12,7 +12,7 @@ demo DB.
 
 | Layer                                                                      | Runs on Vercel          | Trigger                                                                                                   |
 | -------------------------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------- |
-| `next build`                                                               | ✅ Auto                 | Every code-touching merge to `main` (unless skipped — see below)                                          |
+| `next build`                                                               | ❌ **Manual**           | Run on demand via `vercel deploy --prebuilt --prod` (Option 2 below). Auto-deploy on `main` is OFF.       |
 | Schema migrations (`prisma migrate deploy`)                                | ❌ **Manual**           | Run by hand against the demo DB after schema PRs                                                          |
 | Required reference data (FF rows, PostKind slugs, BoardColumn defaults, …) | ✅ Auto with migrations | Lives in `prisma/migrations/` per [D070](../architecture/decision-log.md#d070); ships when migrations run |
 | Demo data (Eddie / Bette / etc, demo posts, kanban tickets)                | ❌ **Manual**           | Run by hand via `npm run seed:demo` against the demo DB                                                   |
@@ -30,8 +30,14 @@ is a separate, opt-in step. Don't merge them.
 `bash scripts/vercel-ignore-build.sh`). It causes Vercel to **skip**
 deploys for:
 
-- Docs-only changes (`docs/`, `tests/`, `.github/`, `eslint-rules/`,
-  `.claude/`, `CLAUDE.md`, `README.md`).
+- **The `main` branch.** Auto-deploy on production is OFF — every
+  merge would otherwise eat a slot of the 100/day Vercel quota.
+  Refresh the demo URL with `vercel deploy --prebuilt --prod`
+  (Option 2 below) when you genuinely want it updated.
+- **Dependabot branches** (`dependabot/...`). Dependency-bump
+  previews add no demo signal and consume quota.
+- Docs-only changes on PR previews (`docs/`, `tests/`, `.github/`,
+  `eslint-rules/`, `.claude/`, `CLAUDE.md`, `README.md`).
 - PATCH-version-only changes to `package.json` /
   `package-lock.json`.
 
