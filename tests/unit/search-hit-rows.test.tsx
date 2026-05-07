@@ -18,8 +18,14 @@ import {
   SearchPostHitRow,
   SearchPersonHitRow,
   SearchRegionHitRow,
+  SearchTicketHitRow,
 } from '@/components/SearchHitRows';
-import type { PostSearchHit, PersonSearchHit, RegionSearchHit } from '@/server/routers/search';
+import type {
+  PostSearchHit,
+  PersonSearchHit,
+  RegionSearchHit,
+  TicketSearchHit,
+} from '@/server/routers/search';
 import { AvatarBubble, KindChip } from '@/components/post-meta';
 
 type AnyElement = ReactElement<Record<string, unknown>>;
@@ -226,5 +232,68 @@ describe('SearchRegionHitRow', () => {
     expect(tree.props.href).toBe('/regions/foo');
     expect(tree.props['data-entity-type']).toBe('regions');
     expect(tree.props['data-position']).toBe(3);
+  });
+});
+
+// ── Ticket row ─────────────────────────────────────────────────────────
+
+function makeTicket(overrides: Partial<TicketSearchHit> = {}): TicketSearchHit {
+  return {
+    id: 'tic-1',
+    href: '/board/hendon-team/tic-1',
+    title: 'Hendon school-gate roster',
+    status: 'active',
+    urgency: false,
+    groupSlug: 'hendon-team',
+    groupDisplayName: 'Hendon team',
+    createdAt: '2026-05-04T09:00:00.000Z',
+    ...overrides,
+  };
+}
+
+describe('SearchTicketHitRow', () => {
+  it('renders a Link with tickets entity_type and the board href', () => {
+    const tree = SearchTicketHitRow({ hit: makeTicket(), position: 0 }) as AnyElement;
+    expect(tree.props.href).toBe('/board/hendon-team/tic-1');
+    expect(tree.props['data-entity-type']).toBe('tickets');
+    expect(tree.props['data-position']).toBe(0);
+    expect(tree.props['data-testid']).toBe('search-result-item');
+  });
+
+  it('renders the originating group display name and a status pill', () => {
+    const tree = SearchTicketHitRow({
+      hit: makeTicket({ groupDisplayName: 'Hendon team', status: 'active' }),
+      position: 0,
+    }) as AnyElement;
+    const texts = flatChildren(tree)
+      .map((e) => e.props.children)
+      .filter((c): c is string => typeof c === 'string');
+    expect(texts).toContain('Hendon team');
+    const pill = findByTestId(tree, 'search-ticket-status-pill');
+    expect(pill?.props['data-status']).toBe('active');
+  });
+
+  it('renders the urgency pill only when urgency=true', () => {
+    const off = SearchTicketHitRow({
+      hit: makeTicket({ urgency: false }),
+      position: 0,
+    }) as AnyElement;
+    const on = SearchTicketHitRow({
+      hit: makeTicket({ urgency: true }),
+      position: 0,
+    }) as AnyElement;
+    expect(findByTestId(off, 'search-ticket-urgency-pill')).toBeUndefined();
+    expect(findByTestId(on, 'search-ticket-urgency-pill')).toBeDefined();
+  });
+
+  it('renders the ticket title', () => {
+    const tree = SearchTicketHitRow({
+      hit: makeTicket({ title: 'Hendon school-gate roster' }),
+      position: 0,
+    }) as AnyElement;
+    const texts = flatChildren(tree)
+      .map((e) => e.props.children)
+      .filter((c): c is string => typeof c === 'string');
+    expect(texts).toContain('Hendon school-gate roster');
   });
 });

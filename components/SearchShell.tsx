@@ -41,6 +41,7 @@ import {
   SearchPostHitRow,
   SearchPersonHitRow,
   SearchRegionHitRow,
+  SearchTicketHitRow,
 } from '@/components/SearchHitRows';
 import { readRecentlyViewed, type RecentlyViewedItem } from '@/components/recently-viewed-posts';
 import { emitSearchEvent } from '@/components/search-telemetry';
@@ -79,7 +80,8 @@ const DEBOUNCE_MS = 150;
 const TYPEAHEAD_GROUP_CAP = 3;
 const FULL_MODE_LIMIT = 50;
 
-// Group order is fixed by D078 §4 — clients render in receipt order.
+// Group order is fixed by D078 §4 (+ bu-search-includes-kanban appends
+// Tickets at the tail) — clients render in receipt order.
 const GROUPS: ReadonlyArray<{
   key: SearchEntityType;
   label: string;
@@ -92,6 +94,11 @@ const GROUPS: ReadonlyArray<{
     key: 'partnerOrgs',
     label: 'Partner orgs',
     pluralised: (n) => (n === 1 ? '1 partner org' : `${n} partner orgs`),
+  },
+  {
+    key: 'tickets',
+    label: 'Tickets',
+    pluralised: (n) => (n === 1 ? '1 ticket' : `${n} tickets`),
   },
 ];
 
@@ -224,6 +231,7 @@ const EMPTY_RESULTS: SearchResults = {
   people: [],
   regions: [],
   partnerOrgs: [],
+  tickets: [],
 };
 
 export function SearchShell({
@@ -317,7 +325,8 @@ export function SearchShell({
     ? results.posts.length +
       results.people.length +
       results.regions.length +
-      results.partnerOrgs.length
+      results.partnerOrgs.length +
+      results.tickets.length
     : 0;
   const showZeroState = mode === 'typeahead' && !hasQuery;
   const showResults = mode === 'full' || (mode === 'typeahead' && hasQuery && results !== null);
@@ -341,7 +350,7 @@ export function SearchShell({
           name="q"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search posts, people, regions…"
+          placeholder="Search posts, people, regions, tickets…"
           autoFocus
           autoComplete="off"
           inputMode="search"
@@ -560,6 +569,19 @@ function ResultList({ results, entityType, cap, groupPosition }: ResultListProps
         {hits.map((hit, idx) => (
           <li key={hit.id}>
             <SearchRegionHitRow hit={hit} position={idx} onClick={fireClick(idx)} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (entityType === 'tickets') {
+    const hits = results.tickets.slice(0, cap);
+    return (
+      <ul style={resultListStyle}>
+        {hits.map((hit, idx) => (
+          <li key={hit.id}>
+            <SearchTicketHitRow hit={hit} position={idx} onClick={fireClick(idx)} />
           </li>
         ))}
       </ul>

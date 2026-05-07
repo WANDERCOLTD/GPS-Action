@@ -1,15 +1,19 @@
 /**
- * @build-unit BU-search-surface BU-search-result-cards
+ * @build-unit BU-search-surface BU-search-result-cards bu-search-includes-kanban
  * @spec D078 (all 9 sub-decisions)
  * @spec ADR-0004 (pg_trgm + GIN indexes shipped in #183)
  * @spec build/session-briefs/bu-search-result-cards.md
+ * @spec build/session-briefs/bu-search-includes-kanban.md
  *
  * App-wide member search service.
  *
  * Returns results grouped by entity in the order locked by **D078 §4**:
- * Posts → People → Regions → Partner orgs. Comments are intentionally
- * not searched in v1 (D078 §2 — privacy review parked). Partner orgs
- * always returns `[]` until §3.30 ships the entity (D078 §9).
+ * Posts → People → Regions → Partner orgs → Tickets. Comments are
+ * intentionally not searched in v1 (D078 §2 — privacy review parked).
+ * Partner orgs always returns `[]` until §3.30 ships the entity
+ * (D078 §9). Tickets cover kanban Requests with status='active' or
+ * 'backlog' (the two states currently surfaced on the coord-board);
+ * `done` and `abandoned` are excluded from default search.
  *
  * Visibility for posts uses the **shared `getPostVisibilityFilter`
  * helper** (D078 §5). This is a single point of change — `listPosts`,
@@ -80,11 +84,33 @@ export interface PartnerOrgSearchHit {
   displayName: string;
 }
 
+/**
+ * Ticket (kanban Request) hit shape. The href deep-links into the
+ * originating group's board surface — `/board/<groupSlug>/<ticketId>`
+ * — using the originating `RequestGroup` row's group as the slug
+ * source. Status is included so the row can render a small status
+ * pill; `urgency` mirrors `Request.urgency` (the per-link `isUrgent`
+ * is intentionally not exposed in search results — visibility-gated
+ * results don't carry per-share state).
+ */
+export interface TicketSearchHit {
+  id: string;
+  href: string;
+  title: string;
+  status: 'backlog' | 'active';
+  urgency: boolean;
+  groupSlug: string;
+  groupDisplayName: string;
+  /** ISO 8601 string. Wire-format dates per D073. */
+  createdAt: string;
+}
+
 export interface SearchResults {
   posts: PostSearchHit[];
   people: PersonSearchHit[];
   regions: RegionSearchHit[];
   partnerOrgs: PartnerOrgSearchHit[];
+  tickets: TicketSearchHit[];
 }
 
 export interface SearchAllInput {
@@ -119,17 +145,19 @@ export async function searchAll(input: SearchAllInput): Promise<SearchResults> {
   const typeahead = input.type === undefined;
   const limit = input.limit ?? (typeahead ? TYPEAHEAD_LIMIT : FULL_MODE_DEFAULT_LIMIT);
 
-  // Run the four group queries concurrently. Group order in the response
-  // is fixed (D078 §4) — clients render in receipt order.
-  const [posts, people, regions, partnerOrgs] = await Promise.all([
+  // Run the group queries concurrently. Group order in the response
+  // is fixed (D078 §4 + bu-search-includes-kanban) — clients render in
+  // receipt order.
+  const [posts, people, regions, partnerOrgs, tickets] = await Promise.all([
     shouldSearch('posts', input.type) ? searchPosts(q, input.callerId, limit) : [],
     shouldSearch('people', input.type) ? searchPeople(q, limit) : [],
     shouldSearch('regions', input.type) ? searchRegions(q, limit) : [],
     // D078 §9: partner orgs deferred to §3.30. Group always empty in v1.
     [] as PartnerOrgSearchHit[],
+    shouldSearch('tickets', input.type) ? searchTickets(q, input.callerId, limit) : [],
   ]);
 
-  return { posts, people, regions, partnerOrgs };
+  return { posts, people, regions, partnerOrgs, tickets };
 }
 
 // ── Per-entity queries ───────────────────────────────────────────────────
@@ -245,6 +273,117 @@ async function searchRegions(q: string, limit: number): Promise<RegionSearchHit[
   );
 }
 
+/**
+ * Kanban-ticket search. Permission-gated: callers see only tickets
+ * they could see on the coord-board today — i.e. tickets linked via a
+ * non-deleted `RequestGroup` to a `Group` they have an active
+ * (`leftAt: null AND deletedAt: null`) `GroupMembership` in. Sysadmin
+ * (active `RoleGrant.role = 'admin'`) bypasses the membership filter.
+ *
+ * Unauthenticated callers (`callerId === null`) see nothing — kanban
+ * tickets are members-only by construction. Under-shipping is the
+ * safe default; over-sharing is a privacy hole.
+ *
+ * Status filter: only `backlog` and `active` (the two states surfaced
+ * on the coord-board today). `done` and `abandoned` are excluded from
+ * default search; a future "include closed" toggle can opt in.
+ *
+ * Soft-delete: `deletedAt: null` on Request and on the joining
+ * `RequestGroup` row.
+ */
+async function searchTickets(
+  q: string,
+  callerId: string | null,
+  limit: number,
+): Promise<TicketSearchHit[]> {
+  if (callerId === null) return [];
+
+  const isSysadmin = await hasActiveAdminGrant(callerId);
+
+  const containsQ: Prisma.StringFilter = { contains: q, mode: 'insensitive' };
+
+  const baseWhere: Prisma.RequestWhereInput = {
+    deletedAt: null,
+    status: { in: ['backlog', 'active'] },
+    OR: [{ title: containsQ }, { body: containsQ }],
+  };
+
+  // Sysadmins skip the membership gate — they can already see every
+  // board. Members are restricted to tickets linked (non-deleted) to a
+  // group they're in. Both filters consult the *originating*
+  // RequestGroup row (origin='originating') for the deep-link slug.
+  const where: Prisma.RequestWhereInput = isSysadmin
+    ? baseWhere
+    : {
+        ...baseWhere,
+        requestGroups: {
+          some: {
+            deletedAt: null,
+            group: {
+              deletedAt: null,
+              memberships: {
+                some: {
+                  userId: callerId,
+                  leftAt: null,
+                  deletedAt: null,
+                },
+              },
+            },
+          },
+        },
+      };
+
+  const rows = await prisma.request.findMany({
+    where,
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: limit,
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      urgency: true,
+      createdAt: true,
+      requestGroups: {
+        where: { deletedAt: null, origin: 'originating' },
+        select: {
+          group: { select: { slug: true, displayName: true } },
+        },
+        take: 1,
+      },
+    },
+  });
+
+  return rows.flatMap((row): TicketSearchHit[] => {
+    const originating = row.requestGroups[0];
+    // Skip rows without an originating group link — these are non-
+    // kanban Request rows (vetting, flag, kind_review, …) that
+    // shouldn't appear in ticket search anyway.
+    if (!originating) return [];
+    // Status filter at the prisma level guarantees this — narrowing for
+    // the hit shape below.
+    if (row.status !== 'backlog' && row.status !== 'active') return [];
+    return [
+      {
+        id: row.id,
+        href: `/board/${originating.group.slug}/${row.id}`,
+        title: row.title,
+        status: row.status,
+        urgency: row.urgency,
+        groupSlug: originating.group.slug,
+        groupDisplayName: originating.group.displayName,
+        createdAt: row.createdAt.toISOString(),
+      },
+    ];
+  });
+}
+
+async function hasActiveAdminGrant(callerId: string): Promise<boolean> {
+  const count = await prisma.roleGrant.count({
+    where: { userId: callerId, role: 'admin', revokedAt: null },
+  });
+  return count > 0;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 function shouldSearch(group: SearchEntityType, requested: SearchEntityType | undefined): boolean {
@@ -253,5 +392,5 @@ function shouldSearch(group: SearchEntityType, requested: SearchEntityType | und
 }
 
 function emptyResults(): SearchResults {
-  return { posts: [], people: [], regions: [], partnerOrgs: [] };
+  return { posts: [], people: [], regions: [], partnerOrgs: [], tickets: [] };
 }
