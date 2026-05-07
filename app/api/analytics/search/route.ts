@@ -24,7 +24,13 @@ const VALID_EVENTS = new Set([
 type SearchEventName = typeof VALID_EVENTS extends Set<infer T> ? T : never;
 
 const VALID_SOURCES = new Set(['appnav', 'deep_link', 'scope_chip'] as const);
-const VALID_ENTITY_TYPES = new Set(['posts', 'people', 'regions', 'partnerOrgs'] as const);
+const VALID_ENTITY_TYPES = new Set([
+  'posts',
+  'people',
+  'regions',
+  'partnerOrgs',
+  'tickets',
+] as const);
 
 interface SearchEventPayload {
   event: SearchEventName;

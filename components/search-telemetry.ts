@@ -19,13 +19,13 @@ export type SearchTelemetryEvent =
   | { event: 'search_query_submitted'; q_length: number; has_scope_chip: boolean }
   | {
       event: 'search_result_clicked';
-      entity_type: 'posts' | 'people' | 'regions' | 'partnerOrgs';
+      entity_type: 'posts' | 'people' | 'regions' | 'partnerOrgs' | 'tickets';
       position_in_group: number;
       group_position: number;
     }
   | {
       event: 'search_see_all_clicked';
-      entity_type: 'posts' | 'people' | 'regions' | 'partnerOrgs';
+      entity_type: 'posts' | 'people' | 'regions' | 'partnerOrgs' | 'tickets';
     };
 
 export function emitSearchEvent(event: SearchTelemetryEvent): void {

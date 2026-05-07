@@ -20,12 +20,13 @@
 import * as React from 'react';
 import type { CSSProperties, MouseEventHandler, ReactElement } from 'react';
 import Link from 'next/link';
-import { MapPin } from 'lucide-react';
+import { MapPin, Kanban } from 'lucide-react';
 import { AvatarBubble, KindChip, formatRole } from '@/components/post-meta';
 import type {
   PostSearchHit,
   PersonSearchHit,
   RegionSearchHit,
+  TicketSearchHit,
   SearchAuthorRole,
 } from '@/server/routers/search';
 
@@ -231,6 +232,71 @@ export function SearchRegionHitRow({
         <strong style={{ fontSize: 'var(--text-md)' }}>{hit.displayName}</strong>
         <span style={metaStyle}>{hit.slug}</span>
       </div>
+    </Link>
+  );
+}
+
+// ── Ticket row ──────────────────────────────────────────────────────────
+
+interface SearchTicketHitRowProps {
+  hit: TicketSearchHit;
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
+  testId?: string;
+  position: number;
+}
+
+const ticketStatusPillStyle: CSSProperties = {
+  ...roleChipStyle,
+};
+
+const ticketUrgencyPillStyle: CSSProperties = {
+  ...roleChipStyle,
+  background: 'var(--colour-urgency-surface, var(--colour-surface-sunken))',
+  color: 'var(--colour-urgency-text, var(--colour-text-primary))',
+};
+
+export function SearchTicketHitRow({
+  hit,
+  onClick,
+  testId = 'search-result-item',
+  position,
+}: SearchTicketHitRowProps): ReactElement {
+  const statusLabel = hit.status === 'active' ? 'ACTIVE' : 'BACKLOG';
+  return (
+    <Link
+      href={hit.href}
+      style={rowLinkStyle}
+      onClick={onClick}
+      data-testid={testId}
+      data-entity-type="tickets"
+      data-position={position}
+    >
+      <div style={bylineStyle}>
+        <Kanban
+          size={16}
+          strokeWidth={2}
+          aria-hidden="true"
+          style={{ color: 'var(--colour-text-secondary)', flexShrink: 0 }}
+        />
+        <span style={metaStyle}>{hit.groupDisplayName}</span>
+        <span
+          style={ticketStatusPillStyle}
+          data-testid="search-ticket-status-pill"
+          data-status={hit.status}
+        >
+          {statusLabel}
+        </span>
+        {hit.urgency && (
+          <span
+            style={ticketUrgencyPillStyle}
+            data-testid="search-ticket-urgency-pill"
+            aria-label="Urgent ticket"
+          >
+            URGENT
+          </span>
+        )}
+      </div>
+      <span style={titleStyle}>{hit.title}</span>
     </Link>
   );
 }

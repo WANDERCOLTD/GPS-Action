@@ -19,6 +19,8 @@ vi.mock('@/server/db/client', () => ({
     post: { findMany: vi.fn() },
     user: { findMany: vi.fn() },
     region: { findMany: vi.fn() },
+    request: { findMany: vi.fn() },
+    roleGrant: { count: vi.fn() },
   },
 }));
 
@@ -28,11 +30,15 @@ import { prisma } from '@/server/db/client';
 const mockPostFind = vi.mocked(prisma.post.findMany);
 const mockUserFind = vi.mocked(prisma.user.findMany);
 const mockRegionFind = vi.mocked(prisma.region.findMany);
+const mockRequestFind = vi.mocked(prisma.request.findMany);
+const mockRoleGrantCount = vi.mocked(prisma.roleGrant.count);
 
 beforeEach(() => {
   mockPostFind.mockReset().mockResolvedValue([]);
   mockUserFind.mockReset().mockResolvedValue([]);
   mockRegionFind.mockReset().mockResolvedValue([]);
+  mockRequestFind.mockReset().mockResolvedValue([]);
+  mockRoleGrantCount.mockReset().mockResolvedValue(0);
 });
 
 // ── Min query length ─────────────────────────────────────────────────────
@@ -40,16 +46,18 @@ beforeEach(() => {
 describe('searchAll — min query length', () => {
   it('returns empty groups for empty query', async () => {
     const out = await searchAll({ q: '', callerId: null });
-    expect(out).toEqual({ posts: [], people: [], regions: [], partnerOrgs: [] });
+    expect(out).toEqual({ posts: [], people: [], regions: [], partnerOrgs: [], tickets: [] });
     expect(mockPostFind).not.toHaveBeenCalled();
     expect(mockUserFind).not.toHaveBeenCalled();
     expect(mockRegionFind).not.toHaveBeenCalled();
+    expect(mockRequestFind).not.toHaveBeenCalled();
   });
 
   it('returns empty groups for 1-char query (server-enforced min 2)', async () => {
     const out = await searchAll({ q: 'a', callerId: null });
-    expect(out).toEqual({ posts: [], people: [], regions: [], partnerOrgs: [] });
+    expect(out).toEqual({ posts: [], people: [], regions: [], partnerOrgs: [], tickets: [] });
     expect(mockPostFind).not.toHaveBeenCalled();
+    expect(mockRequestFind).not.toHaveBeenCalled();
   });
 
   it('queries the DB for 2-char query', async () => {
@@ -103,12 +111,14 @@ describe('searchAll — type filter', () => {
     expect(mockPostFind).toHaveBeenCalledOnce();
     expect(mockUserFind).not.toHaveBeenCalled();
     expect(mockRegionFind).not.toHaveBeenCalled();
+    expect(mockRequestFind).not.toHaveBeenCalled();
   });
 
   it('queries only people in full mode with type=people', async () => {
     await searchAll({ q: 'sharon', callerId: null, type: 'people' });
     expect(mockUserFind).toHaveBeenCalledOnce();
     expect(mockPostFind).not.toHaveBeenCalled();
+    expect(mockRequestFind).not.toHaveBeenCalled();
   });
 
   it('typeahead default cap is 3 per group', async () => {
@@ -142,6 +152,7 @@ describe('searchAll — partner orgs deferred', () => {
     expect(mockPostFind).not.toHaveBeenCalled();
     expect(mockUserFind).not.toHaveBeenCalled();
     expect(mockRegionFind).not.toHaveBeenCalled();
+    expect(mockRequestFind).not.toHaveBeenCalled();
   });
 });
 
@@ -213,5 +224,129 @@ describe('searchAll — result shape', () => {
         slug: 'hendon',
       },
     ]);
+  });
+});
+
+// ── Tickets (bu-search-includes-kanban) ─────────────────────────────────
+
+describe('searchTickets — auth gate', () => {
+  it('returns no tickets for unauthenticated callers', async () => {
+    const out = await searchAll({ q: 'hendon', callerId: null });
+    expect(out.tickets).toEqual([]);
+    // The findMany call is short-circuited inside searchTickets — never
+    // hits the DB for null callers.
+    expect(mockRequestFind).not.toHaveBeenCalled();
+  });
+});
+
+describe('searchTickets — membership gate', () => {
+  it('member callers run the request query with a memberships gate', async () => {
+    mockRoleGrantCount.mockResolvedValue(0); // not a sysadmin
+    await searchAll({ q: 'hendon', callerId: 'user-1' });
+    expect(mockRequestFind).toHaveBeenCalledOnce();
+    const where = mockRequestFind.mock.calls[0]?.[0]?.where;
+    expect(where).toMatchObject({
+      deletedAt: null,
+      status: { in: ['backlog', 'active'] },
+      requestGroups: {
+        some: {
+          deletedAt: null,
+          group: {
+            deletedAt: null,
+            memberships: {
+              some: { userId: 'user-1', leftAt: null, deletedAt: null },
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it('sysadmin callers skip the membership gate (no requestGroups in where)', async () => {
+    mockRoleGrantCount.mockResolvedValue(1); // active admin grant
+    await searchAll({ q: 'hendon', callerId: 'admin-1' });
+    expect(mockRequestFind).toHaveBeenCalledOnce();
+    const where = mockRequestFind.mock.calls[0]?.[0]?.where as Record<string, unknown>;
+    expect(where.requestGroups).toBeUndefined();
+    expect(where).toMatchObject({
+      deletedAt: null,
+      status: { in: ['backlog', 'active'] },
+    });
+  });
+
+  it('always restricts to backlog/active status (excludes done & abandoned)', async () => {
+    mockRoleGrantCount.mockResolvedValue(0);
+    await searchAll({ q: 'hendon', callerId: 'user-1' });
+    const where = mockRequestFind.mock.calls[0]?.[0]?.where;
+    expect(where).toMatchObject({ status: { in: ['backlog', 'active'] } });
+  });
+});
+
+describe('searchTickets — result shape', () => {
+  it('maps request rows to TicketSearchHit and dedupes via originating group', async () => {
+    const createdAt = new Date('2026-05-04T09:00:00Z');
+    mockRoleGrantCount.mockResolvedValue(0);
+    mockRequestFind.mockResolvedValue([
+      {
+        id: 'tic-1',
+        title: 'Hendon school-gate roster',
+        status: 'active',
+        urgency: true,
+        createdAt,
+        requestGroups: [{ group: { slug: 'hendon-team', displayName: 'Hendon team' } }],
+      },
+    ] as unknown as never);
+    const out = await searchAll({ q: 'hendon', callerId: 'user-1' });
+    expect(out.tickets).toEqual([
+      {
+        id: 'tic-1',
+        href: '/board/hendon-team/tic-1',
+        title: 'Hendon school-gate roster',
+        status: 'active',
+        urgency: true,
+        groupSlug: 'hendon-team',
+        groupDisplayName: 'Hendon team',
+        createdAt: createdAt.toISOString(),
+      },
+    ]);
+  });
+
+  it('drops rows that have no originating RequestGroup link', async () => {
+    mockRoleGrantCount.mockResolvedValue(0);
+    mockRequestFind.mockResolvedValue([
+      {
+        id: 'tic-1',
+        title: 'Stale flag review',
+        status: 'active',
+        urgency: false,
+        createdAt: new Date(),
+        requestGroups: [], // no originating link → drop
+      },
+    ] as unknown as never);
+    const out = await searchAll({ q: 'flag', callerId: 'user-1' });
+    expect(out.tickets).toEqual([]);
+  });
+});
+
+describe('searchTickets — type filter', () => {
+  it('queries only tickets in full mode with type=tickets', async () => {
+    mockRoleGrantCount.mockResolvedValue(0);
+    await searchAll({ q: 'hendon', callerId: 'user-1', type: 'tickets' });
+    expect(mockRequestFind).toHaveBeenCalledOnce();
+    expect(mockPostFind).not.toHaveBeenCalled();
+    expect(mockUserFind).not.toHaveBeenCalled();
+    expect(mockRegionFind).not.toHaveBeenCalled();
+  });
+
+  it('queries tickets alongside other groups in typeahead mode', async () => {
+    mockRoleGrantCount.mockResolvedValue(0);
+    await searchAll({ q: 'hendon', callerId: 'user-1' });
+    expect(mockRequestFind).toHaveBeenCalledOnce();
+    expect(mockPostFind).toHaveBeenCalledOnce();
+  });
+
+  it('full mode without type=tickets does not run the request query', async () => {
+    await searchAll({ q: 'hendon', callerId: 'user-1', type: 'posts' });
+    expect(mockRequestFind).not.toHaveBeenCalled();
   });
 });

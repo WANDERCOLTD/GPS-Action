@@ -8,7 +8,13 @@
 
 import { z } from 'zod';
 
-export const SEARCH_ENTITY_TYPES = ['posts', 'people', 'regions', 'partnerOrgs'] as const;
+export const SEARCH_ENTITY_TYPES = [
+  'posts',
+  'people',
+  'regions',
+  'partnerOrgs',
+  'tickets',
+] as const;
 export type SearchEntityType = (typeof SEARCH_ENTITY_TYPES)[number];
 
 export const searchQuerySchema = z.object({
