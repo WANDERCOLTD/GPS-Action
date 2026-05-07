@@ -29,7 +29,6 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { HistoryBackButton } from '@/components/HistoryBackButton';
 import { RecentlyViewedTracker } from '@/components/RecentlyViewedTracker';
-import { formatDistanceToNow } from 'date-fns';
 import { Calendar, MapPin } from 'lucide-react';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
@@ -38,6 +37,7 @@ import { CommentList } from '@/components/CommentList';
 import { ReactionPill } from '@/components/ReactionPill';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 import { PostShareGroup } from '@/components/PostShareGroup';
+import { RelativeTime } from '@/components/RelativeTime';
 import { formatEventRange } from '@/shared/format-event-time';
 import { ReviewedByBadge } from '@/components/ReviewedByBadge';
 import { AvatarBubble, KindChip, SignalBadgeRow, formatRole } from '@/components/post-meta';
@@ -108,7 +108,6 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
   ]);
 
   const paragraphs = post.body.split('\n\n');
-  const relativeTime = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
 
   // Primary CTA = AM URL when present, else linkUrl. Mirrors PostCard.
   const primaryCta = post.activistMailerUrl ? (
@@ -228,14 +227,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
                 />
               )}
             </div>
-            <time
-              className="gps-meta"
-              dateTime={new Date(post.createdAt).toISOString()}
-              suppressHydrationWarning
-              style={{ display: 'block' }}
-            >
-              {relativeTime}
-            </time>
+            <RelativeTime date={post.createdAt} className="gps-meta" style={{ display: 'block' }} />
             {post.reviewedBy && (
               <div
                 data-testid="post-detail-reviewed-by"

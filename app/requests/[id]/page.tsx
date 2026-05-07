@@ -11,7 +11,7 @@
 
 import { notFound, redirect } from 'next/navigation';
 import { ArrowLink } from '@/components/ArrowLink';
-import { formatDistanceToNow } from 'date-fns';
+import { RelativeTime } from '@/components/RelativeTime';
 import { createTRPCContext } from '@/server/routers/context';
 import { listCommentsForRequest } from '@/server/services/comment';
 import { markReadForRequest } from '@/server/services/notification';
@@ -192,17 +192,14 @@ export default async function RequestDetailPage({ params }: PageProps) {
           >
             {STATUS_LABELS[request.status] ?? request.status}
           </span>
-          <time
-            dateTime={request.createdAt.toISOString()}
+          <RelativeTime
+            date={request.createdAt}
             style={{
               marginLeft: 'auto',
               fontSize: 'var(--text-xs)',
               color: 'var(--colour-text-secondary)',
             }}
-            suppressHydrationWarning
-          >
-            {formatDistanceToNow(request.createdAt, { addSuffix: true })}
-          </time>
+          />
         </div>
         {ctxText && (
           <p

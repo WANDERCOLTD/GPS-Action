@@ -5421,3 +5421,123 @@ ADR-0013 carries the full reasoning and migration SQL.
 - bu-coordination-board v0.4 — Surface 2 needs the typed fields.
 - Handoff `bu-coordination-board-2026-05-04c.md` — flagged the
   punt this D resolves.
+
+# D080 — Hydration-safe deferred-render pattern (`<ClientOnly>` + `<RelativeTime>`)
+
+**Status:** decided · 2026-05-07
+
+## Context
+
+Two SSR/CSR mismatches were surfaced testing the dev server from a
+phone over mDNS (`http://mba.local:3001`). Both are deterministic —
+they reproduce wherever the server-rendered first byte differs from
+the first client-rendered byte, not just on phones:
+
+1. **`<WhatsAppShareButton>` `href`.** The component called
+   `getSiteOrigin()` synchronously at render time. Server-side
+   `getSiteOrigin()` returns `process.env.NEXT_PUBLIC_SITE_ORIGIN`
+   or the dev fallback (`http://localhost:3001`). Client-side it
+   returns `window.location.origin`. When the env var is unset (or
+   wrong for the host the user actually reached), the two strings
+   diverge → React throws a hydration mismatch and the share
+   button's full URL is the wrong host.
+
+2. **Relative timestamps ("2m ago").** `formatDistanceToNow(...)`
+   reads `Date.now()` every time it runs. The server runs it at
+   request time; the client runs it again at hydration time.
+   Across a bucket boundary (e.g. a post crosses the
+   1-min → 2-min boundary between SSR and hydration), the two
+   strings diverge → hydration warning. The timestamp also still
+   says the wrong thing for a frame.
+
+`suppressHydrationWarning` was applied to several call sites as a
+short-term silencer. It hides the React warning but the underlying
+mismatch is unchanged: members still see a flash of the wrong
+value on first paint, and a misconfigured production env var would
+still ship an incorrect first-paint URL.
+
+## Decision
+
+- Introduce `components/ClientOnly.tsx` — a tiny `useEffect`-gated
+  wrapper. Renders a stable `fallback` on the server and on first
+  client paint; renders `children` after mount. ~20 lines, no deps.
+- Introduce `components/RelativeTime.tsx` — wraps `<ClientOnly>`.
+  Renders `<time dateTime={iso}>{absoluteFallback}</time>` server-
+  side; switches to `formatDistanceToNow(date, { addSuffix: true })`
+  inside the same `<time>` after mount. The `dateTime` attribute
+  carries the canonical ISO on every branch.
+- Modify `<WhatsAppShareButton>` to two-phase the `href`: the
+  initial render uses `originUrl=''` (yielding a relative
+  `/post/<id>` deep link inside the `wa.me` text), then a `useEffect`
+  populates `getSiteOrigin()` and re-renders with the fully-qualified
+  URL. Chosen over an `aria-disabled` shell because (a) the share
+  affordance is visible immediately, (b) the `wa.me/?text=...` URL
+  builder accepts an empty origin gracefully (verified — see
+  `shared/share/whatsapp-url.ts`), and (c) one fewer flicker frame.
+- Replace inline `formatDistanceToNow` at the six known hydrating
+  call sites (PostCard, CommentItem, RequestRow, RequestDetailPanel,
+  post detail page, request detail page) with `<RelativeTime>`.
+  Remove the `suppressHydrationWarning` props that were applied as
+  silencers.
+- New code rendering "X ago" or any value derived from `window.*` /
+  `Date.now()` must use `<RelativeTime>` / `<ClientOnly>` rather
+  than inline computation.
+
+## Why not `suppressHydrationWarning`?
+
+| Concern                                  | `suppressHydrationWarning` | Deferred render |
+| ---------------------------------------- | -------------------------- | --------------- |
+| Silences the React console warning       | Yes                        | Not needed      |
+| Renders the correct value on first frame | No                         | Yes             |
+| Matches server byte-for-byte initially   | No                         | Yes             |
+| Survives a misconfigured env var         | No                         | Yes             |
+| Preserves screen-reader semantics        | Mixed                      | Yes (`<time>`)  |
+
+The fix is _structural_, not a silencer.
+
+## Why not `dynamic({ ssr: false })`?
+
+It works but it pays a heavier cost: an extra JS chunk per use,
+loader/Suspense boundary, awkward inline use. `<ClientOnly>` is
+~20 lines, no chunk, drops in inline. Reach for `dynamic` only when
+the deferred subtree is heavy enough that pulling it out of the SSR
+bundle is its own win.
+
+## Consequences
+
+- **Two new primitives in `components/`.** Both have READMEs.
+  `<ClientOnly>` is the building block; `<RelativeTime>` is the
+  first consumer. Future hydration fixes (e.g. the
+  `<SendToNetworkConfirm>` modal in BU-tick-or-cross — clipboard +
+  channel-open flow) reuse `<ClientOnly>`.
+- **`NEXT_PUBLIC_SITE_ORIGIN` is now belt-and-braces.** A misconfig
+  on Vercel no longer produces a hydration error; the fallback URL
+  is a relative path on the first frame, the full URL is correct
+  after mount. The env var is still recommended for correctness on
+  the very first frame (the relative path works in `wa.me/?text=...`
+  but the WhatsApp link preview parser prefers a fully-qualified
+  URL). Defence in depth.
+- **No `suppressHydrationWarning` left in the six migrated call
+  sites.** Other call sites outside this BU's scope were left as-is
+  to avoid scope creep.
+- **iOS standalone is supported.** `useEffect` fires after hydration
+  regardless of standalone vs browser context. Confirmed against
+  the constraint captured in
+  `project_ios_standalone_constraint`.
+- **One `formatDistanceToNow` site in `<PostCard>` (top-comment
+  byline) is intentionally outside this BU's scope.** It's also a
+  hydrating site and should migrate; that's the open question the
+  BU's PR records for follow-up.
+
+## Related
+
+- BU-hydration-fixes / brief
+  `docs/build/session-briefs/bu-hydration-fixes.md`
+- BU-whatsapp-share / D067 — the share machinery this hardens (no
+  contract change to the analytics ping).
+- D065 — header refresh button (also addresses the iOS-standalone
+  context that surfaced this bug).
+- Memory `project_ios_standalone_constraint` — phone-as-dev-target
+  context for why this surfaced.
+- BU-tick-or-cross — will reuse `<ClientOnly>` for the
+  `<SendToNetworkConfirm>` modal's clipboard + channel-open flow.

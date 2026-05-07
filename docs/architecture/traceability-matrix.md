@@ -71,6 +71,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-feed-card-clamp | 1 | — | D052, D061, D064, D073 |
 | BU-feed-filter | 2 | — | — |
 | BU-healthcheck | 3 | — | D037 |
+| BU-hydration-fixes | 3 | — | D067, D080 |
 | BU-icon-nav | 1 | — | D054, D061, D065, D073, D078 |
 | BU-icon-strips | 5 | SCN-20 | D052, D054, D061, D065, D073, D076, D078 |
 | BU-link-first-composer | 7 | SCN-18, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D072, D073 |
@@ -89,11 +90,11 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-search-surface | 12 | SCN-31 | D054, D061, D065, D073, D078, DNaN |
 | BU-secondary-cta-placeholders | 1 | — | DNaN |
 | BU-seed | 1 | — | D038 |
-| BU-share-rail-on-detail | 4 | — | D067 |
+| BU-share-rail-on-detail | 4 | — | D067, D080 |
 | BU-sticky-nav | 5 | — | D003, D054, D061, D065, D073, D078 |
 | BU-tick-or-cross | 11 | SCN-18, SCN-19, SCN-20, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D052, D060, D062, D064, D069, D070, D072, D073, D076 |
 | BU-versioning | 3 | — | D003, D065, D073 |
-| BU-whatsapp-share | 2 | — | D065, D067 |
+| BU-whatsapp-share | 2 | — | D065, D067, D080 |
 | bu-capabilities-mockup | 1 | — | — |
 | bu-coord-board-share-allowlist-ui | 3 | — | — |
 | bu-coordination-board | 55 | SCN-34 | — |
@@ -132,4 +133,5 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D073 | Structured event-time fields on `Post` (`event_at`, `event_ends_at`, `location_text`) | 22 |
 | D076 | Post location coordinates + online flag (`latitude`, `longitude`, `isOnline`) | 7 |
 | D078 | App-wide member search: 9 design decisions for `bu-search-surface` | 6 |
+| D080 | Hydration-safe deferred-render pattern (`<ClientOnly>` + `<RelativeTime>`) | 3 |
 

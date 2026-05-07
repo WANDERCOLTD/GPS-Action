@@ -21,10 +21,10 @@
  */
 
 import type { FC } from 'react';
-import { formatDistanceToNow } from 'date-fns';
 import type { CommentSystemKind, SystemRole } from '@prisma/client';
 import type { FeedReaction, FeedReactionEmoji } from '@/components/PostCard';
 import { ReactionPill } from '@/components/ReactionPill';
+import { RelativeTime } from '@/components/RelativeTime';
 import { UserAvatar } from '@/components/UserAvatar';
 
 export interface CommentForView {
@@ -74,7 +74,6 @@ export const CommentItem: FC<CommentItemProps> = ({
   }
 
   const paragraphs = comment.body.split('\n\n');
-  const relativeTime = formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true });
 
   return (
     <article
@@ -114,14 +113,11 @@ export const CommentItem: FC<CommentItemProps> = ({
               new member
             </span>
           )}
-          <time
+          <RelativeTime
+            date={comment.createdAt}
             className="gps-meta"
-            dateTime={comment.createdAt}
-            suppressHydrationWarning
             style={{ marginLeft: 'auto', fontSize: 'var(--text-xs)' }}
-          >
-            {relativeTime}
-          </time>
+          />
         </div>
         <div style={{ fontSize: 'var(--text-base)', color: 'var(--colour-text-primary)' }}>
           {paragraphs.map((paragraph, i) => (

@@ -107,6 +107,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-post-location-input** — BU-post-location-input | ✅ Merged | #171 |
 | **bu-search-surface** — BU-search-surface | ✅ Merged | #189 |
 | **bu-search-result-cards** — BU-search-result-cards | ✅ Merged | #190 |
+| **bu-hydration-fixes** — BU-hydration-fixes | ✅ Merged | #280 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |
@@ -125,7 +126,6 @@ Briefs in `planned` or `in_progress` status (auto-generated; do not edit
 by hand — run `npm run trackers`):
 
 <!-- AUTOGEN:planned:start -->
-- **bu-hydration-fixes** _[high]_ — BU-hydration-fixes
 - **bu-prod-auth** _[high]_ — bu-prod-auth
 - **bu-vercel-prep** _[high]_ — bu-vercel-prep
 - **bu-broadcast** _[medium]_ — bu-broadcast
