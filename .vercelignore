@@ -1,0 +1,55 @@
+# What Vercel SHOULD upload
+#
+# Runtime + build code: app/, components/, server/, shared/, styles/,
+# prisma/, eslint-rules/, plus root configs (next.config.mjs,
+# package.json, pnpm-lock.yaml, tsconfig.json, postcss.config.mjs,
+# globals.d.ts, prisma.config.ts, vercel.json).
+#
+# Everything below is bloat. Each entry trims the upload size, which
+# matters because Vercel's free-tier `api-upload-free` quota counts
+# files (not megabytes). A typical pre-trim deploy uploaded 5,000+
+# files; with these rules the count drops well below the daily cap.
+#
+# `.gitignore` is honoured automatically — no need to repeat
+# node_modules/, .next/, coverage/, .env*, etc here.
+
+# ── Documentation (~5 MB, never read at runtime) ────────────────────────
+docs/
+*.md
+!README.md
+
+# ── Tests (~1 MB, only used by Vitest in dev / CI) ──────────────────────
+tests/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+vitest.config.ts
+vitest.config.mts
+
+# ── Custom scripts (run manually against the DB, not at boot) ───────────
+# Note: scripts/ is NOT imported by app/ or server/ — verified via grep.
+# `pnpm db:seed` is run manually from a developer machine with
+# DIRECT_URL set, never in Vercel's build / runtime path.
+scripts/
+
+# ── Dev tooling (not used at build or runtime) ──────────────────────────
+.claude/
+.husky/
+.github/
+.editorconfig
+.gitleaks.toml
+.prettierrc
+.prettierignore
+.lintstagedrc.json
+codecov.yml
+commitlint.config.js
+import-docs.sh
+.env.example
+
+# ── IDE / OS noise ──────────────────────────────────────────────────────
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/
