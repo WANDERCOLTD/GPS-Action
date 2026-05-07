@@ -30,7 +30,7 @@
  *     action affordances (BoardActionPair, UrgentToggle)
  */
 
-import { useTransition, type ReactNode } from 'react';
+import { useTransition, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { moveCardAction, type MoveCardActionDestination } from '@/app/board/[groupSlug]/actions';
 import { BOARD_LANE_META, type BoardLane } from '@/components/board/lane-icons';
@@ -248,6 +248,17 @@ function ActionButton({
   onClick,
   isPending,
 }: ActionButtonProps) {
+  // Card-variant buttons render inside the card's outer <Link> wrapper
+  // (Card.tsx:135). Without preventDefault + stopPropagation, the click
+  // both triggers our handler AND navigates the parent anchor to the
+  // ticket-detail page — the move-sheet flashes for a frame and is gone
+  // before the user can pick a column. Surface-2 doesn't need this but
+  // sharing the guard is cheap and keeps both branches symmetrical.
+  const handleClick = (e: ReactMouseEvent<HTMLButtonElement>): void => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClick();
+  };
   if (variant === 'surface-2') {
     return (
       <button
@@ -256,7 +267,7 @@ function ActionButton({
         data-target={target}
         data-variant="surface-2"
         aria-label={ariaLabel}
-        onClick={onClick}
+        onClick={handleClick}
         disabled={isPending}
         className="gps-btn gps-btn--ghost gps-btn--sm"
         style={{
@@ -280,7 +291,7 @@ function ActionButton({
       data-variant="card"
       aria-label={ariaLabel}
       title={ariaLabel}
-      onClick={onClick}
+      onClick={handleClick}
       disabled={isPending}
       style={{
         display: 'inline-flex',
