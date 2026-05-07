@@ -50,7 +50,6 @@
 
 import type { CSSProperties, FC } from 'react';
 import Link from 'next/link';
-import { formatDistanceToNow } from 'date-fns';
 import { MessageSquare, Calendar, MapPin } from 'lucide-react';
 import { ReactionPill } from '@/components/ReactionPill';
 import { RelativeTime } from '@/components/RelativeTime';
@@ -466,7 +465,7 @@ export const PostCard: FC<PostCardProps> = ({
               </span>
               <span style={excerptStyle}>{post.topComment.excerpt}</span>
               <span aria-hidden="true" style={{ opacity: 0.6, flexShrink: 0 }}>
-                · {formatDistanceToNow(new Date(post.topComment.createdAt), { addSuffix: false })} →
+                · <RelativeTime date={post.topComment.createdAt} /> →
               </span>
             </Link>
           )}
