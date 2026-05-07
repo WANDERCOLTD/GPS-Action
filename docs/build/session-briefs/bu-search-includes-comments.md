@@ -1,7 +1,7 @@
 ---
 slug: bu-search-includes-comments
 status: shipped
-shipped_in: '#TBD'
+shipped_in: '#283'
 phase: 3
 priority: medium
 ---
