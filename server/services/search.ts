@@ -116,11 +116,12 @@ export interface TicketSearchHit {
  * is non-null on the row. The hit carries `parentKind` so the UI can
  * pick the right icon / breadcrumb without re-deriving from `parentId`.
  *
- * `parentHref` jumps to the parent surface. Post comments link back to
- * `/post/<postId>` and Request comments to `/board/<groupSlug>/<requestId>`
- * — comment threading components don't yet expose stable `id="comment-<id>"`
- * anchors, so we land on the parent and let the member scroll to the
- * comment naturally. (Tracked: anchor support is a low-cost follow-up.)
+ * `parentHref` deep-links to the specific comment via the
+ * `#comment-<commentId>` anchor — `<CommentItem>` renders
+ * `id="comment-<id>"` on its outer `<article>`, so browsers scroll the
+ * commented row into view on navigation. Post comments resolve to
+ * `/post/<postId>#comment-<commentId>`; ticket comments to
+ * `/board/<groupSlug>/<requestId>#comment-<commentId>`.
  *
  * `excerpt` is the comment body trimmed to ≤120 characters with an
  * ellipsis suffix when truncated — the wire shape never carries the
@@ -547,7 +548,7 @@ async function searchComments(
           parentKind: 'post',
           parentId: row.post.id,
           parentTitle: row.post.title,
-          parentHref: `/post/${row.post.id}`,
+          parentHref: `/post/${row.post.id}#comment-${row.id}`,
           authorDisplayName: row.author.displayName,
           excerpt: clampExcerpt(row.body),
           createdAt: row.createdAt.toISOString(),
@@ -566,7 +567,7 @@ async function searchComments(
           parentKind: 'ticket',
           parentId: row.request.id,
           parentTitle: row.request.title,
-          parentHref: `/board/${originating.group.slug}/${row.request.id}`,
+          parentHref: `/board/${originating.group.slug}/${row.request.id}#comment-${row.id}`,
           authorDisplayName: row.author.displayName,
           excerpt: clampExcerpt(row.body),
           createdAt: row.createdAt.toISOString(),

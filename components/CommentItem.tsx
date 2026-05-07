@@ -77,6 +77,7 @@ export const CommentItem: FC<CommentItemProps> = ({
 
   return (
     <article
+      id={`comment-${comment.id}`}
       data-testid="comment-item"
       data-comment-id={comment.id}
       style={{
