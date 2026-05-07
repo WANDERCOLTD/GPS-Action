@@ -1,9 +1,10 @@
 'use client';
 
 /**
- * @build-unit BU-share-rail-on-detail BU-whatsapp-share
+ * @build-unit BU-share-rail-on-detail BU-whatsapp-share BU-hydration-fixes
  * @spec build/session-briefs/bu-whatsapp-share.md
- * @spec architecture/decision-log.md (D067)
+ * @spec build/session-briefs/bu-hydration-fixes.md
+ * @spec architecture/decision-log.md (D067, D080)
  *
  * One-tap WhatsApp share affordance. Larger and visually distinct from
  * the X / Instagram / Facebook icons in `<SecondaryCtaRail>` because
@@ -26,6 +27,17 @@
  *   3. Opens `wa.me/?text=...` in a new tab. Mobile OSes route the
  *      universal link to the installed WhatsApp app; desktop falls
  *      through to WhatsApp Web.
+ *
+ * D080 — hydration safety. The `href` is computed in two phases:
+ *   - On the server (and first client paint), `originUrl=''` so the
+ *     embedded post URL is a relative `/post/<id>` — deterministic,
+ *     does not depend on the request host.
+ *   - After mount, `useEffect` re-renders with `getSiteOrigin()`,
+ *     producing the fully-qualified `https://…/post/<id>` link that
+ *     WhatsApp's link preview can latch onto.
+ * This avoids the "server origin differs from `window.location.origin`"
+ * SSR/CSR mismatch that surfaced when the dev server was reached over
+ * mDNS (e.g. `http://mba.local:3001`). See bu-hydration-fixes brief.
  */
 
 import type { FC, MouseEvent as ReactMouseEvent } from 'react';
@@ -46,11 +58,21 @@ export const WhatsAppShareButton: FC<WhatsAppShareButtonProps> = ({
   postBody,
   variant = 'compact',
 }) => {
+  // Two-phase origin resolution (D080). Server render and first client
+  // paint use originUrl='' — emits a relative /post/<id> deep link —
+  // so the rendered HTML is byte-identical regardless of which host the
+  // request landed on. After mount, swap to getSiteOrigin() to produce
+  // the fully-qualified URL WhatsApp's preview parser expects.
+  const [origin, setOrigin] = React.useState<string>('');
+  React.useEffect(() => {
+    setOrigin(getSiteOrigin());
+  }, []);
+
   const href = whatsAppShareUrl({
     postId,
     postTitle,
     postBody,
-    originUrl: getSiteOrigin(),
+    originUrl: origin,
   });
 
   function handleClick(event: ReactMouseEvent<HTMLAnchorElement>): void {
@@ -116,7 +138,12 @@ const WhatsAppGlyph: FC<WhatsAppGlyphProps> = ({ size }) => (
   </svg>
 );
 
-function pingShareIntent(postId: string): void {
+/**
+ * Exported for direct unit testing — the component now calls hooks
+ * (D080) so it can no longer be invoked outside a render context, but
+ * the analytics ping behaviour is independently testable here.
+ */
+export function pingShareIntent(postId: string): void {
   if (typeof window === 'undefined') return;
   const payload = JSON.stringify({ postId, destination: 'whatsapp' });
   const url = '/api/analytics/share-intent';

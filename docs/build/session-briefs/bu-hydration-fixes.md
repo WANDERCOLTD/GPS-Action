@@ -1,6 +1,7 @@
 ---
 slug: bu-hydration-fixes
-status: planned
+status: shipped
+shipped_in: "#PR_PLACEHOLDER"
 phase: 2
 priority: high
 note: "Two SSR/CSR mismatches surfaced on phone (mba.local) — share-button href and relative timestamps. One BU, two component fixes."

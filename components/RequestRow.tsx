@@ -13,8 +13,8 @@
 
 import type { MouseEvent as ReactMouseEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { formatDistanceToNow } from 'date-fns';
 import { ClaimButton, ResolveForm } from '@/components/RequestActionButtons';
+import { RelativeTime } from '@/components/RelativeTime';
 import { UserAvatar } from '@/components/UserAvatar';
 import type { RequestListItem } from '@/server/services/request';
 import type { RequestPriority, RequestType } from '@prisma/client';
@@ -265,9 +265,7 @@ export function RequestRow({ row, canAct, callerId }: RequestRowProps) {
           marginTop: 'var(--space-1)',
         }}
       >
-        <time dateTime={row.createdAt.toISOString()} suppressHydrationWarning>
-          {formatDistanceToNow(row.createdAt, { addSuffix: true })}
-        </time>
+        <RelativeTime date={row.createdAt} />
         <span
           className={`gps-chip gps-chip--static ${statusToneClass(row.status)}`}
           style={{

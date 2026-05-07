@@ -1,37 +1,30 @@
 /**
- * @build-unit BU-whatsapp-share
+ * @build-unit BU-whatsapp-share BU-hydration-fixes
  * @spec build/session-briefs/bu-whatsapp-share.md
- * @spec architecture/decision-log.md (D067)
+ * @spec build/session-briefs/bu-hydration-fixes.md
+ * @spec architecture/decision-log.md (D067, D080)
  *
  * Focused tests for the analytics ping added to <WhatsAppShareButton>
  * by D067. The component itself is owned by BU-share-rail-on-detail
  * (#111); these tests cover the slice this PR adds: the post_shared_out
  * event ping on click.
  *
- * Vitest env is `node` — no DOM, no RTL. We invoke the component
- * function directly and walk the returned ReactElement, mirroring the
- * established LinkPreviewCard test pattern.
+ * The component now calls `useState` / `useEffect` (D080 deferred-origin
+ * fix), so it can't be invoked as a plain function the way it could be
+ * before. We test the ping behaviour by calling the now-exported
+ * `pingShareIntent` helper directly — same surface, isolated from the
+ * render context.
+ *
+ * The click handler that wires `pingShareIntent` to the rendered <a>
+ * is structurally trivial (`event.stopPropagation(); pingShareIntent(...)`)
+ * and is exercised in `whatsapp-share-button-hydration.test.tsx` via
+ * SSR rendering of the button.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { MouseEvent as ReactMouseEvent, ReactElement } from 'react';
-import { WhatsAppShareButton } from '@/components/WhatsAppShareButton';
+import { pingShareIntent } from '@/components/WhatsAppShareButton';
 
-type AnyElement = ReactElement<Record<string, unknown>>;
-
-const baseProps = {
-  postId: '0123456789ab',
-  postTitle: 'Sky News bias post',
-  postBody: 'Worth pushing back on this one.',
-};
-
-function fireClick(): { stopPropagation: ReturnType<typeof vi.fn> } {
-  const el = WhatsAppShareButton(baseProps) as AnyElement;
-  const onClick = el.props.onClick as (event: Partial<ReactMouseEvent<HTMLAnchorElement>>) => void;
-  const stopPropagation = vi.fn();
-  onClick({ stopPropagation });
-  return { stopPropagation };
-}
+const POST_ID = '0123456789ab';
 
 describe('WhatsAppShareButton — analytics ping (D067)', () => {
   let beaconSpy: ReturnType<typeof vi.fn>;
@@ -51,13 +44,8 @@ describe('WhatsAppShareButton — analytics ping (D067)', () => {
     vi.restoreAllMocks();
   });
 
-  it('still stops the click bubbling so the parent PostCard does not navigate', () => {
-    const { stopPropagation } = fireClick();
-    expect(stopPropagation).toHaveBeenCalledTimes(1);
-  });
-
   it('sends the share-intent beacon with the post id and destination', () => {
-    fireClick();
+    pingShareIntent(POST_ID);
     expect(beaconSpy).toHaveBeenCalledTimes(1);
     const [url, blob] = beaconSpy.mock.calls[0]!;
     expect(url).toBe('/api/analytics/share-intent');
@@ -67,7 +55,7 @@ describe('WhatsAppShareButton — analytics ping (D067)', () => {
 
   it('falls back to fetch when sendBeacon refuses the payload', () => {
     beaconSpy.mockReturnValueOnce(false);
-    fireClick();
+    pingShareIntent(POST_ID);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     const [url, init] = fetchSpy.mock.calls[0]!;
     expect(url).toBe('/api/analytics/share-intent');
@@ -76,12 +64,26 @@ describe('WhatsAppShareButton — analytics ping (D067)', () => {
       keepalive: true,
     });
     const body = JSON.parse((init.body as string) ?? '{}');
-    expect(body).toEqual({ postId: baseProps.postId, destination: 'whatsapp' });
+    expect(body).toEqual({ postId: POST_ID, destination: 'whatsapp' });
   });
 
   it('falls back to fetch when navigator has no sendBeacon', () => {
     vi.stubGlobal('navigator', {});
-    fireClick();
+    pingShareIntent(POST_ID);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('is a no-op on the server (typeof window === "undefined")', () => {
+    vi.unstubAllGlobals();
+    // window is now undefined again.
+    expect(typeof globalThis.window).toBe('undefined');
+    pingShareIntent(POST_ID);
+    // Nothing to assert beyond "no throw" — but we re-stub afterwards
+    // so the global state remains consistent for siblings.
+    vi.stubGlobal('window', {});
+    vi.stubGlobal('navigator', { sendBeacon: beaconSpy });
+    vi.stubGlobal('fetch', fetchSpy);
+    expect(beaconSpy).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

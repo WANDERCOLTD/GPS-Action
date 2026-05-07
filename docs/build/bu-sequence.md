@@ -58,6 +58,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | Brief | Status | PR |
 |---|---|---|
 | **bu-composer** — BU-composer | ✅ Merged | — |
+| **bu-hydration-fixes** — BU-hydration-fixes | ✅ Merged | #PR_PLACEHOLDER |
 | **bu-icon-strips** — bu-icon-strips | ✅ Merged | — |
 | **bu-postcode-or-place** — bu-postcode-or-place | ✅ Merged | — |
 | **f15-require-design-tokens** — F15 | ✅ Merged | — |
@@ -125,7 +126,6 @@ Briefs in `planned` or `in_progress` status (auto-generated; do not edit
 by hand — run `npm run trackers`):
 
 <!-- AUTOGEN:planned:start -->
-- **bu-hydration-fixes** _[high]_ — BU-hydration-fixes
 - **bu-prod-auth** _[high]_ — bu-prod-auth
 - **bu-vercel-prep** _[high]_ — bu-vercel-prep
 - **bu-broadcast** _[medium]_ — bu-broadcast

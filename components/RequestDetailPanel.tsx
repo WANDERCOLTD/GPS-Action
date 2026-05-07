@@ -12,9 +12,9 @@
  */
 
 import { useState, useTransition, type FormEvent } from 'react';
-import { formatDistanceToNow } from 'date-fns';
 import type { CommentAudience } from '@prisma/client';
 import { addCommentToRequestAction, type ActionResult } from '@/app/requests/[id]/actions';
+import { RelativeTime } from '@/components/RelativeTime';
 
 export interface DetailComment {
   id: string;
@@ -117,9 +117,7 @@ export function RequestDetailPanel({ requestId, comments, isReviewer }: RequestD
                   Internal note
                 </span>
               )}
-              <time dateTime={c.createdAt} style={{ marginLeft: 'auto' }} suppressHydrationWarning>
-                {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}
-              </time>
+              <RelativeTime date={c.createdAt} style={{ marginLeft: 'auto' }} />
             </div>
             <div style={{ fontSize: 'var(--text-sm)' }}>{c.body}</div>
           </li>

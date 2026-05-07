@@ -53,6 +53,7 @@ import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageSquare, Calendar, MapPin } from 'lucide-react';
 import { ReactionPill } from '@/components/ReactionPill';
+import { RelativeTime } from '@/components/RelativeTime';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 import { PostShareGroup } from '@/components/PostShareGroup';
 import { formatEventRange } from '@/shared/format-event-time';
@@ -199,9 +200,6 @@ export const PostCard: FC<PostCardProps> = ({
   variant = 'compact',
 }) => {
   const paragraphs = post.body.split('\n\n');
-  const relativeTime = formatDistanceToNow(new Date(post.createdAt), {
-    addSuffix: true,
-  });
   const detailHref = `/post/${post.id}`;
 
   // Primary CTA = the AM URL when present, else the linkUrl. D075:
@@ -273,9 +271,7 @@ export const PostCard: FC<PostCardProps> = ({
                   />
                 )}
               </div>
-              <time className="gps-meta" dateTime={post.createdAt} suppressHydrationWarning>
-                {relativeTime}
-              </time>
+              <RelativeTime date={post.createdAt} className="gps-meta" />
             </div>
           </div>
 
