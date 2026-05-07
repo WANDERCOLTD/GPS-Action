@@ -58,7 +58,6 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | Brief | Status | PR |
 |---|---|---|
 | **bu-composer** — BU-composer | ✅ Merged | — |
-| **bu-hydration-fixes** — BU-hydration-fixes | ✅ Merged | #PR_PLACEHOLDER |
 | **bu-icon-strips** — bu-icon-strips | ✅ Merged | — |
 | **bu-postcode-or-place** — bu-postcode-or-place | ✅ Merged | — |
 | **f15-require-design-tokens** — F15 | ✅ Merged | — |
@@ -108,6 +107,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-post-location-input** — BU-post-location-input | ✅ Merged | #171 |
 | **bu-search-surface** — BU-search-surface | ✅ Merged | #189 |
 | **bu-search-result-cards** — BU-search-result-cards | ✅ Merged | #190 |
+| **bu-hydration-fixes** — BU-hydration-fixes | ✅ Merged | #280 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |
