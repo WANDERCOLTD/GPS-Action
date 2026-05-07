@@ -36,7 +36,7 @@ vitest.config.mts
 # Build Step" before the build starts. Without the negation below,
 # Vercel strips the script via .vercelignore and then errors with
 # "No such file or directory" when it tries to execute it.
-scripts/
+scripts/*
 !scripts/vercel-ignore-build.sh
 
 # ── Dev tooling (not used at build or runtime) ──────────────────────────
