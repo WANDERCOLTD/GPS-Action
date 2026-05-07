@@ -42,6 +42,7 @@ import {
   SearchPersonHitRow,
   SearchRegionHitRow,
   SearchTicketHitRow,
+  SearchCommentHitRow,
 } from '@/components/SearchHitRows';
 import { readRecentlyViewed, type RecentlyViewedItem } from '@/components/recently-viewed-posts';
 import { emitSearchEvent } from '@/components/search-telemetry';
@@ -99,6 +100,11 @@ const GROUPS: ReadonlyArray<{
     key: 'tickets',
     label: 'Tickets',
     pluralised: (n) => (n === 1 ? '1 ticket' : `${n} tickets`),
+  },
+  {
+    key: 'comments',
+    label: 'Comments',
+    pluralised: (n) => (n === 1 ? '1 comment' : `${n} comments`),
   },
 ];
 
@@ -232,6 +238,7 @@ const EMPTY_RESULTS: SearchResults = {
   regions: [],
   partnerOrgs: [],
   tickets: [],
+  comments: [],
 };
 
 export function SearchShell({
@@ -326,7 +333,8 @@ export function SearchShell({
       results.people.length +
       results.regions.length +
       results.partnerOrgs.length +
-      results.tickets.length
+      results.tickets.length +
+      results.comments.length
     : 0;
   const showZeroState = mode === 'typeahead' && !hasQuery;
   const showResults = mode === 'full' || (mode === 'typeahead' && hasQuery && results !== null);
@@ -350,7 +358,7 @@ export function SearchShell({
           name="q"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search posts, people, regions, tickets…"
+          placeholder="Search posts, people, regions, tickets, comments…"
           autoFocus
           autoComplete="off"
           inputMode="search"
@@ -582,6 +590,19 @@ function ResultList({ results, entityType, cap, groupPosition }: ResultListProps
         {hits.map((hit, idx) => (
           <li key={hit.id}>
             <SearchTicketHitRow hit={hit} position={idx} onClick={fireClick(idx)} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (entityType === 'comments') {
+    const hits = results.comments.slice(0, cap);
+    return (
+      <ul style={resultListStyle}>
+        {hits.map((hit, idx) => (
+          <li key={hit.id}>
+            <SearchCommentHitRow hit={hit} position={idx} onClick={fireClick(idx)} />
           </li>
         ))}
       </ul>

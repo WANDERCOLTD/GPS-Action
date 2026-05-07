@@ -1,5 +1,5 @@
 /**
- * @build-unit BU-search-surface
+ * @build-unit BU-search-surface bu-search-includes-comments
  * @spec product/analytics-events.md
  * @spec architecture/decision-log.md (D078)
  *
@@ -12,20 +12,25 @@
  * raw query string in any payload. Only enums, integers, and bools.
  * Member names commonly appear in queries — leaking them to analytics
  * is the failure mode this rule exists to prevent.
+ *
+ * `entity_type` mirrors `SearchEntityType` in `shared/validation/search`
+ * so a new entity (e.g. comments) lands in one place.
  */
+
+import type { SearchEntityType } from '@/shared/validation/search';
 
 export type SearchTelemetryEvent =
   | { event: 'search_opened'; source: 'appnav' | 'deep_link' | 'scope_chip' }
   | { event: 'search_query_submitted'; q_length: number; has_scope_chip: boolean }
   | {
       event: 'search_result_clicked';
-      entity_type: 'posts' | 'people' | 'regions' | 'partnerOrgs' | 'tickets';
+      entity_type: SearchEntityType;
       position_in_group: number;
       group_position: number;
     }
   | {
       event: 'search_see_all_clicked';
-      entity_type: 'posts' | 'people' | 'regions' | 'partnerOrgs' | 'tickets';
+      entity_type: SearchEntityType;
     };
 
 export function emitSearchEvent(event: SearchTelemetryEvent): void {

@@ -110,7 +110,9 @@ describe('POST /api/analytics/search — event validation', () => {
     const res = await POST(
       makeRequest({
         event: 'search_result_clicked',
-        entity_type: 'comments',
+        // `comments` is now valid (bu-search-includes-comments) — use
+        // an obviously bogus value to lock the rejection path.
+        entity_type: 'aliens',
         position_in_group: 0,
         group_position: 0,
       }),
@@ -121,6 +123,22 @@ describe('POST /api/analytics/search — event validation', () => {
   it('accepts a well-formed search_see_all_clicked payload', async () => {
     const res = await POST(makeRequest({ event: 'search_see_all_clicked', entity_type: 'people' }));
     expect(res.status).toBe(200);
+  });
+
+  it('accepts entity_type=comments (bu-search-includes-comments)', async () => {
+    const clicked = await POST(
+      makeRequest({
+        event: 'search_result_clicked',
+        entity_type: 'comments',
+        position_in_group: 1,
+        group_position: 5,
+      }),
+    );
+    expect(clicked.status).toBe(200);
+    const seeAll = await POST(
+      makeRequest({ event: 'search_see_all_clicked', entity_type: 'comments' }),
+    );
+    expect(seeAll.status).toBe(200);
   });
 
   it('logs the accepted payload to stdout (stub sink)', async () => {
