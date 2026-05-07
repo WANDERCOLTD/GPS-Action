@@ -252,35 +252,35 @@ via Settings → "Data"). Still in use elsewhere — e.g.
 
 ### In-content glyphs (shipped)
 
-| Concept                     | Glyph                     | Component(s)                                                                                  |
-| --------------------------- | ------------------------- | --------------------------------------------------------------------------------------------- |
-| Comment count               | `message-square`          | `PostCard`, `CommentList` (Discussion tab — BU-icon-strips re-use)                            |
-| Event time                  | `calendar`                | `PostCard`, `NearMeView` (Date sort — BU-icon-strips re-use)                                  |
-| Event kind / Events filter  | `calendar-days`           | `KindPickerSheet`, `FeedFilterChips` (Events chip — BU-icon-strips)                           |
-| Geographic place            | `map-pin`                 | `PostCard` (post location text), `GroupBadge` (group `region` kind)                           |
-| External link               | `external-link`           | `LinkPreviewCard`                                                                             |
-| In-app refresh              | `refresh-cw` / `loader-2` | `HeaderRefreshButton`                                                                         |
-| Modal/sheet dismiss         | `x`                       | `IntentFabSheet`, `PostPublishModal`                                                          |
-| FAB primary                 | `plus`                    | `IntentFab`                                                                                   |
-| Clipboard paste             | `clipboard-paste`         | `IntentFab`, `IntentFabSheet`                                                                 |
-| Send / publish              | `send`                    | `PostPublishModal`                                                                            |
-| Save as draft / edit        | `file-edit`               | `PostPublishModal`                                                                            |
-| Reviewer queue inbox        | `inbox`                   | `PostPublishModal` (same glyph as Requests tab — both = "incoming queue")                     |
-| Dev banner toggle           | `eye` / `eye-off`         | `DevBannerToggle`                                                                             |
-| Filter chip — Urgent        | `zap`                     | `FeedFilterChips` (BU-icon-strips)                                                            |
-| Filter chip — Happening now | `radio`                   | `FeedFilterChips` (BU-icon-strips)                                                            |
-| Filter chip — Meetings      | `users`                   | `FeedFilterChips` (BU-icon-strips)                                                            |
-| Comments tab — Activity     | `activity`                | `CommentList` (BU-icon-strips)                                                                |
-| Sort affordance — Distance  | `ruler-dimension-line`    | `NearMeView` (BU-icon-strips — map-scale-bar look)                                            |
-| Search trigger              | `search`                  | `AppNav` (BU-search-surface, PR C — magnifier in the header strip)                            |
-| Page-back affordance        | `chevron-left`            | `SearchShell` (BU-search-surface, PR C — `/search` page header)                               |
-| Group kind — Workstream     | `workflow`                | `GroupBadge` (bu-group-identity / ADR-0013)                                                   |
-| Group kind — Network        | `network`                 | `GroupBadge` (bu-group-identity / ADR-0013)                                                   |
-| Group kind — Team           | `briefcase`               | `GroupBadge` (bu-group-identity / ADR-0013)                                                   |
-| Group kind — Topic          | `hash`                    | `GroupBadge` (bu-group-identity / ADR-0013)                                                   |
-| Group kind — Region         | `map-pin`                 | `GroupBadge` (bu-group-identity / ADR-0013 — re-use; concept broadened to "geographic place") |
-| System-event row prefix     | `info`                    | `CommentNoteThread` (bu-coordination-board atom 5d-4 — kanban thread system rows)             |
-| Kanban ticket — list prefix | `kanban`                  | `SearchHitRows` (`SearchTicketHitRow` — search results pointing to a coord-board ticket)      |
+| Concept                     | Glyph                     | Component(s)                                                                                                                                     |
+| --------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Comment count               | `message-square`          | `PostCard`, `CommentList` (Discussion tab — BU-icon-strips re-use), `SearchHitRows` (`SearchCommentHitRow` — bu-search-includes-comments re-use) |
+| Event time                  | `calendar`                | `PostCard`, `NearMeView` (Date sort — BU-icon-strips re-use)                                                                                     |
+| Event kind / Events filter  | `calendar-days`           | `KindPickerSheet`, `FeedFilterChips` (Events chip — BU-icon-strips)                                                                              |
+| Geographic place            | `map-pin`                 | `PostCard` (post location text), `GroupBadge` (group `region` kind)                                                                              |
+| External link               | `external-link`           | `LinkPreviewCard`                                                                                                                                |
+| In-app refresh              | `refresh-cw` / `loader-2` | `HeaderRefreshButton`                                                                                                                            |
+| Modal/sheet dismiss         | `x`                       | `IntentFabSheet`, `PostPublishModal`                                                                                                             |
+| FAB primary                 | `plus`                    | `IntentFab`                                                                                                                                      |
+| Clipboard paste             | `clipboard-paste`         | `IntentFab`, `IntentFabSheet`                                                                                                                    |
+| Send / publish              | `send`                    | `PostPublishModal`                                                                                                                               |
+| Save as draft / edit        | `file-edit`               | `PostPublishModal`                                                                                                                               |
+| Reviewer queue inbox        | `inbox`                   | `PostPublishModal` (same glyph as Requests tab — both = "incoming queue")                                                                        |
+| Dev banner toggle           | `eye` / `eye-off`         | `DevBannerToggle`                                                                                                                                |
+| Filter chip — Urgent        | `zap`                     | `FeedFilterChips` (BU-icon-strips)                                                                                                               |
+| Filter chip — Happening now | `radio`                   | `FeedFilterChips` (BU-icon-strips)                                                                                                               |
+| Filter chip — Meetings      | `users`                   | `FeedFilterChips` (BU-icon-strips)                                                                                                               |
+| Comments tab — Activity     | `activity`                | `CommentList` (BU-icon-strips)                                                                                                                   |
+| Sort affordance — Distance  | `ruler-dimension-line`    | `NearMeView` (BU-icon-strips — map-scale-bar look)                                                                                               |
+| Search trigger              | `search`                  | `AppNav` (BU-search-surface, PR C — magnifier in the header strip)                                                                               |
+| Page-back affordance        | `chevron-left`            | `SearchShell` (BU-search-surface, PR C — `/search` page header)                                                                                  |
+| Group kind — Workstream     | `workflow`                | `GroupBadge` (bu-group-identity / ADR-0013)                                                                                                      |
+| Group kind — Network        | `network`                 | `GroupBadge` (bu-group-identity / ADR-0013)                                                                                                      |
+| Group kind — Team           | `briefcase`               | `GroupBadge` (bu-group-identity / ADR-0013)                                                                                                      |
+| Group kind — Topic          | `hash`                    | `GroupBadge` (bu-group-identity / ADR-0013)                                                                                                      |
+| Group kind — Region         | `map-pin`                 | `GroupBadge` (bu-group-identity / ADR-0013 — re-use; concept broadened to "geographic place")                                                    |
+| System-event row prefix     | `info`                    | `CommentNoteThread` (bu-coordination-board atom 5d-4 — kanban thread system rows)                                                                |
+| Kanban ticket — list prefix | `kanban`                  | `SearchHitRows` (`SearchTicketHitRow` — search results pointing to a coord-board ticket)                                                         |
 
 ### Person vs group (the `user` / `users` carve)
 

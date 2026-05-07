@@ -108,6 +108,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-search-surface** — BU-search-surface | ✅ Merged | #189 |
 | **bu-search-result-cards** — BU-search-result-cards | ✅ Merged | #190 |
 | **bu-hydration-fixes** — BU-hydration-fixes | ✅ Merged | #280 |
+| **bu-search-includes-comments** — bu-search-includes-comments | ✅ Merged | #283 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |

@@ -20,13 +20,15 @@
 import * as React from 'react';
 import type { CSSProperties, MouseEventHandler, ReactElement } from 'react';
 import Link from 'next/link';
-import { MapPin, Kanban } from 'lucide-react';
+import { MapPin, Kanban, MessageSquare } from 'lucide-react';
 import { AvatarBubble, KindChip, formatRole } from '@/components/post-meta';
+import { RelativeTime } from '@/components/RelativeTime';
 import type {
   PostSearchHit,
   PersonSearchHit,
   RegionSearchHit,
   TicketSearchHit,
+  CommentSearchHit,
   SearchAuthorRole,
 } from '@/server/routers/search';
 
@@ -297,6 +299,79 @@ export function SearchTicketHitRow({
         )}
       </div>
       <span style={titleStyle}>{hit.title}</span>
+    </Link>
+  );
+}
+
+// ── Comment row ─────────────────────────────────────────────────────────
+
+interface SearchCommentHitRowProps {
+  hit: CommentSearchHit;
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
+  testId?: string;
+  position: number;
+}
+
+const commentExcerptStyle: CSSProperties = {
+  ...titleStyle,
+  fontWeight: 'var(--weight-regular)',
+  color: 'var(--colour-text-secondary)',
+  fontSize: 'var(--text-sm)',
+};
+
+const commentParentTitleStyle: CSSProperties = {
+  fontSize: 'var(--text-sm)',
+  fontWeight: 'var(--weight-medium)',
+  color: 'var(--colour-text-primary)',
+};
+
+export function SearchCommentHitRow({
+  hit,
+  onClick,
+  testId = 'search-result-item',
+  position,
+}: SearchCommentHitRowProps): ReactElement {
+  return (
+    <Link
+      href={hit.parentHref}
+      style={rowLinkStyle}
+      onClick={onClick}
+      data-testid={testId}
+      data-entity-type="comments"
+      data-position={position}
+      data-parent-kind={hit.parentKind}
+    >
+      <div style={bylineStyle}>
+        <MessageSquare
+          size={16}
+          strokeWidth={2}
+          aria-hidden="true"
+          style={{ color: 'var(--colour-text-secondary)', flexShrink: 0 }}
+        />
+        <span style={metaStyle}>
+          {hit.parentKind === 'post' ? 'Comment on post' : 'Comment on ticket'}
+        </span>
+        <span
+          style={commentParentTitleStyle}
+          data-testid="search-comment-parent-title"
+          data-parent-id={hit.parentId}
+        >
+          {hit.parentTitle}
+        </span>
+      </div>
+      <div style={bylineStyle}>
+        <strong style={{ fontSize: 'var(--text-sm)' }}>{hit.authorDisplayName}</strong>
+        <span style={metaStyle}>
+          ·{' '}
+          <RelativeTime
+            date={hit.createdAt}
+            style={{ fontSize: 'var(--text-xs)', color: 'var(--colour-text-secondary)' }}
+          />
+        </span>
+      </div>
+      <span style={commentExcerptStyle} data-testid="search-comment-excerpt">
+        {hit.excerpt}
+      </span>
     </Link>
   );
 }

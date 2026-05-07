@@ -1,6 +1,7 @@
 ---
 slug: bu-search-includes-comments
-status: ready
+status: shipped
+shipped_in: '#283'
 phase: 3
 priority: medium
 ---

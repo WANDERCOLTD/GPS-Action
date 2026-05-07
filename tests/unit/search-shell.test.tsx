@@ -99,7 +99,7 @@ const { SearchShell } = await import('@/components/SearchShell');
 const noopRunSearch = vi.fn(async () => emptyResults());
 
 function emptyResults(): SearchResults {
-  return { posts: [], people: [], regions: [], partnerOrgs: [], tickets: [] };
+  return { posts: [], people: [], regions: [], partnerOrgs: [], tickets: [], comments: [] };
 }
 
 function makeResults(overrides: Partial<SearchResults> = {}): SearchResults {

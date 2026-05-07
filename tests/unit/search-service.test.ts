@@ -1,13 +1,15 @@
 /**
  * Unit tests for the search service.
  *
- * @build-unit BU-search-surface
- * @spec D078 (esp. §2 comments excluded, §4 ranking, §5 visibility, §9 partner orgs deferred)
+ * @build-unit BU-search-surface bu-search-includes-comments
+ * @spec D078 (esp. §4 ranking, §5 visibility, §9 partner orgs deferred)
+ * @spec build/session-briefs/bu-search-includes-comments.md
  *
- * Mocks Prisma. Locks behaviour for the four entity groups + the
+ * Mocks Prisma. Locks behaviour for the five entity groups + the
  * min-query-length / type-filter / visibility-filter rules. Comments
- * are not searched (D078 §2) so there's no comment mock; partner orgs
- * always returns [] (D078 §9) so no partner-org mock either.
+ * are now searched in the public-thread case
+ * (bu-search-includes-comments lifts D078 §2). Partner orgs always
+ * returns [] (D078 §9) so no partner-org mock.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -20,6 +22,7 @@ vi.mock('@/server/db/client', () => ({
     user: { findMany: vi.fn() },
     region: { findMany: vi.fn() },
     request: { findMany: vi.fn() },
+    comment: { findMany: vi.fn() },
     roleGrant: { count: vi.fn() },
   },
 }));
@@ -31,6 +34,7 @@ const mockPostFind = vi.mocked(prisma.post.findMany);
 const mockUserFind = vi.mocked(prisma.user.findMany);
 const mockRegionFind = vi.mocked(prisma.region.findMany);
 const mockRequestFind = vi.mocked(prisma.request.findMany);
+const mockCommentFind = vi.mocked(prisma.comment.findMany);
 const mockRoleGrantCount = vi.mocked(prisma.roleGrant.count);
 
 beforeEach(() => {
@@ -38,6 +42,7 @@ beforeEach(() => {
   mockUserFind.mockReset().mockResolvedValue([]);
   mockRegionFind.mockReset().mockResolvedValue([]);
   mockRequestFind.mockReset().mockResolvedValue([]);
+  mockCommentFind.mockReset().mockResolvedValue([]);
   mockRoleGrantCount.mockReset().mockResolvedValue(0);
 });
 
@@ -46,7 +51,14 @@ beforeEach(() => {
 describe('searchAll — min query length', () => {
   it('returns empty groups for empty query', async () => {
     const out = await searchAll({ q: '', callerId: null });
-    expect(out).toEqual({ posts: [], people: [], regions: [], partnerOrgs: [], tickets: [] });
+    expect(out).toEqual({
+      posts: [],
+      people: [],
+      regions: [],
+      partnerOrgs: [],
+      tickets: [],
+      comments: [],
+    });
     expect(mockPostFind).not.toHaveBeenCalled();
     expect(mockUserFind).not.toHaveBeenCalled();
     expect(mockRegionFind).not.toHaveBeenCalled();
@@ -55,7 +67,14 @@ describe('searchAll — min query length', () => {
 
   it('returns empty groups for 1-char query (server-enforced min 2)', async () => {
     const out = await searchAll({ q: 'a', callerId: null });
-    expect(out).toEqual({ posts: [], people: [], regions: [], partnerOrgs: [], tickets: [] });
+    expect(out).toEqual({
+      posts: [],
+      people: [],
+      regions: [],
+      partnerOrgs: [],
+      tickets: [],
+      comments: [],
+    });
     expect(mockPostFind).not.toHaveBeenCalled();
     expect(mockRequestFind).not.toHaveBeenCalled();
   });
@@ -112,6 +131,7 @@ describe('searchAll — type filter', () => {
     expect(mockUserFind).not.toHaveBeenCalled();
     expect(mockRegionFind).not.toHaveBeenCalled();
     expect(mockRequestFind).not.toHaveBeenCalled();
+    expect(mockCommentFind).not.toHaveBeenCalled();
   });
 
   it('queries only people in full mode with type=people', async () => {
@@ -119,6 +139,7 @@ describe('searchAll — type filter', () => {
     expect(mockUserFind).toHaveBeenCalledOnce();
     expect(mockPostFind).not.toHaveBeenCalled();
     expect(mockRequestFind).not.toHaveBeenCalled();
+    expect(mockCommentFind).not.toHaveBeenCalled();
   });
 
   it('typeahead default cap is 3 per group', async () => {
@@ -153,6 +174,7 @@ describe('searchAll — partner orgs deferred', () => {
     expect(mockUserFind).not.toHaveBeenCalled();
     expect(mockRegionFind).not.toHaveBeenCalled();
     expect(mockRequestFind).not.toHaveBeenCalled();
+    expect(mockCommentFind).not.toHaveBeenCalled();
   });
 });
 
@@ -336,6 +358,7 @@ describe('searchTickets — type filter', () => {
     expect(mockPostFind).not.toHaveBeenCalled();
     expect(mockUserFind).not.toHaveBeenCalled();
     expect(mockRegionFind).not.toHaveBeenCalled();
+    expect(mockCommentFind).not.toHaveBeenCalled();
   });
 
   it('queries tickets alongside other groups in typeahead mode', async () => {
@@ -348,5 +371,249 @@ describe('searchTickets — type filter', () => {
   it('full mode without type=tickets does not run the request query', async () => {
     await searchAll({ q: 'hendon', callerId: 'user-1', type: 'posts' });
     expect(mockRequestFind).not.toHaveBeenCalled();
+  });
+});
+
+// ── Comments (bu-search-includes-comments) ─────────────────────────────
+
+describe('searchComments — hard filters (kind, source, audience, deletedAt)', () => {
+  it('always restricts to kind=comment, source=human, audience=all, deletedAt=null', async () => {
+    await searchAll({ q: 'hendon', callerId: 'user-1' });
+    expect(mockCommentFind).toHaveBeenCalledOnce();
+    const where = mockCommentFind.mock.calls[0]?.[0]?.where as Record<string, unknown>;
+    expect(where).toMatchObject({
+      deletedAt: null,
+      kind: 'comment',
+      source: 'human',
+      audience: 'all',
+    });
+  });
+
+  it('searches Comment.body with case-insensitive contains', async () => {
+    await searchAll({ q: 'Hendon', callerId: 'user-1' });
+    const where = mockCommentFind.mock.calls[0]?.[0]?.where as Record<string, unknown>;
+    expect(where.body).toEqual({ contains: 'Hendon', mode: 'insensitive' });
+  });
+});
+
+describe('searchComments — visibility gate (post comments)', () => {
+  it('anonymous callers — only public-visibility post comments, no ticket comments', async () => {
+    await searchAll({ q: 'hendon', callerId: null });
+    expect(mockCommentFind).toHaveBeenCalledOnce();
+    const where = mockCommentFind.mock.calls[0]?.[0]?.where as { OR: unknown[] };
+    expect(where.OR).toHaveLength(1);
+    expect(where.OR[0]).toMatchObject({
+      post: {
+        deletedAt: null,
+        status: 'published',
+        visibility: { in: ['public'] },
+      },
+    });
+  });
+
+  it('authenticated callers — post comments include public + authenticated_only', async () => {
+    mockRoleGrantCount.mockResolvedValue(0);
+    await searchAll({ q: 'hendon', callerId: 'user-1' });
+    const where = mockCommentFind.mock.calls[0]?.[0]?.where as { OR: unknown[] };
+    expect(where.OR[0]).toMatchObject({
+      post: {
+        deletedAt: null,
+        status: 'published',
+        visibility: { in: ['public', 'authenticated_only'] },
+      },
+    });
+  });
+});
+
+describe('searchComments — visibility gate (ticket comments)', () => {
+  it('anonymous callers — no ticket-comment branch in OR', async () => {
+    await searchAll({ q: 'hendon', callerId: null });
+    const where = mockCommentFind.mock.calls[0]?.[0]?.where as { OR: unknown[] };
+    expect(where.OR.find((b) => (b as Record<string, unknown>).request)).toBeUndefined();
+  });
+
+  it('member callers — ticket-comment branch carries the membership gate', async () => {
+    mockRoleGrantCount.mockResolvedValue(0);
+    await searchAll({ q: 'hendon', callerId: 'user-1' });
+    const where = mockCommentFind.mock.calls[0]?.[0]?.where as { OR: unknown[] };
+    const ticketBranch = where.OR.find((b) => (b as Record<string, unknown>).request) as
+      | Record<string, unknown>
+      | undefined;
+    expect(ticketBranch).toBeDefined();
+    expect(ticketBranch?.request).toMatchObject({
+      deletedAt: null,
+      status: { in: ['backlog', 'active'] },
+      requestGroups: {
+        some: {
+          deletedAt: null,
+          group: {
+            deletedAt: null,
+            memberships: {
+              some: { userId: 'user-1', leftAt: null, deletedAt: null },
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it('sysadmin callers — ticket-comment branch skips the membership gate', async () => {
+    mockRoleGrantCount.mockResolvedValue(1);
+    await searchAll({ q: 'hendon', callerId: 'admin-1' });
+    const where = mockCommentFind.mock.calls[0]?.[0]?.where as { OR: unknown[] };
+    const ticketBranch = where.OR.find((b) => (b as Record<string, unknown>).request) as
+      | Record<string, unknown>
+      | undefined;
+    const req = ticketBranch?.request as Record<string, unknown>;
+    expect(req).toMatchObject({
+      deletedAt: null,
+      status: { in: ['backlog', 'active'] },
+    });
+    expect(req.requestGroups).toBeUndefined();
+  });
+});
+
+describe('searchComments — type filter', () => {
+  it('full mode with type=comments runs only the comment query', async () => {
+    await searchAll({ q: 'hendon', callerId: 'user-1', type: 'comments' });
+    expect(mockCommentFind).toHaveBeenCalledOnce();
+    expect(mockPostFind).not.toHaveBeenCalled();
+    expect(mockUserFind).not.toHaveBeenCalled();
+    expect(mockRegionFind).not.toHaveBeenCalled();
+    expect(mockRequestFind).not.toHaveBeenCalled();
+  });
+
+  it('full mode with a different type does not run the comment query', async () => {
+    await searchAll({ q: 'hendon', callerId: 'user-1', type: 'posts' });
+    expect(mockCommentFind).not.toHaveBeenCalled();
+  });
+
+  it('typeahead runs the comment query alongside other groups', async () => {
+    await searchAll({ q: 'hendon', callerId: 'user-1' });
+    expect(mockCommentFind).toHaveBeenCalledOnce();
+    expect(mockPostFind).toHaveBeenCalledOnce();
+  });
+});
+
+describe('searchComments — result shape', () => {
+  it('maps post-parented rows to CommentSearchHit (parentKind=post, /post href)', async () => {
+    const createdAt = new Date('2026-05-04T09:00:00Z');
+    mockCommentFind.mockResolvedValue([
+      {
+        id: 'c-1',
+        body: 'Worked great in Hendon last week.',
+        createdAt,
+        postId: 'post-1',
+        requestId: null,
+        author: { displayName: 'Sharon Cohen' },
+        post: { id: 'post-1', title: 'Hendon school-gate' },
+        request: null,
+      },
+    ] as unknown as never);
+    const out = await searchAll({ q: 'hendon', callerId: 'user-1' });
+    expect(out.comments).toEqual([
+      {
+        id: 'c-1',
+        parentKind: 'post',
+        parentId: 'post-1',
+        parentTitle: 'Hendon school-gate',
+        parentHref: '/post/post-1',
+        authorDisplayName: 'Sharon Cohen',
+        excerpt: 'Worked great in Hendon last week.',
+        createdAt: createdAt.toISOString(),
+      },
+    ]);
+  });
+
+  it('maps ticket-parented rows to CommentSearchHit (parentKind=ticket, /board href)', async () => {
+    const createdAt = new Date('2026-05-04T09:00:00Z');
+    mockCommentFind.mockResolvedValue([
+      {
+        id: 'c-2',
+        body: 'Roster confirmed.',
+        createdAt,
+        postId: null,
+        requestId: 'req-1',
+        author: { displayName: 'Dani' },
+        post: null,
+        request: {
+          id: 'req-1',
+          title: 'Hendon school-gate roster',
+          requestGroups: [{ group: { slug: 'hendon-team' } }],
+        },
+      },
+    ] as unknown as never);
+    const out = await searchAll({ q: 'roster', callerId: 'user-1' });
+    expect(out.comments).toEqual([
+      {
+        id: 'c-2',
+        parentKind: 'ticket',
+        parentId: 'req-1',
+        parentTitle: 'Hendon school-gate roster',
+        parentHref: '/board/hendon-team/req-1',
+        authorDisplayName: 'Dani',
+        excerpt: 'Roster confirmed.',
+        createdAt: createdAt.toISOString(),
+      },
+    ]);
+  });
+
+  it('drops ticket-parent rows with no originating RequestGroup link', async () => {
+    mockCommentFind.mockResolvedValue([
+      {
+        id: 'c-3',
+        body: 'Note on a vetting flow.',
+        createdAt: new Date(),
+        postId: null,
+        requestId: 'req-flag',
+        author: { displayName: 'Mod' },
+        post: null,
+        request: {
+          id: 'req-flag',
+          title: 'Stale flag review',
+          requestGroups: [], // no originating link → drop
+        },
+      },
+    ] as unknown as never);
+    const out = await searchAll({ q: 'flag', callerId: 'user-1' });
+    expect(out.comments).toEqual([]);
+  });
+
+  it('clamps the excerpt to ≤120 chars with a trailing ellipsis when truncated', async () => {
+    const long = 'a'.repeat(200);
+    mockCommentFind.mockResolvedValue([
+      {
+        id: 'c-4',
+        body: long,
+        createdAt: new Date('2026-05-04T09:00:00Z'),
+        postId: 'post-1',
+        requestId: null,
+        author: { displayName: 'Sharon' },
+        post: { id: 'post-1', title: 'Hendon' },
+        request: null,
+      },
+    ] as unknown as never);
+    const out = await searchAll({ q: 'aa', callerId: null });
+    const excerpt = out.comments[0]?.excerpt ?? '';
+    expect(excerpt.endsWith('…')).toBe(true);
+    // 120 chars + the single ellipsis char.
+    expect(excerpt.length).toBe(121);
+  });
+
+  it('does not append an ellipsis when the body is short', async () => {
+    mockCommentFind.mockResolvedValue([
+      {
+        id: 'c-5',
+        body: 'short body',
+        createdAt: new Date('2026-05-04T09:00:00Z'),
+        postId: 'post-1',
+        requestId: null,
+        author: { displayName: 'Sharon' },
+        post: { id: 'post-1', title: 'Hendon' },
+        request: null,
+      },
+    ] as unknown as never);
+    const out = await searchAll({ q: 'short', callerId: null });
+    expect(out.comments[0]?.excerpt).toBe('short body');
   });
 });

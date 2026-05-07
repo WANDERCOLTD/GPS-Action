@@ -19,12 +19,14 @@ import {
   SearchPersonHitRow,
   SearchRegionHitRow,
   SearchTicketHitRow,
+  SearchCommentHitRow,
 } from '@/components/SearchHitRows';
 import type {
   PostSearchHit,
   PersonSearchHit,
   RegionSearchHit,
   TicketSearchHit,
+  CommentSearchHit,
 } from '@/server/routers/search';
 import { AvatarBubble, KindChip } from '@/components/post-meta';
 
@@ -295,5 +297,85 @@ describe('SearchTicketHitRow', () => {
       .map((e) => e.props.children)
       .filter((c): c is string => typeof c === 'string');
     expect(texts).toContain('Hendon school-gate roster');
+  });
+});
+
+// ── Comment row ─────────────────────────────────────────────────────────
+
+function makeComment(overrides: Partial<CommentSearchHit> = {}): CommentSearchHit {
+  return {
+    id: 'c-1',
+    parentKind: 'post',
+    parentId: 'post-1',
+    parentTitle: 'Hendon school-gate',
+    parentHref: '/post/post-1',
+    authorDisplayName: 'Sharon Cohen',
+    excerpt: 'Worked great in Hendon last week.',
+    createdAt: '2026-05-04T09:00:00.000Z',
+    ...overrides,
+  };
+}
+
+describe('SearchCommentHitRow', () => {
+  it('renders a Link to the parent href with comments entity_type and position metadata', () => {
+    const tree = SearchCommentHitRow({ hit: makeComment(), position: 4 }) as AnyElement;
+    expect(tree.props.href).toBe('/post/post-1');
+    expect(tree.props['data-entity-type']).toBe('comments');
+    expect(tree.props['data-position']).toBe(4);
+    expect(tree.props['data-testid']).toBe('search-result-item');
+    expect(tree.props['data-parent-kind']).toBe('post');
+  });
+
+  it('routes to a board href for ticket-parented comments', () => {
+    const tree = SearchCommentHitRow({
+      hit: makeComment({
+        parentKind: 'ticket',
+        parentId: 'req-1',
+        parentTitle: 'Hendon roster',
+        parentHref: '/board/hendon-team/req-1',
+      }),
+      position: 0,
+    }) as AnyElement;
+    expect(tree.props.href).toBe('/board/hendon-team/req-1');
+    expect(tree.props['data-parent-kind']).toBe('ticket');
+  });
+
+  it('renders the parent breadcrumb with the parent title', () => {
+    const tree = SearchCommentHitRow({
+      hit: makeComment({ parentTitle: 'Hendon school-gate' }),
+      position: 0,
+    }) as AnyElement;
+    const breadcrumb = findByTestId(tree, 'search-comment-parent-title');
+    expect(breadcrumb?.props.children).toBe('Hendon school-gate');
+    expect(breadcrumb?.props['data-parent-id']).toBe('post-1');
+  });
+
+  it('renders the author display name and the clamped excerpt', () => {
+    const tree = SearchCommentHitRow({
+      hit: makeComment({
+        authorDisplayName: 'Sharon Cohen',
+        excerpt: 'Worked great in Hendon…',
+      }),
+      position: 0,
+    }) as AnyElement;
+    const texts = flatChildren(tree)
+      .map((e) => e.props.children)
+      .filter((c): c is string => typeof c === 'string');
+    expect(texts).toContain('Sharon Cohen');
+    const excerpt = findByTestId(tree, 'search-comment-excerpt');
+    expect(excerpt?.props.children).toBe('Worked great in Hendon…');
+  });
+
+  it('forwards onClick to the Link (for analytics)', () => {
+    let called = 0;
+    const tree = SearchCommentHitRow({
+      hit: makeComment(),
+      position: 0,
+      onClick: () => {
+        called += 1;
+      },
+    }) as AnyElement;
+    (tree.props.onClick as (...args: unknown[]) => void)();
+    expect(called).toBe(1);
   });
 });
