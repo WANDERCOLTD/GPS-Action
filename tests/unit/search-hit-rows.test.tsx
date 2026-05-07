@@ -308,7 +308,7 @@ function makeComment(overrides: Partial<CommentSearchHit> = {}): CommentSearchHi
     parentKind: 'post',
     parentId: 'post-1',
     parentTitle: 'Hendon school-gate',
-    parentHref: '/post/post-1',
+    parentHref: '/post/post-1#comment-c-1',
     authorDisplayName: 'Sharon Cohen',
     excerpt: 'Worked great in Hendon last week.',
     createdAt: '2026-05-04T09:00:00.000Z',
@@ -319,7 +319,7 @@ function makeComment(overrides: Partial<CommentSearchHit> = {}): CommentSearchHi
 describe('SearchCommentHitRow', () => {
   it('renders a Link to the parent href with comments entity_type and position metadata', () => {
     const tree = SearchCommentHitRow({ hit: makeComment(), position: 4 }) as AnyElement;
-    expect(tree.props.href).toBe('/post/post-1');
+    expect(tree.props.href).toBe('/post/post-1#comment-c-1');
     expect(tree.props['data-entity-type']).toBe('comments');
     expect(tree.props['data-position']).toBe(4);
     expect(tree.props['data-testid']).toBe('search-result-item');
@@ -332,11 +332,11 @@ describe('SearchCommentHitRow', () => {
         parentKind: 'ticket',
         parentId: 'req-1',
         parentTitle: 'Hendon roster',
-        parentHref: '/board/hendon-team/req-1',
+        parentHref: '/board/hendon-team/req-1#comment-c-1',
       }),
       position: 0,
     }) as AnyElement;
-    expect(tree.props.href).toBe('/board/hendon-team/req-1');
+    expect(tree.props.href).toBe('/board/hendon-team/req-1#comment-c-1');
     expect(tree.props['data-parent-kind']).toBe('ticket');
   });
 
