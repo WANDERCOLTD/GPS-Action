@@ -26,6 +26,7 @@ export const ADMIN_ENTITY_KEYS = [
   'post',
   'region',
   'group',
+  'groupMembership',
   'roleGrant',
   'featureFlag',
   'auditLog',

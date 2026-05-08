@@ -681,6 +681,170 @@ const roleGrantEntry: EntityRegistryEntry = {
   },
 };
 
+// GroupMembership --------------------------------------------------------
+//
+// bu-admin-group-membership: sysadmin CRUD over the User↔Group join table.
+// Idempotent on the (userId, groupId) unique pair — a create against an
+// existing row succeeds without throwing; if the existing row is
+// soft-deleted, the create undeletes it (and re-stamps `joinedVia` to
+// `admin_added`). `joinedAt` and `joinedVia` are append-only history;
+// only `role` is editable post-create. Soft-delete sets `deletedAt`
+// (admin removal) and is distinct from `leftAt` (member voluntarily
+// leaves) — softDelete/restore here do not touch `leftAt`.
+
+const groupMembershipCreateSchema = z.object({
+  userId: z.string().uuid(),
+  groupId: z.string().uuid(),
+  role: z.enum(['member', 'admin']).default('member'),
+});
+const groupMembershipUpdateSchema = z.object({
+  role: z.enum(['member', 'admin']),
+});
+
+const groupMembershipEntry: EntityRegistryEntry = {
+  formFields: {
+    create: [
+      { type: 'relation', name: 'userId', label: 'User', required: true, entity: 'user' },
+      { type: 'relation', name: 'groupId', label: 'Group', required: true, entity: 'group' },
+      {
+        type: 'enum',
+        name: 'role',
+        label: 'Role',
+        required: true,
+        options: ['member', 'admin'],
+      },
+    ],
+    update: [
+      {
+        type: 'enum',
+        name: 'role',
+        label: 'Role',
+        required: true,
+        options: ['member', 'admin'],
+        help: 'Only role is editable. joinedAt / joinedVia are append-only history.',
+      },
+    ],
+  },
+  async list({ search, take }) {
+    const m = meta('groupMembership');
+    const includePlan = planIncludeFromColumns(m.listColumns);
+    const include = planToPrismaInclude(includePlan);
+    const where: Prisma.GroupMembershipWhereInput = {
+      deletedAt: null,
+      ...buildSearchFilter(m.searchableFields ?? [], search),
+    };
+    const [rows, total] = await Promise.all([
+      prisma.groupMembership.findMany({
+        where,
+        orderBy: buildOrderBy<Prisma.GroupMembershipOrderByWithRelationInput>(m.defaultSort),
+        take: take ?? 50,
+        ...(Object.keys(include).length ? { include } : {}),
+      }),
+      prisma.groupMembership.count({ where }),
+    ]);
+    return {
+      rows: rows.map((r) => flattenRowForColumns(r as Record<string, unknown>, m.listColumns)),
+      total,
+    };
+  },
+  async get({ id }) {
+    const m = meta('groupMembership');
+    const includePlan = planIncludeFromColumns(m.listColumns);
+    const include = planToPrismaInclude(includePlan);
+    const row = await prisma.groupMembership.findUnique({
+      where: { id },
+      ...(Object.keys(include).length ? { include } : {}),
+    });
+    if (!row) return null;
+    return flattenRowForColumns(row as Record<string, unknown>, m.listColumns);
+  },
+  async create({ data }) {
+    const parsed = groupMembershipCreateSchema.parse(data);
+    // FK validation: refuse to add a member referring to a soft-deleted
+    // user or group. Per brief edge case 2.
+    const [user, group] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: parsed.userId },
+        select: { id: true, deletedAt: true },
+      }),
+      prisma.group.findUnique({
+        where: { id: parsed.groupId },
+        select: { id: true, deletedAt: true },
+      }),
+    ]);
+    if (!user || user.deletedAt) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'User does not exist or has been soft-deleted',
+      });
+    }
+    if (!group || group.deletedAt) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Group does not exist or has been soft-deleted',
+      });
+    }
+    // Idempotent on (userId, groupId). Per brief edge case 1:
+    //   - existing soft-deleted row → undelete + re-stamp joinedVia
+    //   - existing active row → no-op success (return its id)
+    const existing = await prisma.groupMembership.findUnique({
+      where: { userId_groupId: { userId: parsed.userId, groupId: parsed.groupId } },
+      select: { id: true, deletedAt: true },
+    });
+    if (existing) {
+      if (existing.deletedAt) {
+        const undeleted = await prisma.groupMembership.update({
+          where: { id: existing.id },
+          data: {
+            deletedAt: null,
+            joinedVia: 'admin_added',
+            role: parsed.role,
+          },
+          select: { id: true },
+        });
+        return undeleted;
+      }
+      return { id: existing.id };
+    }
+    const created = await prisma.groupMembership.create({
+      data: {
+        userId: parsed.userId,
+        groupId: parsed.groupId,
+        role: parsed.role,
+        joinedVia: 'admin_added',
+      },
+      select: { id: true },
+    });
+    return created;
+  },
+  async update({ id, data }) {
+    // Brief: only `role` is editable. joinedAt / joinedVia are append-only.
+    const parsed = groupMembershipUpdateSchema.parse(data);
+    const updated = await prisma.groupMembership.update({
+      where: { id },
+      data: { role: parsed.role },
+      select: { id: true },
+    });
+    return updated;
+  },
+  async softDelete({ id }) {
+    // Brief: set deletedAt, do NOT touch leftAt. leftAt is a different
+    // domain event (member chose to leave); admin removal sets deletedAt.
+    return prisma.groupMembership.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+      select: { id: true },
+    });
+  },
+  async restore({ id }) {
+    return prisma.groupMembership.update({
+      where: { id },
+      data: { deletedAt: null },
+      select: { id: true },
+    });
+  },
+};
+
 // FeatureFlag ------------------------------------------------------------
 
 const featureFlagCreateSchema = z.object({
@@ -918,6 +1082,7 @@ const registry: Partial<Record<EntityKey, EntityRegistryEntry>> = {
   post: postEntry,
   region: regionEntry,
   group: groupEntry,
+  groupMembership: groupMembershipEntry,
   roleGrant: roleGrantEntry,
   featureFlag: featureFlagEntry,
   auditLog: auditLogEntry,
