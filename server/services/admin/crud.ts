@@ -78,6 +78,15 @@ export async function getEntityRaw(
         where: { id },
         include: { createdBy: { select: { id: true, displayName: true } } },
       })) as Record<string, unknown> | null;
+    case 'groupMembership':
+      return (await prisma.groupMembership.findUnique({
+        where: { id },
+        include: {
+          user: { select: { id: true, displayName: true } },
+          group: { select: { id: true, displayName: true, slug: true } },
+          approvedBy: { select: { id: true, displayName: true } },
+        },
+      })) as Record<string, unknown> | null;
     case 'roleGrant':
       return (await prisma.roleGrant.findUnique({
         where: { id },
