@@ -409,7 +409,7 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
           borderTop: '1px solid var(--colour-border-subtle)',
         }}
       >
-        Last updated {formatDistanceToNow(ticket.updatedAt, { addSuffix: true })}
+        Last activity {formatDistanceToNow(ticket.lastActivityAt, { addSuffix: true })}
       </footer>
     </main>
   );

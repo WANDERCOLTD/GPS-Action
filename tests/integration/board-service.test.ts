@@ -435,7 +435,14 @@ describe('moveCard — sibling position lookup', () => {
       const tx = {
         request: {
           update: vi.fn().mockImplementation(async ({ data }: any) => {
-            capturedPosition = data.boardPosition;
+            // Multiple update calls hit `tx.request.update`: the primary
+            // write (which carries boardPosition + status), and the
+            // ADR-0015 bump (which carries lastActivityAt only). Capture
+            // boardPosition only when present so the assertion isn't
+            // clobbered by the bump.
+            if (data.boardPosition !== undefined) {
+              capturedPosition = data.boardPosition;
+            }
             return { id: 'r1', boardPosition: data.boardPosition, status: data.status };
           }),
         },

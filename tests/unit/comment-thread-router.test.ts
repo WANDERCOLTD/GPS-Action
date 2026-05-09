@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/server/db/client', () => ({
   prisma: {
-    request: { findFirst: vi.fn() },
+    request: { findFirst: vi.fn(), update: vi.fn() },
     requestGroup: { findFirst: vi.fn(), findMany: vi.fn() },
     groupMembership: { findMany: vi.fn() },
     comment: { create: vi.fn(), findMany: vi.fn() },

@@ -34,6 +34,7 @@ vi.mock('@/server/db/client', () => ({
     },
     request: {
       findUnique: vi.fn(),
+      update: vi.fn(),
     },
     boardColumn: {
       findUnique: vi.fn(),

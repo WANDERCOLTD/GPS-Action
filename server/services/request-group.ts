@@ -32,6 +32,7 @@ import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
 import { positionBetween } from '@/server/services/board';
 import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
+import { touchRequestActivity } from '@/server/services/request-activity';
 
 export type ShareMode = 'workflow' | 'ad_hoc';
 
@@ -226,6 +227,9 @@ export async function shareRequestToGroup(
   });
 
   if (result.created || result.reactivated) {
+    // ADR-0015 — share-to-team is a visible-activity event.
+    await touchRequestActivity(prisma, input.requestId);
+
     await auditLog({
       action: result.reactivated ? 'request_group_reshared' : 'request_group_shared',
       entityType: 'RequestGroup',
@@ -281,6 +285,9 @@ export async function unshareRequestFromGroup(
     where: { id: existing.id },
     data: { deletedAt: new Date() },
   });
+
+  // ADR-0015 — unshare-from-team is a visible-activity event.
+  await touchRequestActivity(prisma, input.requestId);
 
   await auditLog({
     action: 'request_group_unshared',

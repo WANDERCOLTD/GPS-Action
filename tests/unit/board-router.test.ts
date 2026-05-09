@@ -162,6 +162,7 @@ describe('board.getTicket', () => {
     ],
     createdAt: new Date(),
     updatedAt: new Date(),
+    lastActivityAt: new Date(),
   };
 
   it('rejects unauthenticated', async () => {

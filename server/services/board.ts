@@ -42,6 +42,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
 import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
+import { touchRequestActivity } from '@/server/services/request-activity';
 
 /**
  * Step between adjacent cards when one side has no constraint. Powers of
@@ -228,6 +229,9 @@ export async function moveCard(input: MoveCardInput): Promise<MoveCardResult> {
   const newPosition = positionBetween(beforePosition, afterPosition);
   const newStatus = laneToStatus(input.destination.lane);
 
+  const columnChanged = targetColumnId !== request.columnId;
+  const statusChanged = newStatus !== request.status;
+
   if (isOriginating) {
     const result = await prisma.$transaction(async (tx) => {
       const updatedRequest = await tx.request.update({
@@ -245,6 +249,11 @@ export async function moveCard(input: MoveCardInput): Promise<MoveCardResult> {
           boardPosition: newPosition,
         },
       });
+      // ADR-0015 — lifecycle status change / column move is a
+      // visible-activity event. Pure same-column reposition does not bump.
+      if (statusChanged || columnChanged) {
+        await touchRequestActivity(tx, input.requestId);
+      }
       return { request: updatedRequest, requestGroup: updatedLink };
     });
 
@@ -268,14 +277,14 @@ export async function moveCard(input: MoveCardInput): Promise<MoveCardResult> {
       },
     });
 
-    if (targetColumnId !== null && targetColumnId !== request.columnId) {
+    if (targetColumnId !== null && columnChanged) {
       await emitKanbanSystemEvent({
         requestId: input.requestId,
         actorId: input.actorId,
         event: { kind: 'column_move', newColumnId: targetColumnId },
       });
     }
-    if (newStatus !== request.status) {
+    if (statusChanged) {
       await emitKanbanSystemEvent({
         requestId: input.requestId,
         actorId: input.actorId,
@@ -291,6 +300,8 @@ export async function moveCard(input: MoveCardInput): Promise<MoveCardResult> {
     };
   }
 
+  const sharedColumnChanged = targetColumnId !== link.columnId;
+
   const updatedLink = await prisma.requestGroup.update({
     where: { id: link.id },
     data: {
@@ -298,6 +309,12 @@ export async function moveCard(input: MoveCardInput): Promise<MoveCardResult> {
       boardPosition: newPosition,
     },
   });
+
+  // ADR-0015 — column move on a shared link is a visible-activity event.
+  // Same-column reposition does not bump.
+  if (sharedColumnChanged) {
+    await touchRequestActivity(prisma, input.requestId);
+  }
 
   // Re-read Request unchanged so the caller's return shape stays stable.
   const requestRow = await prisma.request.findUniqueOrThrow({
@@ -324,7 +341,7 @@ export async function moveCard(input: MoveCardInput): Promise<MoveCardResult> {
     },
   });
 
-  if (targetColumnId !== null && targetColumnId !== link.columnId) {
+  if (targetColumnId !== null && sharedColumnChanged) {
     await emitKanbanSystemEvent({
       requestId: input.requestId,
       actorId: input.actorId,
@@ -383,6 +400,9 @@ export async function setRequestStatus(input: SetStatusInput): Promise<Request> 
     where: { id: input.requestId },
     data: { status: input.status },
   });
+
+  // ADR-0015 — lifecycle status change is a visible-activity event.
+  await touchRequestActivity(prisma, input.requestId);
 
   await auditLog({
     action: 'request_status_changed',
@@ -632,6 +652,13 @@ export interface TicketDetail {
   groups: TicketDetailGroupLink[];
   createdAt: Date;
   updatedAt: Date;
+  /**
+   * Visible-activity recency (ADR-0015 / D081). Bumped on comment /
+   * note / status change / assignment change / share-unshare / title
+   * or body edit. Distinct from `updatedAt` (Prisma row-mutation
+   * timestamp) — surfaces in the UI as "Last activity".
+   */
+  lastActivityAt: Date;
 }
 
 export interface GetTicketDetailInput {
@@ -681,6 +708,7 @@ export async function getTicketDetail(input: GetTicketDetailInput): Promise<Tick
       urgency: true,
       createdAt: true,
       updatedAt: true,
+      lastActivityAt: true,
       kind: { select: { slug: true, displayName: true } },
       assignments: {
         where: { unassignedAt: null },
@@ -741,6 +769,7 @@ export async function getTicketDetail(input: GetTicketDetailInput): Promise<Tick
     })),
     createdAt: request.createdAt,
     updatedAt: request.updatedAt,
+    lastActivityAt: request.lastActivityAt,
   };
 }
 
@@ -842,6 +871,9 @@ export async function editTicketTitle(input: EditTicketTitleInput): Promise<Requ
     data: { title: trimmed },
   });
 
+  // ADR-0015 — title edit is a visible-activity event.
+  await touchRequestActivity(prisma, input.requestId);
+
   await auditLog({
     action: 'ticket_title_edited',
     entityType: 'Request',
@@ -891,6 +923,9 @@ export async function editTicketBody(input: EditTicketBodyInput): Promise<Reques
     where: { id: input.requestId },
     data: { body: normalised },
   });
+
+  // ADR-0015 — description (body) edit is a visible-activity event.
+  await touchRequestActivity(prisma, input.requestId);
 
   await auditLog({
     action: 'ticket_body_edited',

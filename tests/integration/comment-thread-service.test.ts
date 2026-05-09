@@ -16,7 +16,7 @@ vi.mock('@/server/db/client', () => ({
   prisma: {
     requestGroup: { findFirst: vi.fn(), findMany: vi.fn() },
     groupMembership: { findMany: vi.fn() },
-    request: { findFirst: vi.fn() },
+    request: { findFirst: vi.fn(), update: vi.fn() },
     comment: { findMany: vi.fn(), create: vi.fn() },
     auditLog: { create: vi.fn() },
   },

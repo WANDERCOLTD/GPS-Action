@@ -344,6 +344,13 @@ model Request {
   deletedAt DateTime?
   updatedAt DateTime  @updatedAt
 
+  /// Visible-activity recency. Bumped to now() on comment / note /
+  /// status change / assignee change / share-unshare / title or
+  /// description edit. Distinct from `updatedAt`, which is the
+  /// Prisma-managed row-mutation timestamp. Indexed DESC so triage
+  /// views ("most recently active first") stay fast. See ADR-0015 / D081.
+  lastActivityAt DateTime @default(now())
+
   // Comments + notifications (BU-requests-vetting — D056, D057)
   comments      Comment[]      @relation("requestComments")
   notifications Notification[]
@@ -374,6 +381,7 @@ model Request {
   @@index([groupTags], type: Gin)
   @@index([deletedAt])
   @@index([columnId, boardPosition])
+  @@index([lastActivityAt(sort: Desc)])
 }
 
 // ─── PostKind ────────────────────────────────────────────────────────────────
