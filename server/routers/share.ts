@@ -23,6 +23,7 @@ import {
   shareRequestToGroup,
   unshareRequestFromGroup,
   listGroupsForRequest,
+  checkAccessLossOnUnshare,
   addShareWorkflow,
   removeShareWorkflow,
   listShareWorkflowTargets,
@@ -114,24 +115,69 @@ export const shareRouter = router({
     }
   }),
 
-  /** Unshare — soft-deletes the link. Refuses originating row. */
+  /**
+   * Unshare — soft-deletes the link. Refuses originating row.
+   *
+   * Permission per Q1 of bu-ticket-view-fixes (Item 4): allowed if the
+   * caller is (a) a system admin, OR (b) a member of the *target*
+   * group ("leave the share" — receiving team's self-unshare), OR
+   * (c) a member of the *originating* group (revoke the share). Any
+   * one of those three is sufficient.
+   *
+   * Idempotent per Q1 — receiving-team self-unshare must not error.
+   * The service is already idempotent on already-deleted / missing
+   * rows (returns the deleted row / null without throwing); this
+   * router translates that to `ok: true` either way so the UI doesn't
+   * surface a "you couldn't unshare what was already unshared" error.
+   */
   fromGroup: authedProcedure.input(unshareSchema).mutation(async ({ ctx, input }) => {
     const isSystemAdmin = ctx.activeRoles.includes('admin');
-    const access = await getGroupAccess({
+
+    // Path (b): direct membership of the target group being unshared.
+    const targetAccess = await getGroupAccess({
       groupId: input.groupId,
       userId: ctx.user.id,
       isSystemAdmin,
     });
-    if (!access.canViewBoard) {
-      throw new TRPCError({ code: 'NOT_FOUND', message: 'Group not accessible' });
+
+    let permitted = targetAccess.canViewBoard;
+
+    if (!permitted) {
+      // Path (c): caller belongs to the originating group of this
+      // Request. Look up the originating RequestGroup row to find
+      // which group authored the ticket, then check membership there.
+      // We do this only when path (b) fails so the common case stays
+      // a single membership query.
+      const requestGroups = await listGroupsForRequest(input.requestId);
+      const originating = requestGroups.find((rg) => rg.link.origin === 'originating');
+      if (originating) {
+        const originAccess = await getGroupAccess({
+          groupId: originating.group.id,
+          userId: ctx.user.id,
+          isSystemAdmin,
+        });
+        permitted = originAccess.canViewBoard;
+      }
     }
+
+    if (!permitted) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'Group not accessible',
+      });
+    }
+
     try {
-      const row = await unshareRequestFromGroup({
+      // Idempotent per Q1 — the service returns the existing
+      // (already-deleted) row or null when the share was already
+      // gone; we report ok=true in either case so a receiving-team
+      // member's self-unshare never surfaces an error.
+      await unshareRequestFromGroup({
         requestId: input.requestId,
         groupId: input.groupId,
         actorId: ctx.user.id,
       });
-      return { ok: row !== null && row.deletedAt !== null };
+      return { ok: true as const };
     } catch (err) {
       throw shareErrorToTRPC(err);
     }
@@ -141,6 +187,18 @@ export const shareRouter = router({
   listGroupsForRequest: authedProcedure
     .input(requestIdSchema)
     .query(async ({ input }) => listGroupsForRequest(input.requestId)),
+
+  /**
+   * Detect whether the caller has just lost access via unshare. Used
+   * by the ticket-detail page to redirect gracefully instead of 404
+   * when a share was removed while the viewer had the page open. See
+   * Item 4 of bu-ticket-view-fixes (Sub-build B).
+   */
+  checkAccessLoss: authedProcedure
+    .input(z.object({ requestId: z.string().min(1), groupId: z.string().min(1) }))
+    .query(async ({ input }) => {
+      return checkAccessLossOnUnshare(input.requestId, input.groupId);
+    }),
 
   /** Add a workflow allow-list entry. Group-admin of source or sysadmin. */
   addWorkflow: authedProcedure.input(workflowPairSchema).mutation(async ({ ctx, input }) => {

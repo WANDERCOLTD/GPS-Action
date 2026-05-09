@@ -36,12 +36,15 @@ import {
   editTicketBody,
   proposeKanbanTicket,
   quickAddKanbanTicket,
+  deleteRequest,
   BoardError,
   EditTicketError,
   ProposeKanbanTicketError,
+  DeleteRequestError,
   TICKET_TITLE_MAX_LENGTH,
   TICKET_BODY_MAX_LENGTH,
   type BoardCard,
+  type DeleteRequestResult,
   type MoveCardResult,
   type TicketDetail,
 } from '@/server/services/board';
@@ -98,6 +101,10 @@ function toTRPCError(err: unknown): TRPCError {
   }
   if (err instanceof ProposeKanbanTicketError) {
     return new TRPCError({ code: 'BAD_REQUEST', message: err.message });
+  }
+  if (err instanceof DeleteRequestError) {
+    const code = err.kind === 'request_not_found' ? 'NOT_FOUND' : 'FORBIDDEN';
+    return new TRPCError({ code, message: err.message });
   }
   if (err instanceof Error) {
     return new TRPCError({ code: 'BAD_REQUEST', message: err.message });
@@ -170,6 +177,10 @@ const setUrgentSchema = z.object({
   requestId: z.string().min(1),
   groupId: z.string().min(1),
   urgent: z.boolean(),
+});
+
+const deleteSchema = z.object({
+  requestId: z.string().min(1),
 });
 
 export const boardRouter = router({
@@ -415,4 +426,27 @@ export const boardRouter = router({
       throw toTRPCError(err);
     }
   }),
+
+  /**
+   * Hard-delete a ticket. Permission: originator OR system admin
+   * (Item 13 of bu-ticket-view-fixes). Cascades to comments, notes,
+   * assignments, subscriptions, and share rows via schema FK rules.
+   *
+   * Returns the originating-group id + lifecycle status captured at
+   * delete time so the caller can navigate the deleter back to that
+   * group's relevant lifecycle list (Backlog / Active / Done).
+   */
+  delete: authedProcedure
+    .input(deleteSchema)
+    .mutation(async ({ ctx, input }): Promise<DeleteRequestResult> => {
+      try {
+        return await deleteRequest({
+          requestId: input.requestId,
+          actorId: ctx.user.id,
+          isSystemAdmin: ctx.activeRoles.includes('admin'),
+        });
+      } catch (err) {
+        throw toTRPCError(err);
+      }
+    }),
 });

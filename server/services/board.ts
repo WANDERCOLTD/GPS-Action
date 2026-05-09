@@ -642,6 +642,12 @@ export interface TicketDetail {
   urgency: boolean;
   kindSlug: string | null;
   kindDisplayName: string | null;
+  /**
+   * The originator's user id (per `Request.createdByUserId`). Null if
+   * the originator has been hard-deleted (FK is `onDelete: SetNull`).
+   * Drives the "Delete this ticket" gate per Item 13 of bu-ticket-view-fixes.
+   */
+  createdByUserId: string | null;
   assignees: TicketDetailAssignee[];
   subscribers: TicketDetailSubscriber[];
   /**
@@ -707,6 +713,7 @@ export async function getTicketDetail(input: GetTicketDetailInput): Promise<Tick
       status: true,
       urgency: true,
       createdAt: true,
+      createdByUserId: true,
       updatedAt: true,
       lastActivityAt: true,
       kind: { select: { slug: true, displayName: true } },
@@ -748,6 +755,7 @@ export async function getTicketDetail(input: GetTicketDetailInput): Promise<Tick
     urgency: request.urgency,
     kindSlug: request.kind?.slug ?? null,
     kindDisplayName: request.kind?.displayName ?? null,
+    createdByUserId: request.createdByUserId,
     assignees: request.assignments.map((a) => ({
       userId: a.user.id,
       displayName: a.user.displayName,
@@ -1180,4 +1188,123 @@ export async function quickAddKanbanTicket(
   });
 
   return result;
+}
+
+// ─── Delete request (Item 13 — bu-ticket-view-fixes Sub-build B) ──────────
+
+export type DeleteRequestErrorKind = 'request_not_found' | 'forbidden';
+
+export class DeleteRequestError extends Error {
+  constructor(
+    public readonly kind: DeleteRequestErrorKind,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'DeleteRequestError';
+  }
+}
+
+export interface DeleteRequestInput {
+  requestId: string;
+  actorId: string;
+  /** Caller-resolved: true when actor has system-admin role. */
+  isSystemAdmin: boolean;
+}
+
+export interface DeleteRequestResult {
+  /** Title at the moment of delete — captured for audit forensic recovery. */
+  title: string;
+  /**
+   * The originating group's id at delete time — captured for audit + so
+   * the caller can navigate the deleter back to that group's lifecycle list.
+   */
+  originatingGroupId: string | null;
+  /**
+   * The request's status at delete time — drives where the deleter is
+   * navigated next (`backlog` / `active` / `done`).
+   */
+  status: RequestStatus;
+}
+
+/**
+ * Hard-delete a Request and its dependents. Permission per the brief
+ * (Item 13): originator (`Request.createdByUserId === actorId`) OR
+ * system admin. Other roles get `forbidden`.
+ *
+ * Cascade behaviour is enforced at the schema layer (every dependent
+ * relation declares `onDelete: Cascade`):
+ *   - `Comment.request` (Cascade) → comments + notes go.
+ *   - `Assignment.request` (Cascade) → assignments go.
+ *   - `RequestSubscription.request` (Cascade) → followers go.
+ *   - `RequestGroup.request` (Cascade) → all share rows go.
+ *   - `Notification.request` (SetNull) → notifications survive without
+ *     a back-reference (sensible — the recipient's history shouldn't
+ *     vanish silently).
+ *   - `Post.reviewRequest` (SetNull) → vetting back-references survive.
+ *
+ * The deleter is navigated by the caller (router / page) using the
+ * captured `originatingGroupId` + `status` returned here.
+ *
+ * Audit row: `request_deleted` with title + originatingGroupId + status
+ * for forensic recovery (the row itself is gone).
+ *
+ * `lastActivityAt` is NOT bumped — the row is deleted, the bump is moot
+ * (per Item 14's "deleteComment does not bump" symmetry).
+ *
+ * No `column_move` system event — system events are scoped to moves
+ * (per atom 5d-3); a generic `request_deleted` system event is not
+ * defined yet, so we skip emission rather than invent one mid-build.
+ */
+export async function deleteRequest(input: DeleteRequestInput): Promise<DeleteRequestResult> {
+  const request = await prisma.request.findFirst({
+    where: { id: input.requestId, deletedAt: null },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      createdByUserId: true,
+      requestGroups: {
+        where: { origin: 'originating', deletedAt: null },
+        select: { groupId: true },
+        take: 1,
+      },
+    },
+  });
+  if (!request) {
+    throw new DeleteRequestError('request_not_found', `Request ${input.requestId} not found`);
+  }
+
+  const isOriginator = request.createdByUserId === input.actorId;
+  if (!isOriginator && !input.isSystemAdmin) {
+    throw new DeleteRequestError(
+      'forbidden',
+      'Only the originator or a system admin may delete this ticket',
+    );
+  }
+
+  const originatingGroupId = request.requestGroups[0]?.groupId ?? null;
+
+  // Hard delete — schema-level FK cascades clean up Comments,
+  // Assignments, RequestSubscriptions, RequestGroups. See doc comment
+  // above for the full cascade table.
+  await prisma.request.delete({ where: { id: input.requestId } });
+
+  await auditLog({
+    action: 'request_deleted',
+    entityType: 'Request',
+    entityId: input.requestId,
+    userId: input.actorId,
+    changes: { title: request.title },
+    context: {
+      originatingGroupId,
+      status: request.status,
+      isOriginator,
+    },
+  });
+
+  return {
+    title: request.title,
+    originatingGroupId,
+    status: request.status,
+  };
 }
