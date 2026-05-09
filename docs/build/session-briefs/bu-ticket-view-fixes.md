@@ -3,7 +3,7 @@ slug: bu-ticket-view-fixes
 status: ready
 phase: 2
 priority: high
-note: 'Bundles 15 tester-feedback items on the ticket detail view + backlog → move-to-active flow. 13 directionally locked; 2 TBD blockers (item 4 unshare permissions; item 14 schema choice). Drafting unblocked; scheduling needs the two TBDs settled. Companion briefs: bu-ticket-detail-relayout (item 6, status: needs-design) and a future palette brief (item 16).'
+note: 'Bundles 15 tester-feedback items on the ticket detail view + backlog → move-to-active flow. All directionally locked — defaults applied for Q1 (item 4 unshare permissions), Q2 (item 14 schema), and Q5 (item 10 vs D052 scope). Companion briefs: bu-ticket-detail-relayout (item 6, status: needs-design) and a future palette brief (item 16).'
 ---
 
 # SESSION BRIEF · bu-ticket-view-fixes — coord-board ticket UX patch bundle
@@ -93,10 +93,19 @@ This brief sweeps the lot. None of it is hard individually; the value is doing i
 #### Group A — Assignees & Following (items 1, 2, 3)
 
 **1 — Move Assign / Unassign-from-me into the Assignees panel.**
-Today the Assign/Unassign buttons live in the page header. Move them into the Assignees panel UI as the first row above the avatar list ("You" row with an Assign-to-me button when not assigned, an Unassign button when assigned). Symmetric pattern with the existing Following control.
+Today the Assign/Unassign buttons live in the page header next to Follow/Unfollow as a side-by-side pair (see `components/board/BoardActionPair.tsx` lines 78–107 — both buttons are rendered inside the same inline-flex `div` with `gap: var(--space-2)`). Move Assign/Unassign into the Assignees panel UI as the first row above the avatar list ("You" row with an Assign-to-me button when not assigned, an Unassign button when assigned). Symmetric pattern with the existing Following control.
 
-**2 — BUG: Unfollow sometimes also triggers Unassign.**
-Symmetry rules confirmed by Paul 2026-05-09:
+**This is also the structural fix for Item 2 ("Unfollow sometimes Unassigns").** The two buttons sit side-by-side in `BoardActionPair.tsx`, so a fat-fingered tap on small viewports can land on the neighbour. Separating them into different surfaces (Assignees panel vs. Following control) makes the misclick unreproducible — no shared layout, no neighbour to hit.
+
+**2 — Regression test: `Unfollow leaves assigned untouched`.**
+Reduced from "fix the bug + useRef refactor" to a ratchet-only addition. Reading `BoardActionPair.tsx` and `app/board/[groupSlug]/[ticketId]/actions.ts` confirmed the server actions and service layer are clean (no cross-action state), and `useTransition` already disables both buttons during in-flight clicks (`disabled={isPending}` on lines 90 and 101 of `BoardActionPair.tsx`). The intermittent symptom is layout-induced (Item 1's side-by-side proximity), not closure-induced. The useRef refactor proposal is dropped.
+
+What this item ships:
+
+- A regression test at `tests/unit/board-action-pair.test.tsx` that asserts: with `assigned=true, following=true`, clicking the follow button (which renders as "Unfollow") only invokes the unfollow action, never the unassign action.
+- The test guards against future regressions if the layout or action wiring is ever revisited.
+
+Symmetry rules (for reference — confirmed by Paul 2026-05-09):
 
 | Action | Side effect |
 | --- | --- |
@@ -104,20 +113,6 @@ Symmetry rules confirmed by Paul 2026-05-09:
 | Unassign-from-me | Does **not** Unfollow |
 | Follow | Does **not** Assign |
 | Unfollow | Does **not** Unassign |
-
-Audit `assignSelf`, `unassignSelf`, `follow`, `unfollow` handlers and any client-side coupling. The bug is most likely a shared optimistic-update path that mutates two cache keys when it should mutate one. Add a regression test:
-
-```ts
-// server/services/board.test.ts
-it('unfollow does not change assignment', async () => {
-  const ticket = await seed.ticketAssignedTo(user);
-  await board.followTicket({ ticketId, userId });
-  await board.unfollowTicket({ ticketId, userId });
-  expect(await board.isAssigned({ ticketId, userId })).toBe(true);
-});
-```
-
-Also add the inverse (`unassignSelf` does not unfollow). Two assertions per direction; four tests total.
 
 **3 — Surface the asymmetric Assign↔Follow coupling.**
 The "Assign-to-me also follows" rule is non-obvious and currently silent. Surface via:
@@ -132,7 +127,7 @@ Coachmark uses the existing tooltip primitive if there is one; if not, a lightwe
 **4 — Unshare from a team.**
 Add an `×` on each team pill in the Shared-With strip. Tapping opens a confirmation modal: "Unshare from <Team>?" → Cancel / Unshare. Server: `board.unshareTicketFromTeam({ ticketId, groupId })`. Audit-logs the unshare.
 
-> **TBD: who can unshare?** Default proposal in this brief: **members of the originating team + admins; receiving-team members cannot unshare**. Paul 2026-05-09 confirmed admins-can-do-anything is the floor; the originating-team default is a proposal. **Confirm before scheduling the build session.**
+> **Permissions (resolved):** Members of the originating team and admins can unshare. Receiving-team members cannot — they would ask the originator to retract or escalate to admin.
 
 **5 — Drop the originating team from the Shared-With strip.**
 The originating team is already shown in the breadcrumb / page chrome (e.g. "Writers board" header). Showing it again in the Shared-With strip is redundant noise.
@@ -163,7 +158,7 @@ Inside the compose box, the Comment / Note picker becomes a tab control, mirrori
 - **Hard delete** per Paul 2026-05-09 — soft delete deferred to v2.
 - Edited comments display an "edited" marker (small caption, no full timestamp; tooltip can show the edit time).
 - Server: `board.editComment({ commentId, body })` and `board.deleteComment({ commentId })`. Both gate on `comment.authorId === currentUser.id`.
-- Note that this contradicts D052's "no edit/delete in MVP" for `Comment`. The contradiction is scoped to **board comments** (Comments on `Request` targets, not on `Post`). If `Comment` is the polymorphic entity from D052, the gating is on `targetType === 'request'` — flag this as a check during build, and surface to Paul if the polymorphism makes the gate awkward.
+- **Scope (resolved):** Edit and delete are scoped to **Request comments only** (board tickets). Post comments remain immutable per D052. The author-only / no-time-window / hard-delete rules apply only to request comments. ADR clarifying scope at `docs/adrs/NNNN-comment-edit-delete-scope.md` (drafted in parallel, will be referenced once the ADR's number is known). At the implementation layer, gate on `targetType === 'request'` if `Comment` is the polymorphic entity from D052.
 
 **11 — Compose box at the top of the discussion, collapsed by default.**
 Replace the always-open compose textarea with a collapsed "Add a comment or note" pill. Tap expands into the full editor (Comment/Note tabs from #9, body field, Save/Cancel). Saves vertical space; prevents accidental focus.
@@ -190,13 +185,7 @@ Today the lifecycle control offers `Send to backlog` / `Mark done` / (currently 
 
 **14 — `Last activity` tracks all activity, not just description edits.**
 
-> **TBD: schema choice.** The brief recommends **add a new `lastActivityAt: DateTime` column on `Request`** for honest semantics. Reasoning:
->
-> - Prisma auto-bumps `updatedAt` on any row write — repurposing it would couple "row mutated for any reason" with "user-visible activity", and any background job that touches the row would falsely bump the label.
-> - A new column is forward-only, idempotent (defaults to `createdAt` for back-fill), and additive.
-> - **Requires an ADR** before merge per CLAUDE.md (`Don't change prisma/schema.prisma without an ADR`). ADR draft sits alongside this brief; would land in the same PR sequence.
->
-> The cheaper alternative — repurpose `updatedAt` and live with the false bumps — is documented for completeness but not recommended. **Confirm before scheduling.**
+> **Schema (resolved):** Add a new `lastActivityAt` column to the `Ticket` model (DateTime, indexed). `updatedAt` retains its existing Prisma row-level auto-bump semantics. The displayed label is renamed to **'Last activity'**. Bumped on: comment posted, note posted, lifecycle status change, assignee change, share/unshare. ADR required — see `docs/adrs/NNNN-ticket-last-activity-at.md` (drafted in parallel, will be referenced once the ADR's number is known).
 
 Bumps on:
 
@@ -247,7 +236,7 @@ Implementation:
 | 7, 8, 9, 11, 12 | None (UI-only) | — | — |
 | 10 | None for edit; delete is `Comment` row deletion (cascade rules already exist) | — | — (D052 contradiction noted; surface if blocking) |
 | 13 | None (hard delete on existing rows; cascades exist) | — | — |
-| **14** | **`Request.lastActivityAt: DateTime` (TBD: confirm before build)** | **Forward-only; back-fill from `createdAt` via `COALESCE`** | **YES — ADR required** |
+| **14** | **`Ticket.lastActivityAt: DateTime` (indexed; resolved per Q2)** | **Forward-only; back-fill from `createdAt` via `COALESCE`** | **YES — `docs/adrs/NNNN-ticket-last-activity-at.md` (drafted in parallel)** |
 | 15 | None (CSS + JSX) | — | — |
 | 17 | None (cache behaviour change + UI) | — | — |
 
@@ -271,7 +260,7 @@ None proposed. These are incremental UX fixes on a surface already gated by `coo
 
 1. **Item 10 vs D052.** D052 says comments are not editable / deletable in MVP. This brief contradicts that for board comments only. If `Comment` is genuinely polymorphic across `Post` and `Request`, the editor/deleter must gate on `targetType === 'request'`, and the `Post` side stays uneditable. Surface the choice if the polymorphism makes the gate awkward.
 
-2. **Item 14 ADR latency.** If the new-column path is chosen, the ADR needs to land in the same PR or one ahead. Don't merge the column without the ADR; CI's schema-locked rule will block.
+2. **Item 14 ADR latency.** With the new-column path now resolved per Q2, the ADR (`docs/adrs/NNNN-ticket-last-activity-at.md`) needs to land in the same PR or one ahead. Don't merge the column without the ADR; CI's schema-locked rule will block.
 
 3. **Item 17 optimistic update vs server validation.** If the column is full, soft-blocked, or the user lacks permission, `onMutate` removes a ticket that the server then rejects. `onError` rolls back, but the user sees a flash. Worth a 200ms debounce on the optimistic remove, or accept the flash.
 
@@ -287,7 +276,7 @@ None proposed. These are incremental UX fixes on a surface already gated by `coo
 | --- | --- | --- | --- | --- | --- |
 | Assign-to-me / Unassign-from-me (any member) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Follow / Unfollow (any member) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Unshare from a team **(item 4 — TBD)** | — | ✓ (proposal) | — | ✓ | ✓ |
+| Unshare from a team (item 4 — resolved Q1) | — | ✓ | — | ✓ | ✓ |
 | Edit own comment / note | — | (if author) | (if author) | (if author) | (admins editing others' comments out of scope) |
 | Delete own comment / note | — | (if author) | (if author) | (if author) | — |
 | Delete ticket (item 13) | — | ✓ | — | — | ✓ |
@@ -297,10 +286,10 @@ None proposed. These are incremental UX fixes on a surface already gated by `coo
 
 - [ ] Items 1, 3, 5, 7, 8, 9, 11, 12, 15 ship as UI-only changes; no regressions on the existing ticket detail flows.
 - [ ] Item 2's regression test passes in CI; the four asymmetric button-isolation cases are explicit.
-- [ ] Item 4 ships with the unshare permission gate set per the resolved TBD.
+- [ ] Item 4 ships with the unshare permission gate as resolved per Q1 (originating-team members + admins; receiving-team members forbidden).
 - [ ] Item 10's author-only edit / hard-delete works; "edited" marker visible on edited comments.
 - [ ] Item 13's originator/admin-only ticket-delete works; cascade verified for comments / notes / shares / assignments.
-- [ ] Item 14 ships with the resolved schema choice; "Last activity" label updates on every catalogued mutation; ADR (if column added) merged before or with the schema PR.
+- [ ] Item 14 ships with the new `Ticket.lastActivityAt` column (indexed) per Q2; "Last activity" label updates on every catalogued mutation; ADR (`docs/adrs/NNNN-ticket-last-activity-at.md`) merged before or with the schema PR.
 - [ ] Item 17's `/backlog` triage flow stays on `/backlog`; toast confirms; optimistic update + rollback verified.
 - [ ] FAB captions visible on mobile (375px viewport); divider contrast bumped; tooltips present on desktop.
 - [ ] `pnpm typecheck && pnpm lint && pnpm test` clean.
@@ -309,7 +298,7 @@ None proposed. These are incremental UX fixes on a surface already gated by `coo
 
 ### Estimate
 
-One full session (4–5 hours). The work is a wide cluster of small surgeries; the single risk that could blow it open is item 14's ADR latency. If the TBD lands as "repurpose `updatedAt`" the estimate drops by an hour; if it lands as "new column" the ADR drafting eats the saved time.
+One full session (4–5 hours). The work is a wide cluster of small surgeries; the single risk that could blow it open is item 14's ADR latency (now resolved as the new-column path per Q2). The ADR drafting is in flight in parallel.
 
 ### Out of scope (split into companion briefs)
 
@@ -320,14 +309,14 @@ One full session (4–5 hours). The work is a wide cluster of small surgeries; t
 
 ## Open questions to surface
 
-Two TBDs that block scheduling but not drafting:
+All previously-blocking TBDs are now resolved with applied defaults:
 
-1. **Item 4 — unshare permissions.** Default proposal: originating-team members + admins can unshare; receiving-team members cannot. Confirm before build.
-2. **Item 14 — schema choice.** Recommended: new `Request.lastActivityAt` column (with ADR). Cheaper alternative: repurpose `updatedAt` (no ADR, breaks current row-level semantics). Confirm before build.
+1. **Item 4 — unshare permissions (Q1, resolved).** Originating-team members and admins can unshare; receiving-team members cannot. Receiving-team members ask the originator to retract or escalate to admin.
+2. **Item 14 — schema choice (Q2, resolved).** New `Ticket.lastActivityAt` column (DateTime, indexed). `updatedAt` retains its Prisma row-level semantics. Label renamed to "Last activity". ADR at `docs/adrs/NNNN-ticket-last-activity-at.md` (drafted in parallel).
+3. **Item 10 vs D052 scope (Q5, resolved).** Edit/delete scoped to Request comments only; Post comments remain immutable per D052. ADR at `docs/adrs/NNNN-comment-edit-delete-scope.md` (drafted in parallel).
 
-Other surfacing-needed items resolved during drafting:
+Items resolved during drafting (no surfacing needed):
 
-- **Item 10 vs D052.** D052 says comments are MVP-immutable; this brief overrides for board comments. If `Comment` is polymorphic across `Post` + `Request`, gate on `targetType === 'request'`. Confirm gate at build time if the shape makes it awkward.
 - **Item 5 fallback.** "Drop the originating-team pill" assumes breadcrumb is reliable. Verify on mobile before delete.
 
 ---
@@ -352,4 +341,4 @@ Other surfacing-needed items resolved during drafting:
 
 ## Status
 
-`ready` — drafting complete. Two TBD blockers (item 4 unshare permissions; item 14 schema choice) gate scheduling but not drafting. Resolve those, then schedule.
+`ready` — drafting complete; defaults applied for Q1 (item 4 unshare permissions), Q2 (item 14 schema), and Q5 (item 10 vs D052 scope). No outstanding TBDs. Schedule when capacity allows.
