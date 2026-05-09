@@ -18,6 +18,7 @@ vi.mock('@/server/services/request-group', async (importOriginal) => {
     shareRequestToGroup: vi.fn(),
     unshareRequestFromGroup: vi.fn(),
     listGroupsForRequest: vi.fn(),
+    checkAccessLossOnUnshare: vi.fn(),
     addShareWorkflow: vi.fn(),
     removeShareWorkflow: vi.fn(),
     listShareWorkflowTargets: vi.fn(),
@@ -52,6 +53,7 @@ import { GroupAccessError } from '@/server/services/group-kanban';
 const mockShare = vi.mocked(requestGroup.shareRequestToGroup);
 const mockUnshare = vi.mocked(requestGroup.unshareRequestFromGroup);
 const mockListGroups = vi.mocked(requestGroup.listGroupsForRequest);
+const mockCheckAccessLoss = vi.mocked(requestGroup.checkAccessLossOnUnshare);
 const mockAddWorkflow = vi.mocked(requestGroup.addShareWorkflow);
 const mockRemoveWorkflow = vi.mocked(requestGroup.removeShareWorkflow);
 const mockListTargets = vi.mocked(requestGroup.listShareWorkflowTargets);
@@ -200,19 +202,149 @@ describe('share.toGroup', () => {
   });
 });
 
-describe('share.fromGroup', () => {
-  it('passes ok=true when row was soft-deleted', async () => {
-    mockGetAccess.mockResolvedValue({
-      isMember: true,
-      isGroupAdmin: false,
-      isSystemAdmin: false,
-      canViewBoard: true,
-      canAdminBoard: false,
-    });
+describe('share.fromGroup — Item 4 unshare permissions (Q1)', () => {
+  // Per Q1 of bu-ticket-view-fixes Sub-build B: unshare allowed if
+  // caller is a system admin, OR a member of the *target* group ("leave
+  // the share"), OR a member of the *originating* group (revoke the
+  // share). Idempotent — receiving-team self-unshare must not error.
+  const inviz = {
+    isMember: false,
+    isGroupAdmin: false,
+    isSystemAdmin: false,
+    canViewBoard: false,
+    canAdminBoard: false,
+  };
+  const targetMember = {
+    isMember: true,
+    isGroupAdmin: false,
+    isSystemAdmin: false,
+    canViewBoard: true,
+    canAdminBoard: false,
+  };
+
+  it('rejects unauthenticated', async () => {
+    const caller = createCaller(publicContext());
+    await expect(caller.share.fromGroup({ requestId: 'r1', groupId: 'g2' })).rejects.toBeInstanceOf(
+      TRPCError,
+    );
+  });
+
+  it('receiving-team member (target-group member) succeeds', async () => {
+    mockGetAccess.mockResolvedValue(targetMember);
     mockUnshare.mockResolvedValue({ id: 'rg1', deletedAt: new Date() } as never);
     const caller = createCaller(authedContext());
     const result = await caller.share.fromGroup({ requestId: 'r1', groupId: 'g2' });
     expect(result.ok).toBe(true);
+    expect(mockUnshare).toHaveBeenCalledWith({
+      requestId: 'r1',
+      groupId: 'g2',
+      actorId: 'u1',
+    });
+    // Should NOT have queried originating-group fallback when target
+    // membership already grants access — keeps the common case cheap.
+    expect(mockListGroups).not.toHaveBeenCalled();
+  });
+
+  it('originating-team member (not in target group) succeeds via fallback', async () => {
+    // First getGroupAccess call (target group) → forbidden.
+    // listGroupsForRequest exposes the originating group id.
+    // Second getGroupAccess call (originating group) → permitted.
+    mockGetAccess.mockResolvedValueOnce(inviz);
+    mockListGroups.mockResolvedValue([
+      {
+        link: { id: 'rg1', origin: 'originating', deletedAt: null } as never,
+        group: { id: 'gOrig', displayName: 'Writers' } as never,
+      },
+      {
+        link: { id: 'rg2', origin: 'workflow_share', deletedAt: null } as never,
+        group: { id: 'g2', displayName: 'IT' } as never,
+      },
+    ]);
+    mockGetAccess.mockResolvedValueOnce(targetMember); // permitted on origin
+
+    mockUnshare.mockResolvedValue({ id: 'rg2', deletedAt: new Date() } as never);
+    const caller = createCaller(authedContext());
+
+    const result = await caller.share.fromGroup({ requestId: 'r1', groupId: 'g2' });
+
+    expect(result.ok).toBe(true);
+    expect(mockGetAccess).toHaveBeenCalledTimes(2);
+    expect(mockListGroups).toHaveBeenCalledWith('r1');
+    expect(mockUnshare).toHaveBeenCalled();
+  });
+
+  it('uninvolved third-party member (neither team) → NOT_FOUND', async () => {
+    mockGetAccess.mockResolvedValueOnce(inviz);
+    mockListGroups.mockResolvedValue([
+      {
+        link: { id: 'rg1', origin: 'originating', deletedAt: null } as never,
+        group: { id: 'gOrig', displayName: 'Writers' } as never,
+      },
+    ]);
+    mockGetAccess.mockResolvedValueOnce(inviz);
+
+    const caller = createCaller(authedContext());
+    await expect(caller.share.fromGroup({ requestId: 'r1', groupId: 'g2' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    expect(mockUnshare).not.toHaveBeenCalled();
+  });
+
+  it('system admin succeeds even without target membership', async () => {
+    mockGetAccess.mockResolvedValue({
+      ...inviz,
+      isSystemAdmin: true,
+      canViewBoard: true,
+    });
+    mockUnshare.mockResolvedValue({ id: 'rg1', deletedAt: new Date() } as never);
+    const caller = createCaller(authedContext(['admin']));
+    const result = await caller.share.fromGroup({ requestId: 'r1', groupId: 'g2' });
+    expect(result.ok).toBe(true);
+  });
+
+  it('idempotent — returns ok=true even when share was already gone', async () => {
+    // The service returns null when no row exists; our router maps that
+    // to ok=true so a receiving-team member's self-unshare never errors.
+    mockGetAccess.mockResolvedValue(targetMember);
+    mockUnshare.mockResolvedValue(null);
+    const caller = createCaller(authedContext());
+    const result = await caller.share.fromGroup({ requestId: 'r1', groupId: 'g2' });
+    expect(result.ok).toBe(true);
+  });
+
+  it('idempotent — returns ok=true on a second unshare (already soft-deleted)', async () => {
+    mockGetAccess.mockResolvedValue(targetMember);
+    // Second call: service returns the existing deleted row.
+    mockUnshare.mockResolvedValue({
+      id: 'rg2',
+      deletedAt: new Date('2026-04-30'),
+    } as never);
+    const caller = createCaller(authedContext());
+    const result = await caller.share.fromGroup({ requestId: 'r1', groupId: 'g2' });
+    expect(result.ok).toBe(true);
+  });
+});
+
+describe('share.checkAccessLoss (Item 4 — bu-ticket-view-fixes Sub-build B)', () => {
+  it('passes through service result', async () => {
+    mockCheckAccessLoss.mockResolvedValue({ status: 'active', accessLost: true });
+    const caller = createCaller(authedContext());
+    const result = await caller.share.checkAccessLoss({
+      requestId: 'r1',
+      groupId: 'g2',
+    });
+    expect(result).toEqual({ status: 'active', accessLost: true });
+    expect(mockCheckAccessLoss).toHaveBeenCalledWith('r1', 'g2');
+  });
+
+  it('returns null when the request does not exist', async () => {
+    mockCheckAccessLoss.mockResolvedValue(null);
+    const caller = createCaller(authedContext());
+    const result = await caller.share.checkAccessLoss({
+      requestId: 'rX',
+      groupId: 'g2',
+    });
+    expect(result).toBeNull();
   });
 });
 
