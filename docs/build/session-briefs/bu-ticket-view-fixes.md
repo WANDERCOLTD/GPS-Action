@@ -28,6 +28,8 @@ Today, every one of those decisions costs her unnecessary friction:
 - She sees "updated 3d ago" on a ticket that had a comment posted today.
 - She wonders why nobody's using the FAB and realises the right-hand half ("paste a link") is so visually fused with the left half ("create a post") that testers don't know it's two buttons.
 
+A second moment, same morning: someone on Bette's Writers team has been pulled into a ticket the Photographers team shared in error — the request really only needs photo coverage. The Writers member opens the ticket, decides "this isn't ours to action", taps the `×` next to "Writers" in the Shared-With strip, confirms, and the ticket vanishes — they land back on their own Writers backlog (or active board, or Done, depending on the ticket's lifecycle state at the moment of unshare). No 403, no scary error, just a quiet toast: "This ticket is no longer shared with your team." That's the receiving-team-leaves-the-share path; it has to feel as gentle as the originating-team-revokes path.
+
 This brief sweeps the lot. None of it is hard individually; the value is doing it as a cluster so the next tester walk-through reads as "tight" rather than "fifteen papercuts."
 
 ### What shipping this changes
@@ -50,6 +52,7 @@ This brief sweeps the lot. None of it is hard individually; the value is doing i
 | Coordinator | Trust that Unfollow doesn't change my assignment | The button does what it says, no surprise side effects |
 | Coordinator | Triage the backlog without losing my place | I can dispose of 30 tickets in a sitting |
 | Coordinator | Delete duplicates / stale tickets | The board shows real signal, not noise |
+| Receiving-team member | Unshare a ticket that isn't actually relevant to my team | I can leave the share without escalating to an admin or pinging the originator |
 | Author | Edit and delete my own comments and notes | I can fix typos and retract things I shouldn't have said |
 | Reader | See newest comments first | I get the latest update without scrolling past stale chatter |
 | Anyone | See an honest "last activity" timestamp | I know whether this ticket is alive or rotting |
@@ -127,7 +130,13 @@ Coachmark uses the existing tooltip primitive if there is one; if not, a lightwe
 **4 — Unshare from a team.**
 Add an `×` on each team pill in the Shared-With strip. Tapping opens a confirmation modal: "Unshare from <Team>?" → Cancel / Unshare. Server: `board.unshareTicketFromTeam({ ticketId, groupId })`. Audit-logs the unshare.
 
-> **Permissions (resolved):** Members of the originating team and admins can unshare. Receiving-team members cannot — they would ask the originator to retract or escalate to admin.
+> **Sharing (unchanged):** Admins and members of the **originating team** can share a ticket with another team.
+>
+> **Unsharing (new):** Admins and members of **both teams** can unshare. The originating team's members can revoke the share; the receiving team's members can effectively "leave" the share by unsharing themselves out of it. In either direction, after unshare the ticket becomes unreachable for the receiving team's members.
+>
+> **No error on self-unshare:** When a receiving-team member triggers unshare-from-our-team, do not surface an error. The action is legitimate ("leaving the share") and idempotent.
+>
+> **Auto-navigate on unshare-while-open:** When the unshare commits, any receiving-team member who currently has that ticket open on their screen must auto-navigate back to their **own team's** corresponding list — Backlog, Board (active), or Done — depending on the ticket's lifecycle state at the moment of unsharing. Implementation hint: this is a server-pushed redirect (or the next route revalidation detecting the user no longer has access) that moves them to `/board/<their-own-team-slug>/<lifecycle-list>`. Do NOT show a 403 / unauthorized page; navigate gracefully with a brief toast ("This ticket is no longer shared with your team.").
 
 **5 — Drop the originating team from the Shared-With strip.**
 The originating team is already shown in the breadcrumb / page chrome (e.g. "Writers board" header). Showing it again in the Shared-With strip is redundant noise.
@@ -244,13 +253,26 @@ Implementation:
 
 - **Service unit tests** (in `server/services/board.test.ts`):
   - Item 2 regression: 4 tests for button isolation (assign↔follow asymmetry).
-  - Item 4: unshare permission gate (originating-team member success; receiving-team member forbidden; admin success).
+  - Item 4: unshare permission gate (originating-team member success; receiving-team member success — "leave the share"; admin success; uninvolved-member-of-neither-team forbidden); idempotent — repeated unshare does not error.
+  - Item 4: auto-navigate path — receiving-team member unshares while the ticket is open; assert redirect to `/board/<own-team-slug>/<lifecycle-list>` (one test per lifecycle state: backlog / active / done); never a 403.
   - Item 10: edit gate (author success; non-author forbidden); delete gate (same).
   - Item 13: ticket-delete gate (originator success; admin success; uninvolved-member forbidden); cascade behaviour (comments/notes/shares/assignments removed).
   - Item 14: every mutation that should bump `lastActivityAt` does; `deleteComment` does NOT bump.
 - **Integration test** (tRPC): backlog `moveTicketToColumn` flow — optimistic cache removal + rollback on error.
 - **Component test**: discussion-tabs (Comments default; Log shows count badge); compose-box collapsed-by-default state.
 - **Manual click-through**: full triage flow for 5+ tickets on `/backlog`; FAB caption visible on mobile viewport (375px).
+
+### Test discipline
+
+**Static state-coverage tests for item 14 (`lastActivityAt`):** before this BU is signed off, run static / unit tests covering **every ticket lifecycle state** (Backlog, all active board columns, Done, Deleted) and **every bump-event** (comment, note, status change, assign, unassign, share, unshare, title edit, body edit). Assert that `lastActivityAt` is set on creation, bumped exactly once per event, and never decreases. Fix any defects surfaced by this matrix before merging. The matrix is exhaustive — not just happy-path. This is a build-time requirement, not a stretch goal.
+
+Concretely, the matrix is the cartesian product `lifecycle-state × bump-event`, asserting on each cell:
+
+- `lastActivityAt` is non-null after the event.
+- `lastActivityAt > previous lastActivityAt` (strictly increasing).
+- Exactly one bump per event (no double-bump from cascading mutations or transaction retries).
+- `deleteComment` does NOT bump (per item 14).
+- Soft / hard transitions to Deleted state are exercised — even a deleted ticket's `lastActivityAt` reflects the deletion event timestamp (or whatever the resolved ADR specifies for terminal states).
 
 ### Feature flag
 
@@ -270,13 +292,16 @@ None proposed. These are incremental UX fixes on a surface already gated by `coo
 
 6. **F14 testid rule.** Every new interactive element gets a `data-testid`. The `unshare` button, the `Delete ticket` button, the discussion tabs, the FAB captions — all need testids. Grep the existing brief patterns (`bu-coordination-board.md` PR #5) for the prefix convention.
 
+7. **Item 4 — auto-navigate on unshare-while-open (the gotcha).** When a receiving-team member unshares themselves out of a ticket they currently have open, the next render must not 403. The page must detect the access loss and redirect to the user's own team's corresponding lifecycle list (`/board/<own-team-slug>/<lifecycle-list>` — backlog / board / done depending on the ticket's state at unshare time). Implement via a server action that returns a `redirect()` after the mutation, OR via middleware / route revalidation that picks up the access loss on the next navigation tick. Do NOT rely on the client to clear the page — a stale optimistic render could briefly show the ticket after the server has revoked access. **Test required:** "receiving-team member unshares while ticket is open" — assert the user lands on `/board/<own-team-slug>/<lifecycle-list>` with the toast, never on a 403 page.
+
 ### Permission matrix
 
 | Action | Member | Originator | Receiving-team member | Group admin | Sysadmin |
 | --- | --- | --- | --- | --- | --- |
 | Assign-to-me / Unassign-from-me (any member) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Follow / Unfollow (any member) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Unshare from a team (item 4 — resolved Q1) | — | ✓ | — | ✓ | ✓ |
+| Share to another team (item 4) | — | ✓ (originating-team member) | — | ✓ | ✓ |
+| Unshare from a team (item 4 — corrected Q1) | — | ✓ (originating-team member) | ✓ (receiving-team member, "leave the share") | ✓ | ✓ |
 | Edit own comment / note | — | (if author) | (if author) | (if author) | (admins editing others' comments out of scope) |
 | Delete own comment / note | — | (if author) | (if author) | (if author) | — |
 | Delete ticket (item 13) | — | ✓ | — | — | ✓ |
@@ -286,10 +311,12 @@ None proposed. These are incremental UX fixes on a surface already gated by `coo
 
 - [ ] Items 1, 3, 5, 7, 8, 9, 11, 12, 15 ship as UI-only changes; no regressions on the existing ticket detail flows.
 - [ ] Item 2's regression test passes in CI; the four asymmetric button-isolation cases are explicit.
-- [ ] Item 4 ships with the unshare permission gate as resolved per Q1 (originating-team members + admins; receiving-team members forbidden).
+- [ ] Item 4 ships with the corrected unshare permission gate per Q1: originating-team members revoke; receiving-team members "leave the share" (no error, idempotent); admins on either side. After unshare, receiving-team members lose access cleanly.
+- [ ] Item 4 auto-navigates the receiving-team member back to their own team's `/board/<slug>/<lifecycle-list>` if they had the ticket open at unshare time — never a 403; toast confirms.
 - [ ] Item 10's author-only edit / hard-delete works; "edited" marker visible on edited comments.
 - [ ] Item 13's originator/admin-only ticket-delete works; cascade verified for comments / notes / shares / assignments.
 - [ ] Item 14 ships with the new `Ticket.lastActivityAt` column (indexed) per Q2; "Last activity" label updates on every catalogued mutation; ADR (`docs/adrs/NNNN-ticket-last-activity-at.md`) merged before or with the schema PR.
+- [ ] Item 14 state-coverage matrix passes: every `lifecycle-state × bump-event` cell asserts `lastActivityAt` set on create, bumped exactly once per event, never decreasing; `deleteComment` does not bump. Defects surfaced by the matrix are fixed before merge.
 - [ ] Item 17's `/backlog` triage flow stays on `/backlog`; toast confirms; optimistic update + rollback verified.
 - [ ] FAB captions visible on mobile (375px viewport); divider contrast bumped; tooltips present on desktop.
 - [ ] `pnpm typecheck && pnpm lint && pnpm test` clean.
@@ -311,7 +338,7 @@ One full session (4–5 hours). The work is a wide cluster of small surgeries; t
 
 All previously-blocking TBDs are now resolved with applied defaults:
 
-1. **Item 4 — unshare permissions (Q1, resolved).** Originating-team members and admins can unshare; receiving-team members cannot. Receiving-team members ask the originator to retract or escalate to admin.
+1. **Item 4 — unshare permissions (Q1, corrected 2026-05-09).** Sharing is unchanged: originating-team members + admins. Unsharing now permits **both teams**: originating-team members revoke the share; receiving-team members "leave the share" (idempotent, no error). After commit, the ticket is unreachable for receiving-team members. If a receiving-team member has the ticket open when unshare commits, they auto-navigate to their own team's `/board/<slug>/<lifecycle-list>` (backlog / active / done depending on lifecycle state) — never a 403.
 2. **Item 14 — schema choice (Q2, resolved).** New `Ticket.lastActivityAt` column (DateTime, indexed). `updatedAt` retains its Prisma row-level semantics. Label renamed to "Last activity". ADR at `docs/adrs/NNNN-ticket-last-activity-at.md` (drafted in parallel).
 3. **Item 10 vs D052 scope (Q5, resolved).** Edit/delete scoped to Request comments only; Post comments remain immutable per D052. ADR at `docs/adrs/NNNN-comment-edit-delete-scope.md` (drafted in parallel).
 
