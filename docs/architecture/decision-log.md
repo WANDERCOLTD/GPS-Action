@@ -5541,3 +5541,87 @@ bundle is its own win.
   context for why this surfaced.
 - BU-tick-or-cross — will reuse `<ClientOnly>` for the
   `<SendToNetworkConfirm>` modal's clipboard + channel-open flow.
+
+# D081 — `Request.lastActivityAt` for honest "Last activity" timestamp
+
+**Status:** decided · 2026-05-09
+
+## Context
+
+Tester feedback on the ticket detail view (`app/board/[groupSlug]/
+[ticketId]/page.tsx`): the "Last updated X ago" label only bumps when
+the description / row itself is edited, because it reads from the
+Prisma-managed `Request.updatedAt`. Comments, notes, status moves,
+assignment changes, and share/unshare write to neighbour tables and
+leave the parent row untouched — so a ticket with five new comments
+today still says "updated 3d ago". The label is misleading, and
+testers triage by recency.
+
+The fix: track member-visible activity on a dedicated column,
+separate from row-mutation recency, so the displayed timestamp can
+be honest. Rename the UI label from "Last updated" to
+"Last activity" to match.
+
+## Decision
+
+- Add `Request.lastActivityAt: DateTime` (NOT NULL after backfill,
+  default `now()`, indexed DESC).
+- Keep `Request.updatedAt` unchanged — preserves Prisma `@updatedAt`
+  semantics for any internal consumer that depends on row-mutation
+  recency.
+- Bump events (column moves to `now()`): comment posted, note
+  posted, lifecycle status change (move-to-board / -backlog /
+  delete), assignee added / removed / Unassign, share / unshare
+  with another team, description edit, title edit.
+- Not bumped on: silent metadata-only writes (system re-indexing,
+  audit-only backfills, `lastHeartbeatAt` writes).
+- Implementation pattern: explicit `await touchRequestActivity(prisma, requestId)`
+  helper called from each tRPC mutation that performs a bump-event,
+  after the primary write. Prisma middleware rejected as the default
+  for clarity / testability reasons; can be revisited if the call-site
+  set grows past ~10.
+- Migration: forward-only, two-step. Add nullable column, backfill
+  from `updatedAt`, then apply NOT NULL + default + DESC index in a
+  follow-up migration. Idempotent per D070.
+- UI label change: "Last updated" → "Last activity" on the ticket
+  detail page. API contracts returning `updatedAt` are unchanged.
+
+ADR-0015 carries the full reasoning, options matrix, migration SQL,
+and bump-event contract.
+
+## Consequences
+
+- **Schema:** ADR-0015 governs the column add + backfill + index.
+  Forward-only, additive. Sentinel default (`now()`) keeps NOT NULL
+  safe for any rows that slip past the backfill.
+- **Triage view real.** The kanban "what's alive?" sort gets a real
+  column. The DESC index keeps it fast at scale.
+- **Honest timestamp.** A ticket with five new comments shows "Last
+  activity 2 minutes ago" — the column matches the label.
+- **Discipline burden.** Every new mutation that produces visible
+  activity must call the bump-helper. The grep-for-call-sites
+  pattern keeps it auditable; the bump-event list in ADR-0015 is
+  the canonical contract. A future lint rule could enforce it.
+- **Small write amplification.** One extra UPDATE per bump-event;
+  bump-events are member-driven and low-frequency relative to read
+  traffic. Within tolerance.
+- **Precedent.** Sets a clean shape for activity-vs-row-state
+  separation on other models (e.g. `Post.lastActivityAt` if
+  feed-recency ever needs the same split).
+
+## Related
+
+- ADR-0015 — the executing ADR (column shape, migration SQL,
+  bump-event contract, options matrix).
+- ADR-0010 — `Request.type` nullable (kanban tickets carry `null`).
+- ADR-0011 — `lastHeartbeatAt` survives the claim-trio drop as a
+  separate orthogonal recency column. Precedent for "Request
+  carries multiple recency timestamps with different jobs."
+- ADR-0013 / D079 — typed `Request.title` + `Request.body`. Title /
+  body edits are bump-events under this decision.
+- D020 — engineering discipline; ADR-required for schema changes.
+- D047 — honest tracking only. The principle this decision makes
+  literal for the per-ticket recency surface.
+- D070 — idempotent migration discipline. The backfill follows.
+- bu-coordination-board — the BU that ships the ticket detail
+  view targeted by the label rename.
