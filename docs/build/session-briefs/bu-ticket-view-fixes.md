@@ -167,7 +167,7 @@ Inside the compose box, the Comment / Note picker becomes a tab control, mirrori
 - **Hard delete** per Paul 2026-05-09 — soft delete deferred to v2.
 - Edited comments display an "edited" marker (small caption, no full timestamp; tooltip can show the edit time).
 - Server: `board.editComment({ commentId, body })` and `board.deleteComment({ commentId })`. Both gate on `comment.authorId === currentUser.id`.
-- **Scope (resolved):** Edit and delete are scoped to **Request comments only** (board tickets). Post comments remain immutable per D052. The author-only / no-time-window / hard-delete rules apply only to request comments. ADR clarifying scope at `docs/adrs/NNNN-comment-edit-delete-scope.md` (drafted in parallel, will be referenced once the ADR's number is known). At the implementation layer, gate on `targetType === 'request'` if `Comment` is the polymorphic entity from D052.
+- **Scope (resolved):** Edit and delete are scoped to **Request comments only** (board tickets). Post comments remain immutable per D052. The author-only / no-time-window / hard-delete rules apply only to request comments. ADR clarifying scope at `docs/adrs/0016-comment-edit-delete-scope.md` (ADR-0016, decision-log entry **D082**). The `Comment` model is polymorphic via two nullable FKs (`postId` / `requestId`) — **not** a `targetType` discriminator string. The gate is therefore `requestId !== null` (equivalently `postId === null`), enforced at both router and service layers for defence-in-depth. Per ADR-0016, edit/delete on Request comments reuses the existing `AuditLog` table with new action codes `kanban_comment.edit` / `kanban_comment.delete` (and `.note` variants for the note sub-type). System-authored rows (`source !== 'human'`) are foreclosed from edit/delete by construction. The new comment mutations land in `server/routers/comment-thread.ts` (kanban router), explicitly **not** `server/routers/comment.ts` (post-discussion router).
 
 **11 — Compose box at the top of the discussion, collapsed by default.**
 Replace the always-open compose textarea with a collapsed "Add a comment or note" pill. Tap expands into the full editor (Comment/Note tabs from #9, body field, Save/Cancel). Saves vertical space; prevents accidental focus.
@@ -194,7 +194,7 @@ Today the lifecycle control offers `Send to backlog` / `Mark done` / (currently 
 
 **14 — `Last activity` tracks all activity, not just description edits.**
 
-> **Schema (resolved):** Add a new `lastActivityAt` column to the `Ticket` model (DateTime, indexed). `updatedAt` retains its existing Prisma row-level auto-bump semantics. The displayed label is renamed to **'Last activity'**. Bumped on: comment posted, note posted, lifecycle status change, assignee change, share/unshare. ADR required — see `docs/adrs/NNNN-ticket-last-activity-at.md` (drafted in parallel, will be referenced once the ADR's number is known).
+> **Schema (resolved):** Add a new `lastActivityAt` column to the `Request` model (DateTime, indexed). What we colloquially call a "ticket" on the kanban board is canonically a `Request` row with `type = null` per ADR-0010. The new column lives on `Request.lastActivityAt`. Existing `Request.lastHeartbeatAt` (ADR-0011) sets precedent for multiple recency timestamps with different jobs on the same model. `updatedAt` retains its existing Prisma row-level auto-bump semantics. The displayed label is renamed to **'Last activity'**. Bumped on: comment posted, note posted, lifecycle status change, assignee change, share/unshare. ADR at `docs/adrs/0015-ticket-last-activity-at.md` (ADR-0015, decision-log entry **D081**).
 
 Bumps on:
 
@@ -243,9 +243,9 @@ Implementation:
 | 4 | None (uses existing `RequestGroup`) | — | — |
 | 5 | None (UI-only) | — | — |
 | 7, 8, 9, 11, 12 | None (UI-only) | — | — |
-| 10 | None for edit; delete is `Comment` row deletion (cascade rules already exist) | — | — (D052 contradiction noted; surface if blocking) |
+| 10 | None — no new tables; reuse `AuditLog` for edit/delete events (action codes `kanban_comment.edit` / `kanban_comment.delete` + `.note` variants per ADR-0016). Delete is `Comment` row deletion (cascade rules already exist). | — | YES — `docs/adrs/0016-comment-edit-delete-scope.md` (ADR-0016, D082) |
 | 13 | None (hard delete on existing rows; cascades exist) | — | — |
-| **14** | **`Ticket.lastActivityAt: DateTime` (indexed; resolved per Q2)** | **Forward-only; back-fill from `createdAt` via `COALESCE`** | **YES — `docs/adrs/NNNN-ticket-last-activity-at.md` (drafted in parallel)** |
+| **14** | **`Request.lastActivityAt: DateTime` (indexed; resolved per Q2)** | **Forward-only; back-fill from `createdAt` via `COALESCE`** | **YES — `docs/adrs/0015-ticket-last-activity-at.md` (ADR-0015, D081)** |
 | 15 | None (CSS + JSX) | — | — |
 | 17 | None (cache behaviour change + UI) | — | — |
 
@@ -280,9 +280,9 @@ None proposed. These are incremental UX fixes on a surface already gated by `coo
 
 ### Risks / gotchas
 
-1. **Item 10 vs D052.** D052 says comments are not editable / deletable in MVP. This brief contradicts that for board comments only. If `Comment` is genuinely polymorphic across `Post` and `Request`, the editor/deleter must gate on `targetType === 'request'`, and the `Post` side stays uneditable. Surface the choice if the polymorphism makes the gate awkward.
+1. **Item 10 vs D052.** D052 says comments are not editable / deletable in MVP. This brief (and ADR-0016 / D082) carve out an exception for board (Request) comments only. `Comment` is polymorphic via two nullable FKs (`postId` / `requestId`) — not a `targetType` string — so the editor/deleter gates on `requestId !== null` (equivalently `postId === null`). Enforce at router AND service for defence-in-depth. The `Post` side stays uneditable.
 
-2. **Item 14 ADR latency.** With the new-column path now resolved per Q2, the ADR (`docs/adrs/NNNN-ticket-last-activity-at.md`) needs to land in the same PR or one ahead. Don't merge the column without the ADR; CI's schema-locked rule will block.
+2. **Item 14 ADR latency.** With the new-column path now resolved per Q2, the ADR (`docs/adrs/0015-ticket-last-activity-at.md`, ADR-0015) needs to land in the same PR or one ahead. Don't merge the column without the ADR; CI's schema-locked rule will block.
 
 3. **Item 17 optimistic update vs server validation.** If the column is full, soft-blocked, or the user lacks permission, `onMutate` removes a ticket that the server then rejects. `onError` rolls back, but the user sees a flash. Worth a 200ms debounce on the optimistic remove, or accept the flash.
 
@@ -315,7 +315,7 @@ None proposed. These are incremental UX fixes on a surface already gated by `coo
 - [ ] Item 4 auto-navigates the receiving-team member back to their own team's `/board/<slug>/<lifecycle-list>` if they had the ticket open at unshare time — never a 403; toast confirms.
 - [ ] Item 10's author-only edit / hard-delete works; "edited" marker visible on edited comments.
 - [ ] Item 13's originator/admin-only ticket-delete works; cascade verified for comments / notes / shares / assignments.
-- [ ] Item 14 ships with the new `Ticket.lastActivityAt` column (indexed) per Q2; "Last activity" label updates on every catalogued mutation; ADR (`docs/adrs/NNNN-ticket-last-activity-at.md`) merged before or with the schema PR.
+- [ ] Item 14 ships with the new `Request.lastActivityAt` column (indexed) per Q2; "Last activity" label updates on every catalogued mutation; ADR (`docs/adrs/0015-ticket-last-activity-at.md`, ADR-0015) merged before or with the schema PR.
 - [ ] Item 14 state-coverage matrix passes: every `lifecycle-state × bump-event` cell asserts `lastActivityAt` set on create, bumped exactly once per event, never decreasing; `deleteComment` does not bump. Defects surfaced by the matrix are fixed before merge.
 - [ ] Item 17's `/backlog` triage flow stays on `/backlog`; toast confirms; optimistic update + rollback verified.
 - [ ] FAB captions visible on mobile (375px viewport); divider contrast bumped; tooltips present on desktop.
@@ -339,8 +339,8 @@ One full session (4–5 hours). The work is a wide cluster of small surgeries; t
 All previously-blocking TBDs are now resolved with applied defaults:
 
 1. **Item 4 — unshare permissions (Q1, corrected 2026-05-09).** Sharing is unchanged: originating-team members + admins. Unsharing now permits **both teams**: originating-team members revoke the share; receiving-team members "leave the share" (idempotent, no error). After commit, the ticket is unreachable for receiving-team members. If a receiving-team member has the ticket open when unshare commits, they auto-navigate to their own team's `/board/<slug>/<lifecycle-list>` (backlog / active / done depending on lifecycle state) — never a 403.
-2. **Item 14 — schema choice (Q2, resolved).** New `Ticket.lastActivityAt` column (DateTime, indexed). `updatedAt` retains its Prisma row-level semantics. Label renamed to "Last activity". ADR at `docs/adrs/NNNN-ticket-last-activity-at.md` (drafted in parallel).
-3. **Item 10 vs D052 scope (Q5, resolved).** Edit/delete scoped to Request comments only; Post comments remain immutable per D052. ADR at `docs/adrs/NNNN-comment-edit-delete-scope.md` (drafted in parallel).
+2. **Item 14 — schema choice (Q2, resolved).** New `Request.lastActivityAt` column (DateTime, indexed) — what we colloquially call a "ticket" is a `Request` row with `type = null` per ADR-0010. `updatedAt` retains its Prisma row-level semantics. Label renamed to "Last activity". ADR at `docs/adrs/0015-ticket-last-activity-at.md` (ADR-0015, D081).
+3. **Item 10 vs D052 scope (Q5, resolved).** Edit/delete scoped to Request comments only; Post comments remain immutable per D052. ADR at `docs/adrs/0016-comment-edit-delete-scope.md` (ADR-0016, D082).
 
 Items resolved during drafting (no surfacing needed):
 
