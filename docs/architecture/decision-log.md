@@ -5625,3 +5625,36 @@ and bump-event contract.
 - D070 — idempotent migration discipline. The backfill follows.
 - bu-coordination-board — the BU that ships the ticket detail
   view targeted by the label rename.
+
+---
+
+# D082 — Comment edit/delete scope: Request comments only; Posts immutable
+
+**Status:** decided · 2026-05-09
+
+One-line summary: edit and hard-delete on Request (kanban ticket)
+comments only — author-only, no time window. Post comments stay
+immutable per D052. **Clarifies D052** (does not supersede): D052's
+"no edit / delete UX" language now applies to the Post surface
+only; the Request surface is addressed here.
+
+Driver: tester feedback on `bu-ticket-view-fixes` (2026-05-08) —
+"I want to edit and at least delete my comments and notes."
+
+Schema reality: `Comment` is polymorphic via two nullable FKs
+(`postId?` + `requestId?`), not a string discriminator. The
+implementation gate uses `requestId !== null` (defence-in-depth in
+router + service). System rows (`source !== 'human'`) are
+foreclosed from edit/delete by construction. Audit goes to the
+existing `AuditLog` table — no schema change. Edits surface a
+subtle "(edited)" marker; deletes are hard.
+
+Full reasoning + gate logic + UI scoping in **ADR-0016**
+(`docs/adrs/0016-comment-edit-delete-scope.md`).
+
+## Related
+
+- D052 — Comment schema + polymorphic reuse (clarified by this)
+- ADR-0007 — `Comment.kind` + `Comment.source` (kanban thread)
+- D056 — Comment audience (`all` / `reviewers`)
+- D071 — `Comment.systemKind` (system-authored rows)
