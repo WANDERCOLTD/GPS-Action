@@ -19,6 +19,7 @@ import { BoardGrid, type CardsByColumn } from '@/components/board/BoardGrid';
 import { BoardTabs } from '@/components/board/BoardTabs';
 import { BoardBackLink } from '@/components/board/BoardBackLink';
 import { ProposeTicketButton } from '@/components/board/ProposeTicketButton';
+import { UnsharedToast } from '@/components/board/UnsharedToast';
 
 interface BoardGroupPageProps {
   params: Promise<{ groupSlug: string }>;
@@ -79,6 +80,7 @@ export default async function BoardGroupPage({ params }: BoardGroupPageProps) {
         maxWidth: 1280,
       }}
     >
+      <UnsharedToast />
       <header style={{ marginBottom: 'var(--space-4)' }}>
         <BoardBackLink />
         <div

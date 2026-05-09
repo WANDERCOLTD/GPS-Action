@@ -224,3 +224,100 @@ export async function shareWithTeamAction(input: ShareWithTeamInput): Promise<Bo
   revalidatePath(ticketPath(input));
   return { ok: true };
 }
+
+// ── Unshare from team (Item 4 — bu-ticket-view-fixes Sub-build B) ────────
+
+interface UnshareFromTeamInput extends BoardActionInput {
+  /** The group the share is being removed from (target side). */
+  targetGroupId: string;
+}
+
+/**
+ * Remove a share. Permission is enforced server-side per Q1 of the
+ * brief: members of the originating team, members of the receiving
+ * team, and admins may all unshare. The mutation is idempotent — a
+ * second call with the share already gone returns ok=true so the UI
+ * doesn't error on a no-op.
+ *
+ * After success the page revalidates so the receiving-team member's
+ * next render either drops the pill (if they're still on the
+ * originating board) or detects access loss + redirects to the
+ * lifecycle list (handled by the page's access check). The server
+ * action does not navigate — that decision lives at the page layer.
+ */
+export async function unshareFromTeamAction(
+  input: UnshareFromTeamInput,
+): Promise<BoardActionResult> {
+  try {
+    const ctx = await createTRPCContext();
+    const caller = createCaller(ctx);
+    await caller.share.fromGroup({
+      requestId: input.requestId,
+      groupId: input.targetGroupId,
+    });
+  } catch (err) {
+    if (err instanceof TRPCError) return { ok: false, error: err.message };
+    return { ok: false, error: 'Could not unshare — try again.' };
+  }
+  // Revalidate the parent group's board too — its shared list shrinks.
+  revalidatePath(ticketPath(input));
+  revalidatePath(`/board/${input.groupSlug}`);
+  return { ok: true };
+}
+
+// ── Delete ticket (Item 13 — bu-ticket-view-fixes Sub-build B) ───────────
+
+export interface DeleteRequestActionResult extends BoardActionResult {
+  /**
+   * Where the deleter should be navigated next — drives the post-delete
+   * `router.push` on the client. Set on success only.
+   */
+  redirectTo?: string;
+}
+
+/**
+ * Hard-delete the ticket. Permission (originator OR sysadmin) is
+ * enforced server-side; the UI gates the affordance to those roles
+ * but a third-party who somehow triggered the action would still get
+ * `forbidden` from the server.
+ *
+ * On success returns `redirectTo` — a path to the originating group's
+ * lifecycle list matching the request's last status. The client
+ * navigates there after closing the confirmation modal. The
+ * originating group's slug is needed for the path; the action looks
+ * it up via a fresh lookup before the delete, since the row is gone
+ * after.
+ */
+export async function deleteRequestAction(
+  input: BoardActionInput,
+): Promise<DeleteRequestActionResult> {
+  let redirectTo: string;
+  try {
+    const ctx = await createTRPCContext();
+    const caller = createCaller(ctx);
+    const result = await caller.board.delete({ requestId: input.requestId });
+
+    // Resolve the originating group's slug for the redirect path.
+    // Fallback: the page's groupSlug if for some reason the
+    // originating group can't be resolved (defensive — every Request
+    // has exactly one originating row by construction).
+    let originatingSlug = input.groupSlug;
+    if (result.originatingGroupId) {
+      const groups = await caller.groupKanban.listMine();
+      const match = groups.find((g) => g.group.id === result.originatingGroupId);
+      if (match) originatingSlug = match.group.slug;
+    }
+
+    const lane = result.status === 'backlog' ? '/backlog' : result.status === 'done' ? '/done' : '';
+    redirectTo = `/board/${originatingSlug}${lane}`;
+  } catch (err) {
+    if (err instanceof TRPCError) return { ok: false, error: err.message };
+    return { ok: false, error: 'Could not delete — try again.' };
+  }
+  // The whole originating board changes, plus this ticket's detail
+  // surface. Revalidate both so cached renders elsewhere don't show
+  // the deleted card.
+  revalidatePath(`/board/${input.groupSlug}`);
+  revalidatePath(ticketPath(input));
+  return { ok: true, redirectTo };
+}

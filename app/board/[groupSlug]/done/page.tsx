@@ -14,6 +14,7 @@ import { isFeatureEnabled } from '@/server/services/flags';
 import { Card, type CardProps } from '@/components/board/Card';
 import { BoardTabs } from '@/components/board/BoardTabs';
 import { BoardBackLink } from '@/components/board/BoardBackLink';
+import { UnsharedToast } from '@/components/board/UnsharedToast';
 
 interface BoardDonePageProps {
   params: Promise<{ groupSlug: string }>;
@@ -68,6 +69,7 @@ export default async function BoardDonePage({ params }: BoardDonePageProps) {
         maxWidth: 720,
       }}
     >
+      <UnsharedToast />
       <header style={{ marginBottom: 'var(--space-4)' }}>
         <BoardBackLink />
         <h1

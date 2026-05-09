@@ -18,6 +18,7 @@ import { Card, type CardProps } from '@/components/board/Card';
 import { BoardTabs } from '@/components/board/BoardTabs';
 import { BoardBackLink } from '@/components/board/BoardBackLink';
 import { BacklogQuickAdd } from '@/components/board/BacklogQuickAdd';
+import { UnsharedToast } from '@/components/board/UnsharedToast';
 
 interface BoardBacklogPageProps {
   params: Promise<{ groupSlug: string }>;
@@ -72,6 +73,7 @@ export default async function BoardBacklogPage({ params }: BoardBacklogPageProps
         maxWidth: 720,
       }}
     >
+      <UnsharedToast />
       <header style={{ marginBottom: 'var(--space-4)' }}>
         <BoardBackLink />
         <h1
