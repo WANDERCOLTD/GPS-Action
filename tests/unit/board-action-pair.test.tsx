@@ -1,5 +1,15 @@
 /**
- * Unit tests for the BoardActionPair component (PR #5b).
+ * Unit tests for BoardActionPair + its split children
+ * (AssignSelfButton / FollowSelfButton).
+ *
+ * Sub-build D (Item 1) split the original side-by-side pair into two
+ * independently-mountable components so the ticket-detail page can
+ * render Assign / Unassign inside the Assignees panel and Follow /
+ * Unfollow in its own section. The structural separation closes the
+ * misclick path that produced the original "Unfollow sometimes also
+ * Unassigns" symptom — the Item 2 regression assertion below stays as
+ * a ratchet so a future refactor that wires the two action paths
+ * back together is caught at PR review.
  *
  * Vitest env is `node`. Same precedent as header-refresh-button.test.tsx —
  * mock useTransition + useState + the server actions, call the
@@ -40,23 +50,46 @@ vi.mock('@/app/board/[groupSlug]/[ticketId]/actions', () => ({
   unfollowSelfAction: (input: unknown) => unfollowSpy(input),
 }));
 
-const { BoardActionPair } = await import('@/components/board/BoardActionPair');
+const { BoardActionPair, AssignSelfButton, FollowSelfButton } =
+  await import('@/components/board/BoardActionPair');
 
 type AnyElement = ReactElement<Record<string, unknown>>;
 
-function findByTestId(node: unknown, testid: string): AnyElement | undefined {
-  if (!node || typeof node !== 'object' || !('props' in node)) return undefined;
-  const el = node as AnyElement;
-  const props = (el.props ?? {}) as Record<string, unknown>;
-  if (props['data-testid'] === testid) return el;
-  const children = props.children;
-  if (children == null) return undefined;
-  const list = Array.isArray(children) ? children.flat(Infinity) : [children];
-  for (const child of list) {
-    const found = findByTestId(child, testid);
-    if (found) return found;
+function isElement(node: unknown): node is AnyElement {
+  return Boolean(node) && typeof node === 'object' && node !== null && 'props' in node;
+}
+
+/**
+ * Walk a React element tree and "render" any function children we
+ * encounter — AssignSelfButton / FollowSelfButton are function refs in
+ * JSX until React calls them. Tests need to descend through them to
+ * find the underlying buttons.
+ */
+function expand(node: unknown): unknown[] {
+  if (!isElement(node)) return [];
+  // If `type` is a function and it's not a host element, invoke it
+  // with its props to get the rendered subtree. Skip host (string)
+  // types and any cyclic call.
+  if (typeof node.type === 'function') {
+    const renderFn = node.type as (props: unknown) => unknown;
+    const rendered = renderFn(node.props);
+    return [...expand(rendered)];
   }
-  return undefined;
+  const out: unknown[] = [node];
+  const props = (node.props ?? {}) as Record<string, unknown>;
+  const children = props.children;
+  if (children == null) return out;
+  const list = Array.isArray(children) ? children.flat(Infinity) : [children];
+  for (const child of list) out.push(...expand(child));
+  return out;
+}
+
+function findByTestId(root: AnyElement, testid: string): AnyElement | undefined {
+  return expand(root).find((n): n is AnyElement => {
+    if (!isElement(n)) return false;
+    const props = (n.props ?? {}) as Record<string, unknown>;
+    return props['data-testid'] === testid;
+  });
 }
 
 const baseProps = { requestId: 'r1', groupSlug: 'writers' };
@@ -89,7 +122,7 @@ describe('BoardActionPair — state combinations', () => {
     expect(followBtn(tree)?.props.children).toContain('Follow');
   });
 
-  it('renders Unassign + Follow when assigned but not following', () => {
+  it('renders Unassign me + Follow when assigned but not following', () => {
     const tree = BoardActionPair({
       ...baseProps,
       assigned: true,
@@ -99,7 +132,7 @@ describe('BoardActionPair — state combinations', () => {
     expect(root?.props['data-assigned']).toBe('true');
     expect(assignBtn(tree)?.props['data-state']).toBe('assigned');
     expect(followBtn(tree)?.props['data-state']).toBe('unfollowed');
-    expect(assignBtn(tree)?.props.children).toContain('Unassign');
+    expect(assignBtn(tree)?.props.children).toContain('Unassign me');
   });
 
   it('renders Assign me + Unfollow when not assigned but following', () => {
@@ -113,7 +146,7 @@ describe('BoardActionPair — state combinations', () => {
     expect(followBtn(tree)?.props.children).toContain('Unfollow');
   });
 
-  it('renders Unassign + Unfollow when assigned and following', () => {
+  it('renders Unassign me + Unfollow when assigned and following', () => {
     const tree = BoardActionPair({
       ...baseProps,
       assigned: true,
@@ -187,9 +220,10 @@ describe('BoardActionPair — interactions', () => {
 describe('BoardActionPair — Item 2 regression (Unfollow does not unassign)', () => {
   // Per the brief: Item 1's structural separation of Assign-controls
   // (now in the Assignees panel) from Follow-controls removes the
-  // misclick path that produced the original symptom. This test stays
-  // as a ratchet so a future refactor that re-shares state between
-  // the two action wires is caught at PR review.
+  // misclick path that produced the original symptom. The two buttons
+  // now live in different sections of the page; this test stays as a
+  // ratchet so a future refactor that re-shares state between the two
+  // action wires is caught at PR review.
   //
   // The original report: "Unfollow sometimes also Unassigns me." With
   // `assigned: true, following: true`, clicking the Follow button
@@ -224,7 +258,7 @@ describe('BoardActionPair — Item 2 regression (Unfollow does not unassign)', (
       following: true,
     }) as AnyElement;
 
-    expect(assignBtn(tree)?.props.children).toContain('Unassign');
+    expect(assignBtn(tree)?.props.children).toContain('Unassign me');
 
     (assignBtn(tree)?.props.onClick as () => void)();
 
@@ -233,5 +267,61 @@ describe('BoardActionPair — Item 2 regression (Unfollow does not unassign)', (
     expect(unfollowSpy).not.toHaveBeenCalled();
     expect(assignSpy).not.toHaveBeenCalled();
     expect(followSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('AssignSelfButton — Item 1 + Item 3 (Sub-build D)', () => {
+  it('renders inside its own wrapper testid that the Assignees panel can target', () => {
+    const tree = AssignSelfButton({
+      ...baseProps,
+      assigned: false,
+    }) as AnyElement;
+    const wrapper = findByTestId(tree, 'board-assign-self');
+    expect(wrapper).toBeDefined();
+    expect(wrapper?.props['data-assigned']).toBe('false');
+  });
+
+  it('Item 3: surfaces the asymmetric Assign↔Follow coupling via tooltip on Assign-self path only', () => {
+    const unassigned = AssignSelfButton({
+      ...baseProps,
+      assigned: false,
+    }) as AnyElement;
+    expect(assignBtn(unassigned)?.props.title).toBe('Also follows this ticket');
+
+    const assigned = AssignSelfButton({
+      ...baseProps,
+      assigned: true,
+    }) as AnyElement;
+    // Unassign path doesn't need explanation per the brief.
+    expect(assignBtn(assigned)?.props.title).toBeUndefined();
+  });
+
+  it('Item 1: invokes the same actions as the legacy pair did', () => {
+    const tree = AssignSelfButton({
+      ...baseProps,
+      assigned: false,
+    }) as AnyElement;
+    (assignBtn(tree)?.props.onClick as () => void)();
+    expect(assignSpy).toHaveBeenCalledWith({ requestId: 'r1', groupSlug: 'writers' });
+  });
+});
+
+describe('FollowSelfButton — Item 1 (Sub-build D)', () => {
+  it('renders inside its own wrapper testid', () => {
+    const tree = FollowSelfButton({
+      ...baseProps,
+      following: false,
+    }) as AnyElement;
+    const wrapper = findByTestId(tree, 'board-follow-self');
+    expect(wrapper).toBeDefined();
+    expect(wrapper?.props['data-following']).toBe('false');
+  });
+
+  it('does not carry a tooltip — only the Assign-me path is asymmetric', () => {
+    const tree = FollowSelfButton({
+      ...baseProps,
+      following: false,
+    }) as AnyElement;
+    expect(followBtn(tree)?.props.title).toBeUndefined();
   });
 });

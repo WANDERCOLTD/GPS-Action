@@ -28,7 +28,7 @@ import { TRPCError } from '@trpc/server';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
-import { BoardActionPair } from '@/components/board/BoardActionPair';
+import { AssignSelfButton, FollowSelfButton } from '@/components/board/BoardActionPair';
 import { EditableTicketTitle } from '@/components/board/EditableTicketTitle';
 import { EditableTicketBody } from '@/components/board/EditableTicketBody';
 import { Discussion } from '@/components/board/Discussion';
@@ -208,12 +208,6 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
           marginBottom: 'var(--space-4)',
         }}
       >
-        <BoardActionPair
-          requestId={ticket.id}
-          groupSlug={groupSlug}
-          assigned={isMineActive}
-          following={isMineSubscribed}
-        />
         <UrgentToggle
           requestId={ticket.id}
           groupId={accessibleGroup.group.id}
@@ -244,17 +238,37 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
           borderRadius: 'var(--radius-md)',
         }}
       >
-        <h2
+        <div
           style={{
-            margin: '0 0 var(--space-2) 0',
-            fontSize: 'var(--text-xs)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            color: 'var(--colour-text-secondary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 'var(--space-2)',
+            marginBottom: 'var(--space-2)',
           }}
         >
-          Assignees
-        </h2>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 'var(--text-xs)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              color: 'var(--colour-text-secondary)',
+            }}
+          >
+            Assignees
+          </h2>
+          {/*
+            Item 1 (Sub-build D): Assign / Unassign lives here — inside
+            the Assignees panel — rather than at the page header next to
+            Follow / Unfollow. Co-locating the affordance with the
+            assignee list answers the tester complaint that the control
+            was hard to find, and the structural separation from
+            Follow / Unfollow (now in its own section below) closes the
+            misclick path that produced the Item 2 regression.
+          */}
+          <AssignSelfButton requestId={ticket.id} groupSlug={groupSlug} assigned={isMineActive} />
+        </div>
         {ticket.assignees.length === 0 ? (
           <p
             data-testid="board-ticket-assignees-empty"
@@ -363,6 +377,44 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
             availableTargets={availableShareTargets}
           />
         </div>
+      </section>
+
+      {/*
+        Item 1 (Sub-build D): the Follow / Unfollow control lives in its
+        own section, structurally separated from Assign / Unassign (which
+        is now inside the Assignees panel above). Adjacent layout was the
+        misclick path Item 2's regression test guards against.
+      */}
+      <section
+        data-testid="board-ticket-following"
+        aria-label="Following"
+        style={{
+          marginBottom: 'var(--space-4)',
+          padding: 'var(--space-3)',
+          background: 'var(--colour-surface-sunken)',
+          borderRadius: 'var(--radius-md)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 'var(--space-2)',
+        }}
+      >
+        <h2
+          style={{
+            margin: 0,
+            fontSize: 'var(--text-xs)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            color: 'var(--colour-text-secondary)',
+          }}
+        >
+          Following
+        </h2>
+        <FollowSelfButton
+          requestId={ticket.id}
+          groupSlug={groupSlug}
+          following={isMineSubscribed}
+        />
       </section>
 
       <section
