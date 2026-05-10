@@ -1,7 +1,7 @@
 ---
 slug: bu-prisma-seed-adapter-fix
 status: shipped
-shipped_in: "#PR"
+shipped_in: "#309"
 phase: 2
 priority: low
 ---
