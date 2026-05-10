@@ -1,7 +1,7 @@
 ---
 slug: BU-ticket-detail-relayout
 status: shipped
-shipped_in: "#PR_PLACEHOLDER"
+shipped_in: "#316"
 phase: 2
 priority: medium
 note: "Structural counterpart to bu-ticket-view-fixes — ship that smaller bag-of-fixes brief FIRST; this BU rebuilds the layout around the corrected affordances. Design pass complete on 2026-05-10; the 8 design questions are answered with locked decisions inline (§ 'Design pass — locked decisions'), and ASCII frames for the desktop / tablet / mobile breakpoints are captured in § 'Layout frames'. Shipped 2026-05-10."
