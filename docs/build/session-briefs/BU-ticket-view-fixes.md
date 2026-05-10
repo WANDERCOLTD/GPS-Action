@@ -1,9 +1,10 @@
 ---
 slug: bu-ticket-view-fixes
-status: ready
+status: shipped
+shipped_in: '#302, #303, #304'
 phase: 2
 priority: high
-note: 'Bundles 15 tester-feedback items on the ticket detail view + backlog → move-to-active flow. All directionally locked — defaults applied for Q1 (item 4 unshare permissions), Q2 (item 14 schema), and Q5 (item 10 vs D052 scope). Companion briefs: bu-ticket-detail-relayout (item 6, status: needs-design) and a future palette brief (item 16).'
+note: 'Bundled 15 tester-feedback items on the ticket detail view + backlog → move-to-active flow. Shipped across PRs #302 / #303 / #304 (2026-05-08 → 2026-05-09). Companion briefs: bu-ticket-detail-relayout (item 6, status: needs-design) and a future palette brief (item 16).'
 ---
 
 # SESSION BRIEF · bu-ticket-view-fixes — coord-board ticket UX patch bundle
@@ -368,4 +369,4 @@ Items resolved during drafting (no surfacing needed):
 
 ## Status
 
-`ready` — drafting complete; defaults applied for Q1 (item 4 unshare permissions), Q2 (item 14 schema), and Q5 (item 10 vs D052 scope). No outstanding TBDs. Schedule when capacity allows.
+`shipped` — landed across PRs #302 / #303 / #304 (2026-05-08 → 2026-05-09). All 15 items in production code. Companion briefs `bu-ticket-detail-relayout` (item 6) and future palette brief (item 16) remain pending.

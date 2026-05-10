@@ -48,10 +48,10 @@ const nextConfig = {
     // Fail build on type errors — no escape hatch
     ignoreBuildErrors: false,
   },
-  eslint: {
-    // Fail build on lint errors
-    ignoreDuringBuilds: false,
-  },
+  // ESLint config now lives in `eslint.config.js` (flat config). Next 16
+  // ignores the `eslint:` key in next.config.mjs and warns at boot, so
+  // the previous `eslint: { ignoreDuringBuilds: false }` is removed.
+  // Lint runs via `pnpm lint` (and CI), not via `next build`.
 };
 
 export default nextConfig;
