@@ -16,7 +16,13 @@ vi.mock('@/server/db/client', () => ({
     request: { findFirst: vi.fn(), update: vi.fn() },
     requestGroup: { findFirst: vi.fn(), findMany: vi.fn() },
     groupMembership: { findMany: vi.fn() },
-    comment: { create: vi.fn(), findMany: vi.fn() },
+    comment: {
+      create: vi.fn(),
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
     auditLog: { create: vi.fn() },
   },
 }));
@@ -26,11 +32,15 @@ import type { TRPCContext } from '@/server/lib/trpc';
 import { prisma } from '@/server/db/client';
 
 const mockRequestFindFirst = vi.mocked(prisma.request.findFirst);
+const mockRequestUpdate = vi.mocked(prisma.request.update);
 const mockRequestGroupFindFirst = vi.mocked(prisma.requestGroup.findFirst);
 const mockRequestGroupFindMany = vi.mocked(prisma.requestGroup.findMany);
 const mockMembershipFindMany = vi.mocked(prisma.groupMembership.findMany);
 const mockCommentCreate = vi.mocked(prisma.comment.create);
 const mockCommentFindMany = vi.mocked(prisma.comment.findMany);
+const mockCommentFindUnique = vi.mocked(prisma.comment.findUnique);
+const mockCommentUpdate = vi.mocked(prisma.comment.update);
+const mockCommentDelete = vi.mocked(prisma.comment.delete);
 const mockAuditCreate = vi.mocked(prisma.auditLog.create);
 
 function ctx(role: 'member' | 'admin' = 'member'): TRPCContext {
@@ -143,6 +153,204 @@ describe('commentThread.postNote', () => {
     });
     expect(result).toEqual({ id: 'n2' });
     expect(mockRequestGroupFindMany).not.toHaveBeenCalled();
+  });
+});
+
+// ── Edit / Delete (ADR-0016 / D082) ────────────────────────────────────
+
+const baseRequestComment = {
+  id: 'c1',
+  postId: null,
+  requestId: 'r1',
+  authorId: 'u-1',
+  source: 'human' as const,
+  kind: 'comment' as const,
+  body: 'original',
+};
+
+describe('commentThread.editComment', () => {
+  it('UNAUTHORIZED when no user', async () => {
+    const caller = createCaller(publicCtx());
+    await expect(
+      caller.commentThread.editComment({ commentId: 'c1', body: 'next' }),
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+  });
+
+  it('NOT_FOUND when comment is missing', async () => {
+    mockCommentFindUnique.mockResolvedValueOnce(null);
+    const caller = createCaller(ctx());
+    await expect(
+      caller.commentThread.editComment({ commentId: 'gone', body: 'next' }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('BAD_REQUEST when commenting on a Post (cross-surface gate)', async () => {
+    mockCommentFindUnique.mockResolvedValueOnce({
+      ...baseRequestComment,
+      postId: 'p1',
+      requestId: null,
+    } as never);
+    const caller = createCaller(ctx());
+    await expect(
+      caller.commentThread.editComment({ commentId: 'c1', body: 'next' }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+  });
+
+  it('FORBIDDEN when caller is not the author', async () => {
+    mockCommentFindUnique.mockResolvedValueOnce({
+      ...baseRequestComment,
+      authorId: 'someone-else',
+    } as never);
+    const caller = createCaller(ctx());
+    await expect(
+      caller.commentThread.editComment({ commentId: 'c1', body: 'next' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('FORBIDDEN when source is system (synthetic row)', async () => {
+    mockCommentFindUnique.mockResolvedValueOnce({
+      ...baseRequestComment,
+      source: 'system',
+    } as never);
+    const caller = createCaller(ctx());
+    await expect(
+      caller.commentThread.editComment({ commentId: 'c1', body: 'next' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('FORBIDDEN even for system admin who is not the author', async () => {
+    // Per ADR-0016: admin override is out-of-scope for v1. Admin who is
+    // not the author cannot edit someone else's comment.
+    mockCommentFindUnique.mockResolvedValueOnce({
+      ...baseRequestComment,
+      authorId: 'someone-else',
+    } as never);
+    const caller = createCaller(ctx('admin'));
+    await expect(
+      caller.commentThread.editComment({ commentId: 'c1', body: 'next' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('author edits own request comment — writes update, audit, lastActivity bump', async () => {
+    // Service does its own findUnique too — return twice.
+    mockCommentFindUnique.mockResolvedValue(baseRequestComment as never);
+    mockCommentUpdate.mockResolvedValueOnce({ id: 'c1' } as never);
+    mockRequestUpdate.mockResolvedValueOnce({} as never);
+
+    const caller = createCaller(ctx());
+    const result = await caller.commentThread.editComment({
+      commentId: 'c1',
+      body: '  edited body  ',
+    });
+    expect(result).toEqual({ id: 'c1' });
+    expect(mockCommentUpdate).toHaveBeenCalledWith({
+      where: { id: 'c1' },
+      data: { body: 'edited body' },
+      select: { id: true },
+    });
+    expect(mockRequestUpdate).toHaveBeenCalled();
+    expect(mockAuditCreate.mock.calls[0]![0]!.data.action).toBe('kanban_comment.edit');
+  });
+
+  it('audit code switches to .note.edit when the row is a note', async () => {
+    mockCommentFindUnique.mockResolvedValue({
+      ...baseRequestComment,
+      kind: 'note',
+    } as never);
+    mockCommentUpdate.mockResolvedValueOnce({ id: 'c1' } as never);
+    mockRequestUpdate.mockResolvedValueOnce({} as never);
+
+    const caller = createCaller(ctx());
+    await caller.commentThread.editComment({ commentId: 'c1', body: 'edit' });
+    expect(mockAuditCreate.mock.calls[0]![0]!.data.action).toBe('kanban_comment.note.edit');
+  });
+});
+
+describe('commentThread.deleteComment', () => {
+  it('UNAUTHORIZED when no user', async () => {
+    const caller = createCaller(publicCtx());
+    await expect(caller.commentThread.deleteComment({ commentId: 'c1' })).rejects.toMatchObject({
+      code: 'UNAUTHORIZED',
+    });
+  });
+
+  it('NOT_FOUND when comment is missing', async () => {
+    mockCommentFindUnique.mockResolvedValueOnce(null);
+    const caller = createCaller(ctx());
+    await expect(caller.commentThread.deleteComment({ commentId: 'gone' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('BAD_REQUEST when commenting on a Post (cross-surface gate)', async () => {
+    mockCommentFindUnique.mockResolvedValueOnce({
+      ...baseRequestComment,
+      postId: 'p1',
+      requestId: null,
+    } as never);
+    const caller = createCaller(ctx());
+    await expect(caller.commentThread.deleteComment({ commentId: 'c1' })).rejects.toMatchObject({
+      code: 'BAD_REQUEST',
+    });
+  });
+
+  it('FORBIDDEN when caller is not the author', async () => {
+    mockCommentFindUnique.mockResolvedValueOnce({
+      ...baseRequestComment,
+      authorId: 'someone-else',
+    } as never);
+    const caller = createCaller(ctx());
+    await expect(caller.commentThread.deleteComment({ commentId: 'c1' })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+  });
+
+  it('FORBIDDEN when source is system (synthetic row)', async () => {
+    mockCommentFindUnique.mockResolvedValueOnce({
+      ...baseRequestComment,
+      source: 'system',
+    } as never);
+    const caller = createCaller(ctx());
+    await expect(caller.commentThread.deleteComment({ commentId: 'c1' })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+  });
+
+  it('FORBIDDEN even for system admin who is not the author', async () => {
+    mockCommentFindUnique.mockResolvedValueOnce({
+      ...baseRequestComment,
+      authorId: 'someone-else',
+    } as never);
+    const caller = createCaller(ctx('admin'));
+    await expect(caller.commentThread.deleteComment({ commentId: 'c1' })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+  });
+
+  it('author deletes own request comment — hard delete + audit + NO lastActivity bump', async () => {
+    mockCommentFindUnique.mockResolvedValue(baseRequestComment as never);
+    mockCommentDelete.mockResolvedValueOnce({ id: 'c1' } as never);
+
+    const caller = createCaller(ctx());
+    const result = await caller.commentThread.deleteComment({ commentId: 'c1' });
+    expect(result).toEqual({ id: 'c1' });
+    expect(mockCommentDelete).toHaveBeenCalledWith({ where: { id: 'c1' } });
+    // Per Item 14 of bu-ticket-view-fixes: delete does NOT bump
+    // lastActivityAt.
+    expect(mockRequestUpdate).not.toHaveBeenCalled();
+    expect(mockAuditCreate.mock.calls[0]![0]!.data.action).toBe('kanban_comment.delete');
+  });
+
+  it('audit code switches to .note.delete for note rows', async () => {
+    mockCommentFindUnique.mockResolvedValue({
+      ...baseRequestComment,
+      kind: 'note',
+    } as never);
+    mockCommentDelete.mockResolvedValueOnce({ id: 'c1' } as never);
+
+    const caller = createCaller(ctx());
+    await caller.commentThread.deleteComment({ commentId: 'c1' });
+    expect(mockAuditCreate.mock.calls[0]![0]!.data.action).toBe('kanban_comment.note.delete');
   });
 });
 
