@@ -5658,3 +5658,41 @@ Full reasoning + gate logic + UI scoping in **ADR-0016**
 - ADR-0007 — `Comment.kind` + `Comment.source` (kanban thread)
 - D056 — Comment audience (`all` / `reviewers`)
 - D071 — `Comment.systemKind` (system-authored rows)
+
+# D083 — `NetworkCardState` — own-side workflow state for the network-feed surface
+
+**Status:** decided · 2026-05-10
+
+One-line summary: own a small `NetworkCardState` table on the GPS
+side, joined to Grant (AIFA)'s read-only Supabase view
+`public.gps_group_messages` via an opaque `BigInt messageId`. Status
+enum (`NEW` / `TRIAGED` / `PROMOTED` / `DISCARDED`); nullable
+indexed `ownerUserId` for v2 per-user queues; lazy row creation
+(no row = `NEW` at read time) so the 163 historical cards need no
+backfill.
+
+Driver: BU-network-feed renders Grant's link feed inside `/network`.
+His view is read-only by design — workflow state belongs on our side
+(quirk #4 in `PAUL_INTEGRATION.md`: "I'd recommend you own the
+workflow state, not us").
+
+Cross-provider design: no FK across the Postgres-cluster boundary;
+state rows are orphan-tolerant if Grant hides upstream rows. A
+reconcile job is parking-lot, not v1. `superjson` already serialises
+`bigint` at the tRPC wire boundary. Schema lands behind feature flag
+`network_feed` (D036, default OFF in prod).
+
+Full reasoning, options considered, and forward-compatibility notes
+in **ADR-0017** (`docs/adrs/0017-network-card-state.md`).
+
+## Related
+
+- ADR-0017 — NetworkCardState (the schema decision in detail)
+- D036 — Feature-flag discipline (`network_feed` registered with the
+  rules)
+- D070 — Reference data lives in migrations, not seeds
+  (`network_feed` row seeded via migration)
+- BU-network-feed — the consuming brief
+  (`docs/build/session-briefs/bu-network-feed.md`)
+- ADR-0014 — `KanbanEventConfig` (recent precedent for an own-side
+  config table indexed by an enum)
