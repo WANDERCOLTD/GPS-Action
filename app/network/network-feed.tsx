@@ -21,6 +21,7 @@
 
 import type { CSSProperties } from 'react';
 import { useCallback, useState, useTransition } from 'react';
+import { ClientOnly } from '@/components/ClientOnly';
 import { NetworkCard } from '@/components/NetworkCard';
 import {
   refreshNetworkList,
@@ -144,7 +145,16 @@ export function NetworkFeed({ initial }: NetworkFeedProps) {
           }}
         >
           <span data-testid="network-fetched-status" data-from-cache={fromCache ? 'true' : 'false'}>
-            {fromCache ? 'cached' : 'fresh'} · {relativeTime(fetchedAt)}
+            {fromCache ? 'cached' : 'fresh'} ·{' '}
+            {/*
+             * `relativeTime()` reads `Date.now()`, which always drifts
+             * between SSR and first client paint — same fetchedAt, but
+             * a second has passed, so SSR renders "0s ago" and client
+             * hydrates to "1s ago". ClientOnly renders the static
+             * fallback during SSR + first paint (matching the server
+             * exactly), then swaps to the live formatter after mount.
+             */}
+            <ClientOnly fallback={<>0s ago</>}>{relativeTime(fetchedAt)}</ClientOnly>
           </span>
           <button
             type="button"
