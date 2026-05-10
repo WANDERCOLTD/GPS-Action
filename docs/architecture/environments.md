@@ -267,6 +267,26 @@ real-prod deployment and exposing the dev-auth stub there.
 A separate Postgres (Neon, free tier, eu-west-2) seeded with the same
 synthetic data as dev. Cheap, throwaway, isolable.
 
+The Vercel `buildCommand` in `vercel.json` runs `pnpm seed:demo`
+during the build **only when** `DEMO_MODE=1` is set in the project
+env. This wires the demo deployment to the same `prisma/seed.ts` +
+`scripts/seed.ts` fixture chain dev runs locally. Both seed scripts
+are upsert-based and idempotent, so re-running on every deploy is
+safe (only slightly slower). Real-prod projects do not set
+`DEMO_MODE=1`, so the seed step is a `true` no-op there.
+
+### Vercel project env (demo)
+
+Both must be set on the project for `/dev/login` + seed-on-build
+to work in a demo deployment:
+
+| Var                       | Value                 | Purpose                                        |
+| ------------------------- | --------------------- | ---------------------------------------------- |
+| `DEMO_MODE`               | `1`                   | Activates dev-auth surfaces and seed-on-build  |
+| `DEMO_MODE_ON_PRODUCTION` | `1`                   | Acknowledges VERCEL_ENV=production is intended |
+| `SUPABASE_URL`            | (Grant's project URL) | Network-feed read leg                          |
+| `SUPABASE_ANON_KEY`       | (Grant's anon key)    | Network-feed read leg                          |
+
 ### When to retire
 
 When BU-auth lands and staging exists, `DEMO_MODE` becomes redundant:
