@@ -9,14 +9,15 @@
  * layout inside the sticky `<header>`. Active link is derived from
  * `usePathname()` rather than a per-page `active` prop (D065).
  *
- *   [kanban-square]? | [home] | [calendar-clock]? | [inbox] | [settings] | [search]
+ *   [radio-tower]? | [kanban-square]? | [newspaper] | [calendar-clock]? | [inbox] | [settings] | [search]
  *
- * The Board tab is gated by the `coord_board_v1` feature flag
- * (BU-coordination-board, planned). When on, it occupies the first
- * slot, before Feed. The Calendar tab is gated by `calendar_enabled`
- * (BU-calendar-view / D073). Flags are resolved in the layout (server
- * component) and passed down so this client component never reads from
- * the database.
+ * Order locked: Network, Board, Feed, Calendar, Requests, Settings,
+ * Search. Network leads when `network_feed` is on (BU-network-feed /
+ * D083) — the WhatsApp-link feed is the freshest surface and goes
+ * first so users land on it. Board (`coord_board_v1`) follows when
+ * on. Calendar (`calendar_enabled` / D073) sits between Feed and
+ * Requests. Flags are resolved in the layout (server component) and
+ * passed down so this client component never reads from the database.
  *
  * BU-icon-nav (2026-04-30): tabs are icons-only. Each `<Link>` keeps
  * the prior text label as `aria-label` so screen readers continue to
@@ -40,10 +41,10 @@ import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Home,
   CalendarClock,
   Inbox,
   KanbanSquare,
+  Newspaper,
   RadioTower,
   Search,
   Settings,
@@ -146,6 +147,18 @@ export function AppNav({
         minWidth: 0,
       }}
     >
+      {networkFeedEnabled && (
+        <IconChipTooltip label="Network">
+          <Link
+            href="/network"
+            aria-label="Network"
+            data-testid="nav-network-link"
+            style={active === 'network' ? activeStyle : linkStyle}
+          >
+            <RadioTower size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          </Link>
+        </IconChipTooltip>
+      )}
       {coordBoardEnabled && (
         <IconChipTooltip label="Board">
           <Link
@@ -165,7 +178,7 @@ export function AppNav({
           data-testid="nav-feed-link"
           style={active === 'feed' ? activeStyle : linkStyle}
         >
-          <Home size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          <Newspaper size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
         </Link>
       </IconChipTooltip>
       {calendarEnabled && (
@@ -177,18 +190,6 @@ export function AppNav({
             style={active === 'calendar' ? activeStyle : linkStyle}
           >
             <CalendarClock size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
-          </Link>
-        </IconChipTooltip>
-      )}
-      {networkFeedEnabled && (
-        <IconChipTooltip label="Network">
-          <Link
-            href="/network"
-            aria-label="Network"
-            data-testid="nav-network-link"
-            style={active === 'network' ? activeStyle : linkStyle}
-          >
-            <RadioTower size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
           </Link>
         </IconChipTooltip>
       )}
