@@ -932,18 +932,24 @@ async function main(): Promise<void> {
 
   // ── System user (BU-requests-vetting / D057) ─────────────────────────
   // Sentinel author for auto-written timeline comments on state transitions.
-  // Service upserts at write time too; seeding here makes it deterministic.
+  // The 20260505100000_seed_feature_flags migration already inserts this
+  // row with a random UUID (gen_random_uuid()), so we must read the actual
+  // id from the upsert result rather than trusting the static constant —
+  // otherwise the FK on the Comment row below would reference a user that
+  // doesn't exist. Service upserts at write time too; seeding here makes
+  // it deterministic.
 
-  const systemUserId = '00000000-0000-4000-8000-00000000c001';
-  await prisma.user.upsert({
+  const systemUser = await prisma.user.upsert({
     where: { email: 'system@gps-action.test' },
     create: {
-      id: systemUserId,
+      id: '00000000-0000-4000-8000-00000000c001',
       email: 'system@gps-action.test',
       displayName: 'system',
     },
     update: {},
+    select: { id: true },
   });
+  const systemUserId = systemUser.id;
   console.warn('  ✓ system user (BU-requests-vetting) ensured');
 
   // ── Demo Requests (BU-requests-foundation / D054 / SCN-21) ───────────
