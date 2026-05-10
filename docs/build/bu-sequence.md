@@ -114,6 +114,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |
+| **BU-ticket-view-fixes** — bu-ticket-view-fixes | ✅ Merged | #302, #303, #304 |
 <!-- AUTOGEN:shipped:end -->
 
 PRs without a dedicated brief (chores, fixes, polish) live in `git log` —
