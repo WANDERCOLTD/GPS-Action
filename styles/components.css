@@ -819,3 +819,47 @@
     display: inline-flex;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * TICKET DETAIL — main + right rail (BU-ticket-detail-relayout)
+ *
+ * Two-column layout for the ticket-detail page. At >= 1024px the rail
+ * sits beside the main column at a fixed 304px width (Q5). Below
+ * 1024px (Q4 breakpoint) the layout cascades to a single column and
+ * the rail re-orders to render between the title/description block
+ * and the discussion thread (Q3 — option C).
+ *
+ * Each pane uses inline styles for its internal layout; this rule
+ * only owns the responsive grid that connects them. Inline styles
+ * cannot express media queries, so the grid template lives here.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+.ticket-detail-grid {
+  grid-template-columns: minmax(0, 1fr) 304px;
+}
+
+@media (max-width: 1023px) {
+  .ticket-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Cascade order: title block (already first in source) → description
+     → rail panels → discussion thread. The rail slot grabs order: 2 to
+     slot ahead of the discussion (which sits inside .ticket-detail-main
+     at the end of the source order). */
+  .ticket-detail-grid > .ticket-detail-main {
+    display: contents;
+  }
+
+  .ticket-detail-grid > .ticket-detail-main > * {
+    order: 1;
+  }
+
+  .ticket-detail-grid > .ticket-detail-main > .ticket-detail-discussion {
+    order: 3;
+  }
+
+  .ticket-detail-grid > .ticket-detail-rail-slot {
+    order: 2;
+  }
+}

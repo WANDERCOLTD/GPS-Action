@@ -1,11 +1,21 @@
 /**
  * @build-unit bu-coordination-board (build seq #5 — Surface 2, PR #5a, #5b, #5c, #5d.{1,2,4,5})
+ *              · BU-ticket-detail-relayout (right-rail layout pass)
  * @spec docs/build/session-briefs/bu-coordination-board.md
+ * @spec docs/build/session-briefs/BU-ticket-detail-relayout.md
  * @adr 0013
  *
- * Ticket-detail page. Renders the typed title, kind label, urgent
- * dot, the unified Assign-me / Follow action pair, the assignee list,
- * the editable description, and the interleaved Comment + Note thread.
+ * Ticket-detail page. Two-column layout per the BU-ticket-detail-relayout
+ * design pass:
+ *
+ *   - Main column: title → editable description → discussion thread.
+ *   - Right rail (304px on viewports >= 1024px): all meta-info in
+ *     the locked Q1 order (Lifecycle → Assignees → Following →
+ *     Shared-With → Originator/Created → Last activity → Header
+ *     actions footer).
+ *
+ * Below 1024px the layout cascades to a single column; the rail
+ * unstacks above the Discussion (Q3 — option C).
  *
  * Note compose is gated to the originating-team viewer (or sysadmin);
  * the read visibility filter is enforced server-side in the
@@ -23,20 +33,15 @@
 
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { formatDistanceToNow } from 'date-fns';
 import { TRPCError } from '@trpc/server';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
-import { AssignSelfButton, FollowSelfButton } from '@/components/board/BoardActionPair';
 import { EditableTicketTitle } from '@/components/board/EditableTicketTitle';
 import { EditableTicketBody } from '@/components/board/EditableTicketBody';
 import { Discussion } from '@/components/board/Discussion';
 import { UrgentToggle } from '@/components/board/UrgentToggle';
-import { CardLifecycleActions } from '@/components/board/CardLifecycleActions';
-import { ShareWithTeamButton } from '@/components/board/ShareWithTeamButton';
-import { SharedWithStrip } from '@/components/board/SharedWithStrip';
-import { DeleteTicketButton } from '@/components/board/DeleteTicketButton';
+import { TicketDetailRail } from '@/components/board/TicketDetailRail';
 
 interface BoardTicketDetailPageProps {
   params: Promise<{ groupSlug: string; ticketId: string }>;
@@ -45,13 +50,6 @@ interface BoardTicketDetailPageProps {
 export const metadata = {
   title: 'Ticket — GPS Action',
 };
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const second = parts[1]?.[0] ?? '';
-  return (first + second).toUpperCase();
-}
 
 export default async function BoardTicketDetailPage({ params }: BoardTicketDetailPageProps) {
   const flagEnabled = await isFeatureEnabled('coord_board_v1');
@@ -161,7 +159,7 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
       style={{
         padding: 'var(--space-5) var(--space-4) var(--space-6)',
         margin: '0 auto',
-        maxWidth: 720,
+        maxWidth: 1280,
       }}
     >
       <header style={{ marginBottom: 'var(--space-4)' }}>
@@ -178,290 +176,127 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
         >
           ← {accessibleGroup.group.displayName} board
         </Link>
-        <EditableTicketTitle
-          requestId={ticket.id}
-          groupSlug={groupSlug}
-          groupId={accessibleGroup.group.id}
-          initial={ticket.title}
-          urgent={ticket.urgency}
-        />
-        {ticket.kindDisplayName && (
-          <p
-            data-testid="board-ticket-kind"
-            style={{
-              margin: 'var(--space-1) 0 0 0',
-              fontSize: 'var(--text-sm)',
-              color: 'var(--colour-text-secondary)',
-            }}
-          >
-            {ticket.kindDisplayName}
-          </p>
-        )}
       </header>
 
       <div
+        data-testid="board-ticket-detail-grid"
+        className="ticket-detail-grid"
         style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'flex-start',
-          gap: 'var(--space-3)',
-          marginBottom: 'var(--space-4)',
-        }}
-      >
-        <UrgentToggle
-          requestId={ticket.id}
-          groupId={accessibleGroup.group.id}
-          groupSlug={groupSlug}
-          urgent={ticket.urgency}
-        />
-        {cardLifecycleStatus && (
-          <CardLifecycleActions
-            requestId={ticket.id}
-            groupId={accessibleGroup.group.id}
-            groupSlug={groupSlug}
-            status={cardLifecycleStatus}
-            currentColumnId={currentColumnId}
-            activeColumns={activeColumns.map((c) => ({ id: c.id, displayName: c.displayName }))}
-            variant="surface-2"
-          />
-        )}
-        {canDelete && <DeleteTicketButton requestId={ticket.id} groupSlug={groupSlug} />}
-      </div>
-
-      <section
-        data-testid="board-ticket-assignees"
-        aria-label="Assignees"
-        style={{
-          marginBottom: 'var(--space-4)',
-          padding: 'var(--space-3)',
-          background: 'var(--colour-surface-sunken)',
-          borderRadius: 'var(--radius-md)',
+          display: 'grid',
+          gap: 'var(--space-4)',
+          alignItems: 'start',
         }}
       >
         <div
+          data-testid="board-ticket-detail-main"
+          className="ticket-detail-main"
           style={{
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 'var(--space-2)',
-            marginBottom: 'var(--space-2)',
+            flexDirection: 'column',
+            gap: 'var(--space-4)',
+            minWidth: 0,
           }}
         >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 'var(--text-xs)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              color: 'var(--colour-text-secondary)',
-            }}
-          >
-            Assignees
-          </h2>
-          {/*
-            Item 1 (Sub-build D): Assign / Unassign lives here — inside
-            the Assignees panel — rather than at the page header next to
-            Follow / Unfollow. Co-locating the affordance with the
-            assignee list answers the tester complaint that the control
-            was hard to find, and the structural separation from
-            Follow / Unfollow (now in its own section below) closes the
-            misclick path that produced the Item 2 regression.
-          */}
-          <AssignSelfButton requestId={ticket.id} groupSlug={groupSlug} assigned={isMineActive} />
-        </div>
-        {ticket.assignees.length === 0 ? (
-          <p
-            data-testid="board-ticket-assignees-empty"
-            style={{
-              margin: 0,
-              fontSize: 'var(--text-sm)',
-              color: 'var(--colour-text-secondary)',
-            }}
-          >
-            No one is assigned yet.
-          </p>
-        ) : (
-          <ul
-            style={{
-              listStyle: 'none',
-              padding: 0,
-              margin: 0,
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 'var(--space-2)',
-            }}
-          >
-            {ticket.assignees.map((a) => (
-              <li
-                key={a.userId}
+          <div data-testid="board-ticket-title-block">
+            <EditableTicketTitle
+              requestId={ticket.id}
+              groupSlug={groupSlug}
+              groupId={accessibleGroup.group.id}
+              initial={ticket.title}
+              urgent={ticket.urgency}
+            />
+            {ticket.kindDisplayName && (
+              <p
+                data-testid="board-ticket-kind"
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  padding: '4px 10px 4px 4px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--colour-surface-raised)',
-                  border: '1px solid var(--colour-border-subtle)',
+                  margin: 'var(--space-1) 0 0 0',
                   fontSize: 'var(--text-sm)',
+                  color: 'var(--colour-text-secondary)',
                 }}
               >
-                <span
-                  title={a.displayName}
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50%',
-                    background: a.avatarUrl
-                      ? `center / cover no-repeat url(${a.avatarUrl})`
-                      : 'var(--colour-surface-sunken)',
-                    color: 'var(--colour-text-secondary)',
-                    fontSize: 10,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '1px solid var(--colour-border-subtle)',
-                  }}
-                >
-                  {a.avatarUrl ? '' : initials(a.displayName)}
-                </span>
-                {a.displayName}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                {ticket.kindDisplayName}
+              </p>
+            )}
+            <div
+              style={{
+                marginTop: 'var(--space-2)',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 'var(--space-2)',
+              }}
+            >
+              <UrgentToggle
+                requestId={ticket.id}
+                groupId={accessibleGroup.group.id}
+                groupSlug={groupSlug}
+                urgent={ticket.urgency}
+              />
+            </div>
+          </div>
 
-      <section
-        data-testid="board-ticket-shared-with"
-        aria-label="Shared with"
-        style={{
-          marginBottom: 'var(--space-4)',
-          padding: 'var(--space-3)',
-          background: 'var(--colour-surface-sunken)',
-          borderRadius: 'var(--radius-md)',
-        }}
-      >
-        <h2
-          style={{
-            margin: '0 0 var(--space-2) 0',
-            fontSize: 'var(--text-xs)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            color: 'var(--colour-text-secondary)',
-          }}
-        >
-          Shared with
-        </h2>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-          }}
-        >
-          <SharedWithStrip
+          <section data-testid="board-ticket-description" aria-label="Description">
+            <h2
+              style={{
+                margin: '0 0 var(--space-2) 0',
+                fontSize: 'var(--text-xs)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                color: 'var(--colour-text-secondary)',
+              }}
+            >
+              Description
+            </h2>
+            <EditableTicketBody
+              requestId={ticket.id}
+              groupSlug={groupSlug}
+              groupId={accessibleGroup.group.id}
+              initial={ticket.body}
+            />
+          </section>
+
+          <div data-testid="board-ticket-discussion-slot" className="ticket-detail-discussion">
+            <Discussion
+              rows={threadRows}
+              requestId={ticket.id}
+              groupSlug={groupSlug}
+              viewerId={viewerId}
+              canPostNote={canPostNote}
+            />
+          </div>
+        </div>
+
+        <div data-testid="board-ticket-detail-rail-slot" className="ticket-detail-rail-slot">
+          <TicketDetailRail
             requestId={ticket.id}
             groupSlug={groupSlug}
-            groups={ticket.groups.map((g) => ({
+            groupId={accessibleGroup.group.id}
+            cardLifecycleStatus={cardLifecycleStatus}
+            currentColumnId={currentColumnId}
+            activeColumns={activeColumns.map((c) => ({
+              id: c.id,
+              displayName: c.displayName,
+            }))}
+            assignees={ticket.assignees.map((a) => ({
+              userId: a.userId,
+              displayName: a.displayName,
+              avatarUrl: a.avatarUrl,
+            }))}
+            isMineActive={isMineActive}
+            isMineSubscribed={isMineSubscribed}
+            sharedGroups={ticket.groups.map((g) => ({
               groupId: g.groupId,
               slug: g.slug,
               displayName: g.displayName,
               origin: g.origin,
             }))}
-          />
-          <ShareWithTeamButton
-            requestId={ticket.id}
-            groupSlug={groupSlug}
-            sourceGroupId={accessibleGroup.group.id}
-            availableTargets={availableShareTargets}
+            availableShareTargets={availableShareTargets}
+            viewerIsOriginator={isOriginator}
+            createdAt={ticket.createdAt}
+            lastActivityAt={ticket.lastActivityAt}
+            canDelete={canDelete}
           />
         </div>
-      </section>
-
-      {/*
-        Item 1 (Sub-build D): the Follow / Unfollow control lives in its
-        own section, structurally separated from Assign / Unassign (which
-        is now inside the Assignees panel above). Adjacent layout was the
-        misclick path Item 2's regression test guards against.
-      */}
-      <section
-        data-testid="board-ticket-following"
-        aria-label="Following"
-        style={{
-          marginBottom: 'var(--space-4)',
-          padding: 'var(--space-3)',
-          background: 'var(--colour-surface-sunken)',
-          borderRadius: 'var(--radius-md)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 'var(--space-2)',
-        }}
-      >
-        <h2
-          style={{
-            margin: 0,
-            fontSize: 'var(--text-xs)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            color: 'var(--colour-text-secondary)',
-          }}
-        >
-          Following
-        </h2>
-        <FollowSelfButton
-          requestId={ticket.id}
-          groupSlug={groupSlug}
-          following={isMineSubscribed}
-        />
-      </section>
-
-      <section
-        data-testid="board-ticket-description"
-        aria-label="Description"
-        style={{
-          marginBottom: 'var(--space-4)',
-        }}
-      >
-        <h2
-          style={{
-            margin: '0 0 var(--space-2) 0',
-            fontSize: 'var(--text-xs)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            color: 'var(--colour-text-secondary)',
-          }}
-        >
-          Description
-        </h2>
-        <EditableTicketBody
-          requestId={ticket.id}
-          groupSlug={groupSlug}
-          groupId={accessibleGroup.group.id}
-          initial={ticket.body}
-        />
-      </section>
-
-      <Discussion
-        rows={threadRows}
-        requestId={ticket.id}
-        groupSlug={groupSlug}
-        viewerId={viewerId}
-        canPostNote={canPostNote}
-      />
-
-      <footer
-        data-testid="board-ticket-meta"
-        style={{
-          fontSize: 'var(--text-xs)',
-          color: 'var(--colour-text-secondary)',
-          paddingTop: 'var(--space-3)',
-          borderTop: '1px solid var(--colour-border-subtle)',
-        }}
-      >
-        Last activity {formatDistanceToNow(ticket.lastActivityAt, { addSuffix: true })}
-      </footer>
+      </div>
     </main>
   );
 }
