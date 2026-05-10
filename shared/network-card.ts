@@ -54,3 +54,73 @@ export interface NetworkListResponse {
   fetchedAt: Date;
   fromCache: boolean;
 }
+
+// ── Wire-serialised variants (server-component → client-component boundary)
+//
+// React Server Components support bigint at the props boundary, but
+// stringifying keeps the client surface portable across test environments
+// (jsdom + serialised snapshots) and matches the existing FeedPost pattern
+// in `components/PostCard.tsx`. Server actions also accept the string form
+// and convert at the boundary.
+
+export interface SerializedNetworkCardWorkflowState {
+  status: NetworkCardStatus;
+  ownerUserId: string | null;
+  ownerDisplayName: string | null;
+  notes: string | null;
+  /** ISO 8601 string. Null when no state row exists. */
+  updatedAt: string | null;
+}
+
+export interface SerializedNetworkCard {
+  /** Stringified bigint. */
+  messageId: string;
+  /** ISO 8601 string. */
+  sentAt: string;
+  url: string;
+  linkTitle: string | null;
+  textBody: string | null;
+  fromName: string | null;
+  senderHash: string;
+  chatId: string;
+  state: SerializedNetworkCardWorkflowState;
+}
+
+export interface SerializedNetworkListResponse {
+  items: SerializedNetworkCard[];
+  nextCursor: string | null;
+  /** ISO 8601 string — when the upstream fetch completed. */
+  fetchedAt: string;
+  fromCache: boolean;
+}
+
+export function serializeNetworkCard(card: NetworkCard): SerializedNetworkCard {
+  return {
+    messageId: card.id.toString(),
+    sentAt: card.sentAt.toISOString(),
+    url: card.url,
+    linkTitle: card.linkTitle,
+    textBody: card.textBody,
+    fromName: card.fromName,
+    senderHash: card.senderHash,
+    chatId: card.chatId,
+    state: {
+      status: card.state.status,
+      ownerUserId: card.state.ownerUserId,
+      ownerDisplayName: card.state.ownerDisplayName,
+      notes: card.state.notes,
+      updatedAt: card.state.updatedAt ? card.state.updatedAt.toISOString() : null,
+    },
+  };
+}
+
+export function serializeNetworkListResponse(
+  response: NetworkListResponse,
+): SerializedNetworkListResponse {
+  return {
+    items: response.items.map(serializeNetworkCard),
+    nextCursor: response.nextCursor,
+    fetchedAt: response.fetchedAt.toISOString(),
+    fromCache: response.fromCache,
+  };
+}

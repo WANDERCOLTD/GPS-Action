@@ -78,7 +78,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-icon-strips | 5 | SCN-20 | D052, D054, D061, D065, D073, D076, D078 |
 | BU-link-first-composer | 7 | SCN-18, SCN-24, SCN-25 | D044, D045, D048, D060, D061, D062, D064, D069, D072, D073 |
 | BU-link-share | 5 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D061, D062, D064, D069, D072, D073, D076 |
-| BU-network-feed | 5 | — | D083 |
+| BU-network-feed | 9 | — | D083 |
 | BU-one-click-polish | 4 | SCN-3, SCN-20 | D050, D052 |
 | BU-post-hero-demo | 6 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D062, D064, D069, D072, D073, D076 |
 | BU-post-location-input | 1 | — | — |

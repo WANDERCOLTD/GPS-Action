@@ -1,9 +1,10 @@
 ---
-slug: bu-network-feed
-status: ready
+slug: BU-network-feed
+status: shipped
 phase: 2
 priority: medium
 note: "Read-side surface for Grant's WhatsApp → Supabase pipe. Ready 2026-05-10: placement (/network), column shape (sender_hash, from_jid dropped), ADR-0017 (PR #310), feature flag, and glyph (radio-tower) all locked. Build session can pick up cold."
+shipped_in: "#306, #310, #314, #315"
 ---
 
 # SESSION BRIEF · bu-network-feed — render the GPS Action Network! WhatsApp link feed inside the app

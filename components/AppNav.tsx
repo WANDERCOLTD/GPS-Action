@@ -39,7 +39,15 @@ import * as React from 'react';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, CalendarClock, Inbox, KanbanSquare, Search, Settings } from 'lucide-react';
+import {
+  Home,
+  CalendarClock,
+  Inbox,
+  KanbanSquare,
+  RadioTower,
+  Search,
+  Settings,
+} from 'lucide-react';
 import { IconChipTooltip } from '@/components/IconChipTooltip';
 
 interface AppNavProps {
@@ -49,6 +57,8 @@ interface AppNavProps {
   calendarEnabled?: boolean;
   /** BU-coordination-board: when true, renders the Board tab as the first slot, before Feed. */
   coordBoardEnabled?: boolean;
+  /** BU-network-feed / D083: when true, renders the Network tab between Calendar and Requests. */
+  networkFeedEnabled?: boolean;
 }
 
 type ActiveKey =
@@ -56,6 +66,7 @@ type ActiveKey =
   | 'feed'
   | 'calendar'
   | 'compose'
+  | 'network'
   | 'requests'
   | 'search'
   | 'settings'
@@ -67,6 +78,7 @@ function deriveActive(pathname: string | null): ActiveKey {
   if (pathname === '/feed' || pathname.startsWith('/feed/')) return 'feed';
   if (pathname === '/calendar' || pathname.startsWith('/calendar/')) return 'calendar';
   if (pathname === '/compose' || pathname.startsWith('/compose/')) return 'compose';
+  if (pathname === '/network' || pathname.startsWith('/network/')) return 'network';
   if (pathname === '/requests' || pathname.startsWith('/requests/')) return 'requests';
   // BU-coordination-board / Surface 3: the inbox glyph routes to
   // /notifications under `coord_board_v1`. Slot is shared with /requests
@@ -116,6 +128,7 @@ export function AppNav({
   unreadNotificationCount = 0,
   calendarEnabled = false,
   coordBoardEnabled = false,
+  networkFeedEnabled = false,
 }: AppNavProps) {
   const active = deriveActive(usePathname());
 
@@ -164,6 +177,18 @@ export function AppNav({
             style={active === 'calendar' ? activeStyle : linkStyle}
           >
             <CalendarClock size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          </Link>
+        </IconChipTooltip>
+      )}
+      {networkFeedEnabled && (
+        <IconChipTooltip label="Network">
+          <Link
+            href="/network"
+            aria-label="Network"
+            data-testid="nav-network-link"
+            style={active === 'network' ? activeStyle : linkStyle}
+          >
+            <RadioTower size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
           </Link>
         </IconChipTooltip>
       )}
