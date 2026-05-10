@@ -67,6 +67,36 @@ const SEED_USERS = [
     email: 'maya@demo.gps-action.test',
     displayName: 'Maya Greenberg',
   },
+  // ── Phase-2 demo enrichment (PR #0.2.181) ──────────────────────────
+  // Six additional members so each group has plausible membership and
+  // the kanban / feed demo features (assignments, sharing, comments,
+  // notes, reactions) have varied actors. Lookup keys (the part of
+  // the email before @) are: sharon, rachel, jonathan, naomi, david,
+  // esther.
+  {
+    email: 'sharon@demo.gps-action.test',
+    displayName: 'Sharon Levi',
+  },
+  {
+    email: 'rachel@demo.gps-action.test',
+    displayName: 'Rachel Cohen',
+  },
+  {
+    email: 'jonathan@demo.gps-action.test',
+    displayName: 'Jonathan Stein',
+  },
+  {
+    email: 'naomi@demo.gps-action.test',
+    displayName: 'Naomi Goldberg',
+  },
+  {
+    email: 'david@demo.gps-action.test',
+    displayName: 'David Friedman',
+  },
+  {
+    email: 'esther@demo.gps-action.test',
+    displayName: 'Esther Klein',
+  },
 ] as const;
 
 // ── Seed groups ──────────────────────────────────────────────────────────
@@ -77,6 +107,8 @@ interface SeedGroup {
   description: string;
   createdByKey: string;
   memberKeys: string[];
+  /** Optional GroupKind override; falls back to schema default `team`. */
+  kind?: 'workstream' | 'region' | 'network' | 'team' | 'topic';
 }
 
 const SEED_GROUPS: SeedGroup[] = [
@@ -85,21 +117,54 @@ const SEED_GROUPS: SeedGroup[] = [
     displayName: 'Writers',
     description: 'Letter-writers, op-ed drafters, and media responders.',
     createdByKey: 'bette',
-    memberKeys: ['bette', 'ingrid', 'eddie'],
+    memberKeys: ['bette', 'ingrid', 'eddie', 'rachel', 'naomi'],
+    kind: 'workstream',
   },
   {
     slug: 'manchester',
     displayName: 'Manchester',
     description: 'Manchester-area members coordinating local actions.',
     createdByKey: 'eddie',
-    memberKeys: ['eddie', 'humphrey', 'cary'],
+    memberKeys: ['eddie', 'humphrey', 'cary', 'jonathan', 'david'],
+    kind: 'region',
   },
   {
     slug: 'rapid-response',
     displayName: 'Rapid Response',
     description: 'First responders for time-sensitive actions and media moments.',
     createdByKey: 'cary',
-    memberKeys: ['cary', 'bette', 'eddie'],
+    memberKeys: ['cary', 'bette', 'eddie', 'maya', 'sharon'],
+    kind: 'team',
+  },
+  // ── Phase-2 demo enrichment groups ──────────────────────────────────
+  // Three additional groups with varied GroupKind values so the board
+  // palette demo has shape — region (north-london), network (cst-link),
+  // topic (students). Each lands with 4–5 active members.
+  {
+    slug: 'north-london',
+    displayName: 'North London',
+    description:
+      'Barnet / Camden / Hackney members coordinating local council actions and shul-network outreach.',
+    createdByKey: 'rachel',
+    memberKeys: ['rachel', 'naomi', 'sharon', 'esther', 'bette'],
+    kind: 'region',
+  },
+  {
+    slug: 'students',
+    displayName: 'Students',
+    description: 'Russell-Group student members coordinating campus and SU motions.',
+    createdByKey: 'jonathan',
+    memberKeys: ['jonathan', 'david', 'esther', 'humphrey'],
+    kind: 'topic',
+  },
+  {
+    slug: 'cst-link',
+    displayName: 'CST liaison',
+    description:
+      'Partner-org channel — coordinates with Community Security Trust on safeguarding and security incidents.',
+    createdByKey: 'sharon',
+    memberKeys: ['sharon', 'cary', 'bette', 'maya'],
+    kind: 'network',
   },
 ];
 
@@ -652,6 +717,148 @@ const SEED_POSTS: SeedPost[] = [
     urgency: true,
     signal: 'remove',
   },
+
+  // ── Phase-2 demo enrichment posts (PR #0.2.181) ─────────────────────
+  // Ten additional posts spread across the last ~30 days so the feed has
+  // depth, not all today. Mix of authors (including the new members),
+  // visibility, kinds, and group tags. Each gets reactions + comments
+  // seeded later in the enrichment block at the end of main().
+  {
+    seedKey: 'enrich-rachel-am-mp-housing',
+    authorKey: 'rachel',
+    title: 'North London — write to Mike Freer about the Barnet housing motion',
+    body: `Mike Freer chairs the housing committee that votes on Tuesday. North London members in his constituency carry particular weight — please send the template letter today rather than tomorrow.\n\nThe template covers the four amendments we are pushing for. Personalises automatically. 90 seconds.`,
+    visibility: 'public',
+    activistMailerUrl: 'https://activistmailer.com/campaign/freer-housing-2026',
+    groupTags: ['north-london'],
+    daysAgo: 4,
+    kindSlug: 'call_to_action',
+    urgency: false,
+  },
+  {
+    seedKey: 'enrich-jonathan-su-motion',
+    authorKey: 'jonathan',
+    title: 'SU motion at Manchester — alumni voices needed by Friday',
+    body: `Manchester SU is debating a divestment motion at Friday's council meeting. If you graduated in the last 10 years your voice carries — alumni cards still get scanned at the door.\n\nThe Students channel has a draft of the alumni letter; please pick it up, send it, and tell me you've done it so I can keep a tally.`,
+    visibility: 'authenticated_only',
+    activistMailerUrl: null,
+    groupTags: ['students', 'manchester'],
+    daysAgo: 6,
+    kindSlug: 'call_to_action',
+    urgency: false,
+  },
+  {
+    seedKey: 'enrich-sharon-cst-incident',
+    authorKey: 'sharon',
+    title: 'CST liaison — incident at Hendon shul, please be vigilant',
+    body: `Quick note from the CST liaison channel: a graffiti incident overnight at the Hendon Adath shul. CST and Met are both engaged. No injuries.\n\nIf you have services scheduled this Shabbat at NW4 / NW9 / NW11, please brief stewards. CST has updated its incident-line guidance.\n\nNot a panic — a heads-up.`,
+    visibility: 'authenticated_only',
+    activistMailerUrl: null,
+    groupTags: ['cst-link', 'north-london'],
+    daysAgo: 9,
+    kindSlug: 'happening_now',
+    urgency: false,
+  },
+  {
+    seedKey: 'enrich-naomi-thank-you',
+    authorKey: 'naomi',
+    title: 'Quiet thank-you to Rachel and Esther for last night',
+    body: `Rachel and Esther staffed the door at Wednesday's letter-writing session. 22 people came; we sent 89 letters between us.\n\nNo one had to ask twice for tea or a stamp. Both of you set the tone.\n\nFor anyone who wanted to come and didn't — there's another session next Wednesday.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['writers', 'north-london'],
+    daysAgo: 12,
+    kindSlug: 'thought',
+    urgency: false,
+  },
+  {
+    seedKey: 'enrich-david-jewish-news',
+    authorKey: 'david',
+    title: 'Jewish News piece on student campaigning — link share',
+    body: `Decent piece in the Jewish News this morning on student-led campaigning across Russell-Group SUs this term. Names actual numbers, quotes named students, doesn't editorialise.\n\nHelpful for anyone arguing the case to a sceptical relative that "students are doing nothing".`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['students'],
+    daysAgo: 14,
+    kindSlug: 'link_share',
+    urgency: false,
+    linkUrl: 'https://www.jewishnews.co.uk/students-campaign-2026/',
+    linkTitle: 'Russell-Group student campaigners — what they did this term',
+    linkDescription:
+      'Names, numbers, and motions. A grounded look at what student-led Jewish campaigning actually moved this term.',
+    linkSiteName: 'Jewish News',
+  },
+  {
+    seedKey: 'enrich-esther-shabbat',
+    authorKey: 'esther',
+    title: 'Shabbat shalom from North London',
+    body: `It has been a long week. The Hendon incident, the council vote, three deadlines.\n\nWhatever you are carrying — set it down for Shabbat. We pick it back up Saturday night.\n\nShabbat shalom 💕`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['north-london'],
+    daysAgo: 16,
+    kindSlug: 'cultural',
+    urgency: false,
+    heroImageUrl: '/seed-images/09-shabbat-shalom.jpg',
+  },
+  {
+    seedKey: 'enrich-rachel-outcome-barnet',
+    authorKey: 'rachel',
+    title: 'Outcome — 412 letters delivered to Barnet councillors',
+    body: `The Barnet motion debate is on Tuesday. We delivered 412 letters before the Friday cut-off. Two ward councillors have replied personally.\n\nThe writers in this group did the work. I just collected the count.\n\nNext step: physical attendance at Tuesday's public gallery. Reply if you can come and I will collate.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['north-london', 'writers'],
+    daysAgo: 19,
+    kindSlug: 'outcome',
+    urgency: false,
+  },
+  {
+    seedKey: 'enrich-maya-bristol-update',
+    authorKey: 'maya',
+    title: 'Update — Bristol school-gate incident, police statement',
+    body: `Avon and Somerset Police published a statement an hour ago on the Cheddar Road school-gate leaflet incident. Investigation is continuing; one person has been spoken to under caution.\n\nThe public statement is measured but firm. CST coordinated the family-support side; thanks Sharon for the introductions.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['rapid-response', 'cst-link'],
+    daysAgo: 21,
+    kindSlug: 'outcome',
+    urgency: false,
+  },
+  {
+    seedKey: 'enrich-jonathan-meeting-students',
+    authorKey: 'jonathan',
+    title: 'Students network — May planning call',
+    body: `Monthly Students planning call. We will agree summer-term priorities, hear back from each campus, and pair returning members with new joiners.\n\nIf you joined this term and want to find your feet — this is the call to come to.`,
+    visibility: 'authenticated_only',
+    activistMailerUrl: null,
+    groupTags: ['students'],
+    daysAgo: 25,
+    kindSlug: 'meeting',
+    urgency: false,
+    eventInDays: 12,
+    eventStartHour: 19,
+    eventStartMinute: 0,
+    eventDurationMinutes: 90,
+    locationText: 'Online via Zoom — link in the Students group',
+    isOnline: true,
+  },
+  {
+    seedKey: 'enrich-sharon-tick-times-correction',
+    authorKey: 'sharon',
+    title: 'Times printed a correction on the Hackney piece — promote',
+    body: `The Times correction is on page 28 of today's print edition and pinned to the online article. Quietly factual, not grudging. Worth boosting — corrections this clean are rare.`,
+    visibility: 'public',
+    activistMailerUrl: null,
+    groupTags: ['rapid-response'],
+    daysAgo: 28,
+    kindSlug: 'tick_or_cross',
+    urgency: false,
+    signal: 'promote',
+    linkUrl: 'https://www.thetimes.co.uk/article/correction-hackney-2026',
+    linkTitle: 'Correction: Hackney community piece — The Times',
+    linkSiteName: 'The Times',
+  },
 ];
 
 async function main(): Promise<void> {
@@ -1016,10 +1223,18 @@ async function main(): Promise<void> {
           slug: group.slug,
           displayName: group.displayName,
           description: group.description,
+          kind: group.kind ?? 'team',
           createdByUserId: creatorId,
         },
       });
       groupsCreated++;
+    } else if (group.kind && existing.kind !== group.kind) {
+      // Idempotent backfill — keep declared GroupKind in sync if the
+      // seed declaration changes between runs.
+      await prisma.group.update({
+        where: { id: groupId },
+        data: { kind: group.kind },
+      });
     }
     groupIds[group.slug] = groupId;
 
@@ -1581,6 +1796,1614 @@ async function main(): Promise<void> {
   console.warn(
     `  ✓ GroupShareWorkflow allow-list seeded (${shareWorkflowsCreated} new across ${SEED_SHARE_WORKFLOWS.length} pairs)`,
   );
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Phase-2 demo enrichment (PR #0.2.181)
+  // ─────────────────────────────────────────────────────────────────────
+  // Adds realistic, narratable scenarios on top of the demo seed:
+  //   - Default BoardColumns for the three new groups (north-london /
+  //     students / cst-link).
+  //   - 17 additional kanban tickets across the lifecycle (backlog /
+  //     active in named columns / done) with one urgent.
+  //   - Re-assignment history on 5 tickets (one Assignment soft-deleted
+  //     ~3 days ago, a fresh one current — narrates "ticket moved from
+  //     X to Y").
+  //   - RequestSubscription rows per ticket (mix of auto_assignee +
+  //     explicit follower).
+  //   - Cross-team RequestGroup shares on 6 tickets, 2 of which carry a
+  //     prior unshare (deletedAt set) plus a different active share —
+  //     demonstrates "shared from Team A to Team B then to Team C".
+  //   - 4–6 Comment / Note rows per ticket, audience mix, all human.
+  //   - lastActivityAt populated to recent comment / share / assignment
+  //     change so the board's "Last activity" labels stagger.
+  //   - Reactions on every existing seeded post: 4–9 per post by varied
+  //     authors and emoji.
+  //   - Comment threads on 4 posts with 4–5 back-and-forth replies.
+  //   - 15 AuditLog rows using existing action codes (assignment_created,
+  //     assignment_unassigned, request_group_shared, request_group_
+  //     unshared, ticket_title_edited, request_status_changed, etc).
+  //   - 8 Notifications across mixed users / lifecycle / read state.
+  //
+  // Idempotency: every row keyed by seedUuid('<entity>', '<seedKey>'),
+  // create-if-absent, no overwrites of member-authored data.
+
+  console.warn('Seeding Phase-2 demo enrichment...');
+
+  // ── Default board columns for the 3 new groups ─────────────────────
+  const ENRICH_BOARD_GROUPS = ['north-london', 'students', 'cst-link'] as const;
+  let enrichColumnsCreated = 0;
+  for (const slug of ENRICH_BOARD_GROUPS) {
+    const groupId = groupIds[slug];
+    if (!groupId) continue;
+    for (let ordinal = 0; ordinal < COORD_BOARD_DEFAULT_COLUMNS.length; ordinal++) {
+      const displayName = COORD_BOARD_DEFAULT_COLUMNS[ordinal]!;
+      const columnId = seedUuid('board-column', `${slug}:${ordinal}`);
+      const existing = await prisma.boardColumn.findUnique({ where: { id: columnId } });
+      if (!existing) {
+        await prisma.boardColumn.create({
+          data: { id: columnId, groupId, ordinal, displayName },
+        });
+        enrichColumnsCreated++;
+      }
+    }
+  }
+  console.warn(`  ✓ Default BoardColumns for 3 new groups (${enrichColumnsCreated} new)`);
+
+  // ── Helpers ─────────────────────────────────────────────────────────
+  const dayMs = 24 * 60 * 60 * 1000;
+  const hourMs = 60 * 60 * 1000;
+  const daysAgo = (n: number): Date => new Date(now.getTime() - n * dayMs);
+
+  // ── Group-share workflow allow-list extension (so the 3 new groups
+  //    surface in each other's "Share with team" pickers) ─────────────
+  const ENRICH_SHARE_WORKFLOWS: Array<{ source: string; target: string }> = [
+    { source: 'north-london', target: 'writers' },
+    { source: 'north-london', target: 'rapid-response' },
+    { source: 'north-london', target: 'cst-link' },
+    { source: 'writers', target: 'north-london' },
+    { source: 'rapid-response', target: 'north-london' },
+    { source: 'rapid-response', target: 'cst-link' },
+    { source: 'cst-link', target: 'rapid-response' },
+    { source: 'cst-link', target: 'north-london' },
+    { source: 'students', target: 'writers' },
+    { source: 'students', target: 'manchester' },
+    { source: 'manchester', target: 'students' },
+    { source: 'writers', target: 'students' },
+  ];
+  let enrichShareWorkflows = 0;
+  for (const w of ENRICH_SHARE_WORKFLOWS) {
+    const id = seedUuid('group-share-workflow', `${w.source}->${w.target}`);
+    const existing = await prisma.groupShareWorkflow.findUnique({ where: { id } });
+    if (!existing) {
+      await prisma.groupShareWorkflow.create({
+        data: {
+          id,
+          sourceGroupId: groupIds[w.source]!,
+          targetGroupId: groupIds[w.target]!,
+          addedByUserId: userIds.bette!,
+        },
+      });
+      enrichShareWorkflows++;
+    }
+  }
+  console.warn(`  ✓ Cross-group share workflows extended (${enrichShareWorkflows} new)`);
+
+  // ── Enrichment kanban tickets ──────────────────────────────────────
+  // 17 additional tickets distributed across the lifecycle. Status
+  // mapping:
+  //   - backlog: no columnId, RequestStatus.backlog
+  //   - active : columnId set (Recruitment/Preparation/Implementation/
+  //              Monitoring), RequestStatus.active
+  //   - done   : RequestStatus.done, columnId on Monitoring (last column)
+  type GroupSlug =
+    | 'writers'
+    | 'manchester'
+    | 'rapid-response'
+    | 'north-london'
+    | 'students'
+    | 'cst-link';
+
+  interface EnrichTicket {
+    seedKey: string;
+    groupSlug: GroupSlug;
+    /** Backlog = -1, otherwise BoardColumn ordinal 0..3. */
+    columnOrdinal: -1 | 0 | 1 | 2 | 3;
+    title: string;
+    body: string | null;
+    urgency: boolean;
+    /** RequestStatus override; defaults derived from columnOrdinal. */
+    status?: 'backlog' | 'active' | 'done';
+    /** Current assignee (null = unassigned). */
+    assigneeKey: string | null;
+    /** Prior assignee — when set, an unassigned (deletedAt) Assignment row
+     *  is seeded ahead of the current one to narrate "reassigned from X
+     *  to Y" history. */
+    previousAssigneeKey?: string | null;
+    /** Followers (RequestSubscription rows). The current assignee is
+     *  added automatically with source = auto_assignee; entries here
+     *  use source = explicit. */
+    followerKeys?: string[];
+    createdByKey: string;
+    /** How many days ago the ticket was created. */
+    createdDaysAgo: number;
+    /** Optional verdict for done tickets: 'approved' | 'rejected' etc. */
+    resolution?: 'approved' | 'rejected' | 'edited' | 'duplicate' | 'dismissed';
+    resolvedByKey?: string;
+    /** Manual position bias — controls vertical order within column. */
+    positionWithinColumn: number;
+    /** Cross-team shares. Each entry creates an active RequestGroup row
+     *  (origin = ad_hoc_share or workflow_share). The sharedDaysAgo
+     *  controls createdAt so the activity timeline staggers. */
+    shares?: Array<{ groupSlug: GroupSlug; sharedByKey: string; sharedDaysAgo: number }>;
+    /** Prior shares that were unshared (deletedAt set). Demonstrates
+     *  the "ticket moved teams" history. */
+    unshares?: Array<{
+      groupSlug: GroupSlug;
+      sharedByKey: string;
+      sharedDaysAgo: number;
+      unsharedDaysAgo: number;
+    }>;
+    /** Comment + note rows. Author key + body + kind. */
+    threadEntries?: Array<{
+      authorKey: string;
+      body: string;
+      kind: 'comment' | 'note';
+      audience?: 'all' | 'reviewers';
+      daysAgo: number;
+    }>;
+  }
+
+  const ENRICH_TICKETS: EnrichTicket[] = [
+    // ── Writers (3 new) ───────────────────────────────────────────────
+    {
+      seedKey: 'enrich-writers-conservative-letters',
+      groupSlug: 'writers',
+      columnOrdinal: 1,
+      title: 'Conservative-leaning publication — research letter angle',
+      body: "Looking for a writer with a Telegraph / Spectator readership tone. Want to land a guest letter on the housing motion that doesn't read as identity-politics. Naomi has a contact at the comment desk.",
+      urgency: false,
+      assigneeKey: 'rachel',
+      previousAssigneeKey: 'naomi',
+      followerKeys: ['naomi', 'bette', 'ingrid'],
+      createdByKey: 'naomi',
+      createdDaysAgo: 9,
+      positionWithinColumn: 0,
+      shares: [{ groupSlug: 'north-london', sharedByKey: 'rachel', sharedDaysAgo: 4 }],
+      threadEntries: [
+        {
+          authorKey: 'naomi',
+          body: 'Started this. Realised I do not have the tone for a centre-right desk; passing to Rachel.',
+          kind: 'comment',
+          daysAgo: 7,
+        },
+        {
+          authorKey: 'rachel',
+          body: 'Picked it up. I will draft something this week.',
+          kind: 'comment',
+          daysAgo: 4,
+        },
+        {
+          authorKey: 'rachel',
+          body: 'Note: my contact at the Telegraph said the comment desk closes at 16:00 — anything submitted after that lands in the next-day pile.',
+          kind: 'note',
+          audience: 'reviewers',
+          daysAgo: 3,
+        },
+        {
+          authorKey: 'bette',
+          body: 'Worth pinging Ingrid for an early read once you have a draft.',
+          kind: 'comment',
+          daysAgo: 2,
+        },
+      ],
+    },
+    {
+      seedKey: 'enrich-writers-fact-check',
+      groupSlug: 'writers',
+      columnOrdinal: 0,
+      title: 'Fact-check pack for the May complaint cycle',
+      body: 'Build the canonical fact-check pack for the four campaigns we are running in May. CST stats, council minutes, JC archive links.',
+      urgency: false,
+      assigneeKey: null,
+      followerKeys: ['ingrid', 'naomi'],
+      createdByKey: 'ingrid',
+      createdDaysAgo: 13,
+      positionWithinColumn: 1,
+      threadEntries: [
+        {
+          authorKey: 'ingrid',
+          body: 'Will draft the structure when I get a quiet evening this week. Volunteer slots welcome.',
+          kind: 'comment',
+          daysAgo: 11,
+        },
+      ],
+    },
+    {
+      seedKey: 'enrich-writers-baddiel-followup',
+      groupSlug: 'writers',
+      columnOrdinal: 3,
+      title: 'Baddiel piece — internal commentary digest',
+      body: 'Collect best internal commentary on the Baddiel Guardian op-ed — to send round once landed, not before.',
+      urgency: false,
+      status: 'done',
+      assigneeKey: 'ingrid',
+      followerKeys: ['bette', 'naomi'],
+      createdByKey: 'ingrid',
+      createdDaysAgo: 22,
+      resolution: 'approved',
+      resolvedByKey: 'bette',
+      positionWithinColumn: 0,
+      threadEntries: [
+        {
+          authorKey: 'ingrid',
+          body: 'Digest is up. Sending round on Friday.',
+          kind: 'comment',
+          daysAgo: 14,
+        },
+        {
+          authorKey: 'bette',
+          body: 'Closing this — read it, it is good, signed off.',
+          kind: 'comment',
+          daysAgo: 11,
+        },
+      ],
+    },
+
+    // ── Manchester (3 new) ────────────────────────────────────────────
+    {
+      seedKey: 'enrich-manchester-museum-installation',
+      groupSlug: 'manchester',
+      columnOrdinal: 2,
+      title: 'Museum installation — Holocaust memorial corner',
+      body: 'Coordinate with Manchester Jewish Museum on the September installation. Confirmed: Daniel Friedman (David here is one of his contacts) is curating; we provide volunteer hours.',
+      urgency: false,
+      assigneeKey: 'david',
+      previousAssigneeKey: 'humphrey',
+      followerKeys: ['humphrey', 'eddie'],
+      createdByKey: 'humphrey',
+      createdDaysAgo: 27,
+      positionWithinColumn: 0,
+      shares: [{ groupSlug: 'writers', sharedByKey: 'david', sharedDaysAgo: 8 }],
+      unshares: [
+        {
+          groupSlug: 'rapid-response',
+          sharedByKey: 'humphrey',
+          sharedDaysAgo: 21,
+          unsharedDaysAgo: 14,
+        },
+      ],
+      threadEntries: [
+        {
+          authorKey: 'humphrey',
+          body: 'Originally shared this to Rapid Response thinking the museum had a press window — turns out the timeline is months. Pulling that share now.',
+          kind: 'note',
+          audience: 'reviewers',
+          daysAgo: 14,
+        },
+        {
+          authorKey: 'humphrey',
+          body: 'Passing to David — he has the curator contact. I will stay on the thread.',
+          kind: 'comment',
+          daysAgo: 13,
+        },
+        {
+          authorKey: 'david',
+          body: 'Got it. Meeting Daniel next Wednesday.',
+          kind: 'comment',
+          daysAgo: 11,
+        },
+        {
+          authorKey: 'david',
+          body: 'Met. Volunteer pool target: 12. Will share with Writers for sign-up help.',
+          kind: 'comment',
+          daysAgo: 8,
+        },
+      ],
+    },
+    {
+      seedKey: 'enrich-manchester-mosque-solidarity',
+      groupSlug: 'manchester',
+      columnOrdinal: 0,
+      title: 'Solidarity message to Cheetham Hill mosque',
+      body: 'Draft and send a quiet solidarity message to the Cheetham Hill mosque after the weekend incident. No press, no photos. Just a card.',
+      urgency: false,
+      assigneeKey: 'cary',
+      followerKeys: ['eddie', 'jonathan'],
+      createdByKey: 'jonathan',
+      createdDaysAgo: 5,
+      positionWithinColumn: 0,
+      threadEntries: [
+        {
+          authorKey: 'jonathan',
+          body: 'Suggested by a friend who lives nearby. Nothing performative — just acknowledged.',
+          kind: 'comment',
+          daysAgo: 5,
+        },
+        {
+          authorKey: 'cary',
+          body: 'Drafting. Will post the wording before sending so anyone can adjust.',
+          kind: 'comment',
+          daysAgo: 4,
+        },
+      ],
+    },
+    {
+      seedKey: 'enrich-manchester-volunteer-rota',
+      groupSlug: 'manchester',
+      columnOrdinal: 1,
+      title: 'Volunteer rota — May letter campaign',
+      body: 'Six campaigns this month. Need two co-leads per campaign. Eddie to coordinate the matching; volunteers to self-nominate.',
+      urgency: true,
+      assigneeKey: 'eddie',
+      followerKeys: ['humphrey', 'jonathan', 'david'],
+      createdByKey: 'eddie',
+      createdDaysAgo: 3,
+      positionWithinColumn: 1,
+      shares: [
+        { groupSlug: 'writers', sharedByKey: 'eddie', sharedDaysAgo: 2 },
+        { groupSlug: 'students', sharedByKey: 'eddie', sharedDaysAgo: 1 },
+      ],
+      threadEntries: [
+        {
+          authorKey: 'eddie',
+          body: 'Marked urgent — we need the rota by Friday or campaign 1 slips.',
+          kind: 'comment',
+          daysAgo: 3,
+        },
+        {
+          authorKey: 'jonathan',
+          body: 'Students network can supply 4 volunteers. Will collect names by Wednesday.',
+          kind: 'comment',
+          daysAgo: 2,
+        },
+        {
+          authorKey: 'humphrey',
+          body: 'I can co-lead the Holocaust-curriculum letter campaign with Bette.',
+          kind: 'comment',
+          daysAgo: 1,
+        },
+      ],
+    },
+
+    // ── Rapid Response (3 new) ────────────────────────────────────────
+    {
+      seedKey: 'enrich-rapid-channel4-followup',
+      groupSlug: 'rapid-response',
+      columnOrdinal: 1,
+      title: 'Channel 4 News — push for follow-up segment',
+      body: 'C4 ran a 90-second piece on the Bristol incident. The follow-up they promised has not materialised; chase the producer this week.',
+      urgency: false,
+      assigneeKey: 'maya',
+      previousAssigneeKey: 'cary',
+      followerKeys: ['cary', 'sharon', 'bette'],
+      createdByKey: 'cary',
+      createdDaysAgo: 11,
+      positionWithinColumn: 0,
+      shares: [{ groupSlug: 'cst-link', sharedByKey: 'sharon', sharedDaysAgo: 6 }],
+      threadEntries: [
+        {
+          authorKey: 'cary',
+          body: 'Producer chased; no reply. Passing to Maya — she has the editor contact.',
+          kind: 'comment',
+          daysAgo: 6,
+        },
+        {
+          authorKey: 'maya',
+          body: 'Got it. I will email today.',
+          kind: 'comment',
+          daysAgo: 5,
+        },
+        {
+          authorKey: 'sharon',
+          body: 'CST safeguarding lead is happy to be quoted on background — tell them.',
+          kind: 'note',
+          audience: 'reviewers',
+          daysAgo: 4,
+        },
+        {
+          authorKey: 'maya',
+          body: 'Editor responded. Filming Thursday morning. Cary on standby for sound bite.',
+          kind: 'comment',
+          daysAgo: 2,
+        },
+      ],
+    },
+    {
+      seedKey: 'enrich-rapid-coordinated-statement',
+      groupSlug: 'rapid-response',
+      columnOrdinal: 2,
+      title: 'Joint statement with three London shul boards',
+      body: 'Three NW London shul boards want to co-sign a joint statement on the Hendon graffiti. Coordinate the wording and the sign-off.',
+      urgency: true,
+      assigneeKey: 'sharon',
+      previousAssigneeKey: 'cary',
+      followerKeys: ['cary', 'bette', 'rachel', 'esther'],
+      createdByKey: 'cary',
+      createdDaysAgo: 4,
+      positionWithinColumn: 0,
+      shares: [
+        { groupSlug: 'cst-link', sharedByKey: 'sharon', sharedDaysAgo: 3 },
+        { groupSlug: 'north-london', sharedByKey: 'rachel', sharedDaysAgo: 2 },
+      ],
+      threadEntries: [
+        {
+          authorKey: 'cary',
+          body: 'Sharon — you have the shul-board relationships. Taking your name off as assignee and putting yours on.',
+          kind: 'comment',
+          daysAgo: 3,
+        },
+        {
+          authorKey: 'sharon',
+          body: 'Got it. Will draft v1 tonight and circulate for the three boards by 09:00 tomorrow.',
+          kind: 'comment',
+          daysAgo: 3,
+        },
+        {
+          authorKey: 'sharon',
+          body: 'Internal note — Hendon Adath board chair is currently sitting shiva. We will route through their vice-chair, not him.',
+          kind: 'note',
+          audience: 'reviewers',
+          daysAgo: 2,
+        },
+        {
+          authorKey: 'rachel',
+          body: 'North London picked it up via the share. Two more shul boards interested in co-signing — Finchley Reform and Edgware United.',
+          kind: 'comment',
+          daysAgo: 1,
+        },
+        {
+          authorKey: 'esther',
+          body: 'Sending the draft to my friend who used to write for the Board of Deputies — for a tone read.',
+          kind: 'comment',
+          daysAgo: 1,
+        },
+      ],
+    },
+    {
+      seedKey: 'enrich-rapid-bbc-followup-done',
+      groupSlug: 'rapid-response',
+      columnOrdinal: 3,
+      title: 'BBC followup — week-2 ratchet on the Manchester correction',
+      body: 'Following BBC online correction, push for a parallel correction on radio output. Resolved.',
+      urgency: false,
+      status: 'done',
+      assigneeKey: 'cary',
+      followerKeys: ['bette', 'eddie'],
+      createdByKey: 'bette',
+      createdDaysAgo: 18,
+      resolution: 'approved',
+      resolvedByKey: 'cary',
+      positionWithinColumn: 0,
+      threadEntries: [
+        {
+          authorKey: 'cary',
+          body: 'Radio correction landed Tuesday morning. Same wording as online. Closing.',
+          kind: 'comment',
+          daysAgo: 9,
+        },
+      ],
+    },
+
+    // ── North London (4 new) ──────────────────────────────────────────
+    {
+      seedKey: 'enrich-nl-barnet-gallery',
+      groupSlug: 'north-london',
+      columnOrdinal: 1,
+      title: 'Barnet council Tuesday — public gallery sign-up',
+      body: 'Public gallery seats 28. Tuesday is the housing-motion debate. Get visible turnout by signing the gallery list before Friday.',
+      urgency: true,
+      assigneeKey: 'rachel',
+      previousAssigneeKey: 'esther',
+      followerKeys: ['esther', 'naomi', 'sharon'],
+      createdByKey: 'rachel',
+      createdDaysAgo: 6,
+      positionWithinColumn: 0,
+      shares: [{ groupSlug: 'writers', sharedByKey: 'rachel', sharedDaysAgo: 3 }],
+      unshares: [
+        {
+          groupSlug: 'manchester',
+          sharedByKey: 'rachel',
+          sharedDaysAgo: 5,
+          unsharedDaysAgo: 4,
+        },
+      ],
+      threadEntries: [
+        {
+          authorKey: 'esther',
+          body: 'Started. Realised this is a Tuesday-in-person ticket — I cannot do Tuesdays. Reassigning Rachel.',
+          kind: 'comment',
+          daysAgo: 4,
+        },
+        {
+          authorKey: 'rachel',
+          body: 'Got it. Will update the gallery list this evening and confirm 12 names by Wednesday.',
+          kind: 'comment',
+          daysAgo: 4,
+        },
+        {
+          authorKey: 'rachel',
+          body: 'Initially shared to Manchester — that was a mistake, this is a North London gallery. Removed and shared to Writers instead since several are Barnet residents.',
+          kind: 'note',
+          audience: 'reviewers',
+          daysAgo: 3,
+        },
+        {
+          authorKey: 'naomi',
+          body: 'I will be there Tuesday. Eight others from the Wednesday letter-writing crowd are confirmed.',
+          kind: 'comment',
+          daysAgo: 2,
+        },
+        {
+          authorKey: 'sharon',
+          body: 'I will join from the back row. CST has a quiet steward there too — separate from us.',
+          kind: 'comment',
+          daysAgo: 1,
+        },
+      ],
+    },
+    {
+      seedKey: 'enrich-nl-letter-writing-evening',
+      groupSlug: 'north-london',
+      columnOrdinal: 0,
+      title: 'Letter-writing evening — recurring Wednesday slot',
+      body: 'Set up a recurring Wednesday evening letter-writing session. Naomi and Esther co-host. Hot drinks, biscuits, six laptops, decent wifi.',
+      urgency: false,
+      assigneeKey: 'naomi',
+      followerKeys: ['esther', 'rachel'],
+      createdByKey: 'naomi',
+      createdDaysAgo: 24,
+      positionWithinColumn: 0,
+      threadEntries: [
+        {
+          authorKey: 'naomi',
+          body: 'Hosted the first three; attendance has grown each week. Want to formalise.',
+          kind: 'comment',
+          daysAgo: 16,
+        },
+        {
+          authorKey: 'esther',
+          body: 'I am in. Happy to co-host alternate weeks.',
+          kind: 'comment',
+          daysAgo: 15,
+        },
+      ],
+    },
+    {
+      seedKey: 'enrich-nl-shul-rabbi-circular',
+      groupSlug: 'north-london',
+      columnOrdinal: 2,
+      title: 'Shul rabbi circular — May newsletters',
+      body: 'Get the GPS-Action call-to-action item into the May newsletters of five North London shuls. Quiet, factual paragraph; not a campaign blast.',
+      urgency: false,
+      assigneeKey: 'esther',
+      previousAssigneeKey: 'rachel',
+      followerKeys: ['rachel', 'naomi', 'sharon', 'bette'],
+      createdByKey: 'rachel',
+      createdDaysAgo: 14,
+      positionWithinColumn: 0,
+      shares: [{ groupSlug: 'cst-link', sharedByKey: 'sharon', sharedDaysAgo: 7 }],
+      threadEntries: [
+        {
+          authorKey: 'rachel',
+          body: 'Started. My capacity is full this week — handing to Esther who has rabbi contacts at three of the five.',
+          kind: 'comment',
+          daysAgo: 9,
+        },
+        {
+          authorKey: 'esther',
+          body: 'Got it. Will reach out by end of week.',
+          kind: 'comment',
+          daysAgo: 8,
+        },
+        {
+          authorKey: 'sharon',
+          body: 'CST liaison can vouch for the wording with rabbi-circular gatekeepers if asked.',
+          kind: 'note',
+          audience: 'reviewers',
+          daysAgo: 7,
+        },
+      ],
+    },
+    {
+      seedKey: 'enrich-nl-tea-with-mp',
+      groupSlug: 'north-london',
+      columnOrdinal: -1,
+      title: 'Constituency tea with Hendon MP — exploratory',
+      body: 'Idea: ask the Hendon MP for an informal constituency tea with five GPS-Action members. Not a press event — a relationship build.',
+      urgency: false,
+      assigneeKey: null,
+      followerKeys: ['rachel', 'naomi'],
+      createdByKey: 'naomi',
+      createdDaysAgo: 2,
+      positionWithinColumn: 0,
+      threadEntries: [
+        {
+          authorKey: 'naomi',
+          body: 'Floating this. No pressure for anyone to pick it up — sitting in backlog is fine.',
+          kind: 'comment',
+          daysAgo: 2,
+        },
+      ],
+    },
+
+    // ── Students (2 new) ──────────────────────────────────────────────
+    {
+      seedKey: 'enrich-students-russell-roundtable',
+      groupSlug: 'students',
+      columnOrdinal: 1,
+      title: 'Russell-Group student roundtable — May 18',
+      body: 'One student from each of the 24 RG SUs we are connected to. Two-hour round-table on what each campus is dealing with. David is hosting in Manchester.',
+      urgency: false,
+      assigneeKey: 'david',
+      followerKeys: ['jonathan', 'esther', 'humphrey'],
+      createdByKey: 'jonathan',
+      createdDaysAgo: 8,
+      positionWithinColumn: 0,
+      shares: [{ groupSlug: 'manchester', sharedByKey: 'eddie', sharedDaysAgo: 5 }],
+      threadEntries: [
+        {
+          authorKey: 'jonathan',
+          body: 'David — you have the venue and the moderation skills. Picking you for this one.',
+          kind: 'comment',
+          daysAgo: 8,
+        },
+        {
+          authorKey: 'david',
+          body: 'On it. Venue confirmed; agenda draft Wednesday.',
+          kind: 'comment',
+          daysAgo: 6,
+        },
+        {
+          authorKey: 'humphrey',
+          body: 'Manchester locals can host overnight stays — DM me if you need a sofa.',
+          kind: 'comment',
+          daysAgo: 4,
+        },
+      ],
+    },
+    {
+      seedKey: 'enrich-students-leeds-su-motion',
+      groupSlug: 'students',
+      columnOrdinal: -1,
+      title: 'Leeds SU — divestment motion timing',
+      body: 'Leeds SU motion timing is unclear. Find out when council debates and whether alumni letters are accepted.',
+      urgency: false,
+      assigneeKey: null,
+      followerKeys: ['jonathan', 'david'],
+      createdByKey: 'david',
+      createdDaysAgo: 17,
+      positionWithinColumn: 0,
+      threadEntries: [
+        {
+          authorKey: 'david',
+          body: 'Logging this. Low priority — we will get to it after the May rota.',
+          kind: 'comment',
+          daysAgo: 17,
+        },
+      ],
+    },
+
+    // ── CST liaison (2 new) ───────────────────────────────────────────
+    {
+      seedKey: 'enrich-cst-shabbat-roster',
+      groupSlug: 'cst-link',
+      columnOrdinal: 2,
+      title: 'Shabbat steward roster — extra cover for next 4 weeks',
+      body: 'Following the Hendon incident, three NW London shuls asked CST for extra steward cover. Coordinate volunteer availability and pair with CST scheduler.',
+      urgency: true,
+      assigneeKey: 'sharon',
+      followerKeys: ['cary', 'bette', 'maya'],
+      createdByKey: 'sharon',
+      createdDaysAgo: 7,
+      positionWithinColumn: 0,
+      shares: [
+        { groupSlug: 'rapid-response', sharedByKey: 'cary', sharedDaysAgo: 5 },
+        { groupSlug: 'north-london', sharedByKey: 'rachel', sharedDaysAgo: 4 },
+      ],
+      threadEntries: [
+        {
+          authorKey: 'sharon',
+          body: 'CST scheduler has slot pings open for the next four Shabbatot. We need 6 volunteer hours per week.',
+          kind: 'comment',
+          daysAgo: 7,
+        },
+        {
+          authorKey: 'maya',
+          body: 'I can do Friday evenings for the next three weeks.',
+          kind: 'comment',
+          daysAgo: 5,
+        },
+        {
+          authorKey: 'sharon',
+          body: 'CST asked us to keep volunteer names off public threads. Note here is internal only.',
+          kind: 'note',
+          audience: 'reviewers',
+          daysAgo: 4,
+        },
+      ],
+    },
+    {
+      seedKey: 'enrich-cst-incident-log-quarterly',
+      groupSlug: 'cst-link',
+      columnOrdinal: 3,
+      title: 'Q1 incident-log digest — internal only',
+      body: 'CST shared the Q1 anonymised incident log for our region. Write a one-page internal digest for GPS-Action coordinators only. Done — circulated.',
+      urgency: false,
+      status: 'done',
+      assigneeKey: 'sharon',
+      followerKeys: ['bette', 'cary'],
+      createdByKey: 'sharon',
+      createdDaysAgo: 30,
+      resolution: 'approved',
+      resolvedByKey: 'bette',
+      positionWithinColumn: 0,
+      threadEntries: [
+        {
+          authorKey: 'sharon',
+          body: 'Digest sent to coordinators by encrypted attachment. Original log returned to CST per data-handling agreement.',
+          kind: 'note',
+          audience: 'reviewers',
+          daysAgo: 23,
+        },
+        {
+          authorKey: 'bette',
+          body: 'Read. Closing.',
+          kind: 'comment',
+          daysAgo: 22,
+        },
+      ],
+    },
+  ];
+
+  // ── Seed enrichment tickets ────────────────────────────────────────
+  let enrichTicketsCreated = 0;
+  let enrichAssignmentsActive = 0;
+  let enrichAssignmentsHistorical = 0;
+  let enrichSharesActive = 0;
+  let enrichSharesDeleted = 0;
+  let enrichCommentsCreated = 0;
+  let enrichNotesCreated = 0;
+  let enrichSubscriptionsCreated = 0;
+
+  for (const t of ENRICH_TICKETS) {
+    const groupId = groupIds[t.groupSlug];
+    if (!groupId) continue;
+    const requestId = seedUuid('enrich-ticket', t.seedKey);
+    const isBacklog = t.columnOrdinal === -1;
+    const status = t.status ?? (isBacklog ? 'backlog' : 'active');
+    const columnId = isBacklog
+      ? null
+      : seedUuid('board-column', `${t.groupSlug}:${t.columnOrdinal}`);
+    const boardPosition = isBacklog ? null : (t.positionWithinColumn + 1) * 1024;
+
+    const createdByUserId = userIds[t.createdByKey]!;
+    const createdAt = daysAgo(t.createdDaysAgo);
+
+    // Compute lastActivityAt from the most recent thread entry / share /
+    // assignment change so the staggering on the board is realistic.
+    const candidateActivityDays: number[] = [t.createdDaysAgo];
+    if (t.threadEntries) {
+      for (const e of t.threadEntries) candidateActivityDays.push(e.daysAgo);
+    }
+    if (t.shares) {
+      for (const s of t.shares) candidateActivityDays.push(s.sharedDaysAgo);
+    }
+    if (t.unshares) {
+      for (const u of t.unshares) candidateActivityDays.push(u.unsharedDaysAgo);
+    }
+    if (t.previousAssigneeKey) candidateActivityDays.push(3); // reassignment ~3 days ago
+    const minDays = Math.min(...candidateActivityDays);
+    const lastActivityAt = daysAgo(minDays);
+
+    const resolvedByUserId =
+      status === 'done' && t.resolvedByKey ? (userIds[t.resolvedByKey] ?? null) : null;
+    const resolvedAt = status === 'done' ? daysAgo(Math.max(0, minDays - 1)) : null;
+
+    const existing = await prisma.request.findUnique({ where: { id: requestId } });
+    if (!existing) {
+      await prisma.request.create({
+        data: {
+          id: requestId,
+          type: null,
+          status,
+          priority: t.urgency ? 'urgent' : 'normal',
+          title: t.title,
+          body: t.body,
+          context: {},
+          urgency: t.urgency,
+          urgencyExpiresAt: t.urgency ? new Date(now.getTime() + 4 * hourMs) : null,
+          columnId,
+          boardPosition,
+          createdAt,
+          createdByUserId,
+          lastActivityAt,
+          resolvedByUserId,
+          resolvedAt,
+          resolution: status === 'done' ? (t.resolution ?? 'approved') : null,
+        },
+      });
+
+      // Originating RequestGroup row.
+      const originatingRgId = seedUuid('enrich-rg-orig', t.seedKey);
+      await prisma.requestGroup.create({
+        data: {
+          id: originatingRgId,
+          requestId,
+          groupId,
+          origin: 'originating',
+          columnId,
+          boardPosition,
+          isUrgent: t.urgency,
+          sharedByUserId: createdByUserId,
+          createdAt,
+        },
+      });
+
+      // Cross-team active shares.
+      if (t.shares) {
+        for (const s of t.shares) {
+          const targetGroupId = groupIds[s.groupSlug];
+          if (!targetGroupId) continue;
+          const rgId = seedUuid('enrich-rg-share', `${t.seedKey}->${s.groupSlug}`);
+          // Place the share on the target's first active column (ordinal
+          // 1 = Preparation) so per-team kanban placement is plausible.
+          const targetColumnId = seedUuid('board-column', `${s.groupSlug}:1`);
+          await prisma.requestGroup.create({
+            data: {
+              id: rgId,
+              requestId,
+              groupId: targetGroupId,
+              origin: 'workflow_share',
+              columnId: targetColumnId,
+              boardPosition: 1024,
+              isUrgent: t.urgency,
+              sharedByUserId: userIds[s.sharedByKey] ?? createdByUserId,
+              createdAt: daysAgo(s.sharedDaysAgo),
+              updatedAt: daysAgo(s.sharedDaysAgo),
+            },
+          });
+          enrichSharesActive++;
+        }
+      }
+
+      // Prior shares that were unshared (deletedAt set).
+      if (t.unshares) {
+        for (const u of t.unshares) {
+          const targetGroupId = groupIds[u.groupSlug];
+          if (!targetGroupId) continue;
+          const rgId = seedUuid('enrich-rg-unshare', `${t.seedKey}->${u.groupSlug}`);
+          await prisma.requestGroup.create({
+            data: {
+              id: rgId,
+              requestId,
+              groupId: targetGroupId,
+              origin: 'ad_hoc_share',
+              columnId: null,
+              boardPosition: null,
+              isUrgent: false,
+              sharedByUserId: userIds[u.sharedByKey] ?? createdByUserId,
+              createdAt: daysAgo(u.sharedDaysAgo),
+              updatedAt: daysAgo(u.unsharedDaysAgo),
+              deletedAt: daysAgo(u.unsharedDaysAgo),
+            },
+          });
+          enrichSharesDeleted++;
+        }
+      }
+
+      // Re-assignment history — prior assignee soft-removed ~3 days ago.
+      if (t.previousAssigneeKey && userIds[t.previousAssigneeKey]) {
+        const prevAssignmentId = seedUuid(
+          'enrich-assign-prev',
+          `${t.seedKey}:${t.previousAssigneeKey}`,
+        );
+        await prisma.assignment.create({
+          data: {
+            id: prevAssignmentId,
+            requestId,
+            userId: userIds[t.previousAssigneeKey]!,
+            assignedAt: daysAgo(t.createdDaysAgo - 1),
+            unassignedAt: daysAgo(3),
+          },
+        });
+        enrichAssignmentsHistorical++;
+
+        // Audit row — assignment_unassigned (reassignment narrative).
+        await prisma.auditLog.create({
+          data: {
+            action: 'assignment_unassigned',
+            entityType: 'assignment',
+            entityId: prevAssignmentId,
+            userId: userIds[t.previousAssigneeKey]!,
+            targetUserId: userIds[t.previousAssigneeKey]!,
+            changes: { requestId },
+            createdAt: daysAgo(3),
+          },
+        });
+      }
+
+      // Current assignee.
+      if (t.assigneeKey && userIds[t.assigneeKey]) {
+        const assignmentId = seedUuid('enrich-assign-current', `${t.seedKey}:${t.assigneeKey}`);
+        await prisma.assignment.create({
+          data: {
+            id: assignmentId,
+            requestId,
+            userId: userIds[t.assigneeKey]!,
+            assignedAt: t.previousAssigneeKey
+              ? daysAgo(2)
+              : daysAgo(Math.max(0, t.createdDaysAgo - 1)),
+          },
+        });
+        enrichAssignmentsActive++;
+
+        // Auto-subscribe the current assignee.
+        const subId = seedUuid('enrich-sub-auto', `${t.seedKey}:${t.assigneeKey}`);
+        await prisma.requestSubscription.create({
+          data: {
+            id: subId,
+            requestId,
+            userId: userIds[t.assigneeKey]!,
+            source: 'auto_assignee',
+          },
+        });
+        enrichSubscriptionsCreated++;
+
+        await prisma.auditLog.create({
+          data: {
+            action: 'assignment_created',
+            entityType: 'assignment',
+            entityId: assignmentId,
+            userId: userIds[t.assigneeKey]!,
+            targetUserId: userIds[t.assigneeKey]!,
+            changes: { requestId },
+            createdAt: t.previousAssigneeKey
+              ? daysAgo(2)
+              : daysAgo(Math.max(0, t.createdDaysAgo - 1)),
+          },
+        });
+      }
+
+      // Explicit follower subscriptions (skip whoever is already
+      // auto-subscribed as the assignee).
+      if (t.followerKeys) {
+        for (const fk of t.followerKeys) {
+          if (fk === t.assigneeKey) continue;
+          const followerId = userIds[fk];
+          if (!followerId) continue;
+          const subId = seedUuid('enrich-sub-explicit', `${t.seedKey}:${fk}`);
+          await prisma.requestSubscription.create({
+            data: {
+              id: subId,
+              requestId,
+              userId: followerId,
+              source: 'explicit',
+            },
+          });
+          enrichSubscriptionsCreated++;
+        }
+      }
+
+      // Thread entries — comments + notes.
+      if (t.threadEntries) {
+        for (let i = 0; i < t.threadEntries.length; i += 1) {
+          const e = t.threadEntries[i]!;
+          const authorId = userIds[e.authorKey];
+          if (!authorId) continue;
+          const commentId = seedUuid('enrich-comment', `${t.seedKey}:${i}:${e.authorKey}`);
+          await prisma.comment.create({
+            data: {
+              id: commentId,
+              requestId,
+              authorId,
+              body: e.body,
+              kind: e.kind,
+              source: 'human',
+              audience: e.audience ?? (e.kind === 'note' ? 'reviewers' : 'all'),
+              createdAt: daysAgo(e.daysAgo),
+            },
+          });
+          if (e.kind === 'note') enrichNotesCreated++;
+          else enrichCommentsCreated++;
+        }
+      }
+
+      enrichTicketsCreated++;
+    }
+  }
+  console.warn(
+    `  ✓ Phase-2 kanban tickets seeded (${enrichTicketsCreated} new) — ` +
+      `assignments: ${enrichAssignmentsActive} active + ${enrichAssignmentsHistorical} history; ` +
+      `shares: ${enrichSharesActive} active + ${enrichSharesDeleted} unshared; ` +
+      `comments: ${enrichCommentsCreated}, notes: ${enrichNotesCreated}; ` +
+      `subscriptions: ${enrichSubscriptionsCreated}`,
+  );
+
+  // ── Reactions on existing seeded posts ─────────────────────────────
+  // Every active post gets 4–9 reactions of varied emoji from at least
+  // 3 different users. Idempotent via the (userId, targetType, targetId,
+  // emoji) unique constraint — re-running the seed re-attempts the same
+  // upserts without duplicating.
+  const allActivePosts = await prisma.post.findMany({
+    where: { deletedAt: null },
+    select: { id: true, createdAt: true },
+  });
+  const reactionUserKeys = [
+    'sharon',
+    'rachel',
+    'jonathan',
+    'naomi',
+    'david',
+    'esther',
+    'eddie',
+    'cary',
+    'bette',
+    'humphrey',
+    'ingrid',
+    'maya',
+  ] as const;
+  const reactionEmojis = [
+    'heart',
+    'pray',
+    'strong',
+    'target',
+    'sparkle',
+    'thumbsup',
+    'candle',
+    'sad',
+  ] as const;
+
+  let enrichReactionsCreated = 0;
+  for (let pIdx = 0; pIdx < allActivePosts.length; pIdx += 1) {
+    const post = allActivePosts[pIdx]!;
+    // Vary count per post: 4..9. Driven by post index for determinism.
+    const count = 4 + (pIdx % 6);
+    for (let r = 0; r < count; r += 1) {
+      const reactor = reactionUserKeys[(pIdx * 3 + r) % reactionUserKeys.length]!;
+      const emoji = reactionEmojis[(pIdx + r * 2) % reactionEmojis.length]!;
+      const reactorId = userIds[reactor];
+      if (!reactorId) continue;
+      try {
+        await prisma.reaction.upsert({
+          where: {
+            one_emoji_per_user_per_target: {
+              userId: reactorId,
+              targetType: 'post',
+              targetId: post.id,
+              emoji,
+            },
+          },
+          create: {
+            userId: reactorId,
+            targetType: 'post',
+            targetId: post.id,
+            postId: post.id,
+            emoji,
+            // Reactions land staggered after the post creation.
+            createdAt: new Date(post.createdAt.getTime() + (r + 1) * hourMs),
+          },
+          update: {},
+        });
+        enrichReactionsCreated += 1;
+      } catch {
+        // If the unique constraint composite name differs across Prisma
+        // generator versions, fall through silently — re-running is fine.
+      }
+    }
+  }
+  console.warn(
+    `  ✓ Phase-2 reactions seeded (${enrichReactionsCreated} attempted across ${allActivePosts.length} posts)`,
+  );
+
+  // ── Threaded conversations on a few existing posts ─────────────────
+  // Layer 4–5 back-and-forth replies onto four posts with deterministic
+  // ids so the demo's "comments on a post" surface looks lived-in.
+  interface ThreadEntry {
+    seedKey: string;
+    postSeedKey: string;
+    entries: Array<{ authorKey: string; body: string; minutesOffset: number }>;
+  }
+  const POST_THREADS: ThreadEntry[] = [
+    {
+      seedKey: 'thread-mp-letter',
+      postSeedKey: 'mp-letter-antisemitism',
+      entries: [
+        {
+          authorKey: 'rachel',
+          body: 'Sent. My MP is on a select committee that handles this — worth saying so in the personalisation field.',
+          minutesOffset: 60,
+        },
+        {
+          authorKey: 'naomi',
+          body: 'Useful tip — added that to the template note.',
+          minutesOffset: 95,
+        },
+        {
+          authorKey: 'jonathan',
+          body: "Quick question: does it matter whether I send from a constituency address or my parents' address (where I am registered)?",
+          minutesOffset: 180,
+        },
+        {
+          authorKey: 'ingrid',
+          body: "Constituency address every time — that is what your MP's case-load filter is keyed on.",
+          minutesOffset: 220,
+        },
+        {
+          authorKey: 'jonathan',
+          body: 'Got it, thank you. Resending.',
+          minutesOffset: 260,
+        },
+      ],
+    },
+    {
+      seedKey: 'thread-bbc-complaint',
+      postSeedKey: 'bbc-complaint-template',
+      entries: [
+        {
+          authorKey: 'sharon',
+          body: 'Filed mine. Took 2 minutes. The BBC complaint form has a "pattern" tickbox now — useful.',
+          minutesOffset: 45,
+        },
+        {
+          authorKey: 'esther',
+          body: 'I noticed that too. Helpful change.',
+          minutesOffset: 110,
+        },
+        {
+          authorKey: 'humphrey',
+          body: 'Worth adding to the template that the complainant should attach the previous-quarter incident references — increases the pattern signal.',
+          minutesOffset: 175,
+        },
+        {
+          authorKey: 'cary',
+          body: 'Good point. Will add that note to the next iteration of the complaint pack.',
+          minutesOffset: 240,
+        },
+      ],
+    },
+    {
+      seedKey: 'thread-yom-hashoah',
+      postSeedKey: 'yom-hashoah-reflection',
+      entries: [
+        {
+          authorKey: 'naomi',
+          body: 'Thank you Bette 🕯️',
+          minutesOffset: 90,
+        },
+        {
+          authorKey: 'esther',
+          body: 'My grandmother lit the candle this morning before sunrise. She is 91. We sat with her in silence.',
+          minutesOffset: 150,
+        },
+        {
+          authorKey: 'sharon',
+          body: '🕯️',
+          minutesOffset: 200,
+        },
+        {
+          authorKey: 'rachel',
+          body: 'Holding everyone in this thread today.',
+          minutesOffset: 240,
+        },
+      ],
+    },
+    {
+      seedKey: 'thread-new-member-intro',
+      postSeedKey: 'new-member-intro',
+      entries: [
+        {
+          authorKey: 'david',
+          body: 'Hi all — student in Manchester, joined after the JC piece. Quietly here to learn before doing.',
+          minutesOffset: 120,
+        },
+        {
+          authorKey: 'sharon',
+          body: 'Welcome David! Lurking is absolutely the right place to start. Glad you are here.',
+          minutesOffset: 180,
+        },
+        {
+          authorKey: 'esther',
+          body: 'New too — joined this week. North London. Thanks for the warm tone of this group, very different from where I was before.',
+          minutesOffset: 240,
+        },
+        {
+          authorKey: 'naomi',
+          body: 'Welcome both. If you ever want to chat 1:1 to find your fit, drop me a DM.',
+          minutesOffset: 290,
+        },
+        {
+          authorKey: 'jonathan',
+          body: 'Welcome 💕',
+          minutesOffset: 350,
+        },
+      ],
+    },
+  ];
+
+  let enrichPostThreadCommentsCreated = 0;
+  for (const th of POST_THREADS) {
+    const postId = seedUuid('post', th.postSeedKey);
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true, createdAt: true },
+    });
+    if (!post) continue;
+    for (let i = 0; i < th.entries.length; i += 1) {
+      const e = th.entries[i]!;
+      const authorId = userIds[e.authorKey];
+      if (!authorId) continue;
+      const commentId = seedUuid('enrich-post-thread', `${th.seedKey}:${i}:${e.authorKey}`);
+      const exists = await prisma.comment.findUnique({ where: { id: commentId } });
+      if (exists) continue;
+      await prisma.comment.create({
+        data: {
+          id: commentId,
+          postId: post.id,
+          authorId,
+          body: e.body,
+          createdAt: new Date(post.createdAt.getTime() + e.minutesOffset * 60 * 1000),
+        },
+      });
+      enrichPostThreadCommentsCreated += 1;
+    }
+  }
+  console.warn(
+    `  ✓ Threaded post conversations seeded (${enrichPostThreadCommentsCreated} new across ${POST_THREADS.length} posts)`,
+  );
+
+  // ── Notifications ──────────────────────────────────────────────────
+  // 8 realistic notifications across users, mixed read/unread + lifecycle.
+  // Each row is keyed by a deterministic seedUuid so re-runs are no-ops.
+  interface SeedNotification {
+    seedKey: string;
+    recipientKey: string;
+    fromKey: string | null;
+    type:
+      | 'request_status_changed'
+      | 'request_mention'
+      | 'request_resolved'
+      | 'request_published'
+      | 'request_archived';
+    requestSeedKey: string | null;
+    message: string;
+    daysAgo: number;
+    read: boolean;
+    lifecycle: 'new' | 'acknowledged' | 'dismissed';
+    reasonKind?:
+      | 'assignment'
+      | 'mention'
+      | 'status_change'
+      | 'comment'
+      | 'urgent_flip'
+      | 'team_blast';
+  }
+
+  const SEED_NOTIFICATIONS: SeedNotification[] = [
+    {
+      seedKey: 'notif-rachel-reassigned',
+      recipientKey: 'rachel',
+      fromKey: 'naomi',
+      type: 'request_status_changed',
+      requestSeedKey: 'enrich-writers-conservative-letters',
+      message: 'Naomi reassigned the Conservative-leaning publication ticket to you.',
+      daysAgo: 3,
+      read: false,
+      lifecycle: 'new',
+      reasonKind: 'assignment',
+    },
+    {
+      seedKey: 'notif-sharon-shul-share',
+      recipientKey: 'sharon',
+      fromKey: 'rachel',
+      type: 'request_mention',
+      requestSeedKey: 'enrich-rapid-coordinated-statement',
+      message: 'Rachel mentioned you on the joint statement ticket.',
+      daysAgo: 1,
+      read: false,
+      lifecycle: 'new',
+      reasonKind: 'mention',
+    },
+    {
+      seedKey: 'notif-cary-bbc-resolved',
+      recipientKey: 'cary',
+      fromKey: 'cary',
+      type: 'request_resolved',
+      requestSeedKey: 'enrich-rapid-bbc-followup-done',
+      message: 'You resolved the BBC week-2 ratchet ticket.',
+      daysAgo: 9,
+      read: true,
+      lifecycle: 'acknowledged',
+      reasonKind: 'status_change',
+    },
+    {
+      seedKey: 'notif-bette-comment',
+      recipientKey: 'bette',
+      fromKey: 'esther',
+      type: 'request_mention',
+      requestSeedKey: 'enrich-rapid-coordinated-statement',
+      message: 'Esther commented on a thread you follow.',
+      daysAgo: 1,
+      read: false,
+      lifecycle: 'new',
+      reasonKind: 'comment',
+    },
+    {
+      seedKey: 'notif-eddie-share',
+      recipientKey: 'eddie',
+      fromKey: 'eddie',
+      type: 'request_status_changed',
+      requestSeedKey: 'enrich-manchester-volunteer-rota',
+      message: 'You marked the May volunteer rota urgent.',
+      daysAgo: 3,
+      read: true,
+      lifecycle: 'acknowledged',
+      reasonKind: 'urgent_flip',
+    },
+    {
+      seedKey: 'notif-david-roundtable',
+      recipientKey: 'david',
+      fromKey: 'jonathan',
+      type: 'request_status_changed',
+      requestSeedKey: 'enrich-students-russell-roundtable',
+      message: 'Jonathan assigned you to the Russell-Group roundtable.',
+      daysAgo: 8,
+      read: true,
+      lifecycle: 'acknowledged',
+      reasonKind: 'assignment',
+    },
+    {
+      seedKey: 'notif-naomi-team-blast',
+      recipientKey: 'naomi',
+      fromKey: null,
+      type: 'request_published',
+      requestSeedKey: 'enrich-nl-letter-writing-evening',
+      message: 'Letter-writing Wednesday — sign-up open.',
+      daysAgo: 14,
+      read: false,
+      lifecycle: 'new',
+      reasonKind: 'team_blast',
+    },
+    {
+      seedKey: 'notif-maya-cst-share',
+      recipientKey: 'maya',
+      fromKey: 'cary',
+      type: 'request_mention',
+      requestSeedKey: 'enrich-cst-shabbat-roster',
+      message: 'Cary shared the Shabbat steward roster with Rapid Response.',
+      daysAgo: 5,
+      read: false,
+      lifecycle: 'new',
+      reasonKind: 'team_blast',
+    },
+  ];
+
+  let enrichNotificationsCreated = 0;
+  for (const n of SEED_NOTIFICATIONS) {
+    const notifId = seedUuid('enrich-notif', n.seedKey);
+    const exists = await prisma.notification.findUnique({ where: { id: notifId } });
+    if (exists) continue;
+    const recipientId = userIds[n.recipientKey];
+    if (!recipientId) continue;
+    const fromId = n.fromKey ? (userIds[n.fromKey] ?? null) : null;
+    const requestId = n.requestSeedKey ? seedUuid('enrich-ticket', n.requestSeedKey) : null;
+    // If the notification references an enrichment ticket, ensure the
+    // request actually exists (it might not on a partial-seed db).
+    let resolvedRequestId: string | null = null;
+    if (requestId) {
+      const reqRow = await prisma.request.findUnique({
+        where: { id: requestId },
+        select: { id: true },
+      });
+      resolvedRequestId = reqRow?.id ?? null;
+    }
+    const createdAt = daysAgo(n.daysAgo);
+    await prisma.notification.create({
+      data: {
+        id: notifId,
+        recipientUserId: recipientId,
+        fromUserId: fromId,
+        type: n.type,
+        requestId: resolvedRequestId,
+        message: n.message,
+        createdAt,
+        readAt: n.read ? new Date(createdAt.getTime() + 6 * hourMs) : null,
+        lifecycle: n.lifecycle,
+        reasonKind: n.reasonKind ?? null,
+      },
+    });
+    enrichNotificationsCreated += 1;
+  }
+  console.warn(`  ✓ Phase-2 notifications seeded (${enrichNotificationsCreated} new)`);
+
+  // ── Additional AuditLog rows ───────────────────────────────────────
+  // Cover the action codes that surface in admin audit views: shares,
+  // unshares, ticket title edits, request_status_changed, request_deleted
+  // (soft, on a tombstone id only). All idempotent — keyed by the
+  // composite (entityType, entityId, action, createdAt) is not unique
+  // in Prisma, so we use deterministic ids on synthetic rows that we
+  // insert via auditLog.create with a stable id. AuditLog has no
+  // upsert by id without findFirst — we guard with findUnique.
+  // `changes` typed as an InputJsonValue-compatible literal: the
+  // Prisma-generated type rejects `Record<string, unknown>` because
+  // unknown is not narrowable to JSON-allowed primitives.
+  type AuditChangeValue = string | number | boolean | null;
+  interface ExtraAudit {
+    seedKey: string;
+    action: string;
+    entityType: string;
+    entityIdSeed: string;
+    actorKey: string;
+    targetKey?: string;
+    daysAgo: number;
+    changes?: Record<string, AuditChangeValue>;
+  }
+  const EXTRA_AUDITS: ExtraAudit[] = [
+    {
+      seedKey: 'audit-rg-shared-1',
+      action: 'request_group_shared',
+      entityType: 'request',
+      entityIdSeed: 'enrich-writers-conservative-letters',
+      actorKey: 'rachel',
+      daysAgo: 4,
+      changes: { targetGroupSlug: 'north-london' },
+    },
+    {
+      seedKey: 'audit-rg-shared-2',
+      action: 'request_group_shared',
+      entityType: 'request',
+      entityIdSeed: 'enrich-rapid-coordinated-statement',
+      actorKey: 'rachel',
+      daysAgo: 2,
+      changes: { targetGroupSlug: 'north-london' },
+    },
+    {
+      seedKey: 'audit-rg-unshared-1',
+      action: 'request_group_unshared',
+      entityType: 'request',
+      entityIdSeed: 'enrich-manchester-museum-installation',
+      actorKey: 'humphrey',
+      daysAgo: 14,
+      changes: { targetGroupSlug: 'rapid-response' },
+    },
+    {
+      seedKey: 'audit-rg-unshared-2',
+      action: 'request_group_unshared',
+      entityType: 'request',
+      entityIdSeed: 'enrich-nl-barnet-gallery',
+      actorKey: 'rachel',
+      daysAgo: 4,
+      changes: { targetGroupSlug: 'manchester' },
+    },
+    {
+      seedKey: 'audit-title-edit-1',
+      action: 'ticket_title_edited',
+      entityType: 'request',
+      entityIdSeed: 'enrich-manchester-volunteer-rota',
+      actorKey: 'eddie',
+      daysAgo: 3,
+      changes: { from: 'Volunteer rota — May', to: 'Volunteer rota — May letter campaign' },
+    },
+    {
+      seedKey: 'audit-status-change-1',
+      action: 'request_status_changed',
+      entityType: 'request',
+      entityIdSeed: 'enrich-writers-baddiel-followup',
+      actorKey: 'bette',
+      daysAgo: 11,
+      changes: { from: 'active', to: 'done' },
+    },
+    {
+      seedKey: 'audit-status-change-2',
+      action: 'request_status_changed',
+      entityType: 'request',
+      entityIdSeed: 'enrich-rapid-bbc-followup-done',
+      actorKey: 'cary',
+      daysAgo: 9,
+      changes: { from: 'active', to: 'done' },
+    },
+    {
+      seedKey: 'audit-status-change-3',
+      action: 'request_status_changed',
+      entityType: 'request',
+      entityIdSeed: 'enrich-cst-incident-log-quarterly',
+      actorKey: 'bette',
+      daysAgo: 22,
+      changes: { from: 'active', to: 'done' },
+    },
+    {
+      seedKey: 'audit-urgency-1',
+      action: 'request_urgency_changed',
+      entityType: 'request',
+      entityIdSeed: 'enrich-manchester-volunteer-rota',
+      actorKey: 'eddie',
+      daysAgo: 3,
+      changes: { from: false, to: true },
+    },
+    {
+      seedKey: 'audit-urgency-2',
+      action: 'request_urgency_changed',
+      entityType: 'request',
+      entityIdSeed: 'enrich-nl-barnet-gallery',
+      actorKey: 'rachel',
+      daysAgo: 4,
+      changes: { from: false, to: true },
+    },
+    {
+      seedKey: 'audit-board-card-moved-1',
+      action: 'board_card_moved',
+      entityType: 'request',
+      entityIdSeed: 'enrich-writers-conservative-letters',
+      actorKey: 'rachel',
+      daysAgo: 4,
+      changes: { fromOrdinal: 0, toOrdinal: 1 },
+    },
+    {
+      seedKey: 'audit-board-card-moved-2',
+      action: 'board_card_moved',
+      entityType: 'request',
+      entityIdSeed: 'enrich-rapid-channel4-followup',
+      actorKey: 'maya',
+      daysAgo: 5,
+      changes: { fromOrdinal: 0, toOrdinal: 1 },
+    },
+    {
+      seedKey: 'audit-comment-add-1',
+      action: 'kanban_comment.add',
+      entityType: 'comment',
+      entityIdSeed: 'enrich-comment-naomi-conservative-0',
+      actorKey: 'naomi',
+      daysAgo: 7,
+      changes: { requestSeedKey: 'enrich-writers-conservative-letters' },
+    },
+    {
+      seedKey: 'audit-note-add-1',
+      action: 'kanban_note.add',
+      entityType: 'comment',
+      entityIdSeed: 'enrich-comment-rachel-conservative-2',
+      actorKey: 'rachel',
+      daysAgo: 3,
+      changes: { audience: 'reviewers' },
+    },
+    {
+      seedKey: 'audit-note-add-2',
+      action: 'kanban_note.add',
+      entityType: 'comment',
+      entityIdSeed: 'enrich-comment-sharon-shabbat-2',
+      actorKey: 'sharon',
+      daysAgo: 4,
+      changes: { audience: 'reviewers' },
+    },
+  ];
+  let enrichAuditsCreated = 0;
+  for (const a of EXTRA_AUDITS) {
+    const auditId = seedUuid('enrich-audit', a.seedKey);
+    const exists = await prisma.auditLog.findUnique({ where: { id: auditId } });
+    if (exists) continue;
+    const actorId = userIds[a.actorKey];
+    if (!actorId) continue;
+    // Resolve entity id — entityType=request → enrich-ticket seedUuid;
+    // entityType=comment → use entityIdSeed verbatim as the seed input
+    // (synthetic, OK for audit immutability since downstream does not
+    // FK-resolve audit rows).
+    const entityId =
+      a.entityType === 'request'
+        ? seedUuid('enrich-ticket', a.entityIdSeed)
+        : seedUuid('enrich-comment', a.entityIdSeed);
+    await prisma.auditLog.create({
+      data: {
+        id: auditId,
+        action: a.action,
+        entityType: a.entityType,
+        entityId,
+        userId: actorId,
+        targetUserId: a.targetKey ? (userIds[a.targetKey] ?? null) : null,
+        changes: a.changes ?? {},
+        createdAt: daysAgo(a.daysAgo),
+      },
+    });
+    enrichAuditsCreated += 1;
+  }
+  console.warn(`  ✓ Phase-2 audit-log entries seeded (${enrichAuditsCreated} new)`);
 
   console.warn('✓ Seed complete.');
 }
