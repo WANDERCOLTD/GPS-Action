@@ -45,7 +45,7 @@ Scenarios feed session briefs. Every Claude Code session building a feature gets
 
 **Admin / operational scenarios** 16. Coordinator dispatches a Boost/Remove post to WhatsApp 17. System auto-comments on a closing campaign
 
-**Later additions** 18. Eddie writes his first post · 19. Sharon shares a Guardian article with a preview card · 20. Eddie reads the Sky News post and writes his first comment · 21. Eddie tracks his vetting application · 22. Sharon resolves Eddie's vetting application · 23. Maya raises an urgent alert at the school gate · 24. Sharon pastes a Guardian link into the FAB · 25. Eddie types a thought into the FAB · 26. Sharon publishes a tick_or_cross post · 27. Eddie sends his first post for review; Bette refines and publishes · 28. Sharon shares a post, then confirms she sent it · 29. Eddie sees the share count on someone else's post · 30. Bette views her own post and notices a missing channel · 31. Sharon searches for Hendon · 32. Leonid claims a writing job from his board · 33. Sharon shares a job to the IT team · 34. Maya gets a notification about a stuck card
+**Later additions** 18. Eddie writes his first post · 19. Sharon shares a Guardian article with a preview card · 20. Eddie reads the Sky News post and writes his first comment · 21. Eddie tracks his vetting application · 22. Sharon resolves Eddie's vetting application · 23. Maya raises an urgent alert at the school gate · 24. Sharon pastes a Guardian link into the FAB · 25. Eddie types a thought into the FAB · 26. Sharon publishes a tick_or_cross post · 27. Eddie sends his first post for review; Bette refines and publishes · 28. Sharon shares a post, then confirms she sent it · 29. Eddie sees the share count on someone else's post · 30. Bette views her own post and notices a missing channel · 31. Sharon searches for Hendon · 32. Leonid claims a writing job from his board · 33. Sharon shares a job to the IT team · 34. Maya gets a notification about a stuck card · 35. Bette triages a Hendon link from the WhatsApp network
 
 ---
 
@@ -2260,3 +2260,137 @@ most recent. **View all →**." She doesn't need to.
   shipped; this scenario shows where the count comes from)
 - The earlier handoff's "trigger rules split into Defaults
   (subscriber-driven) vs Opt-in (team-wide blasts)" pattern
+
+---
+
+### Scenario 35 — Bette triages a Hendon link from the WhatsApp network
+
+<!-- @no-code-yet -->
+
+_Bette, coordinator (Hendon writers). Wednesday morning, kitchen
+table, laptop open while the kettle boils. Reading from the network's
+WhatsApp group has always meant scrolling on her phone — but this
+morning, for the first time, she's reading from the laptop._
+
+Bette had been meaning to check the **GPS Action Network!** WhatsApp
+group for the past three days. There's been chatter — she half-saw
+something about a Hendon school-gate incident on Sunday — but
+WhatsApp on her phone had buried it under sixty other messages. She
+opens GPS Action on her laptop and notices a new tab in the AppNav
+strip: a small broadcasting tower icon, between Calendar and
+Requests. She hovers — the tooltip says **Network**. She clicks.
+
+`/network` opens. A header reads "Network" and to the right there's
+a status line — `cached · 2m ago` — with a small "Refresh" button. A
+list of cards starts immediately below.
+
+Each card is one link someone shared in the WhatsApp group:
+
+```
+┌────────────────────────────────────────────────────┐
+│ Hendon school gate — counter-leafleting tonight   │
+│ anonymous member · GPS Action Network! · 18h ago  │
+│ "Going down at 5pm. Anyone else able to come?"    │
+│ [Triaged] [Promoted] [Discarded]                  │
+└────────────────────────────────────────────────────┘
+```
+
+The first card is the one she half-remembers. The sender is
+"anonymous member" — Bette knows the WhatsApp group is full of
+people she's never put in her contacts (~70% per the integration
+doc), and the app is honest about it: their display name isn't
+known, so it isn't rendered. The card knows it's the same anonymous
+sender as a couple of others further down (a small `data-anon`
+cluster cue groups them visually) — useful when you're trying to
+work out if "anonymous member" is one prolific poster or three.
+
+She clicks the title. A new tab opens to the original article on
+the Hendon Times website. She skims — yes, this is real, the
+counter-protest is happening. She closes the tab and comes back to
+`/network`.
+
+She wants to track that she's looked at this — and that it's worth
+following up. She clicks **Triaged**. The button background fills
+in subtly; the underlying state row writes through to the
+NetworkCardState table on the GPS side (Grant's Supabase view stays
+read-only). A "Reset" link appears next to the buttons in case she
+wants to undo.
+
+Two cards down: a London Times opinion piece someone shared. She
+opens it, decides it's not relevant to Hendon, taps **Discarded**.
+Done — she'll never have to triage that one again.
+
+Five cards down: an article on a Manchester rally, posted by
+**Sharon** (whose WhatsApp number IS in the burner phone's contacts
+— 30% of senders have a `from_name`). Bette wants this to become a
+GPS Action post — Sharon shouldn't have to write it twice. She
+taps **Promoted**. (For v1 this is a status flip — the actual
+"promote to a GPS post" flow is a future BU. The status records
+intent so an admin sweep can pick them up.)
+
+She glances at the status line: still `cached · 2m ago`. She taps
+**Refresh**. It changes to `Refreshing…`, then `fresh · just now`.
+Two new cards have arrived since the cached fetch — both anonymous,
+both about the same school-gate incident. She **Triages** the first
+and Discards the duplicate.
+
+Below the list: **Load more →**. The 90-day window stops at 50
+cards per page. She doesn't need to scroll further today.
+
+She closes the tab. Two minutes of triage; six cards processed; a
+private kitchen table on a Wednesday morning. The GPS Action
+permission-to-close-the-app posture holds: she came, she did a
+small useful thing, she's done. No notification badge nags her
+back later.
+
+**What the scenario surfaces:**
+
+- The Network surface lets a coordinator do in-app what would
+  otherwise have been "scroll the WhatsApp group on a phone" —
+  searchable, addressable, attributable on a laptop. First concrete
+  inbound WhatsApp-replacement payoff (BU-network-feed §1).
+- Anonymous-member cards are common (~70%). Honest copy
+  ("anonymous member") + a per-sender_hash visual cluster cue is
+  enough to triage them; we don't pretend to identify them.
+- Triage state belongs to GPS, not to Grant's pipe. He hides rows
+  upstream; we keep the workflow row for "what did Bette do with
+  this" (ADR-0017).
+- The 5-min cache + manual refresh affordance feels right at v1
+  volume. No pull-to-refresh, no auto-poll while the tab is open,
+  no notification dot — the surface respects "permission to close."
+- `[Triaged] [Promoted] [Discarded]` is enough verb coverage for
+  v1. Reset is the escape hatch.
+
+**Friction found:**
+
+- "Promoted" status without a follow-up flow is a **deliberate
+  half-step**. The status records intent; the actual create-post-
+  from-card flow is a separate BU. A coordinator might tap Promoted
+  expecting an editor to open. Pilot question: does the v1
+  half-step cause confusion, or does the status flip alone read as
+  enough acknowledgement?
+- `cached · 2m ago` vs `fresh · just now` is honest copy but might
+  read as technical. Pilot signal: do members ignore it, or does
+  the language need softening ("synced 2 min ago")?
+- The anonymous-member cluster cue is on the article via
+  `data-anon`, but the v1 visual treatment is minimal (no explicit
+  group-by). If pilot shows coordinators want to see "all 4 cards
+  from the same anonymous sender" together, group-by is a small
+  follow-up.
+- Group label is hard-coded to "GPS Action Network!" in v1 — when
+  the allowlist grows beyond one real group, the label table
+  (Grant's `gps_chat_labels` view) joins by `chat_id`. Today
+  there's only one real group; the friction is theoretical.
+
+**Related:**
+
+- BU-network-feed (this is the companion scenario)
+- ADR-0017 (NetworkCardState — own-side workflow state)
+- D083 (the decision log entry pointing at ADR-0017)
+- `docs/product/parking-lot.md` "Inbound posts from WhatsApp via
+  Business API" — this scenario is the _read_ counterpart; the
+  write counterpart (members message a GPS number → draft a post)
+  is the parked WABA path
+- `docs/build/session-briefs/bu-network-feed.md` (the brief)
+- Grant De Swardt (AIFA) at `grant@aifusionautomations.com` — owns
+  the upstream pipe

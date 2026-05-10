@@ -43,6 +43,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | SCN-32 | Leonid claims a writing job from his board | 0 | — | — | parked |
 | SCN-33 | Sharon shares a job to the IT team | 0 | — | — | parked |
 | SCN-34 | Maya gets a notification about a stuck card | 3 | bu-coordination-board | — | ✓ shipped |
+| SCN-35 | Bette triages a Hendon link from the WhatsApp network | 0 | — | — | parked |
 
 ## Build Units
 
