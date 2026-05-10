@@ -94,6 +94,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-share-rail-on-detail | 4 | — | D067, D080 |
 | BU-sticky-nav | 5 | — | D003, D054, D061, D065, D073, D078 |
 | BU-tick-or-cross | 11 | SCN-18, SCN-19, SCN-20, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D052, D060, D062, D064, D069, D070, D072, D073, D076 |
+| BU-ticket-detail-relayout | 1 | — | — |
 | BU-versioning | 3 | — | D003, D065, D073 |
 | BU-whatsapp-share | 2 | — | D065, D067, D080 |
 | bu-capabilities-mockup | 1 | — | — |
