@@ -1,8 +1,9 @@
 ---
 slug: BU-network-link-previews
-status: in_progress
+status: shipped
 phase: 2
 priority: medium
+shipped_in: "#327"
 note: "Hero/title/description previews for /network cards. Reuses existing fetchLinkMetadata + LinkPreviewCard. New FF network_link_previews."
 ---
 
