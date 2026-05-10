@@ -113,6 +113,13 @@ export async function getEntityRaw(
           targetUser: { select: { id: true, displayName: true } },
         },
       })) as Record<string, unknown> | null;
+    case 'kanbanEventConfig':
+      return (await prisma.kanbanEventConfig.findUnique({
+        where: { id },
+        include: {
+          updatedBy: { select: { id: true, displayName: true } },
+        },
+      })) as Record<string, unknown> | null;
     default:
       throw new TRPCError({
         code: 'NOT_FOUND',
