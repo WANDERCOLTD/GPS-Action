@@ -1,9 +1,9 @@
 ---
 slug: bu-network-feed
-status: stub
+status: ready
 phase: 2
 priority: medium
-note: "Read-side surface for Grant's WhatsApp → Supabase pipe. 90% of the integration shape is settled with Grant; two items block ready: (a) Paul confirms placement (`/network` proposed), (b) column shape verified against Grant's updated doc (`sender_hash` vs `from_jid`)."
+note: "Read-side surface for Grant's WhatsApp → Supabase pipe. Ready 2026-05-10: placement (/network), column shape (sender_hash, from_jid dropped), ADR-0017 (PR #310), feature flag, and glyph (radio-tower) all locked. Build session can pick up cold."
 ---
 
 # SESSION BRIEF · bu-network-feed — render the GPS Action Network! WhatsApp link feed inside the app
@@ -122,15 +122,13 @@ GPS Action: tRPC procedure  network.list({ window: 90d, limit: 50 })
 GPS Action: /network route — card list with triage controls
 ```
 
-### Q2 · Column shape (NEEDS VERIFICATION — see Open Questions)
+### Q2 · Column shape (CONFIRMED 2026-05-10)
 
-Per Grant's reply 2026-05-10, the view should expose `sender_hash`, not
-`from_jid`. The doc Paul has on disk
-(`~/Downloads/PAUL_INTEGRATION.md`) still lists `from_jid`. Either Paul
-is reading a stale copy or Grant hasn't pushed the update yet. **Resolve
-before the build session.**
-
-Working assumption (subject to confirmation):
+Grant confirmed the live view exposes `sender_hash` (SHA-256 of the
+JID — stable per-sender, no raw identifier ever leaves Supabase) and
+that `from_jid` has been dropped. The local copy of
+`PAUL_INTEGRATION.md` was stale; the live view is the source of
+truth and matches the working assumption below.
 
 | column | type | use |
 |---|---|---|
@@ -369,21 +367,24 @@ Not required:
 
 ---
 
-## 7 · Acceptance for moving to `ready` status
+## 7 · Acceptance for moving to `ready` status — DONE
 
-This brief is `stub`. It moves to `ready` when:
+All gates cleared as of 2026-05-10:
 
 - [x] Paul confirms placement: `/network` (confirmed 2026-05-10).
-- [ ] Column shape verified with Grant — `sender_hash` is in the view
-      and `from_jid` is gone (currently the doc disagrees with his
-      reply).
-- [x] ADR-0017 drafted: "NetworkCardState — own-the-workflow-state for
-      external link feed" (PR #310).
-- [ ] Polling cadence locked at 5 min (or revisited).
+- [x] Column shape verified with Grant — `sender_hash` is in,
+      `from_jid` is dropped (confirmed 2026-05-10; stale local doc
+      was the source of the prior ambiguity).
+- [x] ADR-0017 drafted: "NetworkCardState — own-the-workflow-state
+      for external link feed" (PR #310).
+- [x] Polling cadence locked at 5 min server-side cache + manual
+      refresh; configurable via `NETWORK_CACHE_TTL_SECONDS` env.
 - [x] Feature flag `network_feed` added to the register
       (`docs/product/feature-flag-register.md`) — PR #310.
-- [ ] Glyph for `/network` nav entry locked (per memory rule: same
-      commit registers it in `docs/product/design-philosophy.md`).
+- [x] Glyph for `/network` nav entry locked: `radio-tower`
+      (registered in `docs/product/design-philosophy.md` — Locked,
+      not yet shipped subsection — in the same commit as this status
+      flip).
 
 Once all boxes tick, flip front-matter `status: stub` → `status:
 ready`, fill in the Build / Don't-touch list, and the brief is ready
@@ -417,21 +418,27 @@ for a build session.
 
 ---
 
-## 9 · Open questions to surface (block ready)
+## 9 · Open questions to surface — RESOLVED
 
-1. **Naming / placement.** `/network` proposed (matches WhatsApp group
-   name "GPS Action Network!" and BU slug). Alternatives: `/links`,
-   `/sources`. Visual disambiguation handled by the styling lift in §2/Q5
-   regardless. Paul to confirm.
-2. **Column shape.** Confirm with Grant whether the live view exposes
-   `sender_hash` (his reply) or still `from_jid` (Paul's local doc).
-3. **Glyph for the nav entry.** Lucide options: `radio-tower`, `rss`,
-   `inbox`, `link-2`. Design pass to lock; one concept = one glyph rule
-   applies.
-4. **Polling cadence.** 5 min server-side cache locked; manual refresh
-   bypasses. Confirm during build that the cache TTL is configurable
-   via env (`NETWORK_CACHE_TTL_SECONDS`) so we can tune without a
-   redeploy.
+All four pre-build questions resolved 2026-05-10:
+
+1. ✅ **Naming / placement.** `/network` (confirmed) — matches
+   WhatsApp group name and BU slug. Existing `/feed` stays as the
+   editorial home tab; new surface goes to `/network` and is
+   visually disambiguated by Grant's lifted styling per §2/Q5.
+2. ✅ **Column shape.** Live view exposes `sender_hash` (SHA-256 of
+   JID); `from_jid` is dropped. Stale local doc was the source of
+   the prior ambiguity.
+3. ✅ **Glyph for the nav entry.** `radio-tower` (registered).
+   Distinct from `radio` (already in use for the "Happening now"
+   filter chip) — see register entry rationale.
+4. ✅ **Polling cadence.** 5 min server-side cache + manual refresh
+   bypass; cache TTL configurable via `NETWORK_CACHE_TTL_SECONDS`
+   env so it can be tuned without a redeploy.
+
+Anything that surfaces during the build session and isn't already
+covered here goes back to Paul before the build commits to a
+direction.
 
 ---
 
@@ -460,8 +467,91 @@ for a build session.
 
 ---
 
+## 11 · Build / Don't-touch file list
+
+### Build
+
+**Routing + UI**
+- `app/network/page.tsx` (new — server component shell, auth gate,
+  feature-flag gate, hydrates the client list with the initial
+  server-side query)
+- `app/network/network-feed.tsx` (new — client component holding the
+  list state, refresh affordance, optimistic triage state)
+- `app/network/empty-state.tsx` (new — Sharon-warmth-posture empty
+  state, calm copy when the feed is genuinely quiet)
+
+**Components**
+- `components/network-card.tsx` (new — single card with title,
+  click-through, anonymous-member cluster cue, triage controls)
+- `components/network-refresh-controls.tsx` (new — pull-to-refresh
+  on touch, manual button on pointer)
+
+**Server**
+- `server/lib/supabase.ts` (new — typed `createClient` factory using
+  `SUPABASE_URL` + `SUPABASE_ANON_KEY`; server-only by construction)
+- `server/services/network.service.ts` (new — Supabase query, 5-min
+  LRU cache, state-row join, anonymous-member grouping by
+  `sender_hash`)
+- `server/routers/network.ts` (new — `network.list` + `network.setCardState`)
+- Add the new router to the root tRPC router.
+
+**Shared**
+- `shared/network-card.ts` (new — `NetworkCard`, `NetworkCardStatus`
+  shape definitions for the wire boundary)
+
+**Nav**
+- Whichever component owns the AppNav tab strip — add the Network
+  entry behind `network_feed`, glyph `radio-tower`. Tooltip via
+  `IconChipTooltip` per the existing primitive.
+
+**Config**
+- `.env.example` — add commented `SUPABASE_URL`,
+  `SUPABASE_ANON_KEY`, `NETWORK_CACHE_TTL_SECONDS` (default `300`).
+- `docs/product/analytics-events.md` — register the four events
+  (`network_list_viewed`, `network_card_clicked`,
+  `network_card_triaged`, `network_refresh_triggered`) per the PII
+  policy in that doc.
+
+**Tests**
+- `tests/unit/network.service.test.ts` — cache hit/miss,
+  anonymous-member grouping, body-equals-URL suppression.
+- `tests/integration/network-router.test.ts` — `network.list` with
+  mocked Supabase response; `network.setCardState` writing through
+  to a real Postgres test DB (not a mock — per memory rule).
+
+**Misc**
+- `package.json` — PATCH bump per CLAUDE.md.
+- README.md updates in `app/network/`, `server/routers/`,
+  `server/services/` per CLAUDE.md "Update README.md in directories
+  you touch."
+
+### Don't touch (already shipped or out-of-scope)
+
+- `prisma/schema.prisma` — `NetworkCardState` model + enum already
+  landed in PR #310. Don't add anything else under SLICE 4 in this
+  build session.
+- `prisma/migrations/` — both migrations
+  (`20260510120000_add_network_card_state` +
+  `20260510120100_seed_feature_flag_network_feed`) already shipped
+  in PR #310.
+- `docs/adrs/0017-*` — exists; don't rewrite.
+- `docs/architecture/decision-log.md` — D083 already added in
+  PR #310.
+- `docs/product/feature-flag-register.md` — `network_feed` entry
+  already added in PR #310.
+- `docs/product/design-philosophy.md` — `radio-tower` glyph register
+  entry already added in this same brief-flip PR.
+- `server/admin/entity-metadata.ts` — `networkCardState` entry
+  already added in PR #310.
+- Anything under `app/feed/` — explicit non-overlap (D051-style:
+  `/network` is its own surface; renaming or restructuring `/feed`
+  is rejected per §6).
+- `tests/unit/schema.smoke.test.ts` + `tests/unit/schema-metadata-coverage.test.ts`
+  — keys already updated in PR #310.
+
+---
+
 ## Status
 
-`stub`. Holds remaining: (a) Grant column-shape verification, (b) glyph
-register entry. Naming confirmed (`/network`, 2026-05-10). ADR-0017 +
-feature-flag register entry shipped in PR #310.
+`ready`. All gates cleared 2026-05-10. Build session can pick up
+cold from this brief.

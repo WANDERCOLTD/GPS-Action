@@ -330,6 +330,21 @@ their own.
 | Partner orgs group label (optional)    | `building-2`     | New (gated on §3.30) |
 | Recently-viewed item marker (optional) | `clock`          | New                  |
 
+### Locked, not yet shipped (BU-network-feed)
+
+| Concept                                                | Glyph         | New / Re-use      |
+| ------------------------------------------------------ | ------------- | ----------------- |
+| AppNav tab — Network (`/network`)                      | `radio-tower` | New               |
+| Manual refresh button — pointer viewports (`/network`) | `refresh-cw`  | Re-use (`HeaderRefreshButton`) |
+| Empty-state / pipe-quiet illustration anchor           | `radio-tower` | Re-use (this BU's own AppNav glyph — same concept) |
+
+`radio-tower` is distinct from `radio` (already in use as the
+"Happening now" filter chip on `FeedFilterChips`): `radio` is a puck-
+style receiver silhouette, `radio-tower` is the explicit broadcasting
+tower. Different lucide glyphs, different concepts — tower reads as
+"external feed coming in," puck reads as "live activity on a single
+post." No collision.
+
 ### Rules
 
 1. **Re-use before introducing.** Search this register before picking. If the
