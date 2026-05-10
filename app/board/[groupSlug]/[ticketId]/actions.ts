@@ -174,6 +174,46 @@ export async function postNoteAction(input: ComposeInput): Promise<BoardActionRe
   return { ok: true };
 }
 
+// ── Edit / Delete own comment or note (ADR-0016 / D082) ──────────────────
+
+interface EditCommentInput extends BoardActionInput {
+  commentId: string;
+  body: string;
+}
+
+interface DeleteCommentInput extends BoardActionInput {
+  commentId: string;
+}
+
+export async function editCommentAction(input: EditCommentInput): Promise<BoardActionResult> {
+  try {
+    const ctx = await createTRPCContext();
+    const caller = createCaller(ctx);
+    await caller.commentThread.editComment({
+      commentId: input.commentId,
+      body: input.body,
+    });
+  } catch (err) {
+    if (err instanceof TRPCError) return { ok: false, error: err.message };
+    return { ok: false, error: 'Could not save — try again.' };
+  }
+  revalidatePath(ticketPath(input));
+  return { ok: true };
+}
+
+export async function deleteCommentAction(input: DeleteCommentInput): Promise<BoardActionResult> {
+  try {
+    const ctx = await createTRPCContext();
+    const caller = createCaller(ctx);
+    await caller.commentThread.deleteComment({ commentId: input.commentId });
+  } catch (err) {
+    if (err instanceof TRPCError) return { ok: false, error: err.message };
+    return { ok: false, error: 'Could not delete — try again.' };
+  }
+  revalidatePath(ticketPath(input));
+  return { ok: true };
+}
+
 // ── Urgent flip ──────────────────────────────────────────────────────────
 
 interface SetUrgentInput extends BoardActionInput {

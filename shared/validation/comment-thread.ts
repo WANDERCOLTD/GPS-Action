@@ -21,5 +21,18 @@ export const commentThreadListSchema = z.object({
   viewerGroupId: z.string().min(1),
 });
 
+// Edit / delete (ADR-0016 / D082) — author-only, request-comments only,
+// human-source only; defence-in-depth gates live in router + service.
+export const commentThreadEditSchema = z.object({
+  commentId: z.string().min(1),
+  body: z.string().trim().min(COMMENT_THREAD_BODY_MIN).max(COMMENT_THREAD_BODY_MAX),
+});
+
+export const commentThreadDeleteSchema = z.object({
+  commentId: z.string().min(1),
+});
+
 export type CommentThreadAddInput = z.infer<typeof commentThreadAddSchema>;
 export type CommentThreadListInput = z.infer<typeof commentThreadListSchema>;
+export type CommentThreadEditInput = z.infer<typeof commentThreadEditSchema>;
+export type CommentThreadDeleteInput = z.infer<typeof commentThreadDeleteSchema>;

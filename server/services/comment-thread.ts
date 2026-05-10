@@ -40,6 +40,12 @@ export interface CommentThreadRow {
   kind: CommentKind;
   source: CommentSource;
   createdAt: Date;
+  /**
+   * Row-level updated timestamp (Prisma `@updatedAt`). Drives the
+   * "(edited)" marker per ADR-0016 §1 — when `updatedAt > createdAt`
+   * by more than a small epsilon the UI renders the marker.
+   */
+  updatedAt: Date;
   author: CommentThreadAuthor;
 }
 
@@ -88,6 +94,7 @@ export async function listForKanbanTicket(
     kind: row.kind,
     source: row.source,
     createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
     author: {
       id: row.author.id,
       displayName: row.author.displayName,
@@ -213,4 +220,167 @@ export async function createCommentForKanbanTicket(
   });
 
   return created;
+}
+
+// ── Edit / Delete (ADR-0016 / D082) ──────────────────────────────────────
+
+/**
+ * Edit-gate / delete-gate violation. Mapped to a tRPC error code in the
+ * router layer; thrown by the service so call paths from outside the
+ * router (admin tooling, batch scripts) hit the same invariant.
+ */
+export class CommentMutationGateError extends Error {
+  constructor(
+    public readonly reason: 'not_found' | 'not_request_comment' | 'not_author' | 'not_human_source',
+    message?: string,
+  ) {
+    super(message ?? reason);
+    this.name = 'CommentMutationGateError';
+  }
+}
+
+export interface EditCommentForKanbanInput {
+  commentId: string;
+  actorUserId: string;
+  body: string;
+}
+
+export interface DeleteCommentForKanbanInput {
+  commentId: string;
+  actorUserId: string;
+}
+
+/**
+ * Author-only edit on a Request comment. Service-layer enforces the
+ * same gate as the router (defence-in-depth per ADR-0016 §3): the
+ * comment must exist, target a Request (not a Post), be authored by
+ * the actor, and have `source = 'human'`. System rows are foreclosed
+ * from edit by construction.
+ *
+ * On success bumps `Request.lastActivityAt` (per ADR-0015 — editing a
+ * comment is a visible-activity event) and writes an `AuditLog` row
+ * with action code `kanban_comment.edit` (or `.note.edit` when
+ * `kind = 'note'`).
+ */
+export async function editCommentForKanbanTicket(
+  input: EditCommentForKanbanInput,
+): Promise<{ id: string }> {
+  const existing = await prisma.comment.findUnique({
+    where: { id: input.commentId },
+    select: {
+      id: true,
+      postId: true,
+      requestId: true,
+      authorId: true,
+      kind: true,
+      source: true,
+      body: true,
+    },
+  });
+  if (!existing || existing.requestId === null) {
+    if (!existing) {
+      throw new CommentMutationGateError('not_found', 'Comment not found.');
+    }
+    throw new CommentMutationGateError(
+      'not_request_comment',
+      'Edit / delete is scoped to Request comments per D082.',
+    );
+  }
+  if (existing.source !== 'human') {
+    throw new CommentMutationGateError('not_human_source', 'System rows cannot be edited.');
+  }
+  if (existing.authorId !== input.actorUserId) {
+    throw new CommentMutationGateError('not_author', 'Only the author can edit this comment.');
+  }
+
+  const trimmed = input.body.trim();
+  const previousLength = existing.body.length;
+
+  const updated = await prisma.comment.update({
+    where: { id: existing.id },
+    data: { body: trimmed },
+    select: { id: true },
+  });
+
+  await touchRequestActivity(prisma, existing.requestId);
+
+  await auditLog({
+    action: existing.kind === 'note' ? 'kanban_comment.note.edit' : 'kanban_comment.edit',
+    entityType: 'comment',
+    entityId: existing.id,
+    userId: input.actorUserId,
+    changes: {
+      requestId: existing.requestId,
+      kind: existing.kind,
+      previousBodyLength: previousLength,
+      bodyLength: trimmed.length,
+    },
+  });
+
+  return updated;
+}
+
+/**
+ * Author-only hard-delete on a Request comment. Same gate as edit.
+ * On success the row is removed (no `deletedAt` tombstone — per
+ * ADR-0016 §1, `deleteOwn` is a real DELETE for v1). Bumps
+ * `Request.lastActivityAt` per ADR-0015 — the team has done something
+ * visible. (Item 14 of the brief excludes `deleteComment` from the
+ * bump matrix; ADR-0015 §"Bump events" includes it implicitly. The
+ * brief is the authoritative scope; the bump is intentionally
+ * skipped here per Item 14: "delete should NOT bump — deleting
+ * shouldn't make a ticket look 'fresh'".)
+ */
+export async function deleteCommentForKanbanTicket(
+  input: DeleteCommentForKanbanInput,
+): Promise<{ id: string }> {
+  const existing = await prisma.comment.findUnique({
+    where: { id: input.commentId },
+    select: {
+      id: true,
+      postId: true,
+      requestId: true,
+      authorId: true,
+      kind: true,
+      source: true,
+      body: true,
+    },
+  });
+  if (!existing || existing.requestId === null) {
+    if (!existing) {
+      throw new CommentMutationGateError('not_found', 'Comment not found.');
+    }
+    throw new CommentMutationGateError(
+      'not_request_comment',
+      'Edit / delete is scoped to Request comments per D082.',
+    );
+  }
+  if (existing.source !== 'human') {
+    throw new CommentMutationGateError('not_human_source', 'System rows cannot be deleted.');
+  }
+  if (existing.authorId !== input.actorUserId) {
+    throw new CommentMutationGateError('not_author', 'Only the author can delete this comment.');
+  }
+
+  await prisma.comment.delete({
+    where: { id: existing.id },
+  });
+
+  // Item 14 of bu-ticket-view-fixes — delete does NOT bump
+  // `lastActivityAt`. Removing content shouldn't make a ticket look
+  // fresh.
+
+  await auditLog({
+    action: existing.kind === 'note' ? 'kanban_comment.note.delete' : 'kanban_comment.delete',
+    entityType: 'comment',
+    entityId: existing.id,
+    userId: input.actorUserId,
+    changes: {
+      requestId: existing.requestId,
+      kind: existing.kind,
+      previousBodyLength: existing.body.length,
+    },
+  });
+
+  return { id: existing.id };
 }
