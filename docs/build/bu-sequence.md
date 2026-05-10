@@ -119,6 +119,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **BU-board-palette** — bu-board-palette | ✅ Merged | #313 |
 | **BU-ticket-detail-relayout** — bu-ticket-detail-relayout | ✅ Merged | #316 |
 | **bu-network-link-previews** — bu-network-link-previews | ✅ Merged | #327 |
+| **bu-keyboard-shortcuts** — bu-keyboard-shortcuts | ✅ Merged | #329 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |
@@ -143,7 +144,6 @@ by hand — run `npm run trackers`):
 - **bu-vercel-prep** _[high]_ — bu-vercel-prep
 - **bu-broadcast** _[medium]_ — bu-broadcast
 - **bu-drafts-inbox** _[medium]_ — bu-drafts-inbox
-- **bu-keyboard-shortcuts** (in flight) _[medium]_ — bu-keyboard-shortcuts
 - **bu-post-share-counter** _[medium]_ — bu-post-share-counter
 - **bu-reviewer-kind-review-queue** _[medium]_ — bu-reviewer-kind-review-queue
 - **bu-composer-link-first** _[low]_ — BU-composer-link-first

@@ -1,8 +1,9 @@
 ---
 slug: BU-keyboard-shortcuts
-status: in_progress
+status: shipped
 phase: 2
 priority: medium
+shipped_in: "#329"
 note: "Gmail/Linear-style two-key navigation: g+letter to jump between AppNav tabs, c to compose, / to search, ? for help overlay. No FF — additive UX, no data exposure."
 ---
 
