@@ -1,6 +1,7 @@
 ---
 slug: bu-prisma-seed-adapter-fix
-status: ready
+status: shipped
+shipped_in: "#309"
 phase: 2
 priority: low
 ---
@@ -74,4 +75,4 @@ Today this surfaced when refreshing prod's demo data. `pnpm seed:demo` is docume
 
 ## Status
 
-Ready.
+Shipped.
