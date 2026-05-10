@@ -1,9 +1,10 @@
 ---
 slug: bu-board-gallery
-status: ready
+status: shipped
+shipped_in: '#246'
 phase: 2
 priority: medium
-note: 'Replaces the bu-coordination-board PR-4c picker with a snapshot gallery. Consumes <GroupBadge /> from bu-group-identity (which must ship first). Decided 2026-05-05 in conversation with Paul.'
+note: 'Replaces the bu-coordination-board PR-4c picker with a snapshot gallery. Consumes <GroupBadge /> from bu-group-identity (#234). Decided 2026-05-05 in conversation with Paul.'
 ---
 
 # SESSION BRIEF · bu-board-gallery — `/board` snapshot gallery + filters

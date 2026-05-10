@@ -107,8 +107,14 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-post-location-input** — BU-post-location-input | ✅ Merged | #171 |
 | **bu-search-surface** — BU-search-surface | ✅ Merged | #189 |
 | **bu-search-result-cards** — BU-search-result-cards | ✅ Merged | #190 |
+| **bu-group-identity** — bu-group-identity | ✅ Merged | #234 |
+| **bu-kanban-event-config** — bu-kanban-event-config | ✅ Merged | #243 |
+| **bu-board-gallery** — bu-board-gallery | ✅ Merged | #246 |
+| **bu-coord-board-share-allowlist-ui** — bu-coord-board-share-allowlist-ui | ✅ Merged | #276 |
+| **bu-search-includes-kanban** — bu-search-includes-kanban | ✅ Merged | #279 |
 | **bu-hydration-fixes** — BU-hydration-fixes | ✅ Merged | #280 |
 | **bu-search-includes-comments** — bu-search-includes-comments | ✅ Merged | #283 |
+| **bu-admin-group-membership** — bu-admin-group-membership | ✅ Merged | #293 |
 | **BU-prisma-seed-adapter-fix** — bu-prisma-seed-adapter-fix | ✅ Merged | #309 |
 | **BU-board-palette** — bu-board-palette | ✅ Merged | #313 |
 | **BU-ticket-detail-relayout** — bu-ticket-detail-relayout | ✅ Merged | #316 |

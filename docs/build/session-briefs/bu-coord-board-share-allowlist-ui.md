@@ -1,6 +1,7 @@
 ---
 slug: bu-coord-board-share-allowlist-ui
-status: ready
+status: shipped
+shipped_in: '#276'
 phase: 3
 priority: high
 note: 'Mini-atom of bu-coordination-board (Q1 in v0.4 brief). Group admins configure which other groups they can share Requests to via `/board/<slug>/settings`. Build is a single page + server actions + 1 new service helper; backend (addShareWorkflow / removeShareWorkflow / listShareWorkflowTargets) already shipped in PR #254 / atom 5e.'
