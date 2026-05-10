@@ -1,6 +1,10 @@
 {
   "name": "gps-action",
-  "version": "0.2.179",
+<<<<<<< HEAD
+  "version": "0.2.180",
+=======
+  "version": "0.2.180",
+>>>>>>> 76c2c3a (feat(board): backlog stays on /backlog after move-to-active (Item 17, v0.2.180))
   "private": true,
   "packageManager": "pnpm@11.0.6",
   "description": "GPS Action — purpose-built platform for coordinated activism",

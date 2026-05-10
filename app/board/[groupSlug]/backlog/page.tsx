@@ -14,10 +14,10 @@ import { notFound, redirect } from 'next/navigation';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
-import { Card, type CardProps } from '@/components/board/Card';
+import { type CardProps } from '@/components/board/Card';
 import { BoardTabs } from '@/components/board/BoardTabs';
 import { BoardBackLink } from '@/components/board/BoardBackLink';
-import { BacklogQuickAdd } from '@/components/board/BacklogQuickAdd';
+import { BacklogList, BacklogEmpty } from '@/components/board/BacklogList';
 import { UnsharedToast } from '@/components/board/UnsharedToast';
 
 interface BoardBacklogPageProps {
@@ -88,51 +88,14 @@ export default async function BoardBacklogPage({ params }: BoardBacklogPageProps
       </header>
       <BoardTabs groupSlug={groupSlug} active="backlog" />
       {tickets.length === 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          <p
-            data-testid="board-backlog-empty"
-            style={{
-              padding: 'var(--space-5)',
-              background: 'var(--colour-surface-sunken)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--colour-text-secondary)',
-              textAlign: 'center',
-            }}
-          >
-            No tickets in the backlog. New tickets land here before being placed on a column.
-          </p>
-          <BacklogQuickAdd groupId={accessibleGroup.group.id} groupSlug={groupSlug} />
-        </div>
+        <BacklogEmpty groupId={accessibleGroup.group.id} groupSlug={groupSlug} />
       ) : (
-        <ul
-          data-testid="board-backlog-list"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-2)',
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-          }}
-        >
-          {tickets.map((ticket) => (
-            <li key={ticket.id} style={{ margin: 0 }}>
-              <Card
-                groupSlug={groupSlug}
-                ticket={ticket}
-                lifecycle={{
-                  status: 'backlog',
-                  groupId: accessibleGroup.group.id,
-                  currentColumnId: null,
-                  activeColumns: columns.map((c) => ({ id: c.id, displayName: c.displayName })),
-                }}
-              />
-            </li>
-          ))}
-          <li style={{ margin: 0, marginTop: 'var(--space-2)' }}>
-            <BacklogQuickAdd groupId={accessibleGroup.group.id} groupSlug={groupSlug} />
-          </li>
-        </ul>
+        <BacklogList
+          groupSlug={groupSlug}
+          groupId={accessibleGroup.group.id}
+          tickets={tickets}
+          activeColumns={columns.map((c) => ({ id: c.id, displayName: c.displayName }))}
+        />
       )}
     </main>
   );

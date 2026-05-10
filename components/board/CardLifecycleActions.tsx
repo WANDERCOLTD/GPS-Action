@@ -40,6 +40,7 @@ import {
   type MoveDestinationOption,
 } from '@/components/board/MoveCardSheet';
 import { useUndoToast } from '@/components/board/UndoToastContext';
+import { useBacklogList } from '@/components/board/BacklogList';
 
 export type CardLifecycleStatus = Extract<BoardLane, 'active' | 'backlog' | 'done'>;
 
@@ -171,6 +172,12 @@ function ActiveDestinationAction(
 ) {
   const { variant, requestId, groupId, groupSlug, status, currentColumnId, activeColumns } = props;
   const undo = useUndoToast();
+  // Sub-build D Item 17: when the card sits on the backlog list, the
+  // backlog wrapper supplies an optimistic-remove + toast context. On
+  // surfaces without that context (Active board, Done list, ticket-
+  // detail page) the hook returns null and we fall back to the
+  // existing undo-toast-only flow.
+  const backlog = useBacklogList();
   const meta = BOARD_LANE_META.active;
 
   if (activeColumns.length === 0) return null;
@@ -205,6 +212,11 @@ function ActiveDestinationAction(
     });
   }
 
+  // On the backlog list specifically, swap the undo-toast surface for
+  // the "Moved to <Column>" toast + optimistic row removal. The
+  // backlog list owns the toast; lifecycle just notifies it.
+  const isOnBacklog = status === 'backlog' && backlog !== null;
+
   return (
     <MoveCardSheet
       requestId={requestId}
@@ -213,7 +225,17 @@ function ActiveDestinationAction(
       currentKey={status === 'active' && currentColumnId ? `active:${currentColumnId}` : status}
       destinations={destinations}
       heading="Move to active"
-      onSuccess={fireUndo}
+      onPickStart={
+        isOnBacklog
+          ? (option) => backlog?.registerOptimisticMove(requestId, option.label)
+          : undefined
+      }
+      onSuccess={isOnBacklog ? undefined : fireUndo}
+      onError={
+        isOnBacklog
+          ? (_option, message) => backlog?.registerMoveError(requestId, message)
+          : undefined
+      }
       renderTrigger={({ open, isPending }) => (
         <ActionButton
           target="active"
