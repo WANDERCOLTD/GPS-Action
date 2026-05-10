@@ -69,6 +69,7 @@ function DroppableColumn(props: {
   displayName: string;
   groupSlug: string;
   groupId: string;
+  positionIndex: number;
   tickets: CardProps['ticket'][];
   allColumns: BoardGridColumn[];
 }) {
@@ -82,6 +83,7 @@ function DroppableColumn(props: {
       displayName={props.displayName}
       groupSlug={props.groupSlug}
       tickets={props.tickets}
+      positionIndex={props.positionIndex}
       dropRef={setNodeRef}
       isOver={isOver}
       renderCard={(t) => (
@@ -279,13 +281,14 @@ export function BoardGrid({ groupSlug, groupId, columns, cardsByColumn }: BoardG
             data-testid="board-view-grid"
             data-pending={isPending ? 'true' : 'false'}
           >
-            {columns.map((column) => (
+            {columns.map((column, columnIndex) => (
               <DroppableColumn
                 key={column.id}
                 columnId={column.id}
                 displayName={column.displayName}
                 groupSlug={groupSlug}
                 groupId={groupId}
+                positionIndex={columnIndex}
                 tickets={optimistic[column.id] ?? []}
                 allColumns={columns}
               />

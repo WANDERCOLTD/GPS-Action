@@ -293,4 +293,61 @@ describe('Column', () => {
     const wrapper = findByTestId(tree, 'board-column-card');
     expect((wrapper?.props as Record<string, unknown>).className).toBe('gps-board-column');
   });
+
+  // BU-board-palette: position-keyed pastel backgrounds via the
+  // centralised `pastelTintByIndex` helper. Confirms the wire-up; the
+  // helper itself is unit-tested separately.
+  it('applies the position-keyed pastel tint as the column background', () => {
+    const cases: Array<[number, string]> = [
+      [0, 'var(--colour-card-tint-1)'],
+      [1, 'var(--colour-card-tint-2)'],
+      [2, 'var(--colour-card-tint-3)'],
+      [3, 'var(--colour-card-tint-4)'],
+      [4, 'var(--colour-card-tint-default)'],
+    ];
+    for (const [positionIndex, expectedTint] of cases) {
+      const tree = Column({
+        columnId: `c${positionIndex}`,
+        displayName: 'Col',
+        groupSlug: 'writers',
+        tickets: [],
+        positionIndex,
+      }) as AnyElement;
+      const wrapper = findByTestId(tree, 'board-column-card');
+      const style = (wrapper?.props as Record<string, unknown>).style as Record<string, unknown>;
+      expect(style.background).toBe(expectedTint);
+      expect((wrapper?.props as Record<string, unknown>)['data-position-index']).toBe(
+        positionIndex,
+      );
+    }
+  });
+
+  it('defaults positionIndex to 0 when omitted (leftmost tint)', () => {
+    const tree = Column({
+      columnId: 'c1',
+      displayName: 'Col',
+      groupSlug: 'writers',
+      tickets: [],
+    }) as AnyElement;
+    const wrapper = findByTestId(tree, 'board-column-card');
+    const style = (wrapper?.props as Record<string, unknown>).style as Record<string, unknown>;
+    expect(style.background).toBe('var(--colour-card-tint-1)');
+  });
+
+  it('composes the drop highlight on top of the column pastel when isOver', () => {
+    const tree = Column({
+      columnId: 'c1',
+      displayName: 'Col',
+      groupSlug: 'writers',
+      tickets: [],
+      positionIndex: 2,
+      isOver: true,
+    }) as AnyElement;
+    const wrapper = findByTestId(tree, 'board-column-card');
+    const style = (wrapper?.props as Record<string, unknown>).style as Record<string, unknown>;
+    // Mix is anchored on the column's own pastel, not surface-sunken.
+    expect(style.background).toBe(
+      'color-mix(in srgb, var(--colour-primary) 14%, var(--colour-card-tint-3))',
+    );
+  });
 });

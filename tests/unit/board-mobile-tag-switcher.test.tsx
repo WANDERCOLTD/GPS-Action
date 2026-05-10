@@ -12,31 +12,24 @@ import { describe, it, expect } from 'vitest';
 import { paletteForIndex } from '@/components/board/MobileTagSwitcher';
 
 describe('paletteForIndex', () => {
-  it('returns the warning (yellow) tint for column index 0', () => {
-    expect(paletteForIndex(0).tint).toBe('var(--colour-warning)');
+  // Post-BU-board-palette: the palette delegates to the centralised
+  // card-tint tokens so the column, the modal, the tag-pill and the
+  // future /network feed all share one source. The CSS still resolves
+  // to amber → lavender → sky → mint at runtime.
+  it('returns the position-keyed accent vars (1 → 2 → 3 → 4)', () => {
+    expect(paletteForIndex(0).tint).toBe('var(--colour-card-accent-1)');
+    expect(paletteForIndex(1).tint).toBe('var(--colour-card-accent-2)');
+    expect(paletteForIndex(2).tint).toBe('var(--colour-card-accent-3)');
+    expect(paletteForIndex(3).tint).toBe('var(--colour-card-accent-4)');
   });
 
-  it('returns the info (blue) tint for column index 1', () => {
-    expect(paletteForIndex(1).tint).toBe('var(--colour-info)');
+  it('falls back to the neutral default beyond index 3', () => {
+    expect(paletteForIndex(4).tint).toBe('var(--colour-card-accent-default)');
+    expect(paletteForIndex(99).tint).toBe('var(--colour-card-accent-default)');
   });
 
-  it('returns the primary tint for column index 2', () => {
-    expect(paletteForIndex(2).tint).toBe('var(--colour-primary)');
-  });
-
-  it('returns the success (green) tint for column index 3', () => {
-    expect(paletteForIndex(3).tint).toBe('var(--colour-success)');
-  });
-
-  it('falls back to a neutral palette beyond index 3', () => {
-    expect(paletteForIndex(4).tint).toBe('var(--colour-text-secondary)');
-    expect(paletteForIndex(99).tint).toBe('var(--colour-text-secondary)');
-  });
-
-  it('builds the bg as a 14% color-mix of the same token', () => {
-    expect(paletteForIndex(0).bg).toBe(
-      'color-mix(in srgb, var(--colour-warning) 14%, transparent)',
-    );
-    expect(paletteForIndex(1).bg).toBe('color-mix(in srgb, var(--colour-info) 14%, transparent)');
+  it('uses the matching tint var for bg', () => {
+    expect(paletteForIndex(0).bg).toBe('var(--colour-card-tint-1)');
+    expect(paletteForIndex(1).bg).toBe('var(--colour-card-tint-2)');
   });
 });

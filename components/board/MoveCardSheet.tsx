@@ -26,6 +26,7 @@
 import { useState, useTransition, type ReactNode } from 'react';
 import { Check } from 'lucide-react';
 import { moveCardAction, type MoveCardActionDestination } from '@/app/board/[groupSlug]/actions';
+import { pastelPaletteByIndex } from '@/shared/styles/pastel-palette';
 
 export interface MoveDestinationOption {
   /** Stable id for keying + the "current" check. */
@@ -76,35 +77,22 @@ export interface MoveCardSheetProps {
 }
 
 /**
- * Position-based palette for active columns (column 1 yellow, col 2 blue,
- * col 3 brand, col 4 green, col 5+ neutral). Exposed so callers building
- * destination lists for active columns can stay consistent with the
- * mobile tag-pill colours.
+ * Position-based palette for active columns (column 1 amber, col 2
+ * lavender, col 3 sky, col 4 mint, col 5+ neutral). Thin wrapper over
+ * the centralised palette in `shared/styles/pastel-palette` — single
+ * source of truth shared with `<Column>` and the future /network feed.
+ *
+ * Exposed so callers building destination lists for active columns can
+ * stay consistent with the mobile tag-pill colours and the board itself.
  */
-const ACTIVE_PALETTE: Array<{ tint: string; bg: string }> = [
-  {
-    tint: 'var(--colour-warning)',
-    bg: 'color-mix(in srgb, var(--colour-warning) 14%, transparent)',
-  },
-  { tint: 'var(--colour-info)', bg: 'color-mix(in srgb, var(--colour-info) 14%, transparent)' },
-  {
-    tint: 'var(--colour-primary)',
-    bg: 'color-mix(in srgb, var(--colour-primary) 14%, transparent)',
-  },
-  {
-    tint: 'var(--colour-success)',
-    bg: 'color-mix(in srgb, var(--colour-success) 14%, transparent)',
-  },
-];
+export function paletteForActiveIndex(index: number): { tint: string; bg: string } {
+  return pastelPaletteByIndex(index);
+}
 
 const NEUTRAL = {
   tint: 'var(--colour-text-secondary)',
   bg: 'var(--colour-surface-sunken)',
 };
-
-export function paletteForActiveIndex(index: number): { tint: string; bg: string } {
-  return ACTIVE_PALETTE[index] ?? NEUTRAL;
-}
 
 export const BACKLOG_PALETTE: { tint: string; bg: string } = NEUTRAL;
 
