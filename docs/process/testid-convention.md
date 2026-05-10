@@ -70,6 +70,7 @@ The first segment must come from this approved list:
 | `dev`          | Dev-only affordances on the demo path — banner toggle, dev tools (BU-one-click-polish)                          |
 | `search`       | Search overlay + full-results page (BU-search-surface — D078)                                                   |
 | `board`        | Coordination board — group picker, kanban view, ticket detail, notifications (bu-coordination-board)            |
+| `shortcut`     | Keyboard shortcut help overlay — backdrop, modal, rows, close (BU-keyboard-shortcuts)                           |
 
 To add a new area:
 

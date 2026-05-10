@@ -119,6 +119,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **BU-board-palette** — bu-board-palette | ✅ Merged | #313 |
 | **BU-ticket-detail-relayout** — bu-ticket-detail-relayout | ✅ Merged | #316 |
 | **bu-network-link-previews** — bu-network-link-previews | ✅ Merged | #327 |
+| **bu-keyboard-shortcuts** — bu-keyboard-shortcuts | ✅ Merged | #329 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |
