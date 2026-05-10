@@ -37,24 +37,29 @@
 
 /* eslint-disable no-console -- CLI script: console output is the contract. */
 
+// Prisma 7 (D071): the runtime adapter reads DATABASE_URL at module
+// init; tsx doesn't auto-load .env, so we import it here before the
+// prisma client is constructed. Mirrors scripts/seed.ts.
+import 'dotenv/config';
+
 import { createHash } from 'crypto';
-import {
-  PrismaClient,
-  type FeatureFlagPurpose,
-  type GroupJoinPolicy,
-  type GroupMembershipRole,
-  type JoinSource,
-  type PostVisibility,
-  type ReactionEmoji,
-  type ReactionTargetType,
-  type RegionType,
-  type SystemRole,
-  type RequestPriority,
-  type RequestResolution,
-  type RequestStatus,
-  type RequestType,
+import type {
+  FeatureFlagPurpose,
+  GroupJoinPolicy,
+  GroupMembershipRole,
+  JoinSource,
+  PostVisibility,
+  ReactionEmoji,
+  ReactionTargetType,
+  RegionType,
+  SystemRole,
+  RequestPriority,
+  RequestResolution,
+  RequestStatus,
+  RequestType,
 } from '@prisma/client';
 import { faker, en_GB, en, Faker } from '@faker-js/faker';
+import { prisma } from '@/server/db/client';
 
 // ── Production guard ─────────────────────────────────────────────────────
 
@@ -345,8 +350,6 @@ interface SeededUser {
 // ── Main ─────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
-  const prisma = new PrismaClient({ log: ['error', 'warn'] });
-
   console.warn('F10 fixture seed → starting');
   console.warn(`  seed=${F10_SEED} (int=${F10_SEED_INT})`);
   console.warn(`  baseline=${SEED_NOW.toISOString()}`);
