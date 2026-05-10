@@ -333,3 +333,10 @@ When the user types `RT-promote: RT-NNN <optional destination hint>`:
 ### Trigger: user message starts with `RT-reject: RT-NNN`
 
 Flip RT-NNN's status to `rejected · YYYY-MM-DD — <reason>`. Commit + push direct to main. One-line acknowledgement to user.
+
+## Helper slash commands
+
+Local-tooling commands (project-scoped, defined in `.claude/commands/`):
+
+- **`/handoff`** — scaffold a session handoff doc in `docs/build/session-handoffs/`. See `.claude/commands/handoff.md`.
+- **`/ss [n]`** — load the `n` most recent screenshots from `~/Downloads/@Screens` (defaults to 1) inline in the conversation, so visual context lands without manual drag-and-drop. See `.claude/commands/ss.md`.
