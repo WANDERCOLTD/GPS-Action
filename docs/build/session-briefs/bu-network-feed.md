@@ -201,9 +201,11 @@ enum NetworkCardStatus {
 ```
 
 **Schema change → ADR required** per CLAUDE.md "Don't change
-prisma/schema.prisma without an ADR." The ADR (proposed: ADR-0011)
-captures the table, the rationale (own-the-workflow-state per Grant's
-quirk #4), and the relationship to Grant's read-only view.
+prisma/schema.prisma without an ADR." This is captured in **ADR-0017**
+(`docs/adrs/0017-network-card-state.md`) — the cross-provider opaque-key
+design, orphan tolerance, lazy row creation, and v2-ready ownerUserId
+path are all detailed there. ADR-0017 + the schema migration land
+ahead of this brief moving to `ready` (PR #310).
 
 Grant's row id is `bigint`. Prisma supports `BigInt`. We don't FK into
 Grant's view (it's an external system); we treat `messageId` as an
@@ -273,7 +275,7 @@ coordinator sign-off post-deploy.
 | `/server/services` | Yes | New `network.service.ts` (Supabase client + cache + state-join logic) |
 | `/server/db`     | No | New table goes via Prisma migration; no direct DB code |
 | `/shared`        | Yes | New `NetworkCard` / `NetworkCardStatus` shape definitions |
-| `prisma/schema.prisma` | Yes | New `NetworkCardState` model + enum — **ADR required** (proposed: ADR-0011) |
+| `prisma/schema.prisma` | Yes | New `NetworkCardState` model + enum — captured in **ADR-0017** / D083 (PR #310) |
 | `prisma/migrations/` | Yes | New migration for the table; idempotent per D070 |
 
 Env additions: `SUPABASE_URL` + `SUPABASE_ANON_KEY` (server-only — NOT
@@ -371,16 +373,15 @@ Not required:
 
 This brief is `stub`. It moves to `ready` when:
 
-- [ ] Paul confirms placement: `/network` (proposed) vs an
-      alternative.
+- [x] Paul confirms placement: `/network` (confirmed 2026-05-10).
 - [ ] Column shape verified with Grant — `sender_hash` is in the view
       and `from_jid` is gone (currently the doc disagrees with his
       reply).
-- [ ] ADR-0011 drafted: "NetworkCardState — own-the-workflow-state for
-      external link feed."
+- [x] ADR-0017 drafted: "NetworkCardState — own-the-workflow-state for
+      external link feed" (PR #310).
 - [ ] Polling cadence locked at 5 min (or revisited).
-- [ ] Feature flag `network_feed` added to the register
-      (`docs/product/feature-flag-register.md`).
+- [x] Feature flag `network_feed` added to the register
+      (`docs/product/feature-flag-register.md`) — PR #310.
 - [ ] Glyph for `/network` nav entry locked (per memory rule: same
       commit registers it in `docs/product/design-philosophy.md`).
 
@@ -461,5 +462,6 @@ for a build session.
 
 ## Status
 
-`stub`. Hold for: (a) Paul's naming confirmation, (b) Grant column-shape
-verification, (c) ADR-0011, (d) feature-flag + glyph register entries.
+`stub`. Holds remaining: (a) Grant column-shape verification, (b) glyph
+register entry. Naming confirmed (`/network`, 2026-05-10). ADR-0017 +
+feature-flag register entry shipped in PR #310.
