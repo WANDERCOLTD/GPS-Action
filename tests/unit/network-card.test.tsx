@@ -59,6 +59,7 @@ function makeCard(overrides: Partial<SerializedNetworkCard> = {}): SerializedNet
       notes: null,
       updatedAt: null,
     },
+    linkPreview: null,
     ...overrides,
   };
 }
@@ -217,5 +218,40 @@ describe('NetworkCard', () => {
     }) as AnyElement;
 
     expect(tree.props['data-status']).toBe('DISCARDED');
+  });
+
+  it('omits the link-preview block when linkPreview is null', () => {
+    const tree = NetworkCard({
+      card: makeCard({ linkPreview: null }),
+      onSetStatus: vi.fn(),
+      pending: false,
+    }) as AnyElement;
+
+    expect(findByTestId(tree, 'network-card-preview')).toBeUndefined();
+    expect(tree.props['data-has-preview']).toBe('false');
+    // Plain title link still rendered as the primary affordance.
+    expect(findByTestId(tree, 'network-card-link')).toBeDefined();
+  });
+
+  it('renders the LinkPreviewCard hero block when linkPreview is set', () => {
+    const tree = NetworkCard({
+      card: makeCard({
+        linkPreview: {
+          title: 'Hero title from OG',
+          description: 'OG description here',
+          imageUrl: 'https://example.com/hero.jpg',
+          siteName: 'Example',
+        },
+      }),
+      onSetStatus: vi.fn(),
+      pending: false,
+    }) as AnyElement;
+
+    const wrapper = findByTestId(tree, 'network-card-preview');
+    expect(wrapper).toBeDefined();
+    expect(tree.props['data-has-preview']).toBe('true');
+    // The plain title link is suppressed — the hero card replaces it
+    // as the primary clickable surface (no double-link to same URL).
+    expect(findByTestId(tree, 'network-card-link')).toBeUndefined();
   });
 });

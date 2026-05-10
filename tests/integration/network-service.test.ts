@@ -24,6 +24,12 @@ vi.mock('@/server/db/client', () => ({
     auditLog: {
       create: vi.fn(),
     },
+    // Link-preview enrichment reads `network_link_previews` via
+    // `isFeatureEnabled`. Default to null (= flag absent = disabled)
+    // so existing tests don't trigger the OG fetch path.
+    featureFlag: {
+      findUnique: vi.fn(),
+    },
   },
 }));
 
@@ -38,12 +44,15 @@ import { prisma } from '@/server/db/client';
 const mockFindMany = vi.mocked(prisma.networkCardState.findMany);
 const mockUpsert = vi.mocked(prisma.networkCardState.upsert);
 const mockAuditCreate = vi.mocked(prisma.auditLog.create);
+const mockFlagFindUnique = vi.mocked(prisma.featureFlag.findUnique);
 
 beforeEach(() => {
   vi.clearAllMocks();
   invalidateNetworkListCache();
   mockAuditCreate.mockResolvedValue({} as never);
   mockFindMany.mockResolvedValue([]);
+  // Default: flag row absent → fail-closed disabled → no OG fetch.
+  mockFlagFindUnique.mockResolvedValue(null);
 });
 
 const baseRow = {
@@ -222,6 +231,71 @@ describe('listNetworkCards', () => {
     await expect(
       listNetworkCards({ limit: 50, windowDays: 90, refresh: false }, { fetchUpstream }),
     ).rejects.toThrow('upstream 503');
+  });
+
+  describe('link-preview enrichment', () => {
+    it('attaches resolved linkPreview metadata to each card', async () => {
+      const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
+      const resolveLinkPreview = vi.fn().mockResolvedValue({
+        title: 'Resolved title',
+        description: 'Resolved description',
+        imageUrl: 'https://example.com/og.jpg',
+        siteName: 'Example',
+      });
+
+      const result = await listNetworkCards(
+        { limit: 50, windowDays: 90, refresh: false },
+        { fetchUpstream, resolveLinkPreview },
+      );
+
+      expect(resolveLinkPreview).toHaveBeenCalledWith(baseRow.url);
+      expect(result.items[0]!.linkPreview).toEqual({
+        title: 'Resolved title',
+        description: 'Resolved description',
+        imageUrl: 'https://example.com/og.jpg',
+        siteName: 'Example',
+      });
+    });
+
+    it('leaves linkPreview null when the resolver returns null (FF off / failure)', async () => {
+      const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
+      const resolveLinkPreview = vi.fn().mockResolvedValue(null);
+
+      const result = await listNetworkCards(
+        { limit: 50, windowDays: 90, refresh: false },
+        { fetchUpstream, resolveLinkPreview },
+      );
+
+      expect(result.items[0]!.linkPreview).toBeNull();
+    });
+
+    it('resolves previews in parallel across cards', async () => {
+      const fetchUpstream = vi.fn().mockResolvedValue([
+        { ...baseRow, id: 1, url: 'https://example.com/a' },
+        { ...baseRow, id: 2, url: 'https://example.com/b' },
+        { ...baseRow, id: 3, url: 'https://example.com/c' },
+      ]);
+      const calls: string[] = [];
+      const resolveLinkPreview = vi.fn().mockImplementation(async (url: string) => {
+        calls.push(`start:${url}`);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        calls.push(`end:${url}`);
+        return null;
+      });
+
+      await listNetworkCards(
+        { limit: 50, windowDays: 90, refresh: false },
+        { fetchUpstream, resolveLinkPreview },
+      );
+
+      // All three resolvers start before any of them finish — proves
+      // parallelism. Sequential execution would interleave start/end.
+      expect(calls.slice(0, 3)).toEqual([
+        'start:https://example.com/a',
+        'start:https://example.com/b',
+        'start:https://example.com/c',
+      ]);
+    });
   });
 });
 

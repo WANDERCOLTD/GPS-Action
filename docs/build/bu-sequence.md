@@ -118,6 +118,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **BU-prisma-seed-adapter-fix** — bu-prisma-seed-adapter-fix | ✅ Merged | #309 |
 | **BU-board-palette** — bu-board-palette | ✅ Merged | #313 |
 | **BU-ticket-detail-relayout** — bu-ticket-detail-relayout | ✅ Merged | #316 |
+| **bu-network-link-previews** — bu-network-link-previews | ✅ Merged | #327 |
 | **bu-whatsapp-share** — BU-whatsapp-share | ✅ Merged | #111, #114 |
 | **bu-requests-sequencing** — Sequencing brief | ✅ Merged | #74, #75, #81 |
 | **bu-composer-intent-polish** — Brief: BU-composer-intent-polish (demo polish) | ✅ Merged | #85, #91, #93, #94 |

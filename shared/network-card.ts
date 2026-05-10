@@ -36,6 +36,20 @@ export interface NetworkCardWorkflowState {
   updatedAt: Date | null;
 }
 
+/**
+ * OpenGraph preview enrichment, populated server-side by the network
+ * service when the `network_link_previews` flag is on. `null` means
+ * either the flag is off, the URL was unreachable, or the page had
+ * no parseable metadata. Callers render the existing
+ * `<LinkPreviewCard>` only when this is non-null.
+ */
+export interface NetworkCardLinkPreview {
+  title: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  siteName: string | null;
+}
+
 export interface NetworkCard {
   id: bigint;
   sentAt: Date;
@@ -46,6 +60,7 @@ export interface NetworkCard {
   senderHash: string;
   chatId: string;
   state: NetworkCardWorkflowState;
+  linkPreview: NetworkCardLinkPreview | null;
 }
 
 export interface NetworkListResponse {
@@ -84,6 +99,7 @@ export interface SerializedNetworkCard {
   senderHash: string;
   chatId: string;
   state: SerializedNetworkCardWorkflowState;
+  linkPreview: NetworkCardLinkPreview | null;
 }
 
 export interface SerializedNetworkListResponse {
@@ -111,6 +127,7 @@ export function serializeNetworkCard(card: NetworkCard): SerializedNetworkCard {
       notes: card.state.notes,
       updatedAt: card.state.updatedAt ? card.state.updatedAt.toISOString() : null,
     },
+    linkPreview: card.linkPreview,
   };
 }
 

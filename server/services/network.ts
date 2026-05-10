@@ -25,6 +25,9 @@
 
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
+import { isFeatureEnabled } from '@/server/services/flags';
+import { getLinkPreview } from '@/server/services/link-preview-cache';
+import { fetchLinkMetadata } from '@/server/services/link-metadata';
 import {
   listGpsGroupMessages,
   SupabaseConfigError,
@@ -32,10 +35,13 @@ import {
 } from '@/server/lib/supabase';
 import type {
   NetworkCard,
+  NetworkCardLinkPreview,
   NetworkCardWorkflowState,
   NetworkListResponse,
 } from '@/shared/network-card';
 import type { NetworkListInput, NetworkSetCardStateInput } from '@/shared/validation/network';
+
+const LINK_PREVIEW_FLAG = 'network_link_previews';
 
 // ── Cache ────────────────────────────────────────────────────────────────
 
@@ -95,6 +101,13 @@ export function _networkCacheSize(): number {
 interface ListDeps {
   /** Override the upstream fetcher — primarily for tests. */
   fetchUpstream?: typeof listGpsGroupMessages;
+  /**
+   * Override the link-preview enrichment path. Default reads the
+   * `network_link_previews` flag and (when on) fetches OG metadata via
+   * the cached fetcher. Tests pass `() => Promise.resolve(null)` to
+   * skip enrichment, or a stub that returns canned metadata.
+   */
+  resolveLinkPreview?: (url: string) => Promise<NetworkCardLinkPreview | null>;
 }
 
 export async function listNetworkCards(
@@ -156,7 +169,9 @@ export async function listNetworkCards(
     });
   }
 
-  const items: NetworkCard[] = rows.map((row) => upstreamToCard(row, stateByMessageId));
+  const baseItems: NetworkCard[] = rows.map((row) => upstreamToCard(row, stateByMessageId));
+  const resolveLinkPreview = deps.resolveLinkPreview ?? (await buildDefaultLinkPreviewResolver());
+  const items = await enrichWithLinkPreviews(baseItems, resolveLinkPreview);
   const lastRow = rows.length === input.limit ? rows[rows.length - 1] : undefined;
   const nextCursor = lastRow ? String(lastRow.id) : null;
 
@@ -169,6 +184,54 @@ export async function listNetworkCards(
 
   cacheSet(key, response);
   return response;
+}
+
+// ── Link preview enrichment ──────────────────────────────────────────────
+
+/**
+ * Build a per-list resolver. The FF check happens once here, not once
+ * per card — flag-off lists pay a single DB hit, not N. When the flag
+ * is off we hand back a no-op resolver so the parallel `Promise.all`
+ * inside `enrichWithLinkPreviews` is effectively free.
+ *
+ * When on, each URL hits the in-process LRU+TTL cache; only true
+ * cache misses reach the network. Any thrown error is swallowed to
+ * `null` — preview is decorative, never load-bearing.
+ */
+async function buildDefaultLinkPreviewResolver(): Promise<
+  (url: string) => Promise<NetworkCardLinkPreview | null>
+> {
+  const enabled = await isFeatureEnabled(LINK_PREVIEW_FLAG);
+  if (!enabled) return async () => null;
+  return async (url: string) => {
+    try {
+      const metadata = await getLinkPreview(url, { fetcher: fetchLinkMetadata });
+      if (!metadata) return null;
+      return {
+        title: metadata.title,
+        description: metadata.description,
+        imageUrl: metadata.imageUrl,
+        siteName: metadata.siteName,
+      };
+    } catch {
+      return null;
+    }
+  };
+}
+
+/**
+ * Enrich every card in parallel. Total latency is bounded by the
+ * slowest single fetch (5s timeout cap inside `fetchLinkMetadata`),
+ * not the sum. `Promise.all` is safe because the resolver swallows
+ * its own errors — no rejection escapes.
+ */
+async function enrichWithLinkPreviews(
+  cards: NetworkCard[],
+  resolve: (url: string) => Promise<NetworkCardLinkPreview | null>,
+): Promise<NetworkCard[]> {
+  if (cards.length === 0) return cards;
+  const previews = await Promise.all(cards.map((card) => resolve(card.url)));
+  return cards.map((card, idx) => ({ ...card, linkPreview: previews[idx] ?? null }));
 }
 
 function upstreamToCard(
@@ -187,6 +250,7 @@ function upstreamToCard(
     senderHash: row.sender_hash,
     chatId: row.chat_id,
     state,
+    linkPreview: null,
   };
 }
 
