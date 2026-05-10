@@ -151,9 +151,11 @@ export default [
     ignores: [
       'node_modules/**',
       '.next/**',
+      '.vercel/**',
       '.claude/**',
       'dist/**',
       'build/**',
+      'coverage/**',
       'eslint-rules/**',
       'prisma/**',
       'tests/**',
