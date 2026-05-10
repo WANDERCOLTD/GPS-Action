@@ -57,6 +57,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 <!-- AUTOGEN:shipped:start -->
 | Brief | Status | PR |
 |---|---|---|
+| **BU-prisma-seed-adapter-fix** — bu-prisma-seed-adapter-fix | ✅ Merged | #PR |
 | **bu-composer** — BU-composer | ✅ Merged | — |
 | **bu-icon-strips** — bu-icon-strips | ✅ Merged | — |
 | **bu-postcode-or-place** — bu-postcode-or-place | ✅ Merged | — |
