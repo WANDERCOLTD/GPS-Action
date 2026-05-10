@@ -102,7 +102,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | bu-kanban-event-config | 1 | — | — |
 | bu-search-includes-comments | 2 | — | D078 |
 | bu-search-includes-kanban | 1 | — | — |
-| bu-ticket-view-fixes | 6 | — | — |
+| bu-ticket-view-fixes | 7 | — | — |
 
 ## ADRs (referenced by code)
 

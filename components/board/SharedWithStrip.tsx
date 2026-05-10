@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * @build-unit bu-ticket-view-fixes (Sub-build B — Item 4)
+ * @build-unit bu-ticket-view-fixes (Sub-build B — Item 4 · Sub-build D — Item 5)
  * @spec docs/build/session-briefs/bu-ticket-view-fixes.md
  *
  * The "Shared with: <Team> · <Team>" pill row on the ticket-detail
@@ -17,10 +17,13 @@
  * the × on every non-originating pill regardless of viewer role; the
  * server is the source of truth for whether the action is allowed.
  *
- * The originating-team pill keeps its `· originating` chip and has no
- * × — a Request can't be unshared from its origin (the service throws
- * `ShareError` for that case anyway, so the absence of the × is just
- * a hint that this isn't the affordance).
+ * Sub-build D (Item 5): the originating team is dropped from the strip
+ * entirely. The breadcrumb / page chrome already names the originating
+ * team ("← Writers board"), so showing it again as a pill was redundant
+ * noise. If `groups` resolves to an empty list after the filter, the
+ * component renders nothing — no "Not shared with any other teams"
+ * placeholder; the adjacent Share-with-team button is the affordance
+ * for that state.
  */
 
 import { useState, useTransition } from 'react';
@@ -49,6 +52,15 @@ export function SharedWithStrip({ requestId, groupSlug, groups }: SharedWithStri
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Item 5 (Sub-build D): drop the originating team from the rendered
+  // pills. Breadcrumb is the source of truth for which team owns the
+  // ticket; doubling it here is redundant.
+  const visibleGroups = groups.filter((g) => g.origin !== 'originating');
+
+  if (visibleGroups.length === 0 && !confirm) {
+    return null;
+  }
 
   function openConfirm(g: SharedWithGroup) {
     setError(null);
@@ -91,64 +103,48 @@ export function SharedWithStrip({ requestId, groupSlug, groups }: SharedWithStri
           gap: 'var(--space-2)',
         }}
       >
-        {groups.map((g) => {
-          const isOriginating = g.origin === 'originating';
-          return (
-            <li
-              key={g.groupId}
-              data-testid="board-ticket-shared-with-pill"
-              data-origin={g.origin}
+        {visibleGroups.map((g) => (
+          <li
+            key={g.groupId}
+            data-testid="board-ticket-shared-with-pill"
+            data-origin={g.origin}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-1)',
+              padding: '4px 4px 4px 10px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--colour-surface-raised)',
+              border: '1px solid var(--colour-border-subtle)',
+              fontSize: 'var(--text-sm)',
+            }}
+          >
+            <span>{g.displayName}</span>
+            <button
+              type="button"
+              data-testid="board-ticket-shared-with-unshare-btn"
+              data-target-group-id={g.groupId}
+              aria-label={`Remove share with ${g.displayName}`}
+              title={`Remove share with ${g.displayName}`}
+              onClick={() => openConfirm(g)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 'var(--space-1)',
-                padding: '4px 4px 4px 10px',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--colour-surface-raised)',
-                border: '1px solid var(--colour-border-subtle)',
-                fontSize: 'var(--text-sm)',
+                justifyContent: 'center',
+                width: 20,
+                height: 20,
+                padding: 0,
+                border: 'none',
+                borderRadius: 'var(--radius-sm)',
+                background: 'transparent',
+                color: 'var(--colour-text-secondary)',
+                cursor: 'pointer',
               }}
             >
-              <span>{g.displayName}</span>
-              {isOriginating && (
-                <span
-                  style={{
-                    fontSize: 'var(--text-xs)',
-                    color: 'var(--colour-text-secondary)',
-                    paddingRight: 6,
-                  }}
-                >
-                  · originating
-                </span>
-              )}
-              {!isOriginating && (
-                <button
-                  type="button"
-                  data-testid="board-ticket-shared-with-unshare-btn"
-                  data-target-group-id={g.groupId}
-                  aria-label={`Remove share with ${g.displayName}`}
-                  title={`Remove share with ${g.displayName}`}
-                  onClick={() => openConfirm(g)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 20,
-                    height: 20,
-                    padding: 0,
-                    border: 'none',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'transparent',
-                    color: 'var(--colour-text-secondary)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <X size={12} aria-hidden="true" />
-                </button>
-              )}
-            </li>
-          );
-        })}
+              <X size={12} aria-hidden="true" />
+            </button>
+          </li>
+        ))}
       </ul>
 
       {confirm && (

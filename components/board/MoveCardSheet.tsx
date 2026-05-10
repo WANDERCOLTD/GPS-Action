@@ -58,6 +58,21 @@ export interface MoveCardSheetProps {
    * to compute undo on its own.
    */
   onSuccess?: (option: MoveDestinationOption) => void;
+  /**
+   * Called synchronously on pick, before the server action fires. Used
+   * by callers that want to apply an optimistic update (e.g. the
+   * backlog list removing the moved row immediately — Sub-build D
+   * Item 17). The sheet still awaits the server response and reports
+   * via `onError` so the caller can roll the optimistic update back.
+   */
+  onPickStart?: (option: MoveDestinationOption) => void;
+  /**
+   * Called when the server action fails after `onPickStart` has fired.
+   * Lets the caller roll back any optimistic update and surface an
+   * error message in its own UI (the sheet's inline error is also
+   * still shown).
+   */
+  onError?: (option: MoveDestinationOption, message: string) => void;
 }
 
 /**
@@ -112,6 +127,8 @@ export function MoveCardSheet({
   renderTrigger,
   heading = 'Move card',
   onSuccess,
+  onPickStart,
+  onError,
 }: MoveCardSheetProps) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,6 +140,15 @@ export function MoveCardSheet({
       return;
     }
     setError(null);
+    // Notify the caller synchronously — they can apply optimistic UI
+    // (Sub-build D Item 17) before the server action round-trip.
+    onPickStart?.(option);
+    // Close the sheet immediately. Combined with optimistic UI in the
+    // caller, the user gets instant feedback rather than watching the
+    // sheet hang while the server settles. On error, onError fires and
+    // the caller rolls back; the sheet stays closed so the error toast
+    // is the only surfaced affordance.
+    setOpen(false);
     startTransition(async () => {
       const result = await moveCardAction({
         requestId,
@@ -133,10 +159,11 @@ export function MoveCardSheet({
         afterRequestId: null,
       });
       if (result.ok) {
-        setOpen(false);
         onSuccess?.(option);
       } else {
-        setError(result.error ?? 'Could not move the card — try again.');
+        const message = result.error ?? 'Could not move the card — try again.';
+        setError(message);
+        onError?.(option, message);
       }
     });
   }

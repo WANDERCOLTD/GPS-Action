@@ -30,7 +30,7 @@ const pillStyle: CSSProperties = {
   right: 'var(--space-6)',
   display: 'flex',
   alignItems: 'stretch',
-  height: 56,
+  height: 64,
   borderRadius: 'var(--radius-pill)',
   background: 'var(--colour-primary)',
   color: 'var(--colour-primary-contrast)',
@@ -41,8 +41,10 @@ const pillStyle: CSSProperties = {
 
 const halfBase: CSSProperties = {
   display: 'flex',
+  flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
+  gap: 2,
   background: 'transparent',
   border: 'none',
   color: 'inherit',
@@ -54,13 +56,22 @@ const halfBase: CSSProperties = {
 
 const primaryHalfStyle: CSSProperties = {
   ...halfBase,
-  flex: '0 0 78px',
+  flex: '0 0 84px',
 };
 
 const pasteHalfStyle: CSSProperties = {
   ...halfBase,
-  flex: '0 0 56px',
-  borderLeft: '1px solid color-mix(in srgb, var(--colour-primary-contrast) 25%, transparent)',
+  flex: '0 0 64px',
+  borderLeft: '1px solid color-mix(in oklch, currentColor 50%, transparent)',
+};
+
+const captionStyle: CSSProperties = {
+  fontSize: 10,
+  fontFamily: 'var(--font-ui)',
+  fontWeight: 600,
+  lineHeight: 1,
+  letterSpacing: '0.02em',
+  color: 'color-mix(in oklch, currentColor 85%, transparent)',
 };
 
 export function IntentFab() {
@@ -81,19 +92,27 @@ export function IntentFab() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Create a post"
+          title="Create a post"
           data-testid="intent-fab-button-primary"
           style={primaryHalfStyle}
         >
-          <Plus size={26} aria-hidden="true" strokeWidth={2.5} />
+          <Plus size={24} aria-hidden="true" strokeWidth={2.5} />
+          <span data-testid="intent-fab-caption-primary" style={captionStyle}>
+            Post
+          </span>
         </button>
         <button
           type="button"
           onClick={handlePaste}
           aria-label="Paste from clipboard"
+          title="Paste a link"
           data-testid="intent-fab-button-paste"
           style={pasteHalfStyle}
         >
-          <ClipboardPaste size={22} aria-hidden="true" />
+          <ClipboardPaste size={20} aria-hidden="true" />
+          <span data-testid="intent-fab-caption-paste" style={captionStyle}>
+            Paste
+          </span>
         </button>
       </div>
       <IntentFabSheet open={open} onClose={() => setOpen(false)} />
