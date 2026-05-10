@@ -21,25 +21,27 @@ import {
 } from '@/components/board/MoveCardSheet';
 
 describe('paletteForActiveIndex', () => {
-  it('returns the position-based palette (yellow → blue → brand → green)', () => {
-    expect(paletteForActiveIndex(0).tint).toBe('var(--colour-warning)');
-    expect(paletteForActiveIndex(1).tint).toBe('var(--colour-info)');
-    expect(paletteForActiveIndex(2).tint).toBe('var(--colour-primary)');
-    expect(paletteForActiveIndex(3).tint).toBe('var(--colour-success)');
+  // Post-BU-board-palette: the palette delegates to the centralised
+  // card-tint tokens in `shared/styles/pastel-palette`. The CSS still
+  // resolves to amber → lavender → sky → mint at runtime — the
+  // indirection just moves into the token layer so /network can reuse
+  // the same source.
+  it('returns the position-keyed accent vars (1 → 2 → 3 → 4)', () => {
+    expect(paletteForActiveIndex(0).tint).toBe('var(--colour-card-accent-1)');
+    expect(paletteForActiveIndex(1).tint).toBe('var(--colour-card-accent-2)');
+    expect(paletteForActiveIndex(2).tint).toBe('var(--colour-card-accent-3)');
+    expect(paletteForActiveIndex(3).tint).toBe('var(--colour-card-accent-4)');
   });
 
-  it('falls back to neutral beyond index 3', () => {
-    expect(paletteForActiveIndex(4).tint).toBe('var(--colour-text-secondary)');
-    expect(paletteForActiveIndex(99).tint).toBe('var(--colour-text-secondary)');
+  it('falls back to the neutral default beyond index 3', () => {
+    expect(paletteForActiveIndex(4).tint).toBe('var(--colour-card-accent-default)');
+    expect(paletteForActiveIndex(99).tint).toBe('var(--colour-card-accent-default)');
   });
 
-  it('builds bg as a 14% color-mix of the same token', () => {
-    expect(paletteForActiveIndex(0).bg).toBe(
-      'color-mix(in srgb, var(--colour-warning) 14%, transparent)',
-    );
-    expect(paletteForActiveIndex(3).bg).toBe(
-      'color-mix(in srgb, var(--colour-success) 14%, transparent)',
-    );
+  it('uses the matching tint var for bg', () => {
+    expect(paletteForActiveIndex(0).bg).toBe('var(--colour-card-tint-1)');
+    expect(paletteForActiveIndex(3).bg).toBe('var(--colour-card-tint-4)');
+    expect(paletteForActiveIndex(4).bg).toBe('var(--colour-card-tint-default)');
   });
 });
 
