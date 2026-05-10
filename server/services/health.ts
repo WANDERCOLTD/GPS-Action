@@ -34,3 +34,47 @@ export async function pingDatabase(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Three discrete states for the Supabase upstream:
+ *   - 'ok'             — REST returned 2xx
+ *   - 'config-missing' — SUPABASE_URL / SUPABASE_ANON_KEY env unset
+ *   - 'unreachable'    — REST returned non-2xx, network error, timeout
+ *
+ * The split matters operationally: 'config-missing' is "fix env vars
+ * in Vercel"; 'unreachable' is "Grant's pipe is down or the anon key
+ * is wrong". The Network feed silently degrades to an empty list on
+ * both — the distinction lives here so the readiness probe can name
+ * which one is happening without a code dive.
+ */
+export type SupabasePingState = 'ok' | 'config-missing' | 'unreachable';
+
+/**
+ * Probes the Supabase view with the cheapest possible query
+ * (`limit=1`, single column). Bounded by an explicit 3s timeout so
+ * a slow upstream can't drag /readyz into 503 territory the loadbal
+ * uses to drain instances.
+ */
+export async function pingSupabase(): Promise<SupabasePingState> {
+  const url = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+  if (!url || !anonKey) return 'config-missing';
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
+  try {
+    const res = await fetch(`${url}/rest/v1/gps_group_messages?select=id&limit=1`, {
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        Accept: 'application/json',
+      },
+      signal: controller.signal,
+    });
+    return res.ok ? 'ok' : 'unreachable';
+  } catch {
+    return 'unreachable';
+  } finally {
+    clearTimeout(timeout);
+  }
+}
