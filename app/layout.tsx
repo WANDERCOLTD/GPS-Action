@@ -28,6 +28,7 @@ import { DevBannerToggle } from '@/components/DevBannerToggle';
 import { DevBannerWrapper } from '@/components/DevBannerWrapper';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { IntentFab } from '@/components/IntentFab';
+import { KeyboardShortcuts } from '@/components/KeyboardShortcuts';
 import { VersionBadge } from '@/components/VersionBadge';
 import { DemoBanner } from '@/components/DemoBanner';
 import { createTRPCContext } from '@/server/routers/context';
@@ -153,6 +154,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           {children}
         </ErrorBoundary>
         {ctx.user && <IntentFab />}
+        {ctx.user && <KeyboardShortcuts />}
         <VersionBadge />
       </body>
     </html>

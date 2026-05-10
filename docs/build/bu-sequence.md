@@ -143,6 +143,7 @@ by hand — run `npm run trackers`):
 - **bu-vercel-prep** _[high]_ — bu-vercel-prep
 - **bu-broadcast** _[medium]_ — bu-broadcast
 - **bu-drafts-inbox** _[medium]_ — bu-drafts-inbox
+- **bu-keyboard-shortcuts** (in flight) _[medium]_ — bu-keyboard-shortcuts
 - **bu-post-share-counter** _[medium]_ — bu-post-share-counter
 - **bu-reviewer-kind-review-queue** _[medium]_ — bu-reviewer-kind-review-queue
 - **bu-composer-link-first** _[low]_ — BU-composer-link-first
