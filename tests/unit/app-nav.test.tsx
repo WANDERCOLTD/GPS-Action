@@ -344,4 +344,33 @@ describe('AppNav', () => {
     expect(dot?.props['data-count']).toBe(7);
     expect(dot?.props['aria-label']).toBe('7 unread notifications');
   });
+
+  // ── BU-network-feed (D083) — Network tab gated by `network_feed` ────────
+
+  it('omits the Network tab when networkFeedEnabled is false (default)', () => {
+    usePathnameMock.mockReturnValue('/feed');
+    const tree = AppNav({}) as AnyElement;
+    expect(findByTestId(tree, 'nav-network-link')).toBeUndefined();
+  });
+
+  it('renders the Network tab when networkFeedEnabled is true', () => {
+    usePathnameMock.mockReturnValue('/feed');
+    const tree = AppNav({ networkFeedEnabled: true }) as AnyElement;
+    const link = findByTestId(tree, 'nav-network-link');
+    expect(link).toBeDefined();
+    expect(link?.props.href).toBe('/network');
+    expect(link?.props['aria-label']).toBe('Network');
+  });
+
+  it.each([
+    ['/network', true],
+    ['/network/something', true],
+    ['/feed', false],
+  ])('lights the Network tab on %s = %s', (pathname, expected) => {
+    usePathnameMock.mockReturnValue(pathname);
+    const tree = AppNav({ networkFeedEnabled: true }) as AnyElement;
+    const link = findByTestId(tree, 'nav-network-link');
+    expect(link).toBeDefined();
+    expect(isActive(link)).toBe(expected);
+  });
 });

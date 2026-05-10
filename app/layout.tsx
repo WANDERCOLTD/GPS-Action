@@ -84,11 +84,13 @@ function RootErrorFallback() {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const ctx = await createTRPCContext();
 
-  const [calendarEnabled, coordBoardEnabled] = await Promise.all([
+  const [calendarEnabled, coordBoardEnabled, networkFeedEnabled] = await Promise.all([
     // BU-calendar-view / D073 — Calendar tab gated by `calendar_enabled`.
     isFeatureEnabled('calendar_enabled'),
     // BU-coordination-board — Board tab gated by `coord_board_v1`.
     isFeatureEnabled('coord_board_v1'),
+    // BU-network-feed / D083 — Network tab gated by `network_feed`.
+    isFeatureEnabled('network_feed'),
   ]);
 
   // Unread badge source switches by flag: kanban callers reach the new
@@ -139,6 +141,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   unreadNotificationCount={unreadNotificationCount}
                   calendarEnabled={calendarEnabled}
                   coordBoardEnabled={coordBoardEnabled}
+                  networkFeedEnabled={networkFeedEnabled}
                 />
                 <DevBannerToggle enabled={process.env.NODE_ENV !== 'production' || isDemoMode()} />
                 <HeaderRefreshButton />
