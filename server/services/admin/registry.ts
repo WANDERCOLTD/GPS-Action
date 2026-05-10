@@ -54,6 +54,13 @@ export interface EntityRegistryEntry {
   /** Read operations — always present. */
   list(args: AdminListArgs): Promise<AdminListResult>;
   get(args: AdminGetArgs): Promise<AdminRow | null>;
+  /**
+   * Full Prisma row + curated relation includes for the audit
+   * before/after snapshot. Required so adding an entity is a single
+   * registration: forgetting this would only surface at runtime
+   * when an admin toggled a row, not at type-check time.
+   */
+  getRaw(args: { id: string }): Promise<Record<string, unknown> | null>;
   /** Mutations — absence means the procedure must reject. */
   create?(args: AdminMutationArgs & { actorId: string }): Promise<{ id: string }>;
   update?(args: AdminUpdateArgs & { actorId: string }): Promise<{ id: string }>;
@@ -183,6 +190,9 @@ const userEntry: EntityRegistryEntry = {
     if (!row) return null;
     return flattenRowForColumns(row as Record<string, unknown>, m.listColumns);
   },
+  async getRaw({ id }) {
+    return (await prisma.user.findUnique({ where: { id } })) as Record<string, unknown> | null;
+  },
   async create({ data }) {
     const parsed = userCreateSchema.parse(data);
     const created = await prisma.user.create({
@@ -298,6 +308,9 @@ const postEntry: EntityRegistryEntry = {
     });
     if (!row) return null;
     return flattenRowForColumns(row as Record<string, unknown>, m.listColumns);
+  },
+  async getRaw({ id }) {
+    return (await prisma.post.findUnique({ where: { id } })) as Record<string, unknown> | null;
   },
   async create({ data }) {
     const parsed = postCreateSchema.parse(data);
@@ -415,6 +428,12 @@ const regionEntry: EntityRegistryEntry = {
     });
     if (!row) return null;
     return flattenRowForColumns(row as Record<string, unknown>, m.listColumns);
+  },
+  async getRaw({ id }) {
+    return (await prisma.region.findUnique({
+      where: { id },
+      include: { parent: { select: { id: true, displayName: true, slug: true } } },
+    })) as Record<string, unknown> | null;
   },
   async create({ data }) {
     const parsed = regionCreateSchema.parse(data);
@@ -536,6 +555,12 @@ const groupEntry: EntityRegistryEntry = {
     });
     if (!row) return null;
     return flattenRowForColumns(row as Record<string, unknown>, m.listColumns);
+  },
+  async getRaw({ id }) {
+    return (await prisma.group.findUnique({
+      where: { id },
+      include: { createdBy: { select: { id: true, displayName: true } } },
+    })) as Record<string, unknown> | null;
   },
   async create({ data, actorId }) {
     const parsed = groupCreateSchema.parse(data);
@@ -666,6 +691,16 @@ const roleGrantEntry: EntityRegistryEntry = {
     if (!row) return null;
     return flattenRowForColumns(row as Record<string, unknown>, m.listColumns);
   },
+  async getRaw({ id }) {
+    return (await prisma.roleGrant.findUnique({
+      where: { id },
+      include: {
+        user: { select: { id: true, displayName: true } },
+        grantedBy: { select: { id: true, displayName: true } },
+        revokedBy: { select: { id: true, displayName: true } },
+      },
+    })) as Record<string, unknown> | null;
+  },
   async create({ data, actorId }) {
     const parsed = roleGrantCreateSchema.parse(data);
     return prisma.roleGrant.create({
@@ -757,6 +792,16 @@ const groupMembershipEntry: EntityRegistryEntry = {
     });
     if (!row) return null;
     return flattenRowForColumns(row as Record<string, unknown>, m.listColumns);
+  },
+  async getRaw({ id }) {
+    return (await prisma.groupMembership.findUnique({
+      where: { id },
+      include: {
+        user: { select: { id: true, displayName: true } },
+        group: { select: { id: true, displayName: true, slug: true } },
+        approvedBy: { select: { id: true, displayName: true } },
+      },
+    })) as Record<string, unknown> | null;
   },
   async create({ data }) {
     const parsed = groupMembershipCreateSchema.parse(data);
@@ -928,6 +973,16 @@ const featureFlagEntry: EntityRegistryEntry = {
     if (!row) return null;
     return flattenRowForColumns(row as Record<string, unknown>, m.listColumns);
   },
+  async getRaw({ id }) {
+    return (await prisma.featureFlag.findUnique({
+      where: { id },
+      include: {
+        owner: { select: { id: true, displayName: true } },
+        createdBy: { select: { id: true, displayName: true } },
+        updatedBy: { select: { id: true, displayName: true } },
+      },
+    })) as Record<string, unknown> | null;
+  },
   async create({ data, actorId }) {
     const parsed = featureFlagCreateSchema.parse(data);
     return prisma.featureFlag.create({
@@ -1017,6 +1072,15 @@ const auditLogEntry: EntityRegistryEntry = {
     if (!row) return null;
     return flattenRowForColumns(row as Record<string, unknown>, m.listColumns);
   },
+  async getRaw({ id }) {
+    return (await prisma.auditLog.findUnique({
+      where: { id },
+      include: {
+        user: { select: { id: true, displayName: true } },
+        targetUser: { select: { id: true, displayName: true } },
+      },
+    })) as Record<string, unknown> | null;
+  },
 };
 
 // KanbanEventConfig ------------------------------------------------------
@@ -1064,6 +1128,12 @@ const kanbanEventConfigEntry: EntityRegistryEntry = {
     });
     if (!row) return null;
     return flattenRowForColumns(row as Record<string, unknown>, m.listColumns);
+  },
+  async getRaw({ id }) {
+    return (await prisma.kanbanEventConfig.findUnique({
+      where: { id },
+      include: { updatedBy: { select: { id: true, displayName: true } } },
+    })) as Record<string, unknown> | null;
   },
   async update({ id, data, actorId }) {
     const parsed = kanbanEventConfigUpdateSchema.parse(data);
