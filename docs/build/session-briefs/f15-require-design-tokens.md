@@ -1,6 +1,7 @@
 ---
 slug: f15-require-design-tokens
 status: shipped
+shipped_in: '#26'
 phase: 0
 ---
 # SESSION BRIEF · F15 — Enforce design token usage

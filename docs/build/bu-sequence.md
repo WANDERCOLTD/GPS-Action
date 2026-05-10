@@ -60,7 +60,6 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-composer** — BU-composer | ✅ Merged | — |
 | **bu-icon-strips** — bu-icon-strips | ✅ Merged | — |
 | **bu-postcode-or-place** — bu-postcode-or-place | ✅ Merged | — |
-| **f15-require-design-tokens** — F15 | ✅ Merged | — |
 | **erd-slice-1** — ERD Slice 1 | ✅ Merged | #1 |
 | **f06-eslint-rules** — F06 | ✅ Merged | #2 |
 | **erd-slice-1-5** — ERD Slice 1.5 | ✅ Merged | #4 |
@@ -69,6 +68,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 | **bu-001-lite** — BU-001-lite | ✅ Merged | #10 |
 | **bu-feed** — BU-feed | ✅ Merged | #13 |
 | **f13-require-spec-tag** — F13 | ✅ Merged | #18 |
+| **f15-require-design-tokens** — F15 | ✅ Merged | #26 |
 | **f14-require-testid** — F14 | ✅ Merged | #43 |
 | **bu-reactions** — BU-reactions | ✅ Merged | #46 |
 | **bu-comments** — BU-comments | ✅ Merged | #52 |
