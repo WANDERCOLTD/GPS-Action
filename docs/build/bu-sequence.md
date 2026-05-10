@@ -57,6 +57,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 <!-- AUTOGEN:shipped:start -->
 | Brief | Status | PR |
 |---|---|---|
+| **BU-board-palette** — bu-board-palette | ✅ Merged | #PR_PLACEHOLDER |
 | **bu-composer** — BU-composer | ✅ Merged | — |
 | **bu-icon-strips** — bu-icon-strips | ✅ Merged | — |
 | **bu-postcode-or-place** — bu-postcode-or-place | ✅ Merged | — |
