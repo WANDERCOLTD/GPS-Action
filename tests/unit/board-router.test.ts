@@ -22,6 +22,7 @@ vi.mock('@/server/services/board', async (importOriginal) => {
     setRequestStatus: vi.fn(),
     listBoardCardsForGroup: vi.fn(),
     getTicketDetail: vi.fn(),
+    deleteRequest: vi.fn(),
   };
 });
 
@@ -40,7 +41,7 @@ vi.mock('@/server/services/group-kanban', async (importOriginal) => {
 import { createCaller } from '@/server/routers/_app';
 import type { TRPCContext } from '@/server/lib/trpc';
 import * as boardSvc from '@/server/services/board';
-import { BoardError } from '@/server/services/board';
+import { BoardError, DeleteRequestError } from '@/server/services/board';
 import * as assignmentsSvc from '@/server/services/assignments';
 import * as groupKanbanSvc from '@/server/services/group-kanban';
 import { GroupAccessError } from '@/server/services/group-kanban';
@@ -49,6 +50,7 @@ const mockMoveCard = vi.mocked(boardSvc.moveCard);
 const mockSetStatus = vi.mocked(boardSvc.setRequestStatus);
 const mockListCards = vi.mocked(boardSvc.listBoardCardsForGroup);
 const mockGetTicket = vi.mocked(boardSvc.getTicketDetail);
+const mockDeleteRequest = vi.mocked(boardSvc.deleteRequest);
 const mockIsAssignee = vi.mocked(assignmentsSvc.isAssigneeActive);
 const mockAssertView = vi.mocked(groupKanbanSvc.assertCanViewBoard);
 
@@ -148,6 +150,7 @@ describe('board.getTicket', () => {
     urgency: false,
     kindSlug: null,
     kindDisplayName: null,
+    createdByUserId: 'u-author',
     assignees: [],
     subscribers: [],
     groups: [
@@ -162,6 +165,7 @@ describe('board.getTicket', () => {
     ],
     createdAt: new Date(),
     updatedAt: new Date(),
+    lastActivityAt: new Date(),
   };
 
   it('rejects unauthenticated', async () => {
@@ -346,5 +350,49 @@ describe('board.setStatus', () => {
     mockSetStatus.mockRejectedValue(new BoardError('request_not_found', 'missing'));
     const caller = createCaller(authedContext());
     await expect(caller.board.setStatus(setInput)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+});
+
+describe('board.delete (Item 13 — bu-ticket-view-fixes Sub-build B)', () => {
+  const deleteInput = { requestId: 'r1' };
+  const stubResult = {
+    title: 'My ticket',
+    originatingGroupId: 'g1',
+    status: 'active' as const,
+  };
+
+  it('rejects unauthenticated', async () => {
+    const caller = createCaller(publicContext());
+    await expect(caller.board.delete(deleteInput)).rejects.toBeInstanceOf(TRPCError);
+  });
+
+  it('passes actorId + isSystemAdmin to the service', async () => {
+    mockDeleteRequest.mockResolvedValue(stubResult);
+    const caller = createCaller(authedContext(['admin']));
+    await caller.board.delete(deleteInput);
+    expect(mockDeleteRequest).toHaveBeenCalledWith({
+      requestId: 'r1',
+      actorId: 'u1',
+      isSystemAdmin: true,
+    });
+  });
+
+  it('returns the service result shape (title + originatingGroupId + status)', async () => {
+    mockDeleteRequest.mockResolvedValue(stubResult);
+    const caller = createCaller(authedContext());
+    const result = await caller.board.delete(deleteInput);
+    expect(result).toEqual(stubResult);
+  });
+
+  it("maps DeleteRequestError('forbidden') → FORBIDDEN", async () => {
+    mockDeleteRequest.mockRejectedValue(new DeleteRequestError('forbidden', 'nope'));
+    const caller = createCaller(authedContext());
+    await expect(caller.board.delete(deleteInput)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it("maps DeleteRequestError('request_not_found') → NOT_FOUND", async () => {
+    mockDeleteRequest.mockRejectedValue(new DeleteRequestError('request_not_found', 'missing'));
+    const caller = createCaller(authedContext());
+    await expect(caller.board.delete(deleteInput)).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 });

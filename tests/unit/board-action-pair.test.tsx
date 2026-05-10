@@ -183,3 +183,55 @@ describe('BoardActionPair — interactions', () => {
     expect(followBtn(tree)?.props.disabled).toBe(true);
   });
 });
+
+describe('BoardActionPair — Item 2 regression (Unfollow does not unassign)', () => {
+  // Per the brief: Item 1's structural separation of Assign-controls
+  // (now in the Assignees panel) from Follow-controls removes the
+  // misclick path that produced the original symptom. This test stays
+  // as a ratchet so a future refactor that re-shares state between
+  // the two action wires is caught at PR review.
+  //
+  // The original report: "Unfollow sometimes also Unassigns me." With
+  // `assigned: true, following: true`, clicking the Follow button
+  // (rendered as 'Unfollow') must invoke ONLY `unfollowSelfAction`
+  // and never `unassignSelfAction`.
+  it('clicking Unfollow when both assigned + following calls only unfollow', () => {
+    const tree = BoardActionPair({
+      ...baseProps,
+      assigned: true,
+      following: true,
+    }) as AnyElement;
+
+    // Sanity: the button reads 'Unfollow' in this state.
+    expect(followBtn(tree)?.props.children).toContain('Unfollow');
+
+    (followBtn(tree)?.props.onClick as () => void)();
+
+    expect(unfollowSpy).toHaveBeenCalledTimes(1);
+    expect(unfollowSpy).toHaveBeenCalledWith({ requestId: 'r1', groupSlug: 'writers' });
+    expect(unassignSpy).not.toHaveBeenCalled();
+    expect(assignSpy).not.toHaveBeenCalled();
+    expect(followSpy).not.toHaveBeenCalled();
+  });
+
+  it('clicking Unassign when both assigned + following calls only unassign', () => {
+    // Symmetric assertion: the assign button does not invoke the
+    // follow path. Catches the inverse regression — a future refactor
+    // that wires unfollow into the assign click path.
+    const tree = BoardActionPair({
+      ...baseProps,
+      assigned: true,
+      following: true,
+    }) as AnyElement;
+
+    expect(assignBtn(tree)?.props.children).toContain('Unassign');
+
+    (assignBtn(tree)?.props.onClick as () => void)();
+
+    expect(unassignSpy).toHaveBeenCalledTimes(1);
+    expect(unassignSpy).toHaveBeenCalledWith({ requestId: 'r1', groupSlug: 'writers' });
+    expect(unfollowSpy).not.toHaveBeenCalled();
+    expect(assignSpy).not.toHaveBeenCalled();
+    expect(followSpy).not.toHaveBeenCalled();
+  });
+});

@@ -32,6 +32,7 @@ import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
 import { positionBetween } from '@/server/services/board';
 import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
+import { touchRequestActivity } from '@/server/services/request-activity';
 
 export type ShareMode = 'workflow' | 'ad_hoc';
 
@@ -226,6 +227,9 @@ export async function shareRequestToGroup(
   });
 
   if (result.created || result.reactivated) {
+    // ADR-0015 — share-to-team is a visible-activity event.
+    await touchRequestActivity(prisma, input.requestId);
+
     await auditLog({
       action: result.reactivated ? 'request_group_reshared' : 'request_group_shared',
       entityType: 'RequestGroup',
@@ -282,6 +286,9 @@ export async function unshareRequestFromGroup(
     data: { deletedAt: new Date() },
   });
 
+  // ADR-0015 — unshare-from-team is a visible-activity event.
+  await touchRequestActivity(prisma, input.requestId);
+
   await auditLog({
     action: 'request_group_unshared',
     entityType: 'RequestGroup',
@@ -311,6 +318,46 @@ export async function listGroupsForRequest(
     orderBy: { createdAt: 'asc' },
   });
   return rows.map(({ group, ...link }) => ({ group, link }));
+}
+
+/**
+ * Detect whether a viewer lost access to a Request by way of a
+ * soft-deleted RequestGroup link in their viewing group.
+ *
+ * Returns:
+ *   - `null` when the Request doesn't exist (or is soft-deleted) —
+ *     the caller should treat this as a true 404.
+ *   - `{ status, accessLost: false }` when the link is still active —
+ *     no redirect needed; viewer can see the ticket.
+ *   - `{ status, accessLost: true }` when the Request still exists
+ *     but the link to `viewerGroupId` is soft-deleted — caller should
+ *     redirect the viewer to their own group's matching lifecycle
+ *     list rather than rendering a 404 / 403.
+ *
+ * Used by the ticket-detail page to gracefully handle "the share was
+ * just removed while I had it open" per Item 4 of bu-ticket-view-fixes
+ * (Sub-build B). Reads the Request's status so the page can pick the
+ * right list (Backlog / Active / Done).
+ */
+export async function checkAccessLossOnUnshare(
+  requestId: string,
+  viewerGroupId: string,
+): Promise<{ status: string; accessLost: boolean } | null> {
+  const request = await prisma.request.findFirst({
+    where: { id: requestId, deletedAt: null },
+    select: { status: true },
+  });
+  if (!request) return null;
+
+  const link = await prisma.requestGroup.findUnique({
+    where: { requestId_groupId: { requestId, groupId: viewerGroupId } },
+    select: { deletedAt: true },
+  });
+  // Active link OR no link at all (true 404 — caller never had a share)
+  // both fall through to "not access loss." Only a soft-deleted link
+  // means "you used to be able to see this; the share was just removed."
+  const accessLost = link !== null && link.deletedAt !== null;
+  return { status: request.status, accessLost };
 }
 
 // ─── GroupShareWorkflow ──────────────────────────────────────────────────────

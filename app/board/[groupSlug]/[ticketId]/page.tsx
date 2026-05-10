@@ -35,6 +35,8 @@ import { CommentNoteThread } from '@/components/board/CommentNoteThread';
 import { UrgentToggle } from '@/components/board/UrgentToggle';
 import { CardLifecycleActions } from '@/components/board/CardLifecycleActions';
 import { ShareWithTeamButton } from '@/components/board/ShareWithTeamButton';
+import { SharedWithStrip } from '@/components/board/SharedWithStrip';
+import { DeleteTicketButton } from '@/components/board/DeleteTicketButton';
 
 interface BoardTicketDetailPageProps {
   params: Promise<{ groupSlug: string; ticketId: string }>;
@@ -78,6 +80,27 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
     });
   } catch (err) {
     if (err instanceof TRPCError && err.code === 'NOT_FOUND') {
+      // The ticket might genuinely not exist (true 404) OR the
+      // viewer might have just lost access via unshare. Distinguish
+      // the two before deciding 404 vs graceful redirect (Item 4 of
+      // bu-ticket-view-fixes / Sub-build B). On access-loss we
+      // navigate to this group's matching lifecycle list with a
+      // toast hint in the query string.
+      const accessCheck = await caller.share
+        .checkAccessLoss({
+          requestId: ticketId,
+          groupId: accessibleGroup.group.id,
+        })
+        .catch(() => null);
+      if (accessCheck && accessCheck.accessLost) {
+        const lane =
+          accessCheck.status === 'backlog'
+            ? '/backlog'
+            : accessCheck.status === 'done'
+              ? '/done'
+              : '';
+        redirect(`/board/${groupSlug}${lane}?unshared=1`);
+      }
       notFound();
     }
     throw err;
@@ -91,6 +114,11 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
   // originating-team viewer or sysadmin; visibility filter for read
   // lives in the listForRequest service.
   const isSystemAdmin = ctx.activeRoles.includes('admin');
+  // Item 13 (Sub-build B): the Delete affordance is visible only to
+  // the originator or to a system admin. Server-side enforces the
+  // same gate on the mutation; the UI gate just hides the button.
+  const isOriginator = ticket.createdByUserId === viewerId;
+  const canDelete = isOriginator || isSystemAdmin;
   const originatingGroup = ticket.groups.find((g) => g.origin === 'originating');
   const isOnOriginatingBoard = originatingGroup?.groupId === accessibleGroup.group.id;
   const canPostNote = isOnOriginatingBoard || isSystemAdmin;
@@ -203,6 +231,7 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
             variant="surface-2"
           />
         )}
+        {canDelete && <DeleteTicketButton requestId={ticket.id} groupSlug={groupSlug} />}
       </div>
 
       <section
@@ -317,47 +346,16 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
             gap: 'var(--space-2)',
           }}
         >
-          <ul
-            data-testid="board-ticket-shared-with-list"
-            style={{
-              listStyle: 'none',
-              padding: 0,
-              margin: 0,
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 'var(--space-2)',
-            }}
-          >
-            {ticket.groups.map((g) => (
-              <li
-                key={g.groupId}
-                data-testid="board-ticket-shared-with-pill"
-                data-origin={g.origin}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '4px 10px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--colour-surface-raised)',
-                  border: '1px solid var(--colour-border-subtle)',
-                  fontSize: 'var(--text-sm)',
-                }}
-              >
-                {g.displayName}
-                {g.origin === 'originating' && (
-                  <span
-                    style={{
-                      marginLeft: 'var(--space-1)',
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--colour-text-secondary)',
-                    }}
-                  >
-                    · originating
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
+          <SharedWithStrip
+            requestId={ticket.id}
+            groupSlug={groupSlug}
+            groups={ticket.groups.map((g) => ({
+              groupId: g.groupId,
+              slug: g.slug,
+              displayName: g.displayName,
+              origin: g.origin,
+            }))}
+          />
           <ShareWithTeamButton
             requestId={ticket.id}
             groupSlug={groupSlug}
@@ -409,7 +407,7 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
           borderTop: '1px solid var(--colour-border-subtle)',
         }}
       >
-        Last updated {formatDistanceToNow(ticket.updatedAt, { addSuffix: true })}
+        Last activity {formatDistanceToNow(ticket.lastActivityAt, { addSuffix: true })}
       </footer>
     </main>
   );

@@ -26,6 +26,7 @@
 import type { CommentKind, CommentSource } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
+import { touchRequestActivity } from '@/server/services/request-activity';
 
 export interface CommentThreadAuthor {
   id: string;
@@ -195,6 +196,9 @@ export async function createCommentForKanbanTicket(
     },
     select: { id: true },
   });
+
+  // ADR-0015 — comment / note posted is a visible-activity event.
+  await touchRequestActivity(prisma, input.requestId);
 
   await auditLog({
     action: input.kind === 'note' ? 'kanban_note.add' : 'kanban_comment.add',

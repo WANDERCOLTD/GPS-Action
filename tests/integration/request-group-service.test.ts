@@ -42,6 +42,8 @@ vi.mock('@/server/db/client', () => ({
     },
     request: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
     },
     boardColumn: {
       findFirst: vi.fn(),
@@ -65,6 +67,7 @@ import {
   shareRequestToGroup,
   unshareRequestFromGroup,
   listGroupsForRequest,
+  checkAccessLossOnUnshare,
   addShareWorkflow,
   removeShareWorkflow,
   listShareWorkflowTargets,
@@ -830,5 +833,44 @@ describe('ShareError', () => {
     const e = new ShareError('workflow_required', 'msg');
     expect(e.kind).toBe('workflow_required');
     expect(e.name).toBe('ShareError');
+  });
+});
+
+describe('checkAccessLossOnUnshare (Item 4 — bu-ticket-view-fixes Sub-build B)', () => {
+  it('returns null when the request does not exist', async () => {
+    vi.mocked(prisma.request.findFirst).mockResolvedValue(null);
+    const result = await checkAccessLossOnUnshare('rX', 'g1');
+    expect(result).toBeNull();
+    expect(mockedRequestGroup.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('returns null when the request is soft-deleted (findFirst filters)', async () => {
+    // Service narrows on `deletedAt: null`, so the mock returning null
+    // covers both "missing" and "soft-deleted" — same caller behaviour.
+    vi.mocked(prisma.request.findFirst).mockResolvedValue(null);
+    expect(await checkAccessLossOnUnshare('r1', 'g1')).toBeNull();
+  });
+
+  it('returns accessLost: false when the link is still active', async () => {
+    vi.mocked(prisma.request.findFirst).mockResolvedValue({ status: 'active' } as never);
+    mockedRequestGroup.findUnique.mockResolvedValue({ deletedAt: null } as never);
+    const result = await checkAccessLossOnUnshare('r1', 'g1');
+    expect(result).toEqual({ status: 'active', accessLost: false });
+  });
+
+  it('returns accessLost: false when no link ever existed (true 404 from caller view)', async () => {
+    vi.mocked(prisma.request.findFirst).mockResolvedValue({ status: 'backlog' } as never);
+    mockedRequestGroup.findUnique.mockResolvedValue(null);
+    const result = await checkAccessLossOnUnshare('r1', 'g1');
+    expect(result).toEqual({ status: 'backlog', accessLost: false });
+  });
+
+  it('returns accessLost: true when the link is soft-deleted (the unshare path)', async () => {
+    vi.mocked(prisma.request.findFirst).mockResolvedValue({ status: 'done' } as never);
+    mockedRequestGroup.findUnique.mockResolvedValue({
+      deletedAt: new Date('2026-05-09'),
+    } as never);
+    const result = await checkAccessLossOnUnshare('r1', 'g1');
+    expect(result).toEqual({ status: 'done', accessLost: true });
   });
 });

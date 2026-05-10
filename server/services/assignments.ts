@@ -27,6 +27,7 @@ import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
 import { moveCard } from '@/server/services/board';
 import { emitKanbanSystemEvent } from '@/server/services/kanban-system-events';
+import { touchRequestActivity } from '@/server/services/request-activity';
 
 export interface AssigneeSummary {
   userId: string;
@@ -106,6 +107,9 @@ export async function assignToRequest(
   });
 
   if (result.created || result.reactivated) {
+    // ADR-0015 — assignment add (or reactivate) is a visible-activity event.
+    await touchRequestActivity(prisma, requestId);
+
     await auditLog({
       action: result.reactivated ? 'assignment_reactivated' : 'assignment_created',
       entityType: 'Assignment',
@@ -202,6 +206,9 @@ export async function unassign(input: UnassignInput): Promise<Assignment | null>
     where: { id: existing.id },
     data: { unassignedAt: new Date() },
   });
+
+  // ADR-0015 — assignment removal is a visible-activity event.
+  await touchRequestActivity(prisma, requestId);
 
   await auditLog({
     action: 'assignment_unassigned',

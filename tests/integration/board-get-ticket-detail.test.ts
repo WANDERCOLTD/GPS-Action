@@ -69,6 +69,7 @@ describe('getTicketDetail', () => {
       urgency: true,
       createdAt: new Date('2026-05-01'),
       updatedAt: new Date('2026-05-04'),
+      lastActivityAt: new Date('2026-05-06'),
       kind: { slug: 'task', displayName: 'Task' },
       assignments: [
         {
@@ -139,6 +140,7 @@ describe('getTicketDetail', () => {
       ],
       createdAt: new Date('2026-05-01'),
       updatedAt: new Date('2026-05-04'),
+      lastActivityAt: new Date('2026-05-06'),
     });
   });
 
@@ -152,6 +154,7 @@ describe('getTicketDetail', () => {
       urgency: false,
       createdAt: new Date(),
       updatedAt: new Date(),
+      lastActivityAt: new Date(),
       kind: null,
       assignments: [],
       subscriptions: [],
