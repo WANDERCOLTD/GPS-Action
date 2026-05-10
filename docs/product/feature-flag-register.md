@@ -24,12 +24,13 @@
 
 ## Active flags
 
-| Name               | Purpose | Default (prod)         | Default (dev) | TTL / owner     | Notes                                                                                                |
-| ------------------ | ------- | ---------------------- | ------------- | --------------- | ---------------------------------------------------------------------------------------------------- |
-| `ff_reactions`     | rollout | enabled (post-rollout) | ON            | TTL: 2026-09-01 | Quiet, multi-select reactions on posts. BU-reactions / D050. Live since BU-reactions shipped.        |
-| `ff_comments`      | rollout | enabled (post-rollout) | ON            | TTL: 2026-09-01 | Post-detail page + flat comment thread. BU-comments / D052. Live since BU-comments shipped.          |
-| `calendar_enabled` | rollout | OFF                    | ON            | TTL: 2026-10-30 | Calendar tab + agenda + month surfaces. BU-calendar-view (downstream of BU-event-time / D073).       |
-| `coord_board_v1`   | rollout | OFF                    | OFF           | TTL: 2026-11-03 | Board tab in `AppNav` + `/board` placeholder. BU-coordination-board (planned, Direction A — kanban). |
+| Name               | Purpose | Default (prod)         | Default (dev) | TTL / owner     | Notes                                                                                                              |
+| ------------------ | ------- | ---------------------- | ------------- | --------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `ff_reactions`     | rollout | enabled (post-rollout) | ON            | TTL: 2026-09-01 | Quiet, multi-select reactions on posts. BU-reactions / D050. Live since BU-reactions shipped.                      |
+| `ff_comments`      | rollout | enabled (post-rollout) | ON            | TTL: 2026-09-01 | Post-detail page + flat comment thread. BU-comments / D052. Live since BU-comments shipped.                        |
+| `calendar_enabled` | rollout | OFF                    | ON            | TTL: 2026-10-30 | Calendar tab + agenda + month surfaces. BU-calendar-view (downstream of BU-event-time / D073).                     |
+| `coord_board_v1`   | rollout | OFF                    | OFF           | TTL: 2026-11-03 | Board tab in `AppNav` + `/board` placeholder. BU-coordination-board (planned, Direction A — kanban).               |
+| `network_feed`     | rollout | OFF                    | OFF           | TTL: 2026-11-10 | `/network` surface — read-only feed of WhatsApp links from Grant (AIFA)'s pipe. BU-network-feed / ADR-0017 / D083. |
 
 ## Flag rationale
 
@@ -90,6 +91,37 @@
 - **Status:** rolled out, kept on. Same kill-switch rationale as
   `ff_reactions`.
 
+### `network_feed`
+
+- **Build unit:** BU-network-feed (consumes the flag). Brief at
+  `docs/build/session-briefs/bu-network-feed.md` — currently
+  `status: stub`, awaiting Paul's placement confirmation
+  (`/network` proposed) and Grant's column-shape verification
+  (`sender_hash` / `from_jid`).
+- **What it gates:** the `/network` route, the new nav entry in
+  `AppNav`, and the `network.list` / `network.setCardState` tRPC
+  procedures behind it. Schema (`NetworkCardState` per ADR-0017)
+  lands evergreen — empty tables on a flag-off DB are zero-cost.
+- **Default OFF in prod:** the surface reads an external pipe (Grant
+  /AIFA's Whapi → Supabase ingest); we want at least one coordinator
+  sign-off post-deploy before exposing the surface broadly. Pipe
+  health, anonymous-member UX, and triage-state behaviour all want
+  real-world eyeballs first.
+- **Default OFF in dev:** the upstream view sits on Grant's Supabase
+  project, not on local Postgres. Flipping ON in dev requires the
+  `SUPABASE_URL` / `SUPABASE_ANON_KEY` env wired to his project (see
+  `.env.example` once the build session lands them) — without those,
+  a dev render returns an empty list. Off-by-default avoids confusing
+  developers who haven't set up the credentials.
+- **TTL:** 2026-11-10 (six months from registration). Extends as the
+  BU progresses; removed when the surface is fully rolled out across
+  the coordinator population.
+- **Audit:** flag-flip rows captured in `audit_log` per D036 §7.
+- **Kill-switch posture:** if Grant's pipe goes down or returns
+  malformed rows, flipping the flag OFF removes the surface
+  immediately. The empty 5-min cache means worst-case staleness is
+  bounded.
+
 ## How to register a new flag
 
 1. Add a row to the **Active flags** table above with: name,
@@ -116,4 +148,6 @@ listed here with date + reason for the audit trail.)
 - D050 — BU-reactions (the first feature behind a flag)
 - D052 — BU-comments (the second)
 - D073 — BU-event-time (registers `calendar_enabled` for BU-calendar-view)
+- D083 — BU-network-feed (registers `network_feed`)
 - ADR-0001 — Structured event-time fields (the schema groundwork)
+- ADR-0017 — `NetworkCardState` (the own-side workflow-state schema gated by `network_feed`)

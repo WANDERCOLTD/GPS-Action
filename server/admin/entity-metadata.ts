@@ -249,6 +249,20 @@ export const entityMetadata: Record<string, EntityMetadataEntry> = {
     notes:
       'Reference data per D070 — nine event kinds seeded by migration 20260507100000. Toggling `enabled` decides whether the named kanban event writes a system-Comment row in the ticket thread. No backfill: flips affect future events only.',
   },
+
+  // ── bu-network-feed (ADR-0017, D083) ───────────────────────────────────────
+
+  networkCardState: {
+    displayField: 'messageId',
+    listColumns: ['messageId', 'status', 'ownerUser.displayName', 'updatedAt'],
+    searchableFields: ['messageId', 'notes'],
+    defaultSort: { updatedAt: 'desc' },
+    requiresRole: { view: 'queue_manager', edit: 'queue_manager' },
+    workflow: null,
+    softDelete: false,
+    notes:
+      "Workflow state for cards on /network. The cards themselves are read from Grant (AIFA)'s external Supabase view; this table owns the triage state on our side per ADR-0017. messageId is an opaque BigInt join key into the upstream view (no FK across providers). Rows are created lazily on first state mutation — no row = NEW status at read time.",
+  },
 };
 
 export type EntityKey = keyof typeof entityMetadata;
