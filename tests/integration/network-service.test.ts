@@ -193,6 +193,36 @@ describe('listNetworkCards', () => {
     expect(result.items[0]!.fromName).toBeNull();
     expect(result.items[0]!.senderHash).toBe('hash-anon');
   });
+
+  it('returns an empty list (does not throw) when SUPABASE_URL/ANON_KEY are missing', async () => {
+    const { SupabaseConfigError } = await import('@/server/lib/supabase');
+    const fetchUpstream = vi
+      .fn()
+      .mockRejectedValue(
+        new SupabaseConfigError(
+          'SUPABASE_URL and SUPABASE_ANON_KEY must be set. See .env.example.',
+        ),
+      );
+
+    const result = await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false },
+      { fetchUpstream },
+    );
+
+    expect(result.items).toEqual([]);
+    expect(result.nextCursor).toBeNull();
+    expect(result.fromCache).toBe(false);
+    expect(_networkCacheSize()).toBe(0);
+  });
+
+  it('propagates non-config errors (e.g. SupabaseFetchError) to the caller', async () => {
+    const { SupabaseFetchError } = await import('@/server/lib/supabase');
+    const fetchUpstream = vi.fn().mockRejectedValue(new SupabaseFetchError('upstream 503', 503));
+
+    await expect(
+      listNetworkCards({ limit: 50, windowDays: 90, refresh: false }, { fetchUpstream }),
+    ).rejects.toThrow('upstream 503');
+  });
 });
 
 describe('setNetworkCardState', () => {
