@@ -1,9 +1,10 @@
 ---
 slug: bu-group-identity
-status: ready
+status: shipped
+shipped_in: '#234'
 phase: 2
 priority: medium
-note: 'Substrate BU. Adds Group.colourKey + initials + <GroupBadge /> + 5 kind glyphs. Consumed by bu-board-gallery (next), and longer-term by feed bylines, comments, notifications, search. Decided 2026-05-05 in conversation with Paul; locked alongside bu-board-gallery.'
+note: 'Substrate BU. Adds Group.colourKey + initials + <GroupBadge /> + 5 kind glyphs. Consumed by bu-board-gallery (#246), and longer-term by feed bylines, comments, notifications, search. Decided 2026-05-05 in conversation with Paul; locked alongside bu-board-gallery.'
 ---
 
 # SESSION BRIEF · bu-group-identity — coloured group badges across the app

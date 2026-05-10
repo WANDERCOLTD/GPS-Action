@@ -1,6 +1,7 @@
 ---
 slug: bu-kanban-event-config
-status: ready
+status: shipped
+shipped_in: '#243'
 phase: 2
 priority: high
 note: 'Unblocks bu-coordination-board atom 5d-3 (system-event hook in the comment/note thread). Per Paul 2026-05-05: admin-controlled on/off per event kind, no backfill, future-only.'

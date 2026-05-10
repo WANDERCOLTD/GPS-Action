@@ -1,6 +1,7 @@
 ---
 slug: bu-admin-group-membership
-status: ready
+status: shipped
+shipped_in: '#293'
 phase: 2
 priority: high
 ---

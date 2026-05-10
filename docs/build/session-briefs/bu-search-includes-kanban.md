@@ -1,6 +1,7 @@
 ---
 slug: bu-search-includes-kanban
-status: ready
+status: shipped
+shipped_in: '#279'
 phase: 3
 priority: high
 ---
