@@ -17,6 +17,15 @@
  * `/server/services` — it's a pure HTTP edge talking to an external
  * Postgres-as-a-service. The service layer composes it with our
  * own state-row joins.
+ *
+ * Threat model (per Grant 2026-05-10): the boundary is grant scoping,
+ * not RLS. The anon role on Grant's project has SELECT only on
+ * `gps_group_messages` + `gps_chat_labels`, EXECUTE on
+ * `gps_ingest_whapi_webhook`, and nothing else. PostgREST returns
+ * `PGRST205` ("Could not find the table") for any other table —
+ * including agent-state — rather than an empty result. RLS exists as
+ * a backstop on agent-state tables in case grants are ever broadened,
+ * but it is not the GPS read-path boundary.
  */
 
 import type { NetworkCardStatusValue } from '@/shared/validation/network';
