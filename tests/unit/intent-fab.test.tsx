@@ -107,6 +107,36 @@ describe('IntentFab — split pill', () => {
     expect(paste?.props['aria-label']).toBe('Paste from clipboard');
   });
 
+  // Sub-build D Item 15 — clarity affordances: title attrs (desktop
+  // hover tooltips), visible captions (mobile/PWA where there's no
+  // hover), and a stronger divider so the pill reads as two buttons.
+  it('Item 15: each half carries a desktop title attribute', () => {
+    const tree = render();
+    const primary = findByTestId(tree, 'intent-fab-button-primary');
+    const paste = findByTestId(tree, 'intent-fab-button-paste');
+    expect(primary?.props.title).toBe('Create a post');
+    expect(paste?.props.title).toBe('Paste a link');
+  });
+
+  it('Item 15: each half renders a visible caption ("Post" / "Paste") for mobile', () => {
+    const tree = render();
+    const primaryCaption = findByTestId(tree, 'intent-fab-caption-primary');
+    const pasteCaption = findByTestId(tree, 'intent-fab-caption-paste');
+    expect(primaryCaption?.props.children).toBe('Post');
+    expect(pasteCaption?.props.children).toBe('Paste');
+  });
+
+  it('Item 15: paste-half divider uses ~50% opacity (was 25%)', () => {
+    const tree = render();
+    const paste = findByTestId(tree, 'intent-fab-button-paste');
+    const style = paste?.props.style as { borderLeft?: string };
+    // The divider is the only border-left on the paste half. Bumped
+    // from 25% to 50% so the two halves no longer blend visually.
+    expect(style?.borderLeft).toBeDefined();
+    expect(style?.borderLeft).toMatch(/50%/);
+    expect(style?.borderLeft).not.toMatch(/25%/);
+  });
+
   it('each half meets the 44px minimum tap target', () => {
     const tree = render();
     const primary = findByTestId(tree, 'intent-fab-button-primary');
