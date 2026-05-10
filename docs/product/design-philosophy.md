@@ -332,10 +332,10 @@ their own.
 
 ### Locked, not yet shipped (BU-network-feed)
 
-| Concept                                                | Glyph         | New / Re-use      |
-| ------------------------------------------------------ | ------------- | ----------------- |
-| AppNav tab — Network (`/network`)                      | `radio-tower` | New               |
-| Manual refresh button — pointer viewports (`/network`) | `refresh-cw`  | Re-use (`HeaderRefreshButton`) |
+| Concept                                                | Glyph         | New / Re-use                                       |
+| ------------------------------------------------------ | ------------- | -------------------------------------------------- |
+| AppNav tab — Network (`/network`)                      | `radio-tower` | New                                                |
+| Manual refresh button — pointer viewports (`/network`) | `refresh-cw`  | Re-use (`HeaderRefreshButton`)                     |
 | Empty-state / pipe-quiet illustration anchor           | `radio-tower` | Re-use (this BU's own AppNav glyph — same concept) |
 
 `radio-tower` is distinct from `radio` (already in use as the
