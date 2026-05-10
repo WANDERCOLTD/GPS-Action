@@ -25,7 +25,11 @@
 
 import { prisma } from '@/server/db/client';
 import { auditLog } from '@/server/services/audit';
-import { listGpsGroupMessages, type GpsGroupMessageRow } from '@/server/lib/supabase';
+import {
+  listGpsGroupMessages,
+  SupabaseConfigError,
+  type GpsGroupMessageRow,
+} from '@/server/lib/supabase';
 import type {
   NetworkCard,
   NetworkCardWorkflowState,
@@ -108,11 +112,23 @@ export async function listNetworkCards(
 
   const fetchUpstream = deps.fetchUpstream ?? listGpsGroupMessages;
   const cursorId = input.cursor !== undefined ? Number.parseInt(input.cursor, 10) : undefined;
-  const rows = await fetchUpstream({
-    windowDays: input.windowDays,
-    limit: input.limit,
-    cursorId: Number.isFinite(cursorId) ? cursorId : undefined,
-  });
+  let rows: GpsGroupMessageRow[];
+  try {
+    rows = await fetchUpstream({
+      windowDays: input.windowDays,
+      limit: input.limit,
+      cursorId: Number.isFinite(cursorId) ? cursorId : undefined,
+    });
+  } catch (err) {
+    // Graceful degrade when SUPABASE_URL / SUPABASE_ANON_KEY are absent —
+    // the surface promised in .env.example is "returns an empty list".
+    // Don't cache: a server restart with vars set should serve real data
+    // immediately, not the empty placeholder.
+    if (err instanceof SupabaseConfigError) {
+      return { items: [], nextCursor: null, fetchedAt: new Date(), fromCache: false };
+    }
+    throw err;
+  }
 
   const messageIds = rows.map((row) => BigInt(row.id));
   const stateRows = messageIds.length
