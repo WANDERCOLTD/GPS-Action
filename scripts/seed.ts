@@ -1435,35 +1435,17 @@ async function main(): Promise<void> {
 
   console.warn(`  ✓ ${SEED_POSTS.length} posts seeded (${postsCreated} new)`);
 
-  // ── Feature flags (BU-reactions / D050) ─────────────────────────────
-  await prisma.featureFlag.upsert({
-    where: { name: 'ff_reactions' },
-    update: { enabledGlobally: true },
-    create: {
-      name: 'ff_reactions',
-      description: 'Quiet, multi-select reactions on posts (BU-reactions / D050).',
-      purpose: 'rollout',
-      enabledGlobally: true,
-      createdBy: { connect: { id: betteId } },
-      updatedBy: { connect: { id: betteId } },
-    },
+  // ── Feature flags: all ON in dev ────────────────────────────────────
+  // Migrations create flags with their prod-intended defaults (some
+  // OFF, some ON). The seed runs only in dev/CI, so we flip every
+  // existing flag ON for local convenience — exercising every gated
+  // feature without having to toggle flags through /data each time.
+  // Any future migration-seeded flag is automatically picked up by
+  // the bulk update; nothing to maintain here per new flag.
+  const flagFlip = await prisma.featureFlag.updateMany({
+    data: { enabledGlobally: true },
   });
-  console.warn('  ✓ ff_reactions flag enabled');
-
-  // ── Feature flags (BU-comments / D052) ──────────────────────────────
-  await prisma.featureFlag.upsert({
-    where: { name: 'ff_comments' },
-    update: { enabledGlobally: true },
-    create: {
-      name: 'ff_comments',
-      description: 'Post-detail page + flat comment thread (BU-comments / D052).',
-      purpose: 'rollout',
-      enabledGlobally: true,
-      createdBy: { connect: { id: betteId } },
-      updatedBy: { connect: { id: betteId } },
-    },
-  });
-  console.warn('  ✓ ff_comments flag enabled');
+  console.warn(`  ✓ ${flagFlip.count} feature flags flipped ON for dev`);
 
   // ── Seed comments (BU-comments / D052) ──────────────────────────────
   // Idempotent: skip if any comments already exist for the seeded posts.
