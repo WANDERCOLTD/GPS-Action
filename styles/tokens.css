@@ -118,6 +118,33 @@
   --colour-surface-sunken: #ede9df; /* input fields, deeper than canvas */
   --colour-surface-overlay: rgba(28, 28, 26, 0.35); /* modal backdrop */
 
+  /* ─── COLOURS · CARD-TINT PALETTE (BU-board-palette) ──────────────── */
+  /* Reusable position-keyed pastel palette. Consumers (board columns,
+     /network feed cards, future per-section surfaces) cycle through
+     these by `index % palette.length`; index >= length falls back to
+     the neutral default. Naming is positional, NOT stage-specific —
+     a column called "Recruitment" on a workstream board lands on
+     tint-1 only because it's at index 0; rename the column and the
+     colour follows the position, not the label.
+
+     Light theme uses a 14% color-mix into transparent for a soft
+     pastel underlay against the warm cream canvas. Dark theme
+     brightens to 22% (see [data-theme="dark"]). The accent variants
+     are full-strength brand tokens for chips, headers and icon
+     accents that need to read clearly on top of the pastel field. */
+
+  --colour-card-tint-1: color-mix(in srgb, var(--colour-warning) 14%, transparent); /* warm amber */
+  --colour-card-tint-2: color-mix(in srgb, var(--colour-info) 14%, transparent); /* cool lavender */
+  --colour-card-tint-3: color-mix(in srgb, var(--colour-primary) 14%, transparent); /* cool sky */
+  --colour-card-tint-4: color-mix(in srgb, var(--colour-success) 14%, transparent); /* cool mint */
+  --colour-card-tint-default: var(--colour-surface-sunken); /* neutral fallback */
+
+  --colour-card-accent-1: var(--colour-warning);
+  --colour-card-accent-2: var(--colour-info);
+  --colour-card-accent-3: var(--colour-primary);
+  --colour-card-accent-4: var(--colour-success);
+  --colour-card-accent-default: var(--colour-text-secondary);
+
   /* ─── COLOURS · BORDERS ───────────────────────────────────────────── */
 
   --colour-border-subtle: #e5e2d8; /* default borders */
@@ -312,6 +339,18 @@
   --colour-surface-sunken: #111013; /* input wells, deeper than canvas */
   --colour-surface-overlay: rgba(0, 0, 0, 0.55);
 
+  /* ─── COLOURS · CARD-TINT PALETTE (BU-board-palette) ──────────────── */
+  /* Brighter mix factor (22%) compensates for the darker underlying
+     surface — at 14% the pastels disappear into the canvas. Accents
+     inherit from the redefined dark-theme brand tokens above, so no
+     dark-specific accent tokens are needed. */
+
+  --colour-card-tint-1: color-mix(in srgb, var(--colour-warning) 22%, transparent);
+  --colour-card-tint-2: color-mix(in srgb, var(--colour-info) 22%, transparent);
+  --colour-card-tint-3: color-mix(in srgb, var(--colour-primary) 22%, transparent);
+  --colour-card-tint-4: color-mix(in srgb, var(--colour-success) 22%, transparent);
+  --colour-card-tint-default: var(--colour-surface-sunken);
+
   /* ─── COLOURS · BORDERS ───────────────────────────────────────────── */
 
   --colour-border-subtle: #35333d;
@@ -398,6 +437,12 @@
     --colour-surface-raised: #26252d;
     --colour-surface-sunken: #111013;
     --colour-surface-overlay: rgba(0, 0, 0, 0.55);
+    /* Card-tint palette — dark-mode brighter mix (BU-board-palette) */
+    --colour-card-tint-1: color-mix(in srgb, var(--colour-warning) 22%, transparent);
+    --colour-card-tint-2: color-mix(in srgb, var(--colour-info) 22%, transparent);
+    --colour-card-tint-3: color-mix(in srgb, var(--colour-primary) 22%, transparent);
+    --colour-card-tint-4: color-mix(in srgb, var(--colour-success) 22%, transparent);
+    --colour-card-tint-default: var(--colour-surface-sunken);
     --colour-border-subtle: #35333d;
     --colour-border-strong: #4d4a58;
     --colour-text-primary: #e8e6e2;
