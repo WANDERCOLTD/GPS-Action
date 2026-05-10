@@ -236,15 +236,23 @@ BU ships a new glyph, update this register in the same commit.
 
 | Tab      | Glyph            |
 | -------- | ---------------- |
+| Network  | `radio-tower`    |
 | Board    | `kanban-square`  |
-| Feed     | `home`           |
+| Feed     | `newspaper`      |
 | Calendar | `calendar-clock` |
 | Requests | `inbox`          |
 | Settings | `settings`       |
 
-The Board tab is the first slot when `coord_board_v1` is on (BU-coordination-board,
-Direction A — kanban). Hidden by default; admin flips the flag via
-`/data/featureFlag` when ready to demo.
+Order: Network, Board, Feed, Calendar, Requests, Settings, Search.
+Network leads when `network_feed` is on (BU-network-feed / D083) —
+the WhatsApp-link feed is the freshest surface and goes first so
+users land on it. Board (`coord_board_v1`) follows when on; both
+gated tabs sit ahead of Feed when present, never breaking the
+relative order Network → Board → Feed.
+
+Feed glyph: `newspaper` (was `home` until this change). `home`
+read as "go home / dashboard" — too generic for a feed of post
+cards. `newspaper` is the unambiguous "list of posts" mark.
 
 The `bar-chart-3` glyph is no longer in the AppNav (Data is reached
 via Settings → "Data"). Still in use elsewhere — e.g.
@@ -334,9 +342,11 @@ their own.
 
 | Concept                                                | Glyph         | New / Re-use                                       |
 | ------------------------------------------------------ | ------------- | -------------------------------------------------- |
-| AppNav tab — Network (`/network`)                      | `radio-tower` | New                                                |
 | Manual refresh button — pointer viewports (`/network`) | `refresh-cw`  | Re-use (`HeaderRefreshButton`)                     |
 | Empty-state / pipe-quiet illustration anchor           | `radio-tower` | Re-use (this BU's own AppNav glyph — same concept) |
+
+(The Network AppNav tab — `radio-tower` — is now shipped; it lives
+in the AppNav tabs table above.)
 
 `radio-tower` is distinct from `radio` (already in use as the
 "Happening now" filter chip on `FeedFilterChips`): `radio` is a puck-
