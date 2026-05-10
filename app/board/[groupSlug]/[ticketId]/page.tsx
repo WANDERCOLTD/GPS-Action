@@ -31,7 +31,7 @@ import { isFeatureEnabled } from '@/server/services/flags';
 import { BoardActionPair } from '@/components/board/BoardActionPair';
 import { EditableTicketTitle } from '@/components/board/EditableTicketTitle';
 import { EditableTicketBody } from '@/components/board/EditableTicketBody';
-import { CommentNoteThread } from '@/components/board/CommentNoteThread';
+import { Discussion } from '@/components/board/Discussion';
 import { UrgentToggle } from '@/components/board/UrgentToggle';
 import { CardLifecycleActions } from '@/components/board/CardLifecycleActions';
 import { ShareWithTeamButton } from '@/components/board/ShareWithTeamButton';
@@ -391,10 +391,11 @@ export default async function BoardTicketDetailPage({ params }: BoardTicketDetai
         />
       </section>
 
-      <CommentNoteThread
+      <Discussion
         rows={threadRows}
         requestId={ticket.id}
         groupSlug={groupSlug}
+        viewerId={viewerId}
         canPostNote={canPostNote}
       />
 

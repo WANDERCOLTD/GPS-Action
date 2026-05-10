@@ -160,8 +160,8 @@ describe('EditableTicketBody — idle mode', () => {
   });
 });
 
-describe('EditableTicketBody — save flow', () => {
-  it('passes null to editBodyAction when textarea is whitespace-only and saved on blur', () => {
+describe('EditableTicketBody — save flow (Item 7 — visible Save / Cancel)', () => {
+  it('passes null to editBodyAction when textarea is whitespace-only and Save is clicked', () => {
     EditableTicketBody({ ...bodyProps, initial: 'something' }) as AnyElement;
     const tree = EditableTicketBody({ ...bodyProps, initial: 'something' }) as AnyElement;
     const trigger = findByTestId(tree, 'board-ticket-body-trigger');
@@ -175,8 +175,8 @@ describe('EditableTicketBody — save flow', () => {
       target: { value: '  \n  ' },
     });
     const final = EditableTicketBody({ ...bodyProps, initial: 'something' }) as AnyElement;
-    const finalInput = findByTestId(final, 'board-ticket-body-input');
-    (finalInput?.props.onBlur as () => void)();
+    const saveBtn = findByTestId(final, 'board-ticket-body-save');
+    (saveBtn?.props.onClick as () => void)();
     expect(editBodySpy).toHaveBeenCalledWith({
       requestId: 'r1',
       groupSlug: 'writers',
@@ -185,7 +185,7 @@ describe('EditableTicketBody — save flow', () => {
     });
   });
 
-  it('passes the literal string to editBodyAction when content is provided', () => {
+  it('passes the literal string to editBodyAction when content is provided and Save clicked', () => {
     EditableTicketBody({ ...bodyProps, initial: null }) as AnyElement;
     const tree = EditableTicketBody({ ...bodyProps, initial: null }) as AnyElement;
     const trigger = findByTestId(tree, 'board-ticket-body-trigger');
@@ -196,8 +196,20 @@ describe('EditableTicketBody — save flow', () => {
       target: { value: 'Hello world' },
     });
     const final = EditableTicketBody({ ...bodyProps, initial: null }) as AnyElement;
-    const finalInput = findByTestId(final, 'board-ticket-body-input');
-    (finalInput?.props.onBlur as () => void)();
+    const saveBtn = findByTestId(final, 'board-ticket-body-save');
+    (saveBtn?.props.onClick as () => void)();
     expect(editBodySpy).toHaveBeenCalledWith(expect.objectContaining({ body: 'Hello world' }));
+  });
+
+  it('Cancel button reverts the draft and exits edit mode without calling the action', () => {
+    EditableTicketBody({ ...bodyProps, initial: 'something' }) as AnyElement;
+    const tree = EditableTicketBody({ ...bodyProps, initial: 'something' }) as AnyElement;
+    const trigger = findByTestId(tree, 'board-ticket-body-trigger');
+    (trigger?.props.onClick as () => void)();
+    const editing = EditableTicketBody({ ...bodyProps, initial: 'something' }) as AnyElement;
+    const cancelBtn = findByTestId(editing, 'board-ticket-body-cancel');
+    expect(cancelBtn).toBeDefined();
+    (cancelBtn?.props.onClick as () => void)();
+    expect(editBodySpy).not.toHaveBeenCalled();
   });
 });

@@ -3,12 +3,14 @@
 /**
  * @build-unit bu-coordination-board (Surface 2 — click-to-edit body)
  * @spec docs/build/session-briefs/bu-coordination-board.md
+ * @spec docs/build/session-briefs/bu-ticket-view-fixes.md (Sub-build C, Item 7)
  *
  * Click-to-edit body. The body text itself (or "No description yet.")
  * is the click target — no separate Edit button.
  *
  *   - Click on body → swap to a textarea.
- *   - Cmd/Ctrl + Enter or blur → save.
+ *   - Visible Save / Cancel buttons below the textarea (Item 7).
+ *   - Cmd/Ctrl + Enter is retained as a keyboard accelerator for Save.
  *   - Escape → cancel.
  *   - Plain Enter inserts a newline (multiline content).
  *   - A faint pencil icon sits next to the trigger as a hint.
@@ -172,7 +174,6 @@ export function EditableTicketBody({
             cancel();
           }
         }}
-        onBlur={save}
         maxLength={BODY_MAX_LENGTH}
         rows={6}
         disabled={isPending}
@@ -190,16 +191,40 @@ export function EditableTicketBody({
           display: 'flex',
           gap: 'var(--space-2)',
           alignItems: 'center',
-          fontSize: 'var(--text-xs)',
-          color: 'var(--colour-text-secondary)',
+          flexWrap: 'wrap',
         }}
       >
-        <span>⌘/Ctrl+Enter to save · Esc to cancel · click outside saves</span>
+        <button
+          type="button"
+          data-testid="board-ticket-body-save"
+          onClick={save}
+          disabled={isPending}
+          className="gps-btn gps-btn--primary gps-btn--sm"
+        >
+          {isPending ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          type="button"
+          data-testid="board-ticket-body-cancel"
+          onClick={cancel}
+          disabled={isPending}
+          className="gps-btn gps-btn--ghost gps-btn--sm"
+        >
+          Cancel
+        </button>
+        <span
+          style={{
+            fontSize: 'var(--text-xs)',
+            color: 'var(--colour-text-secondary)',
+          }}
+        >
+          ⌘/Ctrl+Enter to save · Esc to cancel
+        </span>
         {error && (
           <span
             role="alert"
             data-testid="board-ticket-body-error"
-            style={{ color: 'var(--colour-danger)' }}
+            style={{ color: 'var(--colour-danger)', fontSize: 'var(--text-xs)' }}
           >
             {error}
           </span>
