@@ -56,6 +56,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-admin-bulk-ops | 8 | — | — |
 | BU-admin-crud | 22 | — | — |
 | BU-am-link-collapse | 4 | SCN-19, SCN-26, SCN-27 | D060, D061, D062, D064, D069, D072, D073 |
+| BU-board-palette | 1 | — | — |
 | BU-calendar-near-me | 6 | — | D045, D048, D060, D064, D069, D072, D073, D076 |
 | BU-calendar-view | 9 | — | D003, D036, D054, D061, D065, D073, D076, D078 |
 | BU-comments | 9 | SCN-20, SCN-21, SCN-22 | D045, D052, D056, D057, D061, D064, D069, D072, D073 |
@@ -97,7 +98,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-whatsapp-share | 2 | — | D065, D067, D080 |
 | bu-capabilities-mockup | 1 | — | — |
 | bu-coord-board-share-allowlist-ui | 3 | — | — |
-| bu-coordination-board | 54 | SCN-34 | — |
+| bu-coordination-board | 53 | SCN-34 | — |
 | bu-group-identity | 2 | — | — |
 | bu-kanban-event-config | 1 | — | — |
 | bu-search-includes-comments | 2 | — | D078 |
