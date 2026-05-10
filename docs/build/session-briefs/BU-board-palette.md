@@ -1,7 +1,7 @@
 ---
 slug: bu-board-palette
 status: shipped
-shipped_in: "#PR_PLACEHOLDER"
+shipped_in: "#313"
 phase: 2
 priority: medium
 note: "Visual polish — ~40 LoC, token + component layers only, no schema, no ADR."
