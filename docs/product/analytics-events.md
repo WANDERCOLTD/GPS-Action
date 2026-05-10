@@ -228,6 +228,46 @@ Each entry: **name**, **when it fires**, **properties**, **fired from**,
 **Build Unit:** BU-dispatch
 **Answers:** Q3
 
+### Network feed (4)
+
+Read-side surface for Grant (AIFA)'s WhatsApp-link feed at `/network`
+(BU-network-feed, ADR-0017, D083). PII rules: never log raw URLs
+(may carry tracking parameters with member identifiers); URL hostname
+only. `sender_hash` is already a SHA-256 hash and is safe to log.
+Triage notes are NOT logged.
+
+#### `network_list_viewed`
+
+**When:** Member opens `/network` and the card list renders.
+**Properties:** `card_count` (int), `from_cache` (bool), `window_days` (int)
+**Fired from:** `app/network/network-feed.tsx` (client, on mount)
+**Build Unit:** BU-network-feed
+**Answers:** Q1, Q6
+
+#### `network_card_clicked`
+
+**When:** Member clicks through a card to its external URL.
+**Properties:** `url_hostname` (string — hostname only, no path/query), `card_status` (NetworkCardStatus), `position_in_list` (int), `is_anonymous_sender` (bool)
+**Fired from:** `components/network-card.tsx` (client, on click)
+**Build Unit:** BU-network-feed
+**Answers:** Q1, Q3
+
+#### `network_card_triaged`
+
+**When:** Member sets a card's triage state (NEW → TRIAGED / PROMOTED / DISCARDED, or back).
+**Properties:** `from_status` (NetworkCardStatus), `to_status` (NetworkCardStatus), `had_owner` (bool), `has_owner_after` (bool)
+**Fired from:** `server/routers/network.ts:setCardState` (server-side)
+**Build Unit:** BU-network-feed
+**Answers:** Q3, Q7
+
+#### `network_refresh_triggered`
+
+**When:** Member taps the manual refresh affordance (or pull-to-refresh on touch).
+**Properties:** `surface` (enum: pointer_button, pull_to_refresh), `cache_age_seconds_at_trigger` (int)
+**Fired from:** `components/network-refresh-controls.tsx` (client)
+**Build Unit:** BU-network-feed
+**Answers:** Q6
+
 ---
 
 ## Events explicitly NOT tracked in MVP

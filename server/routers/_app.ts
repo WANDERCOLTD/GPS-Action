@@ -23,6 +23,7 @@ import { shareRouter } from '@/server/routers/share';
 import { notificationKanbanRouter } from '@/server/routers/notification-kanban';
 import { adminRouter } from '@/server/routers/admin';
 import { searchRouter } from '@/server/routers/search';
+import { networkRouter } from '@/server/routers/network';
 import { isDemoMode } from '@/shared/demo-mode';
 
 export const appRouter = router({
@@ -45,6 +46,7 @@ export const appRouter = router({
   notificationKanban: notificationKanbanRouter,
   admin: adminRouter,
   search: searchRouter,
+  network: networkRouter,
 });
 
 export type AppRouter = typeof appRouter;
