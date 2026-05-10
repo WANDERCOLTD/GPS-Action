@@ -74,11 +74,14 @@ a noisier upstream surface, with light triage controls. Not the same
 shape as a social feed; not the same shape as a board. A *reader's
 inbox* of links worth chasing.
 
-Grant has already shipped a working reference dashboard
-(`~/Documents/Claude/gps-network-bridge/dashboard/index.html`, ~270 LoC).
-This BU lifts the styling wholesale to disambiguate the new surface from
-the existing `/feed` (per Paul's call). Subsequent polish can re-token
-to GPS, but the v1 ship uses Grant's look.
+Grant has shipped a working reference dashboard
+(`~/Documents/Claude/gps-network-bridge/dashboard/index.html`, ~270 LoC)
+that we considered lifting wholesale. **Decision 2026-05-10: skip the
+lift; use GPS Action's existing CSS (`styles/tokens.css` +
+`styles/components.css`).** A parallel session is refreshing the colour
+palette; lifting Grant's dashboard would be thrown away once the new
+tokens land. The route name, the new `radio-tower` nav glyph, and
+distinct page copy do enough of the disambiguation work on their own.
 
 ---
 
@@ -95,7 +98,7 @@ to GPS, but the v1 ship uses Grant's look.
 | Deletion detection | **Refetch the window.** ~600 rows for 90 days, sub-50ms PostgREST query. Optional `gps_message_states` incremental-sync view available later if refetching becomes annoying |
 | Window size | **90 days.** ~600 rows max in current volume |
 | `from_name` null UX | "Anonymous member" copy when `from_name` is NULL (~70% of senders are `@lid`-only). Group by `sender_hash` so cards from the same anonymous sender visually cluster |
-| Card styling for v1 | **Lift Grant's reference dashboard** wholesale — disambiguates from `/feed` visually, ships fast |
+| Card styling for v1 | **GPS Action's existing CSS** — `styles/tokens.css` + `styles/components.css`. Decision 2026-05-10: a parallel session is refreshing colour tokens; lifting Grant's dashboard would just be thrown away once the new palette lands. |
 | Workflow state | **Included in v1.** Own table on our side; tRPC mutations to mark triage state |
 | Refresh UX | **Per-device best practice** — pull-to-refresh on touch viewports, manual refresh button on pointer viewports. Both surface the cache invalidation |
 
@@ -213,9 +216,10 @@ job can sweep orphans, but is post-v1.
 
 ### Q5 · The card UI
 
-Lift Grant's reference dashboard
-(`~/Documents/Claude/gps-network-bridge/dashboard/index.html`) wholesale
-for v1. Each card:
+Build with GPS Action's existing CSS — `styles/tokens.css` +
+`styles/components.css`. (Decision 2026-05-10: skip the Grant-dashboard
+lift; a parallel session is refreshing the colour palette and lifting
+his look would be thrown away.) Each card:
 
 - **Title:** `link_title`, fall back to URL hostname when null
 - **Click target:** `url` (new tab, `rel="noopener noreferrer"`)
@@ -352,9 +356,11 @@ Not required:
 - **Search inside the network feed.** `bu-search-surface` covers
   app-wide search; including network cards in that index is a
   follow-up, not v1.
-- **Re-tokenising the card style to GPS.** v1 lifts Grant's look
-  wholesale to disambiguate. A `bu-network-feed-restyle` follow-up
-  can re-token once the surface has earned its place.
+- **Lifting Grant's reference dashboard styling.** Considered and
+  rejected 2026-05-10: a parallel session is refreshing GPS's colour
+  tokens; lifting Grant's look would be thrown away once the new
+  palette lands. v1 uses `styles/tokens.css` + `styles/components.css`
+  directly.
 - **Per-user triage queues.** v1 is one global queue. Per-user is
   schema-forward-compatible (`ownerUserId` is nullable + indexed) but
   not built.
