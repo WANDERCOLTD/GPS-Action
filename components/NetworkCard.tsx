@@ -24,6 +24,7 @@
 
 import type { CSSProperties, MouseEvent } from 'react';
 import type { NetworkCardStatus, SerializedNetworkCard } from '@/shared/network-card';
+import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 
 interface NetworkCardProps {
   card: SerializedNetworkCard;
@@ -40,26 +41,35 @@ export function NetworkCard({ card, onSetStatus, pending }: NetworkCardProps) {
   // chat_id (Grant's `gps_chat_labels` view).
   const groupLabel = 'GPS Action Network!';
 
+  // When a link preview is available, the LinkPreviewCard becomes the
+  // primary clickable surface (hero + title + description + CTA). The
+  // text title link above is suppressed to avoid double-linking the
+  // same URL. Without a preview, fall back to the original plain title.
+  const hasPreview = card.linkPreview !== null;
+
   return (
     <article
       data-testid="network-card"
       data-message-id={card.messageId}
       data-status={card.state.status}
       data-anon={isAnon ? 'true' : 'false'}
+      data-has-preview={hasPreview ? 'true' : 'false'}
       style={cardStyle}
     >
-      <header style={{ marginBottom: 'var(--space-2)' }}>
-        <a
-          href={card.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid="network-card-link"
-          data-message-id={card.messageId}
-          style={titleLinkStyle}
-        >
-          {title}
-        </a>
-      </header>
+      {!hasPreview && (
+        <header style={{ marginBottom: 'var(--space-2)' }}>
+          <a
+            href={card.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="network-card-link"
+            data-message-id={card.messageId}
+            style={titleLinkStyle}
+          >
+            {title}
+          </a>
+        </header>
+      )}
 
       <p style={metaRowStyle}>
         <span data-testid="network-card-sender" data-message-id={card.messageId}>
@@ -79,6 +89,23 @@ export function NetworkCard({ card, onSetStatus, pending }: NetworkCardProps) {
           {relativeTime(card.sentAt)}
         </time>
       </p>
+
+      {card.linkPreview && (
+        <div
+          data-testid="network-card-preview"
+          data-message-id={card.messageId}
+          style={{ marginBottom: 'var(--space-3)' }}
+        >
+          <LinkPreviewCard
+            linkUrl={card.url}
+            linkTitle={card.linkPreview.title}
+            linkDescription={card.linkPreview.description}
+            linkImageUrl={card.linkPreview.imageUrl}
+            linkSiteName={card.linkPreview.siteName}
+            size="large"
+          />
+        </div>
+      )}
 
       {card.textBody && (
         <p

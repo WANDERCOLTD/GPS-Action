@@ -24,13 +24,14 @@
 
 ## Active flags
 
-| Name               | Purpose | Default (prod)         | Default (dev) | TTL / owner     | Notes                                                                                                              |
-| ------------------ | ------- | ---------------------- | ------------- | --------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `ff_reactions`     | rollout | enabled (post-rollout) | ON            | TTL: 2026-09-01 | Quiet, multi-select reactions on posts. BU-reactions / D050. Live since BU-reactions shipped.                      |
-| `ff_comments`      | rollout | enabled (post-rollout) | ON            | TTL: 2026-09-01 | Post-detail page + flat comment thread. BU-comments / D052. Live since BU-comments shipped.                        |
-| `calendar_enabled` | rollout | OFF                    | ON            | TTL: 2026-10-30 | Calendar tab + agenda + month surfaces. BU-calendar-view (downstream of BU-event-time / D073).                     |
-| `coord_board_v1`   | rollout | OFF                    | OFF           | TTL: 2026-11-03 | Board tab in `AppNav` + `/board` placeholder. BU-coordination-board (planned, Direction A — kanban).               |
-| `network_feed`     | rollout | OFF                    | OFF           | TTL: 2026-11-10 | `/network` surface — read-only feed of WhatsApp links from Grant (AIFA)'s pipe. BU-network-feed / ADR-0017 / D083. |
+| Name                    | Purpose | Default (prod)         | Default (dev) | TTL / owner     | Notes                                                                                                                             |
+| ----------------------- | ------- | ---------------------- | ------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `ff_reactions`          | rollout | enabled (post-rollout) | ON            | TTL: 2026-09-01 | Quiet, multi-select reactions on posts. BU-reactions / D050. Live since BU-reactions shipped.                                     |
+| `ff_comments`           | rollout | enabled (post-rollout) | ON            | TTL: 2026-09-01 | Post-detail page + flat comment thread. BU-comments / D052. Live since BU-comments shipped.                                       |
+| `calendar_enabled`      | rollout | OFF                    | ON            | TTL: 2026-10-30 | Calendar tab + agenda + month surfaces. BU-calendar-view (downstream of BU-event-time / D073).                                    |
+| `coord_board_v1`        | rollout | OFF                    | OFF           | TTL: 2026-11-03 | Board tab in `AppNav` + `/board` placeholder. BU-coordination-board (planned, Direction A — kanban).                              |
+| `network_feed`          | rollout | OFF                    | OFF           | TTL: 2026-11-10 | `/network` surface — read-only feed of WhatsApp links from Grant (AIFA)'s pipe. BU-network-feed / ADR-0017 / D083.                |
+| `network_link_previews` | rollout | OFF                    | ON            | TTL: 2026-11-10 | OpenGraph hero/title/description on `/network` cards. BU-network-link-previews. Reuses `fetchLinkMetadata` + `<LinkPreviewCard>`. |
 
 ## Flag rationale
 
@@ -122,6 +123,29 @@
   immediately. The empty 5-min cache means worst-case staleness is
   bounded.
 
+### `network_link_previews`
+
+- **Build unit:** BU-network-link-previews. Brief at
+  `docs/build/session-briefs/bu-network-link-previews.md`.
+- **What it gates:** server-side OpenGraph fetch + render of
+  `<LinkPreviewCard>` inside `<NetworkCard>` on `/network`. Card
+  list still loads unchanged when the flag is off — only the
+  enrichment is suppressed.
+- **Default OFF in prod:** the fetcher reaches arbitrary
+  third-party URLs from the WhatsApp stream. The fetch path itself
+  is hardened (5s timeout, 1MB cap, SSRF guard at hostname layer)
+  but coordinator sign-off post-deploy verifies the rendered cards
+  look right against real traffic before exposing broadly.
+- **Default ON in dev:** picked up automatically by the bulk
+  flag-flip in `scripts/seed.ts`. No per-flag dev wiring needed.
+- **TTL:** 2026-11-10 (six months from registration). Extends or
+  removes when the surface settles.
+- **Audit:** flag-flip rows captured in `audit_log` per D036 §7.
+- **Kill-switch posture:** if the fetcher starts misbehaving (slow
+  third-party hosts, malformed OG data, render glitches), flipping
+  the flag OFF removes every preview block immediately. The list
+  itself keeps working — preview is decorative, not load-bearing.
+
 ## How to register a new flag
 
 1. Add a row to the **Active flags** table above with: name,
@@ -149,5 +173,6 @@ listed here with date + reason for the audit trail.)
 - D052 — BU-comments (the second)
 - D073 — BU-event-time (registers `calendar_enabled` for BU-calendar-view)
 - D083 — BU-network-feed (registers `network_feed`)
+- BU-network-link-previews — registers `network_link_previews`
 - ADR-0001 — Structured event-time fields (the schema groundwork)
 - ADR-0017 — `NetworkCardState` (the own-side workflow-state schema gated by `network_feed`)
