@@ -39,11 +39,13 @@ import type { NetworkCardStatusValue } from '@/shared/validation/network';
  * bu-network-source-chips (Round 2 + 3, 2026-05-11):
  * - `is_forwarded` exposed for the "↪ forwarded" meta-row badge
  *   (~28% of feed rows).
- * - `gps_chat_labels` embedded resource carries the per-source
- *   metadata. The join is guaranteed non-null because the labels
- *   view is a projection of `gps.allowed_chats` — same table —
- *   so every message row has a label by construction (Grant
- *   2026-05-11 Round 3).
+ * - Source metadata (slug, label, color, etc.) is fetched separately
+ *   via `listGpsChatLabels` and joined in the service layer on
+ *   `chat_id`. PostgREST embedded-resource selects require a
+ *   declared FK relationship; `gps_chat_labels` is a view (not a
+ *   base table), so PostgREST returns PGRST200 for the embed.
+ *   The service-side join is cheap (24h-cached labels Map keyed by
+ *   chat_id) and decouples the two queries cleanly.
  */
 export interface GpsChatLabelRow {
   chat_id: string;
@@ -66,14 +68,6 @@ export interface GpsGroupMessageRow {
   text_body: string | null;
   chat_id: string;
   is_forwarded: boolean;
-  /**
-   * PostgREST returns embedded resources as a nested object when the
-   * relationship is to-one. Non-null by construction (see above), but
-   * typed as nullable to match what the wire could deliver if Grant
-   * ever ships a row without a label join — we'll catch that loudly
-   * at the service boundary rather than panic the renderer.
-   */
-  gps_chat_labels: GpsChatLabelRow | null;
 }
 
 export class SupabaseConfigError extends Error {
@@ -139,24 +133,9 @@ export async function listGpsGroupMessages(
   const sinceIso = new Date(Date.now() - args.windowDays * 24 * 60 * 60 * 1000).toISOString();
 
   const params = new URLSearchParams();
-  // PostgREST embedded-resource select: `gps_chat_labels(...)` joins
-  // the to-one relationship on `chat_id` (the FK between
-  // gps_group_messages and the labels view). The view is a projection
-  // of gps.allowed_chats so the join is non-null by construction.
   params.set(
     'select',
-    [
-      'id',
-      'sent_at',
-      'from_name',
-      'sender_hash',
-      'url',
-      'link_title',
-      'text_body',
-      'chat_id',
-      'is_forwarded',
-      'gps_chat_labels(chat_id,slug,label,description,display_order,color,icon,member_count)',
-    ].join(','),
+    'id,sent_at,from_name,sender_hash,url,link_title,text_body,chat_id,is_forwarded',
   );
   params.set('sent_at', `gte.${sinceIso}`);
   if (args.cursorId !== undefined) {

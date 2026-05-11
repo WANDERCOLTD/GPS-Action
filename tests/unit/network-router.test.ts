@@ -44,7 +44,10 @@ vi.mock('@/server/db/client', () => ({
 import { createCaller } from '@/server/routers/_app';
 import type { TRPCContext } from '@/server/lib/trpc';
 import { prisma } from '@/server/db/client';
-import { invalidateNetworkListCache } from '@/server/services/network';
+import {
+  invalidateNetworkListCache,
+  invalidateNetworkSourcesCache,
+} from '@/server/services/network';
 
 const mockFindMany = vi.mocked(prisma.networkCardState.findMany);
 const mockUpsert = vi.mocked(prisma.networkCardState.upsert);
@@ -74,18 +77,43 @@ function publicContext(): TRPCContext {
   return { user: null, activeRoles: [], activeScopes: [] };
 }
 
-function mockSupabaseFetch(rows: unknown[] = []): typeof fetch {
-  return vi.fn().mockResolvedValue({
-    ok: true,
-    status: 200,
-    json: async () => rows,
-    text: async () => '',
-  } as Response);
+/**
+ * Mock the Supabase fetch boundary. Dispatches by URL path:
+ * - `/rest/v1/gps_group_messages…` → messages rows.
+ * - `/rest/v1/gps_chat_labels…` → labels rows (default: one row for
+ *   the gps-network@g.us chat that the message fixtures use).
+ */
+function mockSupabaseFetch(
+  messageRows: unknown[] = [],
+  labelRows: unknown[] = [
+    {
+      chat_id: 'gps-network@g.us',
+      slug: 'gps-action-network',
+      label: 'GPS Action Network!',
+      description: null,
+      display_order: 1,
+      color: '#3fb950',
+      icon: '🎯',
+      member_count: 190,
+    },
+  ],
+): typeof fetch {
+  return vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
+    const url = typeof input === 'string' ? input : input.toString();
+    const rows = url.includes('/rest/v1/gps_chat_labels') ? labelRows : messageRows;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => rows,
+      text: async () => '',
+    } as Response;
+  });
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   invalidateNetworkListCache();
+  invalidateNetworkSourcesCache();
   mockAuditCreate.mockResolvedValue({} as never);
   mockFindMany.mockResolvedValue([]);
   mockFlagFindUnique.mockResolvedValue({ enabledGlobally: true } as never);
@@ -116,16 +144,6 @@ describe('network.list', () => {
           text_body: 'Worth a read',
           chat_id: 'gps-network@g.us',
           is_forwarded: false,
-          gps_chat_labels: {
-            chat_id: 'gps-network@g.us',
-            slug: 'gps-action-network',
-            label: 'GPS Action Network!',
-            description: null,
-            display_order: 1,
-            color: '#3fb950',
-            icon: '🎯',
-            member_count: 190,
-          },
         },
       ]),
     );
