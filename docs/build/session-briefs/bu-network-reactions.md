@@ -1,8 +1,9 @@
 ---
 slug: bu-network-reactions
-status: planned
+status: shipped
 phase: 2
 priority: high
+shipped_in: "#334"
 note: "Reactions on /network cards. Extend ReactionTargetType enum to add network_card. Reuse the existing rail/tray from /feed. Smallest of the three engagement briefs; unblocks visual parity between surfaces."
 ---
 
