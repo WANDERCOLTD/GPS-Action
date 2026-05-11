@@ -11,16 +11,16 @@
  *   • right "📋" → reads clipboard and routes straight to /compose
  *                  via `readClipboardAndContinue`
  *
- * Both halves funnel through `IntentFabPasteHandler` so behaviour
- * cannot drift between the in-sheet Paste button and this shortcut.
- * On clipboard miss (empty / denied / unsupported) the paste tap
- * falls back to opening the sheet so the member can paste manually.
+ * DIAGNOSTIC OVERLAY (temporary). The "+" half also increments four
+ * visible counters — click / touchstart / touchend / pointerdown —
+ * rendered in a black badge above the FAB. On iPhone we're seeing
+ * the press flash but no dialog open; the counters tell us whether
+ * the click is firing at all, which fork the bug is on. Revert this
+ * overlay once the cause is known.
  *
  * Open/close state is owned by `Dialog.Root` here. The "+" button is
- * a `Dialog.Trigger` — Radix handles the open click natively, which
- * dodges the iOS ghost-click race that a manual setOpen handler
- * triggers (the same touch that opened the sheet would otherwise
- * land on the freshly-mounted backdrop and close it).
+ * a `Dialog.Trigger` (Radix handles the open click natively to dodge
+ * the iOS ghost-click race that a manual setOpen handler triggers).
  */
 
 import * as React from 'react';
@@ -31,8 +31,6 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { IntentFabSheet } from './IntentFabSheet';
 import { readClipboardAndContinue } from './IntentFabPasteHandler';
 
-// Routes where the FAB suppresses itself. /network is a read-only
-// inbound surface — composing a post from there is off-flow.
 const HIDDEN_FAB_PATHS = ['/network'];
 
 const pillStyle: CSSProperties = {
@@ -48,7 +46,6 @@ const pillStyle: CSSProperties = {
   boxShadow: '0 4px 16px color-mix(in srgb, var(--colour-primary) 35%, transparent)',
   overflow: 'hidden',
   zIndex: 100,
-  // Removes the iOS 300ms tap delay and double-tap-to-zoom on the pill.
   touchAction: 'manipulation',
 };
 
@@ -67,11 +64,7 @@ const halfBase: CSSProperties = {
   minHeight: 44,
 };
 
-const primaryHalfStyle: CSSProperties = {
-  ...halfBase,
-  flex: '0 0 84px',
-};
-
+const primaryHalfStyle: CSSProperties = { ...halfBase, flex: '0 0 84px' };
 const pasteHalfStyle: CSSProperties = {
   ...halfBase,
   flex: '0 0 64px',
@@ -87,10 +80,31 @@ const captionStyle: CSSProperties = {
   color: 'color-mix(in oklch, currentColor 85%, transparent)',
 };
 
+const debugBadgeStyle: CSSProperties = {
+  position: 'fixed',
+  bottom: 'calc(var(--space-6) + 72px)',
+  right: 'var(--space-6)',
+  background: 'var(--colour-text-primary)',
+  color: 'var(--colour-surface-canvas)',
+  fontFamily: 'monospace',
+  fontSize: 12,
+  padding: '6px 10px',
+  borderRadius: 8,
+  zIndex: 101,
+  pointerEvents: 'none',
+  whiteSpace: 'pre',
+};
+
 export function IntentFab() {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  // Diagnostic counters for the "+" half. Temporary — see header.
+  const [clickCount, setClickCount] = useState(0);
+  const [touchStartCount, setTouchStartCount] = useState(0);
+  const [touchEndCount, setTouchEndCount] = useState(0);
+  const [pointerDownCount, setPointerDownCount] = useState(0);
 
   if (pathname && HIDDEN_FAB_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     return null;
@@ -105,10 +119,19 @@ export function IntentFab() {
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
+      <div
+        style={debugBadgeStyle}
+        data-testid="intent-fab-debug-badge"
+        aria-hidden="true"
+      >{`click ${clickCount}\nts    ${touchStartCount}\nte    ${touchEndCount}\npd    ${pointerDownCount}\nopen  ${open ? 'Y' : 'N'}`}</div>
       <div style={pillStyle} data-testid="intent-fab" role="group" aria-label="Create or paste">
         <Dialog.Trigger asChild>
           <button
             type="button"
+            onClick={() => setClickCount((n) => n + 1)}
+            onTouchStart={() => setTouchStartCount((n) => n + 1)}
+            onTouchEnd={() => setTouchEndCount((n) => n + 1)}
+            onPointerDown={() => setPointerDownCount((n) => n + 1)}
             aria-label="Create a post"
             title="Create a post"
             data-testid="intent-fab-button-primary"
