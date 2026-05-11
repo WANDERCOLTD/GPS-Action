@@ -1,8 +1,8 @@
 ---
 slug: bu-network-source-chips--grant-questions
-status: partially-answered
+status: answered
 phase: 2
-note: "Questions for Grant (AIFA) blocking bu-network-source-chips. Draft 2026-05-11. Section B (URL extraction) answered 2026-05-11. Section A (gps_chat_labels) still pending — it's the gating blocker for the build."
+note: "Questions for Grant (AIFA) blocking bu-network-source-chips. Draft 2026-05-11. Section B (URL extraction) answered 2026-05-11 morning. Section A (gps_chat_labels) answered 2026-05-11 afternoon — view shipped. A5 (onboarding SLA) and A6 (backfill semantics) not directly addressed but not gating; raised in Round 2 reply. Section C and D still pending."
 ---
 
 # Questions for Grant — `gps_chat_labels` + URL extraction
@@ -34,6 +34,14 @@ when the label is edited.
 **Preferred:** `chat_id, slug, label, ...`. If you can't add slug, we'll
 generate one our side from `chat_id` (lossy — opaque to users).
 
+**Grant (2026-05-11):** **Yes.** `slug text` column shipped. Persistent
+across label renames. Only mutates if Grant explicitly rotates it.
+"Safe to use as a route param (`/network?source=gps-action-network`)."
+
+**Our position:** Use `slug` directly as the URL-state key. No
+client-side generation. Chip-strip code reads `slug`, parses
+comma-separated `?source=` param straight to a slug array.
+
 ### A2 · Display ordering?
 
 Is there a `display_order` (or `sort_priority`) column, or do we sort
@@ -42,6 +50,15 @@ alphabetically?
 Some groups are primary (GPS Network!), some secondary. Alpha is fine
 to start, but if you have an opinion on the canonical ordering, expose
 it.
+
+**Grant (2026-05-11):** **Yes.** `display_order int` column shipped.
+Lower = earlier. Default 100. Wide gap left between seeded values
+(`gps-action-network=1`, `test-group=999`) so new sources can slot in
+without renumbering. Sort recipe: `display_order ASC, label ASC`.
+
+**Our position:** Use `display_order ASC, label ASC` for chip
+rendering. Answers open product Q1 (chip ordering) — no longer
+needs a separate decision.
 
 ### A3 · Visibility model
 
@@ -58,6 +75,21 @@ Options:
 
 Either works. Tell us which you want; we'll build to match.
 
+**Grant (2026-05-11):** **GPS Action side.** No server-side role
+filtering — the view returns everything currently in
+`gps.allowed_chats`. Rationale: not at the scale where Grant
+filtering it makes sense; if/when we need role gating, do it
+post-fetch in tRPC.
+
+**Our position:** Build the visibility gate in
+`server/services/network.ts` against our own `RoleGrant` table when
+we need it. **For this BU, defer:** the two currently-seeded chats
+(GPS Action Network!, Test) are both effectively public for now;
+no coordinator-only source yet exists. When the first one does
+(e.g. a steward channel), add a `visibleToRole` column on a local
+`NetworkSource` mirror table or hard-code the filter — design
+choice deferred to that BU.
+
 ### A4 · Per-source metadata you want us to display
 
 What columns belong on the labels view that we should surface in the
@@ -71,6 +103,46 @@ chip / card meta row? Candidates:
 
 Strip whatever doesn't fit. We'd rather know early than retro-fit.
 
+**Grant (2026-05-11):** Shipped: `color text` (hex, nullable),
+`icon text` (single emoji or icon hint, nullable),
+`description text` (1–2 sentence summary), `member_count int` (set
+manually for now; periodic Whapi sync = v2). **Skipped:**
+`region_slug` (felt speculative; flag if we actually need it).
+
+Seed:
+- `gps-action-network` → "GPS Action Network!" · `#3fb950` · 🎯 ·
+  190 members · `display_order=1`
+- `test-group` → "Test (Grant + burner)" · `#8b949e` · 🧪 ·
+  2 members · `display_order=999`
+
+Grant's framing: "These are starter values — your call on the
+colour palette and icons, just tell me what you want and I'll
+update on this side. Or you can override `color`/`icon` on your end
+and treat my values as fallbacks."
+
+**Our position:**
+- **`color`** — `#3fb950` (GitHub-success green) and `#8b949e` (a
+  cool grey) don't match our token palette. Test group's grey is
+  fine as-is (it's a low-signal chat). GPS Action Network!'s green
+  is a clash candidate — our urgent treatment uses red, our
+  cultural-marker is bordeaux, and green doesn't read as "primary"
+  in our system. **Plan:** treat Grant's `color` as a fallback,
+  and lock a brand-colour map on our side keyed by `slug`. Reply
+  asks Grant to point at our `styles/tokens.css` once chips ship
+  visually, so any future-source colour he picks aligns.
+- **`icon`** — emoji rather than lucide name is fine (we already
+  use emoji for cultural markers). 🎯 reads as "GPS Action /
+  target / coordinated" — OK as a placeholder; revisit after first
+  render. 🧪 for Test is right.
+- **`description`** — surface in chip tooltip + `/network` chip-
+  strip "manage sources" overlay (if/when that exists).
+- **`member_count`** — show "~120 members" alongside the chip
+  label in the long-list / manage-sources view. **Don't** show on
+  the chip itself — the chip is for filtering, not roster.
+- **`region_slug`** — agreed: skip for now. Two-axis source-vs-
+  region modelling is premature when only one currently-active
+  group exists.
+
 ### A5 · New groups onboarding flow
 
 When you add a new WA group to the Whapi pipe, what's the SLA for it
@@ -81,6 +153,19 @@ poll) or a manual labels-table edit on your side (we see it later).
 Affects whether we render a fallback for un-labelled `chat_id`s in the
 meantime ("Unknown source · chat_id=…") or assume every row has a join.
 
+**Grant (2026-05-11):** Not directly addressed. The reply implies
+labels are seeded manually (he listed two by hand), but didn't
+state whether a new `allowed_chats` entry without a corresponding
+`gps_chat_labels` row produces unlabelled message rows or whether
+labels are a hard precondition.
+
+**Our position:** Not gating for this BU — only two chats exist
+today and both have labels. Build assuming every row joins.
+**Raise in Round 2 reply:** ask Grant to confirm whether the
+join is enforced (no-label = no messages flow) or whether we
+should render a defensive "Unknown source · `<chat_id>`" fallback
+chip when a label is missing.
+
 ### A6 · Backfill semantics
 
 When a new group is added, does its message history flow through
@@ -88,6 +173,15 @@ When a new group is added, does its message history flow through
 
 Affects what members see when a chip first appears. If history flows
 in, the chip lights up populated; if not, it starts empty.
+
+**Grant (2026-05-11):** Not directly addressed.
+
+**Our position:** Not gating for this BU. **Raise in Round 2
+reply** — answer informs empty-state copy (open product Q3): is a
+new chip likely to be empty for days while traffic accumulates, or
+does Whapi backfill on join? If forward-only, the empty-state copy
+should read along the lines of "This source just joined the
+network — links will appear here as members share them."
 
 ### A7 · Group rename / merge / split
 
@@ -97,6 +191,19 @@ the `label` change, or does it get a new `chat_id`?
 We URL-encode by slug; rename = slug edit on our side, doable. New
 chat_id on rename = a more disruptive break (the old chip stops
 working). Worth knowing.
+
+**Grant (2026-05-11):** Implicitly answered via A1. Slug is
+"persistent across label changes; only mutates if I explicitly
+rotate it." This implies `chat_id` is the upstream stable
+identifier and `label` is the freely-mutable display name; a
+rename = `label` change while `chat_id` (and Grant's chosen
+`slug`) stay put.
+
+**Our position:** Safe to URL-encode by `slug`. Renames don't
+break shared `?source=…` URLs. If Grant ever rotates a slug
+(rare, his choice), we'll need a redirect on our side or live
+with the broken link — risk accepted given the low frequency.
+Merge / split is unaddressed but speculative; not gating.
 
 ---
 
@@ -351,18 +458,70 @@ Grant's own ranking of why a card might appear missing:
 | chat.whatsapp.com | 9 | **Worth a specific treatment** — these are WA group-invite links; OG unfurl returns nothing useful |
 | www.instagram.com | 8 | Standard OG unfurl works |
 
+### E4 · Round-1 patches all shipped (Round 2 update, 2026-05-11)
+
+All three patches we accepted in Round 1 are now live on Grant's
+side, in a single drop alongside the `gps_chat_labels` expansion:
+
+1. **Email-domain regex fix.** Bare-domain pattern now requires
+   whitespace / start-of-string before the match. No more capturing
+   `aberdeenperformingarts.com` from `hello@aberdeenperformingarts.com`.
+   Subdomains like `news.bbc.co.uk/world` still capture correctly.
+2. **`urls text[]`** on `public.gps_group_messages`. Ordered by first
+   appearance, deduped, trailing punctuation stripped. `url`
+   (singular) still exists and equals `urls[0]` (or
+   `link_preview.url` when WA attached a preview — in which case
+   it's prepended to `urls` so `urls[0] === url`). Existing rows
+   backfilled — e.g. id=13 now has both Facebook + Parliament
+   petition URLs.
+3. **`is_forwarded boolean`** sourced from `context.forwarded`.
+   47 of 167 existing rows backfilled to `true`. Forwarder
+   identity (`from_name`, `sender_hash`) remains the forwarder, as
+   discussed — original-sender preservation stays parked.
+
+**Backfill caveat (Grant, proactive):** ~3–4 existing rows with the
+email-regex false positive are still in the table with their bad
+`url`. Re-extraction from raw is a one-off Grant offered to run if
+we want it. **Our reply: yes please** — cheap to fix, makes
+historical cards trustworthy.
+
+### E5 · `gps_chat_labels` rate limit + cache guidance
+
+Grant: practical PostgREST anon rate limit on Supabase free/basic
+tier is ~200 req/min per IP, soft-throttled beyond. His
+recommendation:
+
+- **`gps_chat_labels`** (chip data, changes ~weekly at most):
+  24h server-side cache + manual purge button.
+- **`gps_group_messages`** (link feed): 5-min cache, per earlier
+  discussion.
+
+**Our position:** Adopt both. Our existing `network.ts` service
+already caches the message feed at 60s in dev / 300s in prod
+(`server/services/network.ts` cache key); chip data fetched
+separately, key on the empty-args call, TTL 24h. Manual purge =
+admin "Refresh sources" button on the admin dashboard, calls the
+cache-bust endpoint (small follow-up; not in this BU's scope).
+
+### E6 · `gps_message_states` view stays parked
+
+Grant volunteered that the incremental-sync view stays parked as
+discussed. "If you ever hit refetch-pain, ping me and it's a 10-min
+addition." No action — we'll revisit if/when full-feed refetches
+become noticeable.
+
 ---
 
 ## Status tracker
 
 | Section | Status |
 |---|---|
-| A. `gps_chat_labels` view shape | ❌ **Pending** — the gating blocker |
-| B. `gps_group_messages` URL extraction | ✅ Answered 2026-05-11 |
-| C. Operational | ❌ Pending |
-| D. Nice-to-have | ❌ Pending |
-| E. Volunteered by Grant | ✅ Captured 2026-05-11 |
+| A. `gps_chat_labels` view shape | ✅ Answered 2026-05-11 — view shipped; A5 (onboarding SLA) + A6 (backfill semantics) raised in Round 2 reply, not gating |
+| B. `gps_group_messages` URL extraction | ✅ Answered 2026-05-11 — all three Round-1 patches shipped (see E4) |
+| C. Operational | ❌ Pending — raised in Round 2 reply |
+| D. Nice-to-have | ❌ Pending — non-blocking |
+| E. Volunteered by Grant | ✅ Captured 2026-05-11 (E1–E3 Round 1; E4–E6 Round 2) |
 
-Once Section A lands, promote the locked decisions into
-`bu-network-source-chips.md` and flip its status from `planned` to
-`ready`.
+Section A landed. Decisions promoted into
+`bu-network-source-chips.md`; brief status flipped `planned` →
+`ready`. Build session can start once Paul greenlights.
