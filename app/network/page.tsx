@@ -24,13 +24,25 @@ import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { NetworkFeed } from '@/app/network/network-feed';
+import { NetworkSourceChipStrip, parseSourcesParam } from '@/components/NetworkSourceChipStrip';
 import { serializeNetworkListResponse } from '@/shared/network-card';
 
 export const metadata = {
   title: 'Network — GPS Action',
 };
 
-export default async function NetworkPage() {
+interface NetworkPageProps {
+  /**
+   * Next 15 App Router: `searchParams` is a Promise (per the App Router
+   * async API change). The page reads `?source=slug-a,slug-b` from it
+   * and passes the parsed slug array through to both the chip strip
+   * (for active-state highlighting) and the tRPC `list` call (for
+   * server-side filtering).
+   */
+  searchParams: Promise<{ source?: string | string[] }>;
+}
+
+export default async function NetworkPage({ searchParams }: NetworkPageProps) {
   const flagEnabled = await isFeatureEnabled('network_feed');
   if (!flagEnabled) {
     return (
@@ -71,7 +83,12 @@ export default async function NetworkPage() {
   }
 
   const caller = createCaller(ctx);
-  const initial = await caller.network.list({});
+  const params = await searchParams;
+  const activeSources = parseSourcesParam(params.source);
+  const [initial, sources] = await Promise.all([
+    caller.network.list({ sources: activeSources }),
+    caller.network.listSources({}),
+  ]);
   const initialSerialised = serializeNetworkListResponse(initial);
 
   return (
@@ -79,6 +96,7 @@ export default async function NetworkPage() {
       style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}
       data-testid="network-page"
     >
+      <NetworkSourceChipStrip sources={sources} active={activeSources} />
       <NetworkFeed initial={initialSerialised} />
     </main>
   );
