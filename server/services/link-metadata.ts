@@ -136,20 +136,61 @@ async function readCappedBody(res: Response, cap: number): Promise<string | null
 }
 
 const ENTITY_MAP: Record<string, string> = {
-  '&amp;': '&',
-  '&quot;': '"',
-  '&#39;': "'",
-  '&apos;': "'",
-  '&lt;': '<',
-  '&gt;': '>',
-  '&nbsp;': ' ',
+  amp: '&',
+  quot: '"',
+  apos: "'",
+  lt: '<',
+  gt: '>',
+  nbsp: ' ',
 };
 
+/**
+ * Decode HTML entities found in OG / meta content. Handles three forms:
+ *
+ *   - Named refs: `&amp;` `&quot;` `&lt;` … (limited common set —
+ *     enough for OG payloads in the wild; not a full HTML5 entity table).
+ *   - Decimal numeric refs: `&#8217;` → ’ (right single quote).
+ *   - Hex numeric refs: `&#xb7;` → · (middle dot), `&#x2019;` → ’.
+ *
+ * Facebook in particular serves OG metadata with numeric refs
+ * pre-encoded for raw inclusion in HTML; without a decode pass those
+ * surface visibly on the rendered card (e.g. "455K views &#xb7; 30K
+ * reactions"). Unknown / malformed refs pass through unchanged
+ * rather than throwing — preview is decorative, never load-bearing.
+ */
 function decodeEntities(input: string): string {
   return input
-    .replace(/&[a-z#0-9]+;/gi, (m) => ENTITY_MAP[m] ?? m)
+    .replace(/&(?:#x([0-9a-f]+)|#(\d+)|([a-z][a-z0-9]*));/gi, (match, hex, dec, named) => {
+      if (hex !== undefined) {
+        const cp = Number.parseInt(hex, 16);
+        return Number.isFinite(cp) ? safeFromCodePoint(cp, match) : match;
+      }
+      if (dec !== undefined) {
+        const cp = Number.parseInt(dec, 10);
+        return Number.isFinite(cp) ? safeFromCodePoint(cp, match) : match;
+      }
+      if (named !== undefined) {
+        return ENTITY_MAP[named.toLowerCase()] ?? match;
+      }
+      return match;
+    })
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * Guard against out-of-range codepoints from malformed input —
+ * `String.fromCodePoint` throws RangeError on > 0x10FFFF or
+ * non-finite values, which would propagate out of the metadata
+ * extractor and break the preview path. Return the original ref
+ * unchanged on failure.
+ */
+function safeFromCodePoint(cp: number, fallback: string): string {
+  try {
+    return String.fromCodePoint(cp);
+  } catch {
+    return fallback;
+  }
 }
 
 /**
