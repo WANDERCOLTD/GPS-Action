@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * @build-unit BU-network-feed
+ * @build-unit BU-network-feed BU-network-reactions
  * @spec adrs/0017-network-card-state.md
  * @spec product/design-philosophy.md
  *
@@ -18,6 +18,12 @@
  * The `pending` flag on each button reflects an in-flight mutation
  * for that card so duplicate clicks are idempotent.
  *
+ * BU-network-reactions — the same 8-emoji ReactionPill that lives on
+ * /feed mounts here between the meta row and the link-preview block.
+ * Reactions are optional props; when `onAddReaction` is omitted the
+ * pill is suppressed (keeps prior tests / non-reactions callers
+ * working). The pill component is polymorphic by callback wrap.
+ *
  * F14: every actionable element carries a `data-testid` rooted on
  * the messageId for unique selection during tests.
  */
@@ -25,14 +31,32 @@
 import type { CSSProperties, MouseEvent } from 'react';
 import type { NetworkCardStatus, SerializedNetworkCard } from '@/shared/network-card';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
+import { ReactionPill } from '@/components/ReactionPill';
+import type { FeedReaction, FeedReactionEmoji } from '@/components/PostCard';
 
 interface NetworkCardProps {
   card: SerializedNetworkCard;
   onSetStatus: (status: NetworkCardStatus) => void;
   pending: boolean;
+  /** BU-network-reactions — aggregate reactions on this card. */
+  reactions?: FeedReaction[];
+  /** BU-network-reactions — toggle on. Omit to hide the pill entirely. */
+  onAddReaction?: (emoji: FeedReactionEmoji) => Promise<void>;
+  /** BU-network-reactions — toggle off. Required when onAddReaction set. */
+  onRemoveReaction?: (emoji: FeedReactionEmoji) => Promise<void>;
+  /** BU-network-reactions — false hides the pill (logged-out callers, flag off). */
+  canReact?: boolean;
 }
 
-export function NetworkCard({ card, onSetStatus, pending }: NetworkCardProps) {
+export function NetworkCard({
+  card,
+  onSetStatus,
+  pending,
+  reactions,
+  onAddReaction,
+  onRemoveReaction,
+  canReact = true,
+}: NetworkCardProps) {
   const title = card.linkTitle ?? hostnameOf(card.url);
   const sender = card.fromName ?? 'anonymous member';
   const isAnon = card.fromName === null;
@@ -89,6 +113,26 @@ export function NetworkCard({ card, onSetStatus, pending }: NetworkCardProps) {
           {relativeTime(card.sentAt)}
         </time>
       </p>
+
+      {/* BU-network-reactions — pill sits between the meta row and the
+       *  link-preview block, mirroring the brief's mount instruction.
+       *  Suppressed when the caller doesn't wire reaction callbacks
+       *  (keeps logged-out / flag-off renders identical to pre-BU). */}
+      {onAddReaction && onRemoveReaction && (
+        <div
+          data-testid="network-card-reactions"
+          data-message-id={card.messageId}
+          style={reactionRowStyle}
+        >
+          <ReactionPill
+            reactions={reactions ?? []}
+            onAdd={onAddReaction}
+            onRemove={onRemoveReaction}
+            canReact={canReact}
+            testIdSuffix={card.messageId}
+          />
+        </div>
+      )}
 
       {card.linkPreview && (
         <div
@@ -225,6 +269,12 @@ const triageRowStyle: CSSProperties = {
   flexWrap: 'wrap',
   gap: 'var(--space-2)',
   marginTop: 'var(--space-2)',
+};
+
+// BU-network-reactions — small breathing room between the meta row and
+// the link-preview hero. The pill renders its own internal padding.
+const reactionRowStyle: CSSProperties = {
+  marginBottom: 'var(--space-3)',
 };
 
 function triageButtonStyle(active: boolean): CSSProperties {

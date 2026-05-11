@@ -254,4 +254,55 @@ describe('NetworkCard', () => {
     // as the primary clickable surface (no double-link to same URL).
     expect(findByTestId(tree, 'network-card-link')).toBeUndefined();
   });
+
+  // ── BU-network-reactions ──────────────────────────────────────────────
+
+  describe('reactions', () => {
+    it('does NOT render the reaction pill when no reaction callbacks are passed', () => {
+      const tree = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+      }) as AnyElement;
+
+      expect(findByTestId(tree, 'network-card-reactions')).toBeUndefined();
+    });
+
+    it('renders the reaction pill wrapper when both add + remove callbacks are wired', () => {
+      const tree = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+        reactions: [],
+        onAddReaction: vi.fn().mockResolvedValue(undefined),
+        onRemoveReaction: vi.fn().mockResolvedValue(undefined),
+      }) as AnyElement;
+
+      const wrapper = findByTestId(tree, 'network-card-reactions');
+      expect(wrapper).toBeDefined();
+      expect(wrapper?.props['data-message-id']).toBe('42');
+    });
+
+    it('passes the aggregate reactions array through to the pill', () => {
+      const reactions = [{ emoji: 'heart' as const, count: 3, mine: true }];
+      const tree = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+        reactions,
+        onAddReaction: vi.fn().mockResolvedValue(undefined),
+        onRemoveReaction: vi.fn().mockResolvedValue(undefined),
+      }) as AnyElement;
+
+      const wrapper = findByTestId(tree, 'network-card-reactions');
+      expect(wrapper).toBeDefined();
+      // The pill is the first child element of the wrapper. Walk its
+      // props rather than render — vitest env is node, no RTL.
+      const pill = (wrapper?.props.children ?? null) as AnyElement;
+      expect(pill).toBeDefined();
+      expect(pill.props.reactions).toEqual(reactions);
+      expect(typeof pill.props.onAdd).toBe('function');
+      expect(typeof pill.props.onRemove).toBe('function');
+    });
+  });
 });

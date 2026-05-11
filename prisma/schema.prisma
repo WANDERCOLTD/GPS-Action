@@ -970,6 +970,7 @@ enum ReactionEmoji {
 enum ReactionTargetType {
   post
   comment // BU-comments / D052 — reactions on comments are schema-ready, UI deferred
+  network_card // BU-network-reactions — reactions on /network cards
 }
 
 model Reaction {
@@ -990,6 +991,16 @@ model Reaction {
   commentId String?
   comment   Comment? @relation("commentReactions", fields: [commentId], references: [id], onDelete: Cascade)
 
+  // BU-network-reactions — nullable FK alongside postId/commentId. When
+  // targetType='network_card', this FK is set and equals BigInt(targetId).
+  // FK target: NetworkCardState.messageId (not the upstream Supabase row —
+  // we don't own that table). On first reaction the service upserts a
+  // NetworkCardState row with status: NEW so the FK has a parent.
+  // Cross-check enforced at the service layer and via a CHECK constraint
+  // (see the additive migration).
+  networkCardStateId BigInt?
+  networkCardState   NetworkCardState? @relation("networkCardReactions", fields: [networkCardStateId], references: [messageId], onDelete: Cascade)
+
   emoji ReactionEmoji
 
   createdAt DateTime @default(now())
@@ -998,6 +1009,7 @@ model Reaction {
   @@index([targetType, targetId])
   @@index([postId, emoji])
   @@index([commentId, emoji])
+  @@index([networkCardStateId, emoji])
 }
 
 // ─── Comment ─────────────────────────────────────────────────────────────────
@@ -1466,6 +1478,11 @@ model NetworkCardState {
   ownerUserId String?
   ownerUser   User?             @relation("networkCardsOwned", fields: [ownerUserId], references: [id], onDelete: SetNull)
   notes       String?           @db.Text
+
+  // BU-network-reactions — cascade-delete reactions when a state row is
+  // removed. State rows are upserted on first reaction (or first triage),
+  // so this relation is the natural cleanup boundary.
+  reactions Reaction[] @relation("networkCardReactions")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -11,7 +11,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | --- | ----- | -----:| --- | ---- | ------ |
 | SCN-1 | Sharon sees a Sky News bias post and boosts it | 0 | — | — | parked |
 | SCN-2 | Emma has a concern about leafleting at her child's school | 0 | — | — | parked |
-| SCN-3 | David reacts to a Shabbat Shalom post | 5 | BU-feed-card-affordances, BU-one-click-polish, BU-reactions | D050, D052 | ✓ shipped |
+| SCN-3 | David reacts to a Shabbat Shalom post | 5 | BU-feed-card-affordances, BU-network-reactions, BU-one-click-polish, BU-reactions | D050, D052 | ✓ shipped |
 | SCN-4 | Rachel attends a local gathering — RSVP and follow-up | 0 | — | — | parked |
 | SCN-5 | Michael loses his phone, needs to log in on a new device | 0 | — | — | parked |
 | SCN-6 | Claire publishes an outcome post about a successful letter placement | 0 | — | — | parked |
@@ -81,6 +81,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-link-share | 5 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D061, D062, D064, D069, D072, D073, D076 |
 | BU-network-feed | 9 | — | D083 |
 | BU-network-link-previews | 1 | — | — |
+| BU-network-reactions | 4 | SCN-3 | D050, D052 |
 | BU-one-click-polish | 4 | SCN-3, SCN-20 | D050, D052 |
 | BU-post-hero-demo | 6 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D062, D064, D069, D072, D073, D076 |
 | BU-post-location-input | 1 | — | — |
