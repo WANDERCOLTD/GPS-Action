@@ -62,6 +62,16 @@ function makeCard(overrides: Partial<SerializedNetworkCard> = {}): SerializedNet
     },
     linkPreview: null,
     shareCounts: emptyNetworkCardShareCounts(),
+    source: {
+      slug: 'gps-action-network',
+      label: 'GPS Action Network!',
+      description: null,
+      displayOrder: 1,
+      color: '#3fb950',
+      icon: '🎯',
+      memberCount: 190,
+    },
+    isForwarded: false,
     ...overrides,
   };
 }

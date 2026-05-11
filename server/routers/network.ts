@@ -24,8 +24,16 @@
 import { TRPCError } from '@trpc/server';
 import { router, publicProcedure, authedProcedure } from '@/server/lib/trpc';
 import { isFeatureEnabled } from '@/server/services/flags';
-import { listNetworkCards, setNetworkCardState } from '@/server/services/network';
-import { networkListSchema, networkSetCardStateSchema } from '@/shared/validation/network';
+import {
+  listNetworkCards,
+  listNetworkSources,
+  setNetworkCardState,
+} from '@/server/services/network';
+import {
+  networkListSchema,
+  networkListSourcesSchema,
+  networkSetCardStateSchema,
+} from '@/shared/validation/network';
 
 const FLAG_NAME = 'network_feed';
 
@@ -42,6 +50,17 @@ export const networkRouter = router({
   list: publicProcedure.input(networkListSchema).query(async ({ input }) => {
     await assertFlagEnabled();
     return listNetworkCards(input);
+  }),
+
+  /**
+   * bu-network-source-chips — return the active source set for the
+   * chip strip on `/network`. Behind the same `network_feed` flag as
+   * `list`; same public-read posture (any authenticated coordinator
+   * can read; no role gating per Round 2 visibility model).
+   */
+  listSources: publicProcedure.input(networkListSourcesSchema).query(async () => {
+    await assertFlagEnabled();
+    return listNetworkSources();
   }),
 
   setCardState: authedProcedure

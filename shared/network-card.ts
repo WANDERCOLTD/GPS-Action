@@ -77,6 +77,34 @@ export interface NetworkCardShareCounts {
   };
 }
 
+/**
+ * bu-network-source-chips — per-source metadata joined from Grant's
+ * `public.gps_chat_labels` view. `slug` is the URL-state key (stable
+ * across label renames). Per Grant 2026-05-11 Round 3: `gps_chat_labels`
+ * is a view of `gps.allowed_chats` — same table — so every row in
+ * `gps_group_messages` joins to a label row atomically (slug is auto-
+ * generated via INSERT trigger). `source` is therefore non-null on
+ * `NetworkCard`. `color` and `icon` are starter values from Grant; the
+ * renderer treats them as fallbacks behind a token-palette override
+ * map (`styles/source-palette.ts`).
+ */
+export interface NetworkCardSource {
+  slug: string;
+  label: string;
+  description: string | null;
+  displayOrder: number;
+  color: string | null;
+  icon: string | null;
+  memberCount: number | null;
+}
+
+/**
+ * bu-network-source-chips — chip-strip shape. Same as
+ * `NetworkCardSource` but listed separately as the standalone
+ * "source set" returned by `listNetworkSources`.
+ */
+export type NetworkSource = NetworkCardSource;
+
 export interface NetworkCard {
   id: bigint;
   sentAt: Date;
@@ -90,6 +118,19 @@ export interface NetworkCard {
   linkPreview: NetworkCardLinkPreview | null;
   /** bu-network-shares — verified share counts. Zero-filled when no shares. */
   shareCounts: NetworkCardShareCounts;
+  /**
+   * bu-network-source-chips — joined source metadata from
+   * `gps_chat_labels`. Non-null because `gps_chat_labels` is a view
+   * of `gps.allowed_chats` — every message row has a label row by
+   * construction (Grant 2026-05-11 Round 3).
+   */
+  source: NetworkCardSource;
+  /**
+   * bu-network-source-chips — Grant's `is_forwarded` column on
+   * `gps_group_messages` (~28% of feed). Renders a small "↪ forwarded"
+   * badge in the card meta row.
+   */
+  isForwarded: boolean;
 }
 
 export interface NetworkListResponse {
@@ -131,6 +172,10 @@ export interface SerializedNetworkCard {
   linkPreview: NetworkCardLinkPreview | null;
   /** bu-network-shares — verified share counts. Zero-filled when no shares. */
   shareCounts: NetworkCardShareCounts;
+  /** bu-network-source-chips — joined source metadata (non-null per Round 3). */
+  source: NetworkCardSource;
+  /** bu-network-source-chips — forwarded-message flag. */
+  isForwarded: boolean;
 }
 
 /**
@@ -174,6 +219,8 @@ export function serializeNetworkCard(card: NetworkCard): SerializedNetworkCard {
     },
     linkPreview: card.linkPreview,
     shareCounts: card.shareCounts,
+    source: card.source,
+    isForwarded: card.isForwarded,
   };
 }
 

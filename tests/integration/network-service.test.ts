@@ -70,6 +70,17 @@ const baseRow = {
   link_title: 'A useful article',
   text_body: 'Look at this',
   chat_id: 'gps-network@g.us',
+  is_forwarded: false,
+  gps_chat_labels: {
+    chat_id: 'gps-network@g.us',
+    slug: 'gps-action-network',
+    label: 'GPS Action Network!',
+    description: null,
+    display_order: 1,
+    color: '#3fb950',
+    icon: '🎯',
+    member_count: 190,
+  },
 };
 
 describe('listNetworkCards', () => {
@@ -77,7 +88,7 @@ describe('listNetworkCards', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -107,7 +118,7 @@ describe('listNetworkCards', () => {
     ]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -120,7 +131,7 @@ describe('listNetworkCards', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([{ ...baseRow, text_body: baseRow.url }]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -133,7 +144,7 @@ describe('listNetworkCards', () => {
       .mockResolvedValue([{ ...baseRow, text_body: 'Worth a read this morning' }]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -144,11 +155,11 @@ describe('listNetworkCards', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
 
     const first = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
     const second = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -160,9 +171,12 @@ describe('listNetworkCards', () => {
   it('bypasses cache when refresh: true', async () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
 
-    await listNetworkCards({ limit: 50, windowDays: 90, refresh: false }, { fetchUpstream });
+    await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { fetchUpstream },
+    );
     const refreshed = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: true },
+      { limit: 50, windowDays: 90, refresh: true, sources: [] },
       { fetchUpstream },
     );
 
@@ -177,7 +191,7 @@ describe('listNetworkCards', () => {
     ]);
 
     const result = await listNetworkCards(
-      { limit: 2, windowDays: 90, refresh: false },
+      { limit: 2, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -188,7 +202,7 @@ describe('listNetworkCards', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([{ ...baseRow, id: 9 }]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -201,7 +215,7 @@ describe('listNetworkCards', () => {
       .mockResolvedValue([{ ...baseRow, from_name: null, sender_hash: 'hash-anon' }]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -220,7 +234,7 @@ describe('listNetworkCards', () => {
       );
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -239,7 +253,10 @@ describe('listNetworkCards', () => {
       );
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await listNetworkCards({ limit: 50, windowDays: 90, refresh: false }, { fetchUpstream });
+    await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { fetchUpstream },
+    );
 
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining('SUPABASE_URL / SUPABASE_ANON_KEY missing'),
@@ -252,7 +269,10 @@ describe('listNetworkCards', () => {
     const fetchUpstream = vi.fn().mockRejectedValue(new SupabaseFetchError('upstream 503', 503));
 
     await expect(
-      listNetworkCards({ limit: 50, windowDays: 90, refresh: false }, { fetchUpstream }),
+      listNetworkCards(
+        { limit: 50, windowDays: 90, refresh: false, sources: [] },
+        { fetchUpstream },
+      ),
     ).rejects.toThrow('upstream 503');
   });
 
@@ -268,7 +288,7 @@ describe('listNetworkCards', () => {
       });
 
       const result = await listNetworkCards(
-        { limit: 50, windowDays: 90, refresh: false },
+        { limit: 50, windowDays: 90, refresh: false, sources: [] },
         { fetchUpstream, resolveLinkPreview },
       );
 
@@ -287,7 +307,7 @@ describe('listNetworkCards', () => {
       const resolveLinkPreview = vi.fn().mockResolvedValue(null);
 
       const result = await listNetworkCards(
-        { limit: 50, windowDays: 90, refresh: false },
+        { limit: 50, windowDays: 90, refresh: false, sources: [] },
         { fetchUpstream, resolveLinkPreview },
       );
 
@@ -309,7 +329,7 @@ describe('listNetworkCards', () => {
       });
 
       await listNetworkCards(
-        { limit: 50, windowDays: 90, refresh: false },
+        { limit: 50, windowDays: 90, refresh: false, sources: [] },
         { fetchUpstream, resolveLinkPreview },
       );
 
@@ -328,7 +348,10 @@ describe('setNetworkCardState', () => {
   it('upserts the state row, writes audit, and invalidates the cache', async () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
 
-    await listNetworkCards({ limit: 50, windowDays: 90, refresh: false }, { fetchUpstream });
+    await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { fetchUpstream },
+    );
     expect(_networkCacheSize()).toBe(1);
 
     mockUpsert.mockResolvedValueOnce({

@@ -35,7 +35,27 @@ import type { NetworkCardStatusValue } from '@/shared/validation/network';
  * Mirrors Grant's column projection (PAUL_INTEGRATION.md, §"Columns")
  * after the 2026-05-10 column-shape change: `from_jid` was dropped,
  * `sender_hash` (SHA-256 of the JID) takes its place.
+ *
+ * bu-network-source-chips (Round 2 + 3, 2026-05-11):
+ * - `is_forwarded` exposed for the "↪ forwarded" meta-row badge
+ *   (~28% of feed rows).
+ * - `gps_chat_labels` embedded resource carries the per-source
+ *   metadata. The join is guaranteed non-null because the labels
+ *   view is a projection of `gps.allowed_chats` — same table —
+ *   so every message row has a label by construction (Grant
+ *   2026-05-11 Round 3).
  */
+export interface GpsChatLabelRow {
+  chat_id: string;
+  slug: string;
+  label: string;
+  description: string | null;
+  display_order: number;
+  color: string | null;
+  icon: string | null;
+  member_count: number | null;
+}
+
 export interface GpsGroupMessageRow {
   id: number;
   sent_at: string;
@@ -45,6 +65,15 @@ export interface GpsGroupMessageRow {
   link_title: string | null;
   text_body: string | null;
   chat_id: string;
+  is_forwarded: boolean;
+  /**
+   * PostgREST returns embedded resources as a nested object when the
+   * relationship is to-one. Non-null by construction (see above), but
+   * typed as nullable to match what the wire could deliver if Grant
+   * ever ships a row without a label join — we'll catch that loudly
+   * at the service boundary rather than panic the renderer.
+   */
+  gps_chat_labels: GpsChatLabelRow | null;
 }
 
 export class SupabaseConfigError extends Error {
@@ -91,6 +120,11 @@ interface ListGpsGroupMessagesArgs {
   fetchImpl?: typeof fetch;
 }
 
+interface ListGpsChatLabelsArgs {
+  /** Optional fetch override — primarily for tests. */
+  fetchImpl?: typeof fetch;
+}
+
 /**
  * Fetch a window of rows from `public.gps_group_messages`. Sort is
  * `id DESC` (PostgREST orders by the bigint primary key for stable
@@ -105,7 +139,25 @@ export async function listGpsGroupMessages(
   const sinceIso = new Date(Date.now() - args.windowDays * 24 * 60 * 60 * 1000).toISOString();
 
   const params = new URLSearchParams();
-  params.set('select', 'id,sent_at,from_name,sender_hash,url,link_title,text_body,chat_id');
+  // PostgREST embedded-resource select: `gps_chat_labels(...)` joins
+  // the to-one relationship on `chat_id` (the FK between
+  // gps_group_messages and the labels view). The view is a projection
+  // of gps.allowed_chats so the join is non-null by construction.
+  params.set(
+    'select',
+    [
+      'id',
+      'sent_at',
+      'from_name',
+      'sender_hash',
+      'url',
+      'link_title',
+      'text_body',
+      'chat_id',
+      'is_forwarded',
+      'gps_chat_labels(chat_id,slug,label,description,display_order,color,icon,member_count)',
+    ].join(','),
+  );
   params.set('sent_at', `gte.${sinceIso}`);
   if (args.cursorId !== undefined) {
     params.set('id', `lt.${args.cursorId}`);
@@ -131,6 +183,44 @@ export async function listGpsGroupMessages(
 
   const rows = (await response.json()) as GpsGroupMessageRow[];
   return rows;
+}
+
+/**
+ * bu-network-source-chips — fetch the source set for the chip strip.
+ * Returns every row in `public.gps_chat_labels` ordered by
+ * `display_order ASC, label ASC` (Grant 2026-05-11). Per the Round 2
+ * visibility decision, no server-side role filtering — callers do
+ * their own gating against `RoleGrant` if/when a coordinator-only
+ * source ships.
+ */
+export async function listGpsChatLabels(
+  args: ListGpsChatLabelsArgs = {},
+): Promise<GpsChatLabelRow[]> {
+  const config = readConfig();
+  const fetchImpl = args.fetchImpl ?? fetch;
+
+  const params = new URLSearchParams();
+  params.set('select', 'chat_id,slug,label,description,display_order,color,icon,member_count');
+  // PostgREST multi-column order: `display_order.asc,label.asc`.
+  params.set('order', 'display_order.asc,label.asc');
+
+  const response = await fetchImpl(`${config.url}/rest/v1/gps_chat_labels?${params}`, {
+    headers: {
+      apikey: config.anonKey,
+      Authorization: `Bearer ${config.anonKey}`,
+      Accept: 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new SupabaseFetchError(
+      `Supabase REST query failed (${response.status}): ${body.slice(0, 200)}`,
+      response.status,
+    );
+  }
+
+  return (await response.json()) as GpsChatLabelRow[];
 }
 
 /**
