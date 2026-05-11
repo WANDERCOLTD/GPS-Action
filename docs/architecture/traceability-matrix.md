@@ -11,7 +11,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | --- | ----- | -----:| --- | ---- | ------ |
 | SCN-1 | Sharon sees a Sky News bias post and boosts it | 0 | — | — | parked |
 | SCN-2 | Emma has a concern about leafleting at her child's school | 0 | — | — | parked |
-| SCN-3 | David reacts to a Shabbat Shalom post | 5 | BU-feed-card-affordances, BU-one-click-polish, BU-reactions | D050, D052 | ✓ shipped |
+| SCN-3 | David reacts to a Shabbat Shalom post | 5 | BU-feed-card-affordances, BU-network-reactions, BU-one-click-polish, BU-reactions | D050, D052 | ✓ shipped |
 | SCN-4 | Rachel attends a local gathering — RSVP and follow-up | 0 | — | — | parked |
 | SCN-5 | Michael loses his phone, needs to log in on a new device | 0 | — | — | parked |
 | SCN-6 | Claire publishes an outcome post about a successful letter placement | 0 | — | — | parked |
@@ -81,6 +81,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-link-share | 5 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D061, D062, D064, D069, D072, D073, D076 |
 | BU-network-feed | 9 | — | D083 |
 | BU-network-link-previews | 1 | — | — |
+| BU-network-reactions | 4 | SCN-3 | D050, D052 |
 | BU-one-click-polish | 4 | SCN-3, SCN-20 | D050, D052 |
 | BU-post-hero-demo | 6 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D062, D064, D069, D072, D073, D076 |
 | BU-post-location-input | 1 | — | — |
@@ -100,12 +101,13 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-tick-or-cross | 11 | SCN-18, SCN-19, SCN-20, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D052, D060, D062, D064, D069, D070, D072, D073, D076 |
 | BU-ticket-detail-relayout | 1 | — | — |
 | BU-versioning | 3 | — | D003, D065, D073 |
-| BU-whatsapp-share | 2 | — | D065, D067, D080 |
+| BU-whatsapp-share | 2 | — | D065, D067, D077, D080 |
 | bu-capabilities-mockup | 1 | — | — |
 | bu-coord-board-share-allowlist-ui | 3 | — | — |
 | bu-coordination-board | 53 | SCN-34 | — |
 | bu-group-identity | 2 | — | — |
 | bu-kanban-event-config | 1 | — | — |
+| bu-network-shares | 7 | — | D047, D065, D077 |
 | bu-search-includes-comments | 2 | — | D078 |
 | bu-search-includes-kanban | 1 | — | — |
 | bu-ticket-view-fixes | 7 | — | — |
@@ -121,6 +123,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D042 | Coordinator identity vs queue_manager permission — split into two concepts | 1 |
 | D044 | Intent-first post creation (FAB cards model) | 4 |
 | D045 | Public-by-default post visibility with author override | 4 |
+| D047 | Honest tracking only (no inflated reach numbers) | 2 |
 | D048 | Post axes taxonomy + deferred PostType | 2 |
 | D050 | Reaction schema, fixed 8-emoji set, polymorphic target | 7 |
 | D052 | Comment schema + polymorphic reuse of ReactionTargetType | 14 |
@@ -140,6 +143,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D072 | Post lifecycle, publish router, and per-kind action registry | 21 |
 | D073 | Structured event-time fields on `Post` (`event_at`, `event_ends_at`, `location_text`) | 22 |
 | D076 | Post location coordinates + online flag (`latitude`, `longitude`, `isOnline`) | 7 |
+| D077 | Post-share counter table (`PostShare`) for verified per-post share counts | 2 |
 | D078 | App-wide member search: 9 design decisions for `bu-search-surface` | 6 |
 | D080 | Hydration-safe deferred-render pattern (`<ClientOnly>` + `<RelativeTime>`) | 3 |
 | D083 | `NetworkCardState` — own-side workflow state for the network-feed surface | 4 |

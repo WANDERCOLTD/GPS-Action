@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * @build-unit BU-network-feed
+ * @build-unit BU-network-feed BU-network-reactions
  * @spec adrs/0017-network-card-state.md
  * @spec product/design-philosophy.md
  *
@@ -17,22 +17,37 @@
  * of the list, plus an inline "fetched <X> ago / from cache" status
  * line. Pull-to-refresh on touch is the browser's native behaviour
  * over `<main>` — no extra wiring needed for v1.
+ *
+ * BU-network-reactions — reactions are lazy-fetched in bulk for the
+ * visible card window via `listReactionsForNetworkCardsAction`. The
+ * fetch fires once on mount and again after refresh / load-more, so
+ * the pill renders with aggregate counts the first paint after each
+ * server round-trip. Per-card toggle is wired through
+ * `addReactionToNetworkCardAction` / `removeReactionFromNetworkCardAction`
+ * — the pill itself owns optimistic state, so this layer just relays.
  */
 
 import type { CSSProperties } from 'react';
-import { useCallback, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
+import type { ShareDestination } from '@prisma/client';
 import { ClientOnly } from '@/components/ClientOnly';
 import { NetworkCard } from '@/components/NetworkCard';
+import { ShareConfirmDialog } from '@/components/ShareConfirmDialog';
+import { pingShareIntent } from '@/components/ShareGroup';
 import {
   refreshNetworkList,
   loadMoreNetworkCards,
   setNetworkCardStateAction,
+  addReactionToNetworkCardAction,
+  removeReactionFromNetworkCardAction,
+  listReactionsForNetworkCardsAction,
 } from '@/app/network/actions';
 import type {
   NetworkCardStatus,
   SerializedNetworkCard,
   SerializedNetworkListResponse,
 } from '@/shared/network-card';
+import type { FeedReaction, FeedReactionEmoji } from '@/components/PostCard';
 
 interface NetworkFeedProps {
   initial: SerializedNetworkListResponse;
@@ -48,6 +63,44 @@ export function NetworkFeed({ initial }: NetworkFeedProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // BU-network-reactions — keyed by messageId, lazy-fetched on mount
+  // and after every refresh / load-more. Empty array per card until
+  // the bulk fetch resolves.
+  const [reactionsByMessageId, setReactionsByMessageId] = useState<Record<string, FeedReaction[]>>(
+    {},
+  );
+  // bu-network-shares — verify-prompt state. Tracks which card and
+  // destination are awaiting confirmation. Null = no prompt visible.
+  // Lifted here (out of NetworkCard) so that NetworkCard stays pure-
+  // presentational and unit-testable as a plain function call.
+  const [pendingShare, setPendingShare] = useState<{
+    messageId: string;
+    destination: ShareDestination;
+  } | null>(null);
+
+  const fetchReactionsFor = useCallback(async (messageIds: string[]) => {
+    if (messageIds.length === 0) return;
+    try {
+      const map = await listReactionsForNetworkCardsAction(messageIds);
+      setReactionsByMessageId((prev) => ({ ...prev, ...map }));
+    } catch (err) {
+      // Reactions are decorative — never block the list. Log only.
+      console.warn('[network-feed] reaction fetch failed', err);
+    }
+  }, []);
+
+  // Initial fetch + after items change. The dep list intentionally
+  // omits `reactionsByMessageId` — including it would loop the effect
+  // every time the fetch resolved. We diff manually via `missing`
+  // inside the effect body instead.
+  useEffect(() => {
+    const ids = items.map((c) => c.messageId);
+    setReactionsByMessageId((prev) => {
+      const missing = ids.filter((id) => !(id in prev));
+      if (missing.length > 0) void fetchReactionsFor(missing);
+      return prev;
+    });
+  }, [items, fetchReactionsFor]);
 
   const handleRefresh = useCallback(() => {
     if (refreshing) return;
@@ -84,6 +137,71 @@ export function NetworkFeed({ initial }: NetworkFeedProps) {
       }
     });
   }, [cursor, loadingMore]);
+
+  const handleAddReaction = useCallback(
+    async (messageId: string, emoji: FeedReactionEmoji): Promise<void> => {
+      await addReactionToNetworkCardAction(messageId, emoji);
+      // The pill owns committed/optimistic state. We re-fetch the aggregate
+      // for this card so the next remount or refresh has truth.
+      const map = await listReactionsForNetworkCardsAction([messageId]);
+      setReactionsByMessageId((prev) => ({ ...prev, ...map }));
+    },
+    [],
+  );
+
+  const handleRemoveReaction = useCallback(
+    async (messageId: string, emoji: FeedReactionEmoji): Promise<void> => {
+      await removeReactionFromNetworkCardAction(messageId, emoji);
+      const map = await listReactionsForNetworkCardsAction([messageId]);
+      setReactionsByMessageId((prev) => ({ ...prev, ...map }));
+    },
+    [],
+  );
+
+  // bu-network-shares — capture share-intent from cards, queue the
+  // verify-prompt dialog. The intent ping has already fired by the
+  // time we get here (ShareGroup / WhatsAppShareTargetButton fire it
+  // before the new-tab navigation).
+  const handleShareInitiated = useCallback(
+    (messageId: string, destination: ShareDestination): void => {
+      setPendingShare({ messageId, destination });
+    },
+    [],
+  );
+
+  const handleShareConfirm = useCallback((): void => {
+    if (!pendingShare) return;
+    pingShareIntent({
+      targetType: 'network_card',
+      targetId: pendingShare.messageId,
+      destination: pendingShare.destination,
+      verified: true,
+    });
+    // Optimistic counter tick — bump the per-card total + per-destination
+    // count so the pill updates immediately. The next list refresh will
+    // re-project from ShareEvent and reconcile any drift.
+    setItems((prev) =>
+      prev.map((c) => {
+        if (c.messageId !== pendingShare.messageId) return c;
+        const prevPer = c.shareCounts.perDestination;
+        return {
+          ...c,
+          shareCounts: {
+            total: c.shareCounts.total + 1,
+            perDestination: {
+              ...prevPer,
+              [pendingShare.destination]: (prevPer[pendingShare.destination] ?? 0) + 1,
+            },
+          },
+        };
+      }),
+    );
+    setPendingShare(null);
+  }, [pendingShare]);
+
+  const handleShareSkip = useCallback((): void => {
+    setPendingShare(null);
+  }, []);
 
   const handleSetStatus = useCallback((card: SerializedNetworkCard, status: NetworkCardStatus) => {
     const prevState = card.state;
@@ -192,6 +310,10 @@ export function NetworkFeed({ initial }: NetworkFeedProps) {
                 card={card}
                 pending={Boolean(pendingByMessageId[card.messageId])}
                 onSetStatus={(status) => handleSetStatus(card, status)}
+                reactions={reactionsByMessageId[card.messageId] ?? []}
+                onAddReaction={(emoji) => handleAddReaction(card.messageId, emoji)}
+                onRemoveReaction={(emoji) => handleRemoveReaction(card.messageId, emoji)}
+                onShareInitiated={handleShareInitiated}
               />
             </li>
           ))}
@@ -208,6 +330,17 @@ export function NetworkFeed({ initial }: NetworkFeedProps) {
         >
           {loadingMore ? 'Loading…' : 'Load more'}
         </button>
+      )}
+
+      {pendingShare && (
+        <ShareConfirmDialog
+          targetType="network_card"
+          targetId={pendingShare.messageId}
+          destination={pendingShare.destination}
+          open
+          onConfirm={handleShareConfirm}
+          onSkip={handleShareSkip}
+        />
       )}
     </div>
   );

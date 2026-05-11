@@ -1,13 +1,21 @@
 /**
- * @build-unit BU-reactions
+ * @build-unit BU-reactions BU-network-reactions
  * @spec architecture/decision-log.md (D050, D052)
+ * @spec adrs/0017-network-card-state.md
  * @spec product/scenarios.md (SCN-3)
  * @spec product/analytics-events.md
  *
  * Reaction service — toggle and aggregate reactions on a target.
- * Targets are polymorphic (targetType + targetId): `post` and
- * `comment`. Post variants are the originals; comment variants
- * mirror them with `targetType: 'comment'` and `commentId` FK.
+ * Targets are polymorphic (targetType + targetId): `post`, `comment`,
+ * and `network_card`. Post variants are the originals; comment variants
+ * mirror them with `targetType: 'comment'` and `commentId` FK;
+ * network_card variants follow the same shape with `networkCardStateId`
+ * pointing at `NetworkCardState.messageId` (BigInt).
+ *
+ * For network_card targets the service upserts a NetworkCardState row
+ * with status: NEW on first reaction — same pattern as the triage
+ * handler, so the FK has a parent. The string targetId at the wire
+ * boundary parses to BigInt for the FK column.
  *
  * Toggle semantics:
  *   - addReaction* is idempotent (re-react with same emoji is no-op)
@@ -17,7 +25,8 @@
  * `reaction_added` analytics event lives in this service
  * (only on add — remove is silent). Comment-target reactions
  * fire `reaction_added` with `is_comment: true` per
- * analytics-events.md:133.
+ * analytics-events.md:133. Network-card reactions fire with
+ * `is_network_card: true`.
  */
 
 import type { ReactionEmoji } from '@prisma/client';
@@ -319,6 +328,194 @@ export async function listReactionsForComment(
       if (a.count !== b.count) return b.count - a.count;
       return emojiRank(a.emoji) - emojiRank(b.emoji);
     });
+}
+
+// ── Network-card-target variants (BU-network-reactions) ────────────────
+//
+// `messageId` is the BigInt id of the upstream Supabase row, joined to
+// our own NetworkCardState via the unique `messageId` column. On first
+// reaction we upsert a state row with status: NEW so the FK has a
+// parent — the same upsert pattern the triage handler uses
+// (server/services/network.ts → setNetworkCardState). `targetId` is the
+// string representation; `networkCardStateId` is the BigInt parse.
+
+interface NetworkCardAddRemoveInput {
+  /** Stringified bigint — wire-friendly. Parses via BigInt(). */
+  messageId: string;
+  emoji: ReactionEmoji;
+  userId: string;
+}
+
+interface ListForNetworkCardInput {
+  messageId: string;
+  callerId: string | null;
+}
+
+/**
+ * Upsert NetworkCardState by messageId so the FK has a parent. No
+ * status change for existing rows — the row's prior status is
+ * preserved. `auditLog` here would double-log alongside reaction.add,
+ * so we keep this silent and let the reaction's own audit entry
+ * capture the activity.
+ */
+async function ensureNetworkCardStateRow(messageId: bigint): Promise<void> {
+  await prisma.networkCardState.upsert({
+    where: { messageId },
+    create: { messageId, status: 'NEW' },
+    update: {},
+    select: { id: true },
+  });
+}
+
+export async function addReactionToNetworkCard(
+  input: NetworkCardAddRemoveInput,
+): Promise<{ success: true }> {
+  const id = BigInt(input.messageId);
+  await ensureNetworkCardStateRow(id);
+
+  try {
+    await prisma.reaction.create({
+      data: {
+        userId: input.userId,
+        targetType: 'network_card',
+        targetId: input.messageId,
+        networkCardStateId: id,
+        emoji: input.emoji,
+      },
+    });
+
+    await auditLog({
+      action: 'reaction.add',
+      entityType: 'networkCardState',
+      entityId: input.messageId,
+      userId: input.userId,
+      changes: { emoji: input.emoji, messageId: input.messageId, isNetworkCard: true },
+    });
+  } catch (err: unknown) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      return { success: true };
+    }
+    throw err;
+  }
+  return { success: true };
+}
+
+export async function removeReactionFromNetworkCard(
+  input: NetworkCardAddRemoveInput,
+): Promise<{ success: true }> {
+  const result = await prisma.reaction.deleteMany({
+    where: {
+      userId: input.userId,
+      targetType: 'network_card',
+      targetId: input.messageId,
+      emoji: input.emoji,
+    },
+  });
+
+  if (result.count > 0) {
+    await auditLog({
+      action: 'reaction.remove',
+      entityType: 'networkCardState',
+      entityId: input.messageId,
+      userId: input.userId,
+      changes: { emoji: input.emoji, messageId: input.messageId, isNetworkCard: true },
+    });
+  }
+
+  return { success: true };
+}
+
+export async function listReactionsForNetworkCard(
+  input: ListForNetworkCardInput,
+): Promise<ReactionAggregate[]> {
+  const grouped = await prisma.reaction.groupBy({
+    by: ['emoji'],
+    where: {
+      targetType: 'network_card',
+      targetId: input.messageId,
+    },
+    _count: { _all: true },
+  });
+
+  const mineSet = new Set<ReactionEmoji>();
+  if (input.callerId) {
+    const mine = await prisma.reaction.findMany({
+      where: {
+        userId: input.callerId,
+        targetType: 'network_card',
+        targetId: input.messageId,
+      },
+      select: { emoji: true },
+    });
+    for (const row of mine) mineSet.add(row.emoji);
+  }
+
+  return grouped
+    .map((row) => ({
+      emoji: row.emoji,
+      count: row._count._all,
+      mine: mineSet.has(row.emoji),
+    }))
+    .sort((a, b) => {
+      if (a.count !== b.count) return b.count - a.count;
+      return emojiRank(a.emoji) - emojiRank(b.emoji);
+    });
+}
+
+/** Bulk variant — keeps the /network surface N+1-free when the page
+ *  fetches aggregate reactions for the visible card window. */
+export async function listReactionsForNetworkCards(input: {
+  messageIds: string[];
+  callerId: string | null;
+}): Promise<Map<string, ReactionAggregate[]>> {
+  if (input.messageIds.length === 0) {
+    return new Map();
+  }
+
+  const grouped = await prisma.reaction.groupBy({
+    by: ['targetId', 'emoji'],
+    where: {
+      targetType: 'network_card',
+      targetId: { in: input.messageIds },
+    },
+    _count: { _all: true },
+  });
+
+  const minePairs = new Set<string>();
+  if (input.callerId) {
+    const mine = await prisma.reaction.findMany({
+      where: {
+        userId: input.callerId,
+        targetType: 'network_card',
+        targetId: { in: input.messageIds },
+      },
+      select: { targetId: true, emoji: true },
+    });
+    for (const row of mine) minePairs.add(`${row.targetId}:${row.emoji}`);
+  }
+
+  const byCard = new Map<string, ReactionAggregate[]>();
+  for (const messageId of input.messageIds) byCard.set(messageId, []);
+
+  for (const row of grouped) {
+    const arr = byCard.get(row.targetId) ?? [];
+    arr.push({
+      emoji: row.emoji,
+      count: row._count._all,
+      mine: minePairs.has(`${row.targetId}:${row.emoji}`),
+    });
+    byCard.set(row.targetId, arr);
+  }
+
+  for (const [messageId, arr] of byCard) {
+    arr.sort((a, b) => {
+      if (a.count !== b.count) return b.count - a.count;
+      return emojiRank(a.emoji) - emojiRank(b.emoji);
+    });
+    byCard.set(messageId, arr);
+  }
+
+  return byCard;
 }
 
 /** Bulk variant for the comment-list render path — avoids N+1. */

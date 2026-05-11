@@ -50,6 +50,26 @@ export interface NetworkCardLinkPreview {
   siteName: string | null;
 }
 
+/**
+ * bu-network-shares — verified share counts per card. Total is the
+ * verified-only count (D047); perDestination breaks it down so the
+ * tooltip can show the breakdown. Always present on the wire
+ * (zero-filled for cards with no shares) so the renderer doesn't
+ * need a null check.
+ */
+export interface NetworkCardShareCounts {
+  total: number;
+  perDestination: {
+    whatsapp: number;
+    x: number;
+    instagram: number;
+    facebook: number;
+    email: number;
+    copy_link: number;
+    other: number;
+  };
+}
+
 export interface NetworkCard {
   id: bigint;
   sentAt: Date;
@@ -61,6 +81,8 @@ export interface NetworkCard {
   chatId: string;
   state: NetworkCardWorkflowState;
   linkPreview: NetworkCardLinkPreview | null;
+  /** bu-network-shares — verified share counts. Zero-filled when no shares. */
+  shareCounts: NetworkCardShareCounts;
 }
 
 export interface NetworkListResponse {
@@ -100,6 +122,22 @@ export interface SerializedNetworkCard {
   chatId: string;
   state: SerializedNetworkCardWorkflowState;
   linkPreview: NetworkCardLinkPreview | null;
+  /** bu-network-shares — verified share counts. Zero-filled when no shares. */
+  shareCounts: NetworkCardShareCounts;
+}
+
+/**
+ * BU-network-reactions — wire-boundary reaction aggregate. Identical
+ * shape to `FeedReaction` (components/PostCard.tsx) so the existing
+ * polymorphic ReactionPill can consume it directly without a wrapper.
+ * Lives here rather than in `shared/network-card` types because the
+ * /network surface lazy-fetches reactions per visible window — they're
+ * intentionally NOT part of the SerializedNetworkCard payload.
+ */
+export interface SerializedNetworkCardReaction {
+  emoji: 'candle' | 'pray' | 'heart' | 'strong' | 'target' | 'sparkle' | 'thumbsup' | 'sad';
+  count: number;
+  mine: boolean;
 }
 
 export interface SerializedNetworkListResponse {
@@ -128,6 +166,27 @@ export function serializeNetworkCard(card: NetworkCard): SerializedNetworkCard {
       updatedAt: card.state.updatedAt ? card.state.updatedAt.toISOString() : null,
     },
     linkPreview: card.linkPreview,
+    shareCounts: card.shareCounts,
+  };
+}
+
+/**
+ * bu-network-shares — zero-filled share-counts object. Used as the
+ * default when a card has no entries in ShareEvent or when the
+ * projection is intentionally skipped (e.g. test fixtures).
+ */
+export function emptyNetworkCardShareCounts(): NetworkCardShareCounts {
+  return {
+    total: 0,
+    perDestination: {
+      whatsapp: 0,
+      x: 0,
+      instagram: 0,
+      facebook: 0,
+      email: 0,
+      copy_link: 0,
+      other: 0,
+    },
   };
 }
 

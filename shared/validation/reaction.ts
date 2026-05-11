@@ -60,3 +60,52 @@ export const reactionRemoveFromCommentSchema = z.object({
 
 export type ReactionAddToCommentInput = z.infer<typeof reactionAddToCommentSchema>;
 export type ReactionRemoveFromCommentInput = z.infer<typeof reactionRemoveFromCommentSchema>;
+
+// Network-card-target variants (BU-network-reactions).
+//
+// `messageId` is the upstream Supabase row id (BigInt at the DB level)
+// stringified at the wire boundary — see `shared/network-card.ts` for
+// the same serialisation pattern. We validate that the string parses to
+// a non-negative bigint, no leading zeros, to keep the input safely
+// round-trippable.
+
+const messageIdSchema = z
+  .string()
+  .min(1)
+  .regex(/^(0|[1-9]\d*)$/, 'messageId must be a non-negative integer string')
+  .refine(
+    (s) => {
+      try {
+        BigInt(s);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { message: 'messageId must parse to a bigint' },
+  );
+
+export const reactionAddToNetworkCardSchema = z.object({
+  messageId: messageIdSchema,
+  emoji: ReactionEmojiSchema,
+});
+
+export const reactionRemoveFromNetworkCardSchema = z.object({
+  messageId: messageIdSchema,
+  emoji: ReactionEmojiSchema,
+});
+
+export const reactionListForNetworkCardSchema = z.object({
+  messageId: messageIdSchema,
+});
+
+export const reactionListForNetworkCardsSchema = z.object({
+  messageIds: z.array(messageIdSchema).max(200),
+});
+
+export type ReactionAddToNetworkCardInput = z.infer<typeof reactionAddToNetworkCardSchema>;
+export type ReactionRemoveFromNetworkCardInput = z.infer<
+  typeof reactionRemoveFromNetworkCardSchema
+>;
+export type ReactionListForNetworkCardInput = z.infer<typeof reactionListForNetworkCardSchema>;
+export type ReactionListForNetworkCardsInput = z.infer<typeof reactionListForNetworkCardsSchema>;

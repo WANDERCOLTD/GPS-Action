@@ -1,8 +1,10 @@
 'use client';
 
 /**
- * @build-unit BU-network-feed
+ * @build-unit BU-network-feed BU-network-reactions bu-network-shares
  * @spec adrs/0017-network-card-state.md
+ * @spec adrs/0018-share-event-polymorphic.md
+ * @spec build/session-briefs/bu-network-shares.md
  * @spec product/design-philosophy.md
  *
  * Single card on /network. One row from Grant (AIFA)'s WhatsApp-link
@@ -18,21 +20,65 @@
  * The `pending` flag on each button reflects an in-flight mutation
  * for that card so duplicate clicks are idempotent.
  *
+ * BU-network-reactions — the same 8-emoji ReactionPill that lives on
+ * /feed mounts here between the meta row and the link-preview block.
+ * Reactions are optional props; when `onAddReaction` is omitted the
+ * pill is suppressed (keeps prior tests / non-reactions callers
+ * working). The pill component is polymorphic by callback wrap.
+ *
+ * bu-network-shares — share rail (X / IG / FB) plus a separate WhatsApp
+ * button sit between the link preview and the triage row. The share
+ * URL is the upstream `card.url` (Telegraph article etc.), NOT a GPS
+ * page — Sharon's followers want to read the article directly. Verified
+ * share count pill renders to the left of the social rail. On every
+ * tap, the parent's `onShareInitiated` opens the verify dialog when
+ * focus returns to GPS Action.
+ *
  * F14: every actionable element carries a `data-testid` rooted on
  * the messageId for unique selection during tests.
  */
 
 import type { CSSProperties, MouseEvent } from 'react';
+import type { ShareDestination } from '@prisma/client';
 import type { NetworkCardStatus, SerializedNetworkCard } from '@/shared/network-card';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
+import { ReactionPill } from '@/components/ReactionPill';
+import { ShareGroup } from '@/components/ShareGroup';
+import { WhatsAppShareTargetButton } from '@/components/WhatsAppShareTargetButton';
+import { fallbackTitleFromUrl } from '@/shared/share/share-urls';
+import type { FeedReaction, FeedReactionEmoji } from '@/components/PostCard';
 
 interface NetworkCardProps {
   card: SerializedNetworkCard;
   onSetStatus: (status: NetworkCardStatus) => void;
   pending: boolean;
+  /** BU-network-reactions — aggregate reactions on this card. */
+  reactions?: FeedReaction[];
+  /** BU-network-reactions — toggle on. Omit to hide the pill entirely. */
+  onAddReaction?: (emoji: FeedReactionEmoji) => Promise<void>;
+  /** BU-network-reactions — toggle off. Required when onAddReaction set. */
+  onRemoveReaction?: (emoji: FeedReactionEmoji) => Promise<void>;
+  /** BU-network-reactions — false hides the pill (logged-out callers, flag off). */
+  canReact?: boolean;
+  /**
+   * bu-network-shares — fires after a share-button tap (intent ping
+   * already sent). Parent owns the verify-prompt dialog state. Omit
+   * to silently skip the verify flow (counter still accrues intents
+   * but no verification prompt appears).
+   */
+  onShareInitiated?: (messageId: string, destination: ShareDestination) => void;
 }
 
-export function NetworkCard({ card, onSetStatus, pending }: NetworkCardProps) {
+export function NetworkCard({
+  card,
+  onSetStatus,
+  pending,
+  reactions,
+  onAddReaction,
+  onRemoveReaction,
+  canReact = true,
+  onShareInitiated,
+}: NetworkCardProps) {
   const title = card.linkTitle ?? hostnameOf(card.url);
   const sender = card.fromName ?? 'anonymous member';
   const isAnon = card.fromName === null;
@@ -46,6 +92,16 @@ export function NetworkCard({ card, onSetStatus, pending }: NetworkCardProps) {
   // text title link above is suppressed to avoid double-linking the
   // same URL. Without a preview, fall back to the original plain title.
   const hasPreview = card.linkPreview !== null;
+
+  // The title shown in the share text. Prefer the OG preview title
+  // (best signal), fall back to the message's link_title from
+  // Grant's pipe, then to the hostname (per brief's open question:
+  // "lean: hostname of url").
+  const shareTitle = card.linkPreview?.title ?? card.linkTitle ?? fallbackTitleFromUrl(card.url);
+
+  const handleShareInitiated = (destination: ShareDestination): void => {
+    if (onShareInitiated) onShareInitiated(card.messageId, destination);
+  };
 
   return (
     <article
@@ -90,6 +146,26 @@ export function NetworkCard({ card, onSetStatus, pending }: NetworkCardProps) {
         </time>
       </p>
 
+      {/* BU-network-reactions — pill sits between the meta row and the
+       *  link-preview block, mirroring the brief's mount instruction.
+       *  Suppressed when the caller doesn't wire reaction callbacks
+       *  (keeps logged-out / flag-off renders identical to pre-BU). */}
+      {onAddReaction && onRemoveReaction && (
+        <div
+          data-testid="network-card-reactions"
+          data-message-id={card.messageId}
+          style={reactionRowStyle}
+        >
+          <ReactionPill
+            reactions={reactions ?? []}
+            onAdd={onAddReaction}
+            onRemove={onRemoveReaction}
+            canReact={canReact}
+            testIdSuffix={card.messageId}
+          />
+        </div>
+      )}
+
       {card.linkPreview && (
         <div
           data-testid="network-card-preview"
@@ -124,6 +200,35 @@ export function NetworkCard({ card, onSetStatus, pending }: NetworkCardProps) {
           {card.textBody}
         </p>
       )}
+
+      {/* bu-network-shares — share rail (X/IG/FB + counter pill) plus
+       *  a separate WhatsApp button per the share-taxonomy rule. Sits
+       *  between the optional body row and the triage row. The
+       *  upstream URL (not a GPS page) is what gets shared. The
+       *  verify-prompt dialog is owned by the parent (NetworkFeed) so
+       *  this component stays pure-presentational and remains
+       *  function-callable in unit tests. */}
+      <div
+        data-testid="network-card-share-row"
+        data-message-id={card.messageId}
+        style={shareRowStyle}
+      >
+        <ShareGroup
+          url={card.url}
+          title={shareTitle}
+          targetType="network_card"
+          targetId={card.messageId}
+          counts={card.shareCounts}
+          onShareInitiated={handleShareInitiated}
+        />
+        <WhatsAppShareTargetButton
+          url={card.url}
+          title={shareTitle}
+          targetType="network_card"
+          targetId={card.messageId}
+          onShareInitiated={() => handleShareInitiated('whatsapp')}
+        />
+      </div>
 
       <footer style={triageRowStyle}>
         <button
@@ -225,6 +330,24 @@ const triageRowStyle: CSSProperties = {
   flexWrap: 'wrap',
   gap: 'var(--space-2)',
   marginTop: 'var(--space-2)',
+};
+
+// BU-network-reactions — small breathing room between the meta row and
+// the link-preview hero. The pill renders its own internal padding.
+const reactionRowStyle: CSSProperties = {
+  marginBottom: 'var(--space-3)',
+};
+
+// bu-network-shares — share rail wrapper. Holds the ShareGroup (X/IG/
+// FB + counter pill) and the separate WhatsApp button. Gap matches the
+// reaction row's breathing room above; the row sits flush-left so the
+// counter pill anchors against the card's left inner edge.
+const shareRowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--space-3)',
+  marginBottom: 'var(--space-3)',
+  flexWrap: 'wrap',
 };
 
 function triageButtonStyle(active: boolean): CSSProperties {

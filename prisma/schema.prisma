@@ -218,6 +218,9 @@ model User {
   // Network-feed cards triaged (bu-network-feed / ADR-0017)
   networkCardsOwned NetworkCardState[] @relation("networkCardsOwned")
 
+  // Share events authored (bu-share-event-polymorphic / ADR-0018 — Phase A)
+  shareEvents ShareEvent[] @relation("authorShareEvents")
+
   @@index([deletedAt])
   @@index([verifiedAt])
 }
@@ -911,6 +914,9 @@ model Post {
   // Comments on this post (BU-comments — D052)
   comments Comment[] @relation("postComments")
 
+  // Share events on this post (bu-share-event-polymorphic / ADR-0018 — Phase A)
+  shareEvents ShareEvent[] @relation("postShareEvents")
+
   @@index([visibility, createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
   @@index([groupTags], type: Gin)
@@ -964,6 +970,7 @@ enum ReactionEmoji {
 enum ReactionTargetType {
   post
   comment // BU-comments / D052 — reactions on comments are schema-ready, UI deferred
+  network_card // BU-network-reactions — reactions on /network cards
 }
 
 model Reaction {
@@ -984,6 +991,16 @@ model Reaction {
   commentId String?
   comment   Comment? @relation("commentReactions", fields: [commentId], references: [id], onDelete: Cascade)
 
+  // BU-network-reactions — nullable FK alongside postId/commentId. When
+  // targetType='network_card', this FK is set and equals BigInt(targetId).
+  // FK target: NetworkCardState.messageId (not the upstream Supabase row —
+  // we don't own that table). On first reaction the service upserts a
+  // NetworkCardState row with status: NEW so the FK has a parent.
+  // Cross-check enforced at the service layer and via a CHECK constraint
+  // (see the additive migration).
+  networkCardStateId BigInt?
+  networkCardState   NetworkCardState? @relation("networkCardReactions", fields: [networkCardStateId], references: [messageId], onDelete: Cascade)
+
   emoji ReactionEmoji
 
   createdAt DateTime @default(now())
@@ -992,6 +1009,7 @@ model Reaction {
   @@index([targetType, targetId])
   @@index([postId, emoji])
   @@index([commentId, emoji])
+  @@index([networkCardStateId, emoji])
 }
 
 // ─── Comment ─────────────────────────────────────────────────────────────────
@@ -1461,9 +1479,107 @@ model NetworkCardState {
   ownerUser   User?             @relation("networkCardsOwned", fields: [ownerUserId], references: [id], onDelete: SetNull)
   notes       String?           @db.Text
 
+  // BU-network-reactions — cascade-delete reactions when a state row is
+  // removed. State rows are upserted on first reaction (or first triage),
+  // so this relation is the natural cleanup boundary.
+  reactions Reaction[] @relation("networkCardReactions")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Share events targeting this network card (bu-share-event-polymorphic /
+  // ADR-0018). The relation is declared now so a later BU (bu-network-shares)
+  // can enable `network_card` as a ShareTargetType value without a schema
+  // round-trip. Phase A ships the column nullable + relation declared but
+  // unused — no enum value, no writes.
+  shareEvents ShareEvent[] @relation("networkCardShareEvents")
+
   @@index([status])
   @@index([ownerUserId])
+}
+
+// ─── ShareEvent (bu-share-event-polymorphic / ADR-0018) ──────────────────────
+//
+// Polymorphic share-counter table. One row per (targetType, targetId, user,
+// destination) tuple, mirroring the polymorphic Reaction pattern (D052) so
+// future share surfaces (network cards, comments, profiles) plug in by
+// adding a ShareTargetType enum value — no new table per surface.
+//
+// Phase A (this migration): additive only. Enum has `post` value alone.
+// Network-card relation is declared so bu-network-shares can flip the enum
+// without a schema round-trip, but no rows exist for it yet.
+//
+// `targetId` is a stringified parent id (BigInt-safe — NetworkCardState's
+// messageId is BIGINT). The typed FKs (postId / networkCardStateId) carry
+// the cascade-on-delete contract; targetId is the polymorphic discriminator
+// readable across all target types in one query.
+//
+// `legacyPostShareId` is the back-compat trace-back column for Phase B's
+// dual-write window. Per the brief it's `BigInt? @unique`, but ADR-0003's
+// PostShare.id is `String @id @default(uuid())` — so a String column is the
+// type-correct shape. PostShare was never built (ADR-0003 status: Proposed),
+// so backfill is a no-op today; the column ships nullable + unique to
+// support a backfill if PostShare ever ships under a parallel branch.
+//
+// App-level invariants:
+//   - When targetType='post', postId must equal targetId. The service
+//     layer (Phase B) enforces this at write time.
+//   - The (targetType, targetId, userId, destination) unique constraint
+//     makes recordShareIntent idempotent — re-tapping the same destination
+//     is a noop (or updates intentAt within the 30s rate-limit window).
+//
+// onDelete choices:
+//   - user: Cascade (member hard-delete drops their share rows; soft-delete
+//     leaves them intact)
+//   - post / networkCardState: Cascade (parent hard-delete drops the share
+//     history; parents use soft-delete in MVP so this rarely fires)
+
+enum ShareTargetType {
+  post // bu-share-event-polymorphic Phase A
+  network_card // bu-network-shares — share events on /network cards
+  // comment, profile, group — enabled by their respective future BUs
+}
+
+enum ShareDestination {
+  whatsapp
+  x
+  instagram
+  facebook
+  email
+  copy_link
+  other
+}
+
+model ShareEvent {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation("authorShareEvents", fields: [userId], references: [id], onDelete: Cascade)
+
+  targetType ShareTargetType
+  targetId   String
+
+  postId String?
+  post   Post?   @relation("postShareEvents", fields: [postId], references: [id], onDelete: Cascade)
+
+  networkCardStateId BigInt?
+  networkCardState   NetworkCardState? @relation("networkCardShareEvents", fields: [networkCardStateId], references: [messageId], onDelete: Cascade)
+
+  destination ShareDestination
+  intentAt    DateTime  @default(now())
+  confirmedAt DateTime?
+
+  // Phase A back-compat: trace-back to a (potential) PostShare row id.
+  // Null for the steady state once PostShare is gone (Phase C). See
+  // ADR-0018 §"Three-phase migration" for why this column ships nullable.
+  legacyPostShareId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([targetType, targetId, userId, destination], name: "share_event_unique")
+  @@index([targetType, targetId, destination])
+  @@index([userId, intentAt])
+  @@index([postId])
+  @@index([networkCardStateId])
 }

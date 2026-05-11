@@ -18,6 +18,10 @@ import {
   addReactionToComment,
   removeReactionFromComment,
   listReactionsForComment,
+  addReactionToNetworkCard,
+  removeReactionFromNetworkCard,
+  listReactionsForNetworkCard,
+  listReactionsForNetworkCards,
 } from '@/server/services/reaction';
 import { isFeatureEnabled } from '@/server/services/flags';
 import {
@@ -26,6 +30,10 @@ import {
   reactionListForPostSchema,
   reactionAddToCommentSchema,
   reactionRemoveFromCommentSchema,
+  reactionAddToNetworkCardSchema,
+  reactionRemoveFromNetworkCardSchema,
+  reactionListForNetworkCardSchema,
+  reactionListForNetworkCardsSchema,
 } from '@/shared/validation/reaction';
 import { z } from 'zod';
 
@@ -96,5 +104,56 @@ export const reactionRouter = router({
         commentId: input.commentId,
         callerId: ctx.user?.id ?? null,
       });
+    }),
+
+  // ── Network-card-target variants (BU-network-reactions) ──────────
+
+  addToNetworkCard: authedProcedure
+    .input(reactionAddToNetworkCardSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!(await isFeatureEnabled(FLAG_NAME))) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Reactions are disabled.',
+        });
+      }
+      return addReactionToNetworkCard({
+        messageId: input.messageId,
+        emoji: input.emoji,
+        userId: ctx.user.id,
+      });
+    }),
+
+  removeFromNetworkCard: authedProcedure
+    .input(reactionRemoveFromNetworkCardSchema)
+    .mutation(async ({ ctx, input }) => {
+      return removeReactionFromNetworkCard({
+        messageId: input.messageId,
+        emoji: input.emoji,
+        userId: ctx.user.id,
+      });
+    }),
+
+  listForNetworkCard: publicProcedure
+    .input(reactionListForNetworkCardSchema)
+    .query(async ({ ctx, input }) => {
+      return listReactionsForNetworkCard({
+        messageId: input.messageId,
+        callerId: ctx.user?.id ?? null,
+      });
+    }),
+
+  listForNetworkCards: publicProcedure
+    .input(reactionListForNetworkCardsSchema)
+    .query(async ({ ctx, input }) => {
+      const map = await listReactionsForNetworkCards({
+        messageIds: input.messageIds,
+        callerId: ctx.user?.id ?? null,
+      });
+      // Wire-friendly serialisation — tRPC handles Map via superjson but
+      // a plain Record keeps consumers (server actions, tests) simpler.
+      const out: Record<string, Awaited<ReturnType<typeof listReactionsForNetworkCard>>> = {};
+      for (const [key, val] of map) out[key] = val;
+      return out;
     }),
 });
