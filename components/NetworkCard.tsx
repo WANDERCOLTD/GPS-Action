@@ -41,12 +41,14 @@
 import type { CSSProperties, MouseEvent } from 'react';
 import type { ShareDestination } from '@prisma/client';
 import type { NetworkCardStatus, SerializedNetworkCard } from '@/shared/network-card';
+import { isZoomUrl, parseZoomInvitation } from '@/shared/lib/parse-zoom-invitation';
 import { getSourceColor } from '@/shared/styles/source-palette';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 import { ReactionPill } from '@/components/ReactionPill';
 import { ShareCountPill } from '@/components/ShareCountPill';
 import { ShareGroup } from '@/components/ShareGroup';
 import { WhatsAppShareTargetButton } from '@/components/WhatsAppShareTargetButton';
+import { ZoomMeetingCard } from '@/components/ZoomMeetingCard';
 import { fallbackTitleFromUrl } from '@/shared/share/share-urls';
 import type { FeedReaction, FeedReactionEmoji } from '@/components/PostCard';
 
@@ -85,6 +87,16 @@ export function NetworkCard({
   const sender = card.fromName ?? 'anonymous member';
   const isAnon = card.fromName === null;
   const sourceColor = getSourceColor(card.source);
+  // bu-network-zoom-card — zoom.us URLs get a per-host card variant
+  // that lifts the join URL / meeting ID / passcode / topic out of
+  // the wall-of-text invitation body. The standard LinkPreviewCard
+  // can't help here because Zoom auth-walls its meeting pages so the
+  // OG fetcher returns nothing useful. When the host is zoom, we
+  // also suppress the standalone textBody render below — the
+  // ZoomMeetingCard absorbs the body into its "Meeting details"
+  // expander.
+  const isZoom = isZoomUrl(card.url);
+  const zoomInvitation = isZoom ? parseZoomInvitation(card.textBody) : null;
 
   // When a link preview is available, the LinkPreviewCard becomes the
   // primary clickable surface (hero + title + description + CTA). The
@@ -175,30 +187,45 @@ export function NetworkCard({
        *  rail below the body. Classes defined in styles/components.css. */}
       <div className="gps-network-card-layout">
         <div className="gps-network-card-main">
-          {card.linkPreview && (
+          {isZoom && zoomInvitation ? (
             <div
-              data-testid="network-card-preview"
+              data-testid="network-card-zoom"
               data-message-id={card.messageId}
               style={{ marginBottom: 'var(--space-3)' }}
             >
-              <LinkPreviewCard
+              <ZoomMeetingCard
                 linkUrl={card.url}
-                linkTitle={card.linkPreview.title}
-                linkDescription={card.linkPreview.description}
-                linkImageUrl={card.linkPreview.imageUrl}
-                linkSiteName={card.linkPreview.siteName}
-                linkFaviconUrl={card.linkPreview.faviconUrl}
-                // X / Twitter posts surface the user's avatar as og:image,
-                // which renders as an oversized hero at the large size.
-                // Drop to the compact 96×96 thumbnail for those hosts so
-                // the avatar reads as a thumbnail rather than the card's
-                // hero (bu-network-unfurl-fixes).
-                size={isXLikeUrl(card.url) ? 'small' : 'large'}
+                invitation={zoomInvitation}
+                rawBody={card.textBody}
+                messageId={card.messageId}
               />
             </div>
+          ) : (
+            card.linkPreview && (
+              <div
+                data-testid="network-card-preview"
+                data-message-id={card.messageId}
+                style={{ marginBottom: 'var(--space-3)' }}
+              >
+                <LinkPreviewCard
+                  linkUrl={card.url}
+                  linkTitle={card.linkPreview.title}
+                  linkDescription={card.linkPreview.description}
+                  linkImageUrl={card.linkPreview.imageUrl}
+                  linkSiteName={card.linkPreview.siteName}
+                  linkFaviconUrl={card.linkPreview.faviconUrl}
+                  // X / Twitter posts surface the user's avatar as og:image,
+                  // which renders as an oversized hero at the large size.
+                  // Drop to the compact 96×96 thumbnail for those hosts so
+                  // the avatar reads as a thumbnail rather than the card's
+                  // hero (bu-network-unfurl-fixes).
+                  size={isXLikeUrl(card.url) ? 'small' : 'large'}
+                />
+              </div>
+            )
           )}
 
-          {card.textBody && (
+          {!isZoom && card.textBody && (
             <p
               data-testid="network-card-body"
               data-message-id={card.messageId}
