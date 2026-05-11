@@ -24,6 +24,7 @@ import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { NetworkFeed } from '@/app/network/network-feed';
+import { NetworkSortControl, parseSortParam } from '@/components/NetworkSortControl';
 import { NetworkSourceChipStrip, parseSourcesParam } from '@/components/NetworkSourceChipStrip';
 import { serializeNetworkListResponse } from '@/shared/network-card';
 
@@ -34,12 +35,12 @@ export const metadata = {
 interface NetworkPageProps {
   /**
    * Next 15 App Router: `searchParams` is a Promise (per the App Router
-   * async API change). The page reads `?source=slug-a,slug-b` from it
-   * and passes the parsed slug array through to both the chip strip
-   * (for active-state highlighting) and the tRPC `list` call (for
-   * server-side filtering).
+   * async API change). The page reads `?source=slug-a,slug-b` and
+   * `?sort=recent|oldest` and threads both through to the chip strip
+   * (active state), the sort control (active state), and the tRPC
+   * `list` call (server-side filter + sort).
    */
-  searchParams: Promise<{ source?: string | string[] }>;
+  searchParams: Promise<{ source?: string | string[]; sort?: string | string[] }>;
 }
 
 export default async function NetworkPage({ searchParams }: NetworkPageProps) {
@@ -85,18 +86,41 @@ export default async function NetworkPage({ searchParams }: NetworkPageProps) {
   const caller = createCaller(ctx);
   const params = await searchParams;
   const activeSources = parseSourcesParam(params.source);
+  const activeSort = parseSortParam(params.sort);
   const [initial, sources] = await Promise.all([
-    caller.network.list({ sources: activeSources }),
+    caller.network.list({ sources: activeSources, sort: activeSort }),
     caller.network.listSources({}),
   ]);
   const initialSerialised = serializeNetworkListResponse(initial);
+
+  // Each filter surface must preserve the other's URL state when its
+  // own links are clicked — otherwise toggling a source chip would
+  // silently reset sort to default, and vice versa.
+  const sourceQs = activeSources.length ? [...activeSources].sort().join(',') : undefined;
+  const sortQs = activeSort !== 'recent' ? activeSort : undefined;
 
   return (
     <main
       style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}
       data-testid="network-page"
     >
-      <NetworkSourceChipStrip sources={sources} active={activeSources} />
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 'var(--space-4)',
+          marginBottom: 'var(--space-3)',
+          flexWrap: 'wrap',
+        }}
+      >
+        <NetworkSourceChipStrip
+          sources={sources}
+          active={activeSources}
+          preserveParams={{ sort: sortQs }}
+        />
+        <NetworkSortControl active={activeSort} preserveParams={{ source: sourceQs }} />
+      </div>
       <NetworkFeed initial={initialSerialised} />
     </main>
   );

@@ -71,7 +71,7 @@ const cache = new Map<string, CacheEntry>();
 function cacheKey(input: NetworkListInput): string {
   // Sort sources so `?source=a,b` and `?source=b,a` share a cache slot.
   const sources = input.sources.length ? [...input.sources].sort().join(',') : 'all';
-  return `${input.windowDays}:${input.limit}:${input.cursor ?? 'first'}:${sources}`;
+  return `${input.windowDays}:${input.limit}:${input.cursor ?? 'first'}:${sources}:${input.sort}`;
 }
 
 function cacheGet(key: string): NetworkListResponse | null {
@@ -338,6 +338,7 @@ export async function listNetworkCards(
       windowDays: input.windowDays,
       limit: input.limit,
       cursor: decodedCursor,
+      direction: input.sort === 'oldest' ? 'asc' : 'desc',
       chatIds: chatIdAllowlist,
     });
   } catch (err) {

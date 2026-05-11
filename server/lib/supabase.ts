@@ -121,6 +121,12 @@ interface ListGpsGroupMessagesArgs {
    */
   cursor?: { sentAt: string; id: number };
   /**
+   * bu-network-sort-options — sort direction on the compound
+   * (sent_at, id) sort key. `desc` (default) = newest first.
+   * `asc` = oldest first. Cursor predicates flip with this.
+   */
+  direction?: 'desc' | 'asc';
+  /**
    * bu-network-source-chips — optional chat_id allowlist. When non-empty,
    * PostgREST `chat_id=in.(...)` filters to just these chats. Pushing the
    * filter upstream is essential: without it, a 50-row page can be
@@ -162,16 +168,17 @@ export async function listGpsGroupMessages(
     'select',
     'id,sent_at,from_name,sender_hash,url,link_title,text_body,chat_id,is_forwarded',
   );
+  const direction = args.direction ?? 'desc';
+  // Keyset predicate flips with sort direction. For DESC: rows past
+  // the cursor are STRICTLY OLDER — `sent_at.lt` / `id.lt`. For ASC:
+  // rows past the cursor are STRICTLY NEWER — `sent_at.gt` / `id.gt`.
+  const cmp = direction === 'desc' ? 'lt' : 'gt';
+
   params.set('sent_at', `gte.${sinceIso}`);
   if (args.cursor) {
-    // Keyset pagination on the compound sort key:
-    //   sent_at < cursor.sentAt
-    //   OR (sent_at = cursor.sentAt AND id < cursor.id)
-    // PostgREST expresses this with the `or=` parameter; nested logical
-    // operators inside `or=(...)` use comma-separated predicates.
     const sentAt = args.cursor.sentAt;
     const id = args.cursor.id;
-    params.set('or', `(sent_at.lt.${sentAt},and(sent_at.eq.${sentAt},id.lt.${id}))`);
+    params.set('or', `(sent_at.${cmp}.${sentAt},and(sent_at.eq.${sentAt},id.${cmp}.${id}))`);
   }
   if (args.chatIds && args.chatIds.length > 0) {
     // PostgREST `in.(v1,v2)`. Each value gets wrapped in double quotes
@@ -181,7 +188,7 @@ export async function listGpsGroupMessages(
     const quoted = args.chatIds.map((id) => `"${id.replace(/"/g, '\\"')}"`).join(',');
     params.set('chat_id', `in.(${quoted})`);
   }
-  params.set('order', 'sent_at.desc,id.desc');
+  params.set('order', direction === 'desc' ? 'sent_at.desc,id.desc' : 'sent_at.asc,id.asc');
   params.set('limit', String(args.limit));
 
   const response = await fetchImpl(`${config.url}/rest/v1/gps_group_messages?${params}`, {

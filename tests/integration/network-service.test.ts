@@ -98,7 +98,7 @@ describe('listNetworkCards', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
 
@@ -128,7 +128,7 @@ describe('listNetworkCards', () => {
     ]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
 
@@ -141,7 +141,7 @@ describe('listNetworkCards', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([{ ...baseRow, text_body: baseRow.url }]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
 
@@ -154,7 +154,7 @@ describe('listNetworkCards', () => {
       .mockResolvedValue([{ ...baseRow, text_body: 'Worth a read this morning' }]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
 
@@ -165,11 +165,11 @@ describe('listNetworkCards', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
 
     const first = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
     const second = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
 
@@ -182,11 +182,11 @@ describe('listNetworkCards', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
 
     await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
     const refreshed = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: true, sources: [] },
+      { limit: 50, windowDays: 90, refresh: true, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
 
@@ -201,7 +201,7 @@ describe('listNetworkCards', () => {
     ]);
 
     const result = await listNetworkCards(
-      { limit: 2, windowDays: 90, refresh: false, sources: [] },
+      { limit: 2, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
 
@@ -220,6 +220,7 @@ describe('listNetworkCards', () => {
         windowDays: 90,
         refresh: false,
         sources: [],
+        sort: 'recent',
         cursor: '2026-05-10T12:00:00.000Z|123',
       },
       { fetchUpstream, fetchLabels },
@@ -241,6 +242,7 @@ describe('listNetworkCards', () => {
         windowDays: 90,
         refresh: false,
         sources: [],
+        sort: 'recent',
         cursor: '42', // legacy id-only — no pipe separator
       },
       { fetchUpstream, fetchLabels },
@@ -249,11 +251,43 @@ describe('listNetworkCards', () => {
     expect(fetchUpstream).toHaveBeenCalledWith(expect.objectContaining({ cursor: undefined }));
   });
 
+  it('passes direction=desc to upstream when sort=recent', async () => {
+    const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
+    await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
+      { fetchUpstream, fetchLabels },
+    );
+    expect(fetchUpstream).toHaveBeenCalledWith(expect.objectContaining({ direction: 'desc' }));
+  });
+
+  it('passes direction=asc to upstream when sort=oldest', async () => {
+    const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
+    await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'oldest' },
+      { fetchUpstream, fetchLabels },
+    );
+    expect(fetchUpstream).toHaveBeenCalledWith(expect.objectContaining({ direction: 'asc' }));
+  });
+
+  it('caches separately by sort direction', async () => {
+    const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
+    await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
+      { fetchUpstream, fetchLabels },
+    );
+    await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'oldest' },
+      { fetchUpstream, fetchLabels },
+    );
+    // Different sort = different cache slot = fresh fetch.
+    expect(fetchUpstream).toHaveBeenCalledTimes(2);
+  });
+
   it('emits no cursor when fewer rows than limit are returned', async () => {
     const fetchUpstream = vi.fn().mockResolvedValue([{ ...baseRow, id: 9 }]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
 
@@ -266,7 +300,7 @@ describe('listNetworkCards', () => {
       .mockResolvedValue([{ ...baseRow, from_name: null, sender_hash: 'hash-anon' }]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
 
@@ -285,7 +319,7 @@ describe('listNetworkCards', () => {
       );
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
 
@@ -305,7 +339,7 @@ describe('listNetworkCards', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
 
@@ -321,7 +355,7 @@ describe('listNetworkCards', () => {
 
     await expect(
       listNetworkCards(
-        { limit: 50, windowDays: 90, refresh: false, sources: [] },
+        { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
         { fetchUpstream, fetchLabels },
       ),
     ).rejects.toThrow('upstream 503');
@@ -339,7 +373,7 @@ describe('listNetworkCards', () => {
       });
 
       const result = await listNetworkCards(
-        { limit: 50, windowDays: 90, refresh: false, sources: [] },
+        { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
         { fetchUpstream, resolveLinkPreview },
       );
 
@@ -358,7 +392,7 @@ describe('listNetworkCards', () => {
       const resolveLinkPreview = vi.fn().mockResolvedValue(null);
 
       const result = await listNetworkCards(
-        { limit: 50, windowDays: 90, refresh: false, sources: [] },
+        { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
         { fetchUpstream, resolveLinkPreview },
       );
 
@@ -380,7 +414,7 @@ describe('listNetworkCards', () => {
       });
 
       await listNetworkCards(
-        { limit: 50, windowDays: 90, refresh: false, sources: [] },
+        { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
         { fetchUpstream, resolveLinkPreview },
       );
 
@@ -400,7 +434,7 @@ describe('setNetworkCardState', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
 
     await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
     expect(_networkCacheSize()).toBe(1);
@@ -504,7 +538,7 @@ describe('listNetworkCards source filter', () => {
     const fetchUpstream = smartFetchUpstream([baseRow, otherChatRow]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels: fetchTwoLabels },
     );
 
@@ -516,7 +550,7 @@ describe('listNetworkCards source filter', () => {
     const fetchUpstream = smartFetchUpstream([baseRow, otherChatRow]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: ['hendon-jag'] },
+      { limit: 50, windowDays: 90, refresh: false, sources: ['hendon-jag'], sort: 'recent' },
       { fetchUpstream, fetchLabels: fetchTwoLabels },
     );
 
@@ -536,6 +570,7 @@ describe('listNetworkCards source filter', () => {
         windowDays: 90,
         refresh: false,
         sources: ['gps-action-network', 'hendon-jag'],
+        sort: 'recent',
       },
       { fetchUpstream, fetchLabels: fetchTwoLabels },
     );
@@ -549,7 +584,7 @@ describe('listNetworkCards source filter', () => {
     const fetchUpstream = smartFetchUpstream([baseRow, otherChatRow]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: ['retired-slug'] },
+      { limit: 50, windowDays: 90, refresh: false, sources: ['retired-slug'], sort: 'recent' },
       { fetchUpstream, fetchLabels: fetchTwoLabels },
     );
 
@@ -567,6 +602,7 @@ describe('listNetworkCards source filter', () => {
         windowDays: 90,
         refresh: false,
         sources: ['gps-action-network', 'hendon-jag'],
+        sort: 'recent',
       },
       { fetchUpstream, fetchLabels: fetchTwoLabels },
     );
@@ -577,6 +613,7 @@ describe('listNetworkCards source filter', () => {
         windowDays: 90,
         refresh: false,
         sources: ['hendon-jag', 'gps-action-network'],
+        sort: 'recent',
       },
       { fetchUpstream, fetchLabels: fetchTwoLabels },
     );
@@ -591,7 +628,7 @@ describe('upstreamToCard source + isForwarded', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
 
@@ -614,7 +651,7 @@ describe('upstreamToCard source + isForwarded', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
 
@@ -631,7 +668,7 @@ describe('upstreamToCard source + isForwarded', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([forwardedRow]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { limit: 50, windowDays: 90, refresh: false, sources: [], sort: 'recent' },
       { fetchUpstream, fetchLabels },
     );
 

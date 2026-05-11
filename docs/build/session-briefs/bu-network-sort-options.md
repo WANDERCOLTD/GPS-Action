@@ -3,7 +3,7 @@ slug: bu-network-sort-options
 status: planned
 phase: 2
 priority: medium
-note: "Stub 2026-05-11. Surfaced by Paul after the sent_at-DESC sort fix landed — 'probably need pagination/sort options for users.' Member-facing sort + paging affordances on /network. Not yet briefed; needs product input on the option set before scoping."
+note: "Stub 2026-05-11. Newest/Oldest axis shipped as a first cut (PR open). Value axes (most-reacted, most-shared, triage-status, per-source interleave) need backend joins and stay unshipped — file a follow-up BU when product picks which one to add next."
 ---
 
 # SESSION BRIEF · bu-network-sort-options — member sort + pagination affordances on /network

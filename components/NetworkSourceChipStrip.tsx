@@ -32,6 +32,12 @@ interface NetworkSourceChipStripProps {
   sources: NetworkSource[];
   /** Currently-active slugs (from the URL `?source=` param). Empty = "All". */
   active: string[];
+  /**
+   * Other URL params that must survive a chip toggle. Today this is
+   * `sort` — toggling a source chip must NOT silently reset the
+   * member's chosen sort direction.
+   */
+  preserveParams?: Record<string, string | undefined>;
 }
 
 const rowStyle: CSSProperties = {
@@ -75,13 +81,27 @@ function toggleSlug(active: string[], slug: string): string[] {
   return [...active, slug];
 }
 
-function buildHref(slugs: string[]): string {
-  if (slugs.length === 0) return '/network';
-  const sorted = [...slugs].sort();
-  return `/network?source=${sorted.join(',')}`;
+function buildHref(slugs: string[], preserve: Record<string, string | undefined>): string {
+  // Manual query construction (not URLSearchParams) so commas in the
+  // source list stay literal — `/network?source=a,b` is friendlier
+  // for sharing than `/network?source=a%2Cb`. Slug values are kebab-
+  // case and don't need encoding; preserved values are encoded
+  // defensively in case the caller passes something exotic.
+  const parts: string[] = [];
+  if (slugs.length > 0) {
+    parts.push(`source=${[...slugs].sort().join(',')}`);
+  }
+  for (const [k, v] of Object.entries(preserve)) {
+    if (v !== undefined && v !== '') parts.push(`${k}=${encodeURIComponent(v)}`);
+  }
+  return parts.length ? `/network?${parts.join('&')}` : '/network';
 }
 
-export function NetworkSourceChipStrip({ sources, active }: NetworkSourceChipStripProps) {
+export function NetworkSourceChipStrip({
+  sources,
+  active,
+  preserveParams = {},
+}: NetworkSourceChipStripProps) {
   const isAll = active.length === 0;
 
   return (
@@ -91,7 +111,7 @@ export function NetworkSourceChipStrip({ sources, active }: NetworkSourceChipStr
       style={rowStyle}
     >
       <a
-        href="/network"
+        href={buildHref([], preserveParams)}
         aria-current={isAll ? 'page' : undefined}
         aria-label="All sources"
         data-testid="network-source-chip-all"
@@ -103,7 +123,7 @@ export function NetworkSourceChipStrip({ sources, active }: NetworkSourceChipStr
       {sources.map((source) => {
         const isActive = active.includes(source.slug);
         const next = toggleSlug(active, source.slug);
-        const href = buildHref(next);
+        const href = buildHref(next, preserveParams);
         const color = getSourceColor(source);
         return (
           <a
