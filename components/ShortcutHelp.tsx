@@ -20,6 +20,17 @@ interface ShortcutHelpProps {
   onClose: () => void;
 }
 
+/**
+ * Detect Apple platforms so the contextual row renders the right
+ * keyboard glyph (⌘ on Mac, Ctrl elsewhere). SSR fallback is non-
+ * Mac; the help overlay is client-side only (opened by `?`), so
+ * the userAgent is always available when this runs.
+ */
+function isApplePlatform(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+}
+
 function bindingKeys(binding: ShortcutBinding): ReactElement {
   if (binding.kind === 'sequence') {
     return (
@@ -29,6 +40,18 @@ function bindingKeys(binding: ShortcutBinding): ReactElement {
           then
         </span>
         <kbd style={kbdStyle}>{binding.key}</kbd>
+      </span>
+    );
+  }
+  if (binding.kind === 'contextual') {
+    const tokens = (isApplePlatform() ? binding.macKeys : binding.pcKeys).split(/\s+/);
+    return (
+      <span style={keysWrapStyle}>
+        {tokens.map((tok, idx) => (
+          <kbd key={`${tok}-${idx}`} style={kbdStyle}>
+            {tok}
+          </kbd>
+        ))}
       </span>
     );
   }
@@ -79,7 +102,11 @@ export function ShortcutHelp({ open, onClose }: ShortcutHelpProps): ReactElement
         <ul style={listStyle}>
           {SHORTCUT_BINDINGS.map((binding) => {
             const id =
-              binding.kind === 'sequence' ? `${binding.prefix}-${binding.key}` : binding.key;
+              binding.kind === 'sequence'
+                ? `${binding.prefix}-${binding.key}`
+                : binding.kind === 'contextual'
+                  ? `ctx-${binding.macKeys.replace(/\s+/g, '-')}`
+                  : binding.key;
             return (
               <li key={id} data-testid="shortcut-help-row" data-binding-id={id} style={rowStyle}>
                 {bindingKeys(binding)}

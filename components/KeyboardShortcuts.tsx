@@ -75,6 +75,15 @@ export function KeyboardShortcuts(): React.ReactElement {
           sequenceRef.current = null;
           setHelpOpen((open) => !open);
           return;
+        case 'event':
+          // Non-navigation action — dispatch a CustomEvent on `window`
+          // so a peer component (e.g. DevBannerToggle) can subscribe.
+          // Keeps the registry the single source of truth for both
+          // routes AND toggle-style actions.
+          event.preventDefault();
+          sequenceRef.current = null;
+          window.dispatchEvent(new CustomEvent(outcome.eventName));
+          return;
         case 'arm-sequence':
           sequenceRef.current = { prefix: outcome.prefix, expiresAt: outcome.expiresAt };
           return;

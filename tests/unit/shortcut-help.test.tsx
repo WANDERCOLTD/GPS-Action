@@ -60,7 +60,11 @@ describe('ShortcutHelp', () => {
     const tree = ShortcutHelp({ open: true, onClose: vi.fn() }) as AnyElement;
     const rows = findAllByTestId(tree, 'shortcut-help-row');
     const expectedIds = SHORTCUT_BINDINGS.map((b) =>
-      b.kind === 'sequence' ? `${b.prefix}-${b.key}` : b.key,
+      b.kind === 'sequence'
+        ? `${b.prefix}-${b.key}`
+        : b.kind === 'contextual'
+          ? `ctx-${b.macKeys.replace(/\s+/g, '-')}`
+          : b.key,
     );
     const actualIds = rows.map((r) => r.props['data-binding-id']);
     expect(actualIds).toEqual(expectedIds);

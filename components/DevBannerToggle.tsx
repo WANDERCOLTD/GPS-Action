@@ -8,9 +8,11 @@
  * strip. Default = hidden. State lives in `localStorage` under
  * `gps:dev-banner-visible` so the choice survives page reloads.
  *
- * Keyboard shortcut: ⌘⇧U (Mac) / Ctrl+Shift+U (Win/Linux). Listener
- * lives on `window` so the shortcut works regardless of focus, but
- * only when the toggle is mounted (which is itself dev-only).
+ * Keyboard shortcut: `g u` (g-system). The global `KeyboardShortcuts`
+ * listener dispatches `TOGGLE_DEV_BANNER_EVENT` on `window`; this
+ * component subscribes. Migrated from `⌘⇧U` (2026-05-11) so the
+ * shortcut sits in the same g-prefix register as `g n`, `g f`, etc.
+ * Help-overlay row is rendered from the registry directly.
  *
  * The toggle is dev/demo only — the parent (`<LoggedInAs />`) is
  * already gated by `NODE_ENV !== 'production' || isDemoMode()`. We
@@ -21,6 +23,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { CSSProperties, FC } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { TOGGLE_DEV_BANNER_EVENT } from '@/shared/shortcuts';
 
 const STORAGE_KEY = 'gps:dev-banner-visible';
 
@@ -60,16 +63,6 @@ export function subscribeDevBannerVisibility(handler: () => void): () => void {
   if (typeof window === 'undefined') return () => undefined;
   window.addEventListener(VISIBILITY_EVENT, handler);
   return () => window.removeEventListener(VISIBILITY_EVENT, handler);
-}
-
-/**
- * `Cmd+Shift+U` on Mac, `Ctrl+Shift+U` elsewhere. Match either modifier
- * — keyboard layout permitting, both work everywhere.
- */
-function isToggleShortcut(event: KeyboardEvent): boolean {
-  if (!(event.metaKey || event.ctrlKey)) return false;
-  if (!event.shiftKey) return false;
-  return event.key === 'U' || event.key === 'u';
 }
 
 const buttonStyle: CSSProperties = {
@@ -118,22 +111,25 @@ export const DevBannerToggle: FC<DevBannerToggleProps> = ({ enabled }) => {
     });
   }, []);
 
-  // Keyboard shortcut listener.
+  // CustomEvent subscriber. The global `KeyboardShortcuts` listener
+  // resolves `g u` against the registry and dispatches
+  // `TOGGLE_DEV_BANNER_EVENT` on `window`. Subscribing (rather than
+  // owning a keydown listener here) means the dev banner toggle
+  // benefits from the global listener's inertness checks (typing
+  // target / modifier keys / defaultPrevented) for free.
   useEffect(() => {
     if (!isDevSurface) return undefined;
-    const handler = (event: KeyboardEvent): void => {
-      if (!isToggleShortcut(event)) return;
-      event.preventDefault();
+    const handler = (): void => {
       toggle();
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener(TOGGLE_DEV_BANNER_EVENT, handler);
+    return () => window.removeEventListener(TOGGLE_DEV_BANNER_EVENT, handler);
   }, [isDevSurface, toggle]);
 
   if (!isDevSurface) return null;
 
   // Avoid showing a hydration-mismatched icon for one frame.
-  const iconLabel = visible ? 'Hide dev banner (⌘⇧U)' : 'Show dev banner (⌘⇧U)';
+  const iconLabel = visible ? 'Hide dev banner (g, then u)' : 'Show dev banner (g, then u)';
 
   return (
     <button
