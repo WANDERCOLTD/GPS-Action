@@ -24,7 +24,7 @@
  */
 
 import * as React from 'react';
-import { useEffect, useState, type CSSProperties, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, ClipboardPaste } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -49,6 +49,16 @@ export function IntentFabSheet({ open, onClose }: IntentFabSheetProps): ReactEle
   const router = useRouter();
   const [input, setInput] = useState<string>('');
   const [pasteNote, setPasteNote] = useState<string | null>(null);
+  // iOS Safari ghost-click guard. The same touch that opens the sheet
+  // can fire a synthetic pointerdown on the backdrop because the
+  // overlay mounts under the lifting finger — Radix then interprets
+  // that as "tap outside" and closes immediately, so the sheet flashes
+  // open then disappears. Stamp the open moment and ignore any
+  // pointer-down-outside events that arrive within 300ms.
+  const openedAtRef = useRef<number>(0);
+  useEffect(() => {
+    if (open) openedAtRef.current = Date.now();
+  }, [open]);
   // The Paste button only renders when the runtime can actually read
   // the clipboard. iOS Safari requires both a secure context (HTTPS or
   // localhost) and `navigator.clipboard.readText`; over HTTP on a LAN
@@ -104,6 +114,9 @@ export function IntentFabSheet({ open, onClose }: IntentFabSheetProps): ReactEle
           asChild
           aria-describedby={undefined}
           onOpenAutoFocus={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => {
+            if (Date.now() - openedAtRef.current < 300) e.preventDefault();
+          }}
         >
           <div style={sheetStyle} data-testid="intent-fab-sheet">
             <div style={headerStyle}>
