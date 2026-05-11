@@ -32,11 +32,11 @@
 import type { CSSProperties, FC, MouseEvent, ReactNode } from 'react';
 import type { ShareDestination, ShareTargetType } from '@prisma/client';
 import { buildShareUrl } from '@/shared/share/share-urls';
+import { ShareCountPill, type ShareCountsView } from '@/components/ShareCountPill';
 
-export interface ShareCountsView {
-  total: number;
-  perDestination: Partial<Record<ShareDestination, number>>;
-}
+// Re-export so existing callers that import ShareCountsView from
+// ShareGroup keep working.
+export type { ShareCountsView };
 
 export interface ShareGroupProps {
   /** Upstream URL the share will point at. */
@@ -57,6 +57,19 @@ export interface ShareGroupProps {
    * dialog. Receives the destination so the dialog copy can specialise.
    */
   onShareInitiated?: (destination: ShareDestination) => void;
+  /**
+   * Layout direction. Default 'horizontal' (the /feed pattern).
+   * 'vertical' stacks counter on top, icons below — used by
+   * `<NetworkCard>`'s RHS share column.
+   */
+  orientation?: 'horizontal' | 'vertical';
+  /**
+   * When true, the internal counter pill is suppressed so the caller
+   * can render its own (`<ShareCountPill>`) and intersperse other
+   * elements (e.g., a WhatsApp button between counter and icons).
+   * Default false to preserve the existing inline counter.
+   */
+  hideCounter?: boolean;
 }
 
 interface SocialDestination {
@@ -114,6 +127,8 @@ export const ShareGroup: FC<ShareGroupProps> = ({
   targetId,
   counts,
   onShareInitiated,
+  orientation = 'horizontal',
+  hideCounter = false,
 }) => {
   function makeClickHandler(destination: ShareDestination) {
     return function handleClick(event: MouseEvent<HTMLAnchorElement>): void {
@@ -123,26 +138,32 @@ export const ShareGroup: FC<ShareGroupProps> = ({
     };
   }
 
+  const isVertical = orientation === 'vertical';
+
   return (
     <div
       data-testid="share-group"
       data-target-type={targetType}
       data-target-id={targetId}
-      style={containerStyle}
+      data-orientation={orientation}
+      style={isVertical ? containerStyleVertical : containerStyle}
     >
-      {counts !== undefined && (
+      {counts !== undefined && !hideCounter && (
         <span
           data-testid="share-group-counter"
           data-count={counts.total}
           data-zero={counts.total === 0 ? 'true' : 'false'}
-          title={tooltipText(counts)}
-          style={counterPillStyle(counts.total === 0)}
+          title={`${counts.total} verified shares — whatsapp: ${counts.perDestination.whatsapp ?? 0}, x: ${counts.perDestination.x ?? 0}, instagram: ${counts.perDestination.instagram ?? 0}, facebook: ${counts.perDestination.facebook ?? 0}`}
+          style={{ display: 'inline-flex' }}
         >
-          <span aria-hidden="true">★ </span>
-          {counts.total}
+          <ShareCountPill counts={counts} targetId={targetId} />
         </span>
       )}
-      <nav aria-label="Share on social media" data-testid="share-group-rail" style={railStyle}>
+      <nav
+        aria-label="Share on social media"
+        data-testid="share-group-rail"
+        style={isVertical ? railStyleVertical : railStyle}
+      >
         {SOCIAL_DESTINATIONS.map(({ destination, label, icon }) => {
           const href = buildShareUrl(destination, { url, title }) ?? url;
           return (
@@ -215,8 +236,24 @@ const containerStyle: CSSProperties = {
   flexShrink: 0,
 };
 
+const containerStyleVertical: CSSProperties = {
+  display: 'inline-flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 'var(--space-2)',
+  flexShrink: 0,
+};
+
 const railStyle: CSSProperties = {
   display: 'inline-flex',
+  alignItems: 'center',
+  gap: 'var(--space-2)',
+  flexShrink: 0,
+};
+
+const railStyleVertical: CSSProperties = {
+  display: 'inline-flex',
+  flexDirection: 'column',
   alignItems: 'center',
   gap: 'var(--space-2)',
   flexShrink: 0,
@@ -235,28 +272,3 @@ const iconStyle: CSSProperties = {
   textDecoration: 'none',
   flexShrink: 0,
 };
-
-function counterPillStyle(isZero: boolean): CSSProperties {
-  return {
-    fontFamily: 'var(--font-ui)',
-    fontSize: 'var(--text-xs)',
-    color: isZero ? 'var(--colour-text-tertiary)' : 'var(--colour-text-secondary)',
-    padding: 'var(--space-1) var(--space-2)',
-    borderRadius: 'var(--radius-pill)',
-    background: isZero ? 'transparent' : 'var(--colour-surface-sunken)',
-    border: `1px solid ${isZero ? 'var(--colour-border-subtle)' : 'transparent'}`,
-    fontWeight: 'var(--weight-semibold)',
-    lineHeight: 1,
-    display: 'inline-flex',
-    alignItems: 'center',
-  };
-}
-
-function tooltipText(counts: ShareCountsView): string {
-  const breakdown = SOCIAL_DESTINATIONS.map((d) => {
-    const n = counts.perDestination[d.destination] ?? 0;
-    return `${d.destination}: ${n}`;
-  });
-  const wa = counts.perDestination.whatsapp ?? 0;
-  return `${counts.total} verified shares — whatsapp: ${wa}, ${breakdown.join(', ')}`;
-}

@@ -317,24 +317,39 @@ describe('NetworkCard', () => {
   // wires the right props into the share components.
 
   describe('share rail', () => {
-    function shareRowChildren(tree: AnyElement): AnyElement[] {
-      const row = findByTestId(tree, 'network-card-share-row');
-      const kids = row?.props.children;
+    function shareColumnChildren(tree: AnyElement): AnyElement[] {
+      const col = findByTestId(tree, 'network-card-share-column');
+      const kids = col?.props.children;
       if (!kids) return [];
       const arr = Array.isArray(kids) ? kids : [kids];
       return arr.filter((c): c is AnyElement => Boolean(c) && typeof c === 'object');
     }
 
-    it('renders the share rail wrapper rooted on messageId', () => {
+    /**
+     * Find the first child whose `type` name matches `name`. The walker
+     * doesn't execute function components, so we identify them by the
+     * component reference's display name. Index-based lookup is brittle
+     * because the share column has counter pill (conditional) + WA +
+     * ShareGroup in a specific order.
+     */
+    function findChildByTypeName(children: AnyElement[], name: string): AnyElement | undefined {
+      return children.find((c) => {
+        const t = c.type as { name?: string; displayName?: string } | string;
+        if (typeof t === 'string') return false;
+        return t.name === name || t.displayName === name;
+      });
+    }
+
+    it('renders the share column wrapper rooted on messageId', () => {
       const tree = NetworkCard({
         card: makeCard(),
         onSetStatus: vi.fn(),
         pending: false,
       }) as AnyElement;
 
-      const row = findByTestId(tree, 'network-card-share-row');
-      expect(row).toBeDefined();
-      expect(row?.props['data-message-id']).toBe('42');
+      const col = findByTestId(tree, 'network-card-share-column');
+      expect(col).toBeDefined();
+      expect(col?.props['data-message-id']).toBe('42');
     });
 
     it('passes verified share counts through to the ShareGroup', () => {
@@ -356,13 +371,13 @@ describe('NetworkCard', () => {
         pending: false,
       }) as AnyElement;
 
-      const children = shareRowChildren(tree);
-      // First child is the ShareGroup element; second is the WhatsApp button.
-      const shareGroup = children[0];
+      const children = shareColumnChildren(tree);
+      const shareGroup = findChildByTypeName(children, 'ShareGroup');
       expect(shareGroup).toBeDefined();
       expect(shareGroup?.props.counts).toEqual(counts);
       expect(shareGroup?.props.targetType).toBe('network_card');
       expect(shareGroup?.props.targetId).toBe('42');
+      expect(shareGroup?.props.hideCounter).toBe(true);
     });
 
     it('the share group receives the upstream URL (not a GPS page)', () => {
@@ -372,7 +387,7 @@ describe('NetworkCard', () => {
         pending: false,
       }) as AnyElement;
 
-      const shareGroup = shareRowChildren(tree)[0];
+      const shareGroup = findChildByTypeName(shareColumnChildren(tree), 'ShareGroup');
       expect(shareGroup?.props.url).toBe('https://telegraph.co.uk/news/123');
     });
 
@@ -392,7 +407,7 @@ describe('NetworkCard', () => {
         pending: false,
       }) as AnyElement;
 
-      const shareGroup = shareRowChildren(tree)[0];
+      const shareGroup = findChildByTypeName(shareColumnChildren(tree), 'ShareGroup');
       expect(shareGroup?.props.title).toBe('Fresh OG title');
     });
 
@@ -407,7 +422,7 @@ describe('NetworkCard', () => {
         pending: false,
       }) as AnyElement;
 
-      const shareGroup = shareRowChildren(tree)[0];
+      const shareGroup = findChildByTypeName(shareColumnChildren(tree), 'ShareGroup');
       expect(shareGroup?.props.title).toBe('example.com');
     });
 
@@ -417,12 +432,42 @@ describe('NetworkCard', () => {
         onSetStatus: vi.fn(),
         pending: false,
       }) as AnyElement;
-      const children = shareRowChildren(tree);
-      const wa = children[1];
+      const children = shareColumnChildren(tree);
+      const wa = findChildByTypeName(children, 'WhatsAppShareTargetButton');
       expect(wa).toBeDefined();
       expect(wa?.props.targetType).toBe('network_card');
       expect(wa?.props.targetId).toBe('42');
       expect(wa?.props.url).toBe('https://example.com/article');
+    });
+
+    it('renders the standalone ShareCountPill at the top of the column when counts present', () => {
+      const counts = {
+        total: 3,
+        perDestination: {
+          whatsapp: 1,
+          x: 1,
+          instagram: 0,
+          facebook: 1,
+          email: 0,
+          copy_link: 0,
+          other: 0,
+        },
+      };
+      const tree = NetworkCard({
+        card: makeCard({ shareCounts: counts }),
+        onSetStatus: vi.fn(),
+        pending: false,
+      }) as AnyElement;
+      const children = shareColumnChildren(tree);
+      // ShareCountPill is the first child, followed by WhatsApp, then ShareGroup.
+      const pill = findChildByTypeName(children, 'ShareCountPill');
+      expect(pill).toBeDefined();
+      expect(pill?.props.counts).toEqual(counts);
+      const order = children.map((c) => {
+        const t = c.type as { name?: string } | string;
+        return typeof t === 'string' ? t : (t.name ?? '');
+      });
+      expect(order).toEqual(['ShareCountPill', 'WhatsAppShareTargetButton', 'ShareGroup']);
     });
 
     it('forwards onShareInitiated callback with messageId + destination from ShareGroup', () => {
@@ -434,7 +479,7 @@ describe('NetworkCard', () => {
         onShareInitiated,
       }) as AnyElement;
 
-      const shareGroup = shareRowChildren(tree)[0];
+      const shareGroup = findChildByTypeName(shareColumnChildren(tree), 'ShareGroup');
       const innerCb = shareGroup?.props.onShareInitiated as (d: string) => void;
       innerCb('facebook');
       expect(onShareInitiated).toHaveBeenCalledWith('42', 'facebook');
@@ -449,7 +494,7 @@ describe('NetworkCard', () => {
         onShareInitiated,
       }) as AnyElement;
 
-      const wa = shareRowChildren(tree)[1];
+      const wa = findChildByTypeName(shareColumnChildren(tree), 'WhatsAppShareTargetButton');
       const innerCb = wa?.props.onShareInitiated as () => void;
       innerCb();
       expect(onShareInitiated).toHaveBeenCalledWith('42', 'whatsapp');

@@ -863,3 +863,71 @@
     order: 2;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * NETWORK CARD LAYOUT — LHS body + RHS share column (bu-network-card-layout)
+ *
+ * The /network card body splits into a main pane and a share column.
+ * On viewports < 720px the layout cascades to a single column with the
+ * share column flipping to a horizontal rail underneath the main pane.
+ * On viewports ≥ 720px the share column sits to the right at fixed
+ * width with vertically-stacked counter + WhatsApp + X / IG / FB.
+ *
+ * The same CSS controls ShareGroup's internal direction via descendant
+ * selectors — ShareGroup ships with horizontal defaults via inline
+ * styles; this rule overrides them inside `.gps-network-card-share-column`
+ * so we keep the component prop-light (no orientation-switching here).
+ *
+ * Background tint on the share column is intentional: it reads as a
+ * distinct "tray" affordance without bordered weight. Tokens only —
+ * no hardcoded colour.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+.gps-network-card-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.gps-network-card-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.gps-network-card-share-column {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--colour-surface-sunken) 60%, transparent);
+}
+
+@media (min-width: 720px) {
+  .gps-network-card-layout {
+    flex-direction: row;
+    align-items: stretch;
+    gap: var(--space-4);
+  }
+
+  .gps-network-card-share-column {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    width: 72px;
+    padding: var(--space-3) var(--space-2);
+  }
+
+  /* Flip ShareGroup's own flex containers to vertical inside the
+     desktop share column. ShareGroup defaults to inline-flex row;
+     these selectors swap it to column so the icon rail stacks. */
+  .gps-network-card-share-column [data-testid='share-group'],
+  .gps-network-card-share-column [data-testid='share-group-rail'] {
+    flex-direction: column;
+  }
+}

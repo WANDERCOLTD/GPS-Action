@@ -43,6 +43,7 @@ import type { ShareDestination } from '@prisma/client';
 import type { NetworkCardStatus, SerializedNetworkCard } from '@/shared/network-card';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 import { ReactionPill } from '@/components/ReactionPill';
+import { ShareCountPill } from '@/components/ShareCountPill';
 import { ShareGroup } from '@/components/ShareGroup';
 import { WhatsAppShareTargetButton } from '@/components/WhatsAppShareTargetButton';
 import { fallbackTitleFromUrl } from '@/shared/share/share-urls';
@@ -146,150 +147,159 @@ export function NetworkCard({
         </time>
       </p>
 
-      {/* BU-network-reactions — pill sits between the meta row and the
-       *  link-preview block, mirroring the brief's mount instruction.
-       *  Suppressed when the caller doesn't wire reaction callbacks
-       *  (keeps logged-out / flag-off renders identical to pre-BU). */}
-      {onAddReaction && onRemoveReaction && (
+      {/* Layout shell — LHS holds the content (hero/body/reactions/triage),
+       *  RHS holds the share column. ≥720px = side-by-side, <720px =
+       *  single column with the share column collapsing to a horizontal
+       *  rail below the body. Classes defined in styles/components.css. */}
+      <div className="gps-network-card-layout">
+        <div className="gps-network-card-main">
+          {card.linkPreview && (
+            <div
+              data-testid="network-card-preview"
+              data-message-id={card.messageId}
+              style={{ marginBottom: 'var(--space-3)' }}
+            >
+              <LinkPreviewCard
+                linkUrl={card.url}
+                linkTitle={card.linkPreview.title}
+                linkDescription={card.linkPreview.description}
+                linkImageUrl={card.linkPreview.imageUrl}
+                linkSiteName={card.linkPreview.siteName}
+                size="large"
+              />
+            </div>
+          )}
+
+          {card.textBody && (
+            <p
+              data-testid="network-card-body"
+              data-message-id={card.messageId}
+              style={{
+                margin: 0,
+                marginBottom: 'var(--space-3)',
+                color: 'var(--colour-text-primary)',
+                fontFamily: 'var(--font-ui)',
+                fontSize: 'var(--text-sm)',
+                lineHeight: 'var(--line-normal)',
+                whiteSpace: 'pre-wrap',
+              }}
+            >
+              {card.textBody}
+            </p>
+          )}
+
+          {/* Reactions sit directly above the triage row — the closing
+           *  sentiment beat before the coordinator action row. */}
+          {onAddReaction && onRemoveReaction && (
+            <div
+              data-testid="network-card-reactions"
+              data-message-id={card.messageId}
+              style={reactionRowStyle}
+            >
+              <ReactionPill
+                reactions={reactions ?? []}
+                onAdd={onAddReaction}
+                onRemove={onRemoveReaction}
+                canReact={canReact}
+                testIdSuffix={card.messageId}
+              />
+            </div>
+          )}
+
+          <footer style={triageRowStyle}>
+            <button
+              type="button"
+              data-testid="network-card-triage-triaged"
+              data-message-id={card.messageId}
+              onClick={(e: MouseEvent<HTMLButtonElement>) => {
+                e.preventDefault();
+                if (pending) return;
+                onSetStatus('TRIAGED');
+              }}
+              disabled={pending}
+              style={triageButtonStyle(card.state.status === 'TRIAGED')}
+            >
+              Triaged
+            </button>
+            <button
+              type="button"
+              data-testid="network-card-triage-promoted"
+              data-message-id={card.messageId}
+              onClick={(e: MouseEvent<HTMLButtonElement>) => {
+                e.preventDefault();
+                if (pending) return;
+                onSetStatus('PROMOTED');
+              }}
+              disabled={pending}
+              style={triageButtonStyle(card.state.status === 'PROMOTED')}
+            >
+              Promoted
+            </button>
+            <button
+              type="button"
+              data-testid="network-card-triage-discarded"
+              data-message-id={card.messageId}
+              onClick={(e: MouseEvent<HTMLButtonElement>) => {
+                e.preventDefault();
+                if (pending) return;
+                onSetStatus('DISCARDED');
+              }}
+              disabled={pending}
+              style={triageButtonStyle(card.state.status === 'DISCARDED')}
+            >
+              Discarded
+            </button>
+            {card.state.status !== 'NEW' && (
+              <button
+                type="button"
+                data-testid="network-card-triage-reset"
+                data-message-id={card.messageId}
+                onClick={(e: MouseEvent<HTMLButtonElement>) => {
+                  e.preventDefault();
+                  if (pending) return;
+                  onSetStatus('NEW');
+                }}
+                disabled={pending}
+                style={resetButtonStyle}
+              >
+                Reset
+              </button>
+            )}
+          </footer>
+        </div>
+
+        {/* RHS share column — counter (top), WhatsApp (most-used after
+         *  counter), then X / IG / FB. On <720px viewports, the CSS
+         *  class flips to flex-direction: row so the same items render
+         *  horizontally below the main content. The hideCounter flag
+         *  on ShareGroup lets us hoist the counter outside the group
+         *  so WhatsApp can slot between it and the social-icon rail. */}
         <div
-          data-testid="network-card-reactions"
+          data-testid="network-card-share-column"
           data-message-id={card.messageId}
-          style={reactionRowStyle}
+          className="gps-network-card-share-column"
         >
-          <ReactionPill
-            reactions={reactions ?? []}
-            onAdd={onAddReaction}
-            onRemove={onRemoveReaction}
-            canReact={canReact}
-            testIdSuffix={card.messageId}
+          {card.shareCounts && (
+            <ShareCountPill counts={card.shareCounts} targetId={card.messageId} />
+          )}
+          <WhatsAppShareTargetButton
+            url={card.url}
+            title={shareTitle}
+            targetType="network_card"
+            targetId={card.messageId}
+            onShareInitiated={() => handleShareInitiated('whatsapp')}
+          />
+          <ShareGroup
+            url={card.url}
+            title={shareTitle}
+            targetType="network_card"
+            targetId={card.messageId}
+            counts={card.shareCounts}
+            hideCounter
+            onShareInitiated={handleShareInitiated}
           />
         </div>
-      )}
-
-      {card.linkPreview && (
-        <div
-          data-testid="network-card-preview"
-          data-message-id={card.messageId}
-          style={{ marginBottom: 'var(--space-3)' }}
-        >
-          <LinkPreviewCard
-            linkUrl={card.url}
-            linkTitle={card.linkPreview.title}
-            linkDescription={card.linkPreview.description}
-            linkImageUrl={card.linkPreview.imageUrl}
-            linkSiteName={card.linkPreview.siteName}
-            size="large"
-          />
-        </div>
-      )}
-
-      {card.textBody && (
-        <p
-          data-testid="network-card-body"
-          data-message-id={card.messageId}
-          style={{
-            margin: 0,
-            marginBottom: 'var(--space-3)',
-            color: 'var(--colour-text-primary)',
-            fontFamily: 'var(--font-ui)',
-            fontSize: 'var(--text-sm)',
-            lineHeight: 'var(--line-normal)',
-            whiteSpace: 'pre-wrap',
-          }}
-        >
-          {card.textBody}
-        </p>
-      )}
-
-      {/* bu-network-shares — share rail (X/IG/FB + counter pill) plus
-       *  a separate WhatsApp button per the share-taxonomy rule. Sits
-       *  between the optional body row and the triage row. The
-       *  upstream URL (not a GPS page) is what gets shared. The
-       *  verify-prompt dialog is owned by the parent (NetworkFeed) so
-       *  this component stays pure-presentational and remains
-       *  function-callable in unit tests. */}
-      <div
-        data-testid="network-card-share-row"
-        data-message-id={card.messageId}
-        style={shareRowStyle}
-      >
-        <ShareGroup
-          url={card.url}
-          title={shareTitle}
-          targetType="network_card"
-          targetId={card.messageId}
-          counts={card.shareCounts}
-          onShareInitiated={handleShareInitiated}
-        />
-        <WhatsAppShareTargetButton
-          url={card.url}
-          title={shareTitle}
-          targetType="network_card"
-          targetId={card.messageId}
-          onShareInitiated={() => handleShareInitiated('whatsapp')}
-        />
       </div>
-
-      <footer style={triageRowStyle}>
-        <button
-          type="button"
-          data-testid="network-card-triage-triaged"
-          data-message-id={card.messageId}
-          onClick={(e: MouseEvent<HTMLButtonElement>) => {
-            e.preventDefault();
-            if (pending) return;
-            onSetStatus('TRIAGED');
-          }}
-          disabled={pending}
-          style={triageButtonStyle(card.state.status === 'TRIAGED')}
-        >
-          Triaged
-        </button>
-        <button
-          type="button"
-          data-testid="network-card-triage-promoted"
-          data-message-id={card.messageId}
-          onClick={(e: MouseEvent<HTMLButtonElement>) => {
-            e.preventDefault();
-            if (pending) return;
-            onSetStatus('PROMOTED');
-          }}
-          disabled={pending}
-          style={triageButtonStyle(card.state.status === 'PROMOTED')}
-        >
-          Promoted
-        </button>
-        <button
-          type="button"
-          data-testid="network-card-triage-discarded"
-          data-message-id={card.messageId}
-          onClick={(e: MouseEvent<HTMLButtonElement>) => {
-            e.preventDefault();
-            if (pending) return;
-            onSetStatus('DISCARDED');
-          }}
-          disabled={pending}
-          style={triageButtonStyle(card.state.status === 'DISCARDED')}
-        >
-          Discarded
-        </button>
-        {card.state.status !== 'NEW' && (
-          <button
-            type="button"
-            data-testid="network-card-triage-reset"
-            data-message-id={card.messageId}
-            onClick={(e: MouseEvent<HTMLButtonElement>) => {
-              e.preventDefault();
-              if (pending) return;
-              onSetStatus('NEW');
-            }}
-            disabled={pending}
-            style={resetButtonStyle}
-          >
-            Reset
-          </button>
-        )}
-      </footer>
     </article>
   );
 }
@@ -336,18 +346,6 @@ const triageRowStyle: CSSProperties = {
 // the link-preview hero. The pill renders its own internal padding.
 const reactionRowStyle: CSSProperties = {
   marginBottom: 'var(--space-3)',
-};
-
-// bu-network-shares — share rail wrapper. Holds the ShareGroup (X/IG/
-// FB + counter pill) and the separate WhatsApp button. Gap matches the
-// reaction row's breathing room above; the row sits flush-left so the
-// counter pill anchors against the card's left inner edge.
-const shareRowStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 'var(--space-3)',
-  marginBottom: 'var(--space-3)',
-  flexWrap: 'wrap',
 };
 
 function triageButtonStyle(active: boolean): CSSProperties {
