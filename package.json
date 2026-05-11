@@ -1,6 +1,6 @@
 {
   "name": "gps-action",
-  "version": "0.2.219",
+  "version": "0.2.220",
   "private": true,
   "packageManager": "pnpm@11.0.6",
   "description": "GPS Action — purpose-built platform for coordinated activism",
@@ -46,7 +46,7 @@
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "lucide-react": "^1.11.0",
-    "next": "^16.2.4",
+    "next": "^16.2.6",
     "pg": "^8.20.0",
     "psl": "^1.15.0",
     "react": "^19.0.0",
