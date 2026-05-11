@@ -27,14 +27,20 @@ const nextConfig = {
   // Hide the Next.js dev-mode indicator (the black "N" roundel in the
   // corner during `next dev`). It's noise during demo + design review.
   devIndicators: false,
-  // Allow LAN-IP / .local hostnames to reach dev resources. Next 15+
-  // blocks `/_next/...` requests from any origin other than the bound
-  // host as a CSRF guard. That breaks iPhone-on-Wi-Fi testing against
-  // the Mac dev server: the HTML loads, but JS chunks (the same-origin
-  // request from the page) get rejected and the page silently fails to
-  // hydrate. Listing the LAN IP + hostname here whitelists them for
-  // dev only — production builds are unaffected.
-  allowedDevOrigins: ['mba.local', '192.168.4.209', '*.local'],
+  // Allow LAN-IP / .local / .lan hostnames to reach dev resources.
+  // Next 15+ blocks `/_next/...` requests from any origin other than
+  // the bound host as a CSRF guard. That breaks iPhone-on-Wi-Fi testing
+  // against the Mac dev server: the HTML loads, but JS chunks (the
+  // same-origin request from the page) get rejected and the page
+  // silently fails to hydrate (no JS, so any button onClick / Dialog
+  // / state update simply doesn't fire — the symptom looks like
+  // "buttons flash but nothing happens").
+  //
+  // The previous list pinned a specific LAN IP (`192.168.4.209`), which
+  // broke as soon as DHCP reassigned the Mac. Use glob ranges + both
+  // mDNS suffixes (`.local` and `.lan`) so this stops being a
+  // recurring trap. Dev-only — production builds are unaffected.
+  allowedDevOrigins: ['*.local', '*.lan', '192.168.*.*', '10.*.*.*'],
   // BU-versioning — surfaced via NEXT_PUBLIC_ so the client bundle can render
   // the version badge. The CI version-bump check (.github/workflows/
   // version-check.yml) enforces that package.json `version` advances on
