@@ -259,51 +259,64 @@ export async function listNetworkCards(
   const fetchUpstream = deps.fetchUpstream ?? listGpsGroupMessages;
   const cursorId = input.cursor !== undefined ? Number.parseInt(input.cursor, 10) : undefined;
 
-  // bu-network-source-chips — fetch messages and labels in parallel.
-  // Labels feed both the source filter (slug → chat_id resolution)
-  // and the per-card source join. The labels call hits the same 24h
-  // cache as listNetworkSources, so on a warm cache this is a single
-  // upstream round-trip total (the messages fetch).
-  let rows: GpsGroupMessageRow[];
+  // bu-network-source-chips — labels first so we can resolve the
+  // slug filter into chat_ids and push them upstream into the
+  // messages query. Doing the filter in PostgREST (rather than post-
+  // fetch in JS) is essential: a 50-row id-DESC page from one source
+  // can completely shadow another source's rows (e.g. after a
+  // backfill into one chat), so a service-side filter would yield
+  // zero results from a chat that genuinely has recent activity.
+  // Labels hit the 24h cache so this is essentially free after the
+  // first call per process.
   let labels: SourcesCacheEntry;
   try {
-    const [messagesResult, labelsResult] = await Promise.all([
-      fetchUpstream({
-        windowDays: input.windowDays,
-        limit: input.limit,
-        cursorId: Number.isFinite(cursorId) ? cursorId : undefined,
-      }),
-      getSourcesCacheEntry({ fetchSources: deps.fetchLabels }),
-    ]);
-    rows = messagesResult;
-    labels = labelsResult;
+    labels = await getSourcesCacheEntry({ fetchSources: deps.fetchLabels });
   } catch (err) {
-    // Graceful degrade when SUPABASE_URL / SUPABASE_ANON_KEY are absent —
-    // the surface promised in .env.example is "returns an empty list".
-    // Don't cache: a server restart with vars set should serve real data
-    // immediately, not the empty placeholder.
     if (err instanceof SupabaseConfigError) {
-      // Leave a breadcrumb in Vercel runtime logs. Without this the
-      // empty list is indistinguishable from a genuinely empty upstream
-      // — every prior debug session lost an hour to that ambiguity.
       console.error('[network] SUPABASE_URL / SUPABASE_ANON_KEY missing — degrading to empty list');
       return { items: [], nextCursor: null, fetchedAt: new Date(), fromCache: false };
     }
     throw err;
   }
 
-  // bu-network-source-chips — filter by source slug before the
-  // state/share/preview joins so we don't waste DB queries on rows
-  // that won't render. Empty `sources` = no filter (the "All" chip).
-  // Unknown slugs are silently dropped at the filter step — shared
-  // URLs with a retired chip slug just yield an empty list, no error.
+  // Resolve slug filter → chat_id allowlist. Unknown slugs silently drop.
+  let chatIdAllowlist: string[] | undefined;
   if (input.sources.length > 0) {
     const allowedSlugs = new Set(input.sources);
-    const allowedChatIds = new Set<string>();
+    const ids: string[] = [];
     for (const [chatId, source] of labels.byChatId) {
-      if (allowedSlugs.has(source.slug)) allowedChatIds.add(chatId);
+      if (allowedSlugs.has(source.slug)) ids.push(chatId);
     }
-    rows = rows.filter((row) => allowedChatIds.has(row.chat_id));
+    // Empty list = the slug(s) match nothing. Short-circuit to avoid
+    // an upstream call with `chat_id=in.()` (PostgREST treats empty IN
+    // as a parse error in some versions).
+    if (ids.length === 0) {
+      const empty: NetworkListResponse = {
+        items: [],
+        nextCursor: null,
+        fetchedAt: new Date(),
+        fromCache: false,
+      };
+      cacheSet(key, empty);
+      return empty;
+    }
+    chatIdAllowlist = ids;
+  }
+
+  let rows: GpsGroupMessageRow[];
+  try {
+    rows = await fetchUpstream({
+      windowDays: input.windowDays,
+      limit: input.limit,
+      cursorId: Number.isFinite(cursorId) ? cursorId : undefined,
+      chatIds: chatIdAllowlist,
+    });
+  } catch (err) {
+    if (err instanceof SupabaseConfigError) {
+      console.error('[network] SUPABASE_URL / SUPABASE_ANON_KEY missing — degrading to empty list');
+      return { items: [], nextCursor: null, fetchedAt: new Date(), fromCache: false };
+    }
+    throw err;
   }
 
   const messageIds = rows.map((row) => BigInt(row.id));
