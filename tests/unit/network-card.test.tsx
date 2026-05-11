@@ -21,6 +21,7 @@ import { describe, it, expect, vi } from 'vitest';
 import type { ReactElement, MouseEvent } from 'react';
 import { NetworkCard } from '@/components/NetworkCard';
 import type { SerializedNetworkCard } from '@/shared/network-card';
+import { emptyNetworkCardShareCounts } from '@/shared/network-card';
 
 type AnyElement = ReactElement<Record<string, unknown>>;
 
@@ -60,6 +61,7 @@ function makeCard(overrides: Partial<SerializedNetworkCard> = {}): SerializedNet
       updatedAt: null,
     },
     linkPreview: null,
+    shareCounts: emptyNetworkCardShareCounts(),
     ...overrides,
   };
 }
@@ -303,6 +305,154 @@ describe('NetworkCard', () => {
       expect(pill.props.reactions).toEqual(reactions);
       expect(typeof pill.props.onAdd).toBe('function');
       expect(typeof pill.props.onRemove).toBe('function');
+    });
+  });
+
+  // ── bu-network-shares ─────────────────────────────────────────────────
+  //
+  // These tests inspect the props passed to <ShareGroup> /
+  // <WhatsAppShareTargetButton> rather than walking the rendered DOM —
+  // NetworkCard is invoked as a function in this env, so child
+  // components are not rendered. The contract under test is: NetworkCard
+  // wires the right props into the share components.
+
+  describe('share rail', () => {
+    function shareRowChildren(tree: AnyElement): AnyElement[] {
+      const row = findByTestId(tree, 'network-card-share-row');
+      const kids = row?.props.children;
+      if (!kids) return [];
+      const arr = Array.isArray(kids) ? kids : [kids];
+      return arr.filter((c): c is AnyElement => Boolean(c) && typeof c === 'object');
+    }
+
+    it('renders the share rail wrapper rooted on messageId', () => {
+      const tree = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+      }) as AnyElement;
+
+      const row = findByTestId(tree, 'network-card-share-row');
+      expect(row).toBeDefined();
+      expect(row?.props['data-message-id']).toBe('42');
+    });
+
+    it('passes verified share counts through to the ShareGroup', () => {
+      const counts = {
+        total: 5,
+        perDestination: {
+          whatsapp: 2,
+          x: 2,
+          instagram: 0,
+          facebook: 1,
+          email: 0,
+          copy_link: 0,
+          other: 0,
+        },
+      };
+      const tree = NetworkCard({
+        card: makeCard({ shareCounts: counts }),
+        onSetStatus: vi.fn(),
+        pending: false,
+      }) as AnyElement;
+
+      const children = shareRowChildren(tree);
+      // First child is the ShareGroup element; second is the WhatsApp button.
+      const shareGroup = children[0];
+      expect(shareGroup).toBeDefined();
+      expect(shareGroup?.props.counts).toEqual(counts);
+      expect(shareGroup?.props.targetType).toBe('network_card');
+      expect(shareGroup?.props.targetId).toBe('42');
+    });
+
+    it('the share group receives the upstream URL (not a GPS page)', () => {
+      const tree = NetworkCard({
+        card: makeCard({ url: 'https://telegraph.co.uk/news/123' }),
+        onSetStatus: vi.fn(),
+        pending: false,
+      }) as AnyElement;
+
+      const shareGroup = shareRowChildren(tree)[0];
+      expect(shareGroup?.props.url).toBe('https://telegraph.co.uk/news/123');
+    });
+
+    it('uses the linkPreview title for the share text when available', () => {
+      const tree = NetworkCard({
+        card: makeCard({
+          url: 'https://example.com/article',
+          linkTitle: 'Stale title',
+          linkPreview: {
+            title: 'Fresh OG title',
+            description: null,
+            imageUrl: null,
+            siteName: null,
+          },
+        }),
+        onSetStatus: vi.fn(),
+        pending: false,
+      }) as AnyElement;
+
+      const shareGroup = shareRowChildren(tree)[0];
+      expect(shareGroup?.props.title).toBe('Fresh OG title');
+    });
+
+    it('falls back to URL hostname as the share title when nothing else is available', () => {
+      const tree = NetworkCard({
+        card: makeCard({
+          url: 'https://example.com/article',
+          linkTitle: null,
+          linkPreview: null,
+        }),
+        onSetStatus: vi.fn(),
+        pending: false,
+      }) as AnyElement;
+
+      const shareGroup = shareRowChildren(tree)[0];
+      expect(shareGroup?.props.title).toBe('example.com');
+    });
+
+    it('renders the separate WhatsApp share button adjacent to the rail', () => {
+      const tree = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+      }) as AnyElement;
+      const children = shareRowChildren(tree);
+      const wa = children[1];
+      expect(wa).toBeDefined();
+      expect(wa?.props.targetType).toBe('network_card');
+      expect(wa?.props.targetId).toBe('42');
+      expect(wa?.props.url).toBe('https://example.com/article');
+    });
+
+    it('forwards onShareInitiated callback with messageId + destination from ShareGroup', () => {
+      const onShareInitiated = vi.fn();
+      const tree = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+        onShareInitiated,
+      }) as AnyElement;
+
+      const shareGroup = shareRowChildren(tree)[0];
+      const innerCb = shareGroup?.props.onShareInitiated as (d: string) => void;
+      innerCb('facebook');
+      expect(onShareInitiated).toHaveBeenCalledWith('42', 'facebook');
+    });
+
+    it('forwards onShareInitiated callback as whatsapp when the WA button fires', () => {
+      const onShareInitiated = vi.fn();
+      const tree = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+        onShareInitiated,
+      }) as AnyElement;
+
+      const wa = shareRowChildren(tree)[1];
+      const innerCb = wa?.props.onShareInitiated as () => void;
+      innerCb();
+      expect(onShareInitiated).toHaveBeenCalledWith('42', 'whatsapp');
     });
   });
 });

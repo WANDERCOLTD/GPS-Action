@@ -101,12 +101,13 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-tick-or-cross | 11 | SCN-18, SCN-19, SCN-20, SCN-24, SCN-25, SCN-26, SCN-27 | D044, D045, D048, D052, D060, D062, D064, D069, D070, D072, D073, D076 |
 | BU-ticket-detail-relayout | 1 | — | — |
 | BU-versioning | 3 | — | D003, D065, D073 |
-| BU-whatsapp-share | 2 | — | D065, D067, D080 |
+| BU-whatsapp-share | 2 | — | D065, D067, D077, D080 |
 | bu-capabilities-mockup | 1 | — | — |
 | bu-coord-board-share-allowlist-ui | 3 | — | — |
 | bu-coordination-board | 53 | SCN-34 | — |
 | bu-group-identity | 2 | — | — |
 | bu-kanban-event-config | 1 | — | — |
+| bu-network-shares | 7 | — | D047, D065, D077 |
 | bu-search-includes-comments | 2 | — | D078 |
 | bu-search-includes-kanban | 1 | — | — |
 | bu-ticket-view-fixes | 7 | — | — |
@@ -122,6 +123,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D042 | Coordinator identity vs queue_manager permission — split into two concepts | 1 |
 | D044 | Intent-first post creation (FAB cards model) | 4 |
 | D045 | Public-by-default post visibility with author override | 4 |
+| D047 | Honest tracking only (no inflated reach numbers) | 2 |
 | D048 | Post axes taxonomy + deferred PostType | 2 |
 | D050 | Reaction schema, fixed 8-emoji set, polymorphic target | 7 |
 | D052 | Comment schema + polymorphic reuse of ReactionTargetType | 14 |
@@ -141,6 +143,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | D072 | Post lifecycle, publish router, and per-kind action registry | 21 |
 | D073 | Structured event-time fields on `Post` (`event_at`, `event_ends_at`, `location_text`) | 22 |
 | D076 | Post location coordinates + online flag (`latitude`, `longitude`, `isOnline`) | 7 |
+| D077 | Post-share counter table (`PostShare`) for verified per-post share counts | 2 |
 | D078 | App-wide member search: 9 design decisions for `bu-search-surface` | 6 |
 | D080 | Hydration-safe deferred-render pattern (`<ClientOnly>` + `<RelativeTime>`) | 3 |
 | D083 | `NetworkCardState` — own-side workflow state for the network-feed surface | 4 |

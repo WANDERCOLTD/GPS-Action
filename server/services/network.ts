@@ -28,6 +28,7 @@ import { auditLog } from '@/server/services/audit';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { getLinkPreview } from '@/server/services/link-preview-cache';
 import { fetchLinkMetadata } from '@/server/services/link-metadata';
+import { getNetworkCardShareCounts } from '@/server/services/share-event';
 import {
   listGpsGroupMessages,
   SupabaseConfigError,
@@ -36,9 +37,11 @@ import {
 import type {
   NetworkCard,
   NetworkCardLinkPreview,
+  NetworkCardShareCounts,
   NetworkCardWorkflowState,
   NetworkListResponse,
 } from '@/shared/network-card';
+import { emptyNetworkCardShareCounts } from '@/shared/network-card';
 import type { NetworkListInput, NetworkSetCardStateInput } from '@/shared/validation/network';
 
 const LINK_PREVIEW_FLAG = 'network_link_previews';
@@ -108,6 +111,13 @@ interface ListDeps {
    * skip enrichment, or a stub that returns canned metadata.
    */
   resolveLinkPreview?: (url: string) => Promise<NetworkCardLinkPreview | null>;
+  /**
+   * bu-network-shares — override the share-counts projection. Default
+   * reads from the ShareEvent table via `getNetworkCardShareCounts`.
+   * Tests pass `() => Promise.resolve(new Map())` to skip the projection,
+   * or a stub that returns canned counts.
+   */
+  fetchShareCounts?: (messageIds: string[]) => Promise<Map<string, NetworkCardShareCounts>>;
 }
 
 export async function listNetworkCards(
@@ -175,7 +185,20 @@ export async function listNetworkCards(
 
   const baseItems: NetworkCard[] = rows.map((row) => upstreamToCard(row, stateByMessageId));
   const resolveLinkPreview = deps.resolveLinkPreview ?? (await buildDefaultLinkPreviewResolver());
-  const items = await enrichWithLinkPreviews(baseItems, resolveLinkPreview);
+  const previewedItems = await enrichWithLinkPreviews(baseItems, resolveLinkPreview);
+
+  // bu-network-shares — bulk-project verified share counts for the
+  // visible window. One query covers every card in the page; cards
+  // with zero shares get a zero-filled object so the renderer never
+  // sees `undefined`.
+  const fetchShareCounts = deps.fetchShareCounts ?? defaultShareCountsFetcher;
+  const messageIdStrings = previewedItems.map((c) => c.id.toString());
+  const shareCountsByMessageId = await fetchShareCounts(messageIdStrings);
+  const items = previewedItems.map((card) => ({
+    ...card,
+    shareCounts: shareCountsByMessageId.get(card.id.toString()) ?? emptyNetworkCardShareCounts(),
+  }));
+
   const lastRow = rows.length === input.limit ? rows[rows.length - 1] : undefined;
   const nextCursor = lastRow ? String(lastRow.id) : null;
 
@@ -255,7 +278,41 @@ function upstreamToCard(
     chatId: row.chat_id,
     state,
     linkPreview: null,
+    // Replaced by the bulk projection after enrichment. Seed with the
+    // zero object so the type is always satisfied before the join.
+    shareCounts: emptyNetworkCardShareCounts(),
   };
+}
+
+/**
+ * bu-network-shares — default projection. Wraps the share-event service
+ * and reshapes its ShareCounts (which carries a Record<ShareDestination,
+ * number>) into the wire-friendly `NetworkCardShareCounts` shape (which
+ * has known-key fields). The two shapes carry identical data; the
+ * wire shape is enumerated so it serialises cleanly through tRPC +
+ * the server-component → client-component boundary without an `enum`
+ * import on the client side.
+ */
+async function defaultShareCountsFetcher(
+  messageIds: string[],
+): Promise<Map<string, NetworkCardShareCounts>> {
+  const raw = await getNetworkCardShareCounts(messageIds);
+  const out = new Map<string, NetworkCardShareCounts>();
+  for (const [id, counts] of raw) {
+    out.set(id, {
+      total: counts.total,
+      perDestination: {
+        whatsapp: counts.perDestination.whatsapp ?? 0,
+        x: counts.perDestination.x ?? 0,
+        instagram: counts.perDestination.instagram ?? 0,
+        facebook: counts.perDestination.facebook ?? 0,
+        email: counts.perDestination.email ?? 0,
+        copy_link: counts.perDestination.copy_link ?? 0,
+        other: counts.perDestination.other ?? 0,
+      },
+    });
+  }
+  return out;
 }
 
 function defaultState(): NetworkCardWorkflowState {

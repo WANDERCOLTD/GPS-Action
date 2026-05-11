@@ -29,8 +29,11 @@
 
 import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useState, useTransition } from 'react';
+import type { ShareDestination } from '@prisma/client';
 import { ClientOnly } from '@/components/ClientOnly';
 import { NetworkCard } from '@/components/NetworkCard';
+import { ShareConfirmDialog } from '@/components/ShareConfirmDialog';
+import { pingShareIntent } from '@/components/ShareGroup';
 import {
   refreshNetworkList,
   loadMoreNetworkCards,
@@ -66,6 +69,14 @@ export function NetworkFeed({ initial }: NetworkFeedProps) {
   const [reactionsByMessageId, setReactionsByMessageId] = useState<Record<string, FeedReaction[]>>(
     {},
   );
+  // bu-network-shares — verify-prompt state. Tracks which card and
+  // destination are awaiting confirmation. Null = no prompt visible.
+  // Lifted here (out of NetworkCard) so that NetworkCard stays pure-
+  // presentational and unit-testable as a plain function call.
+  const [pendingShare, setPendingShare] = useState<{
+    messageId: string;
+    destination: ShareDestination;
+  } | null>(null);
 
   const fetchReactionsFor = useCallback(async (messageIds: string[]) => {
     if (messageIds.length === 0) return;
@@ -146,6 +157,51 @@ export function NetworkFeed({ initial }: NetworkFeedProps) {
     },
     [],
   );
+
+  // bu-network-shares — capture share-intent from cards, queue the
+  // verify-prompt dialog. The intent ping has already fired by the
+  // time we get here (ShareGroup / WhatsAppShareTargetButton fire it
+  // before the new-tab navigation).
+  const handleShareInitiated = useCallback(
+    (messageId: string, destination: ShareDestination): void => {
+      setPendingShare({ messageId, destination });
+    },
+    [],
+  );
+
+  const handleShareConfirm = useCallback((): void => {
+    if (!pendingShare) return;
+    pingShareIntent({
+      targetType: 'network_card',
+      targetId: pendingShare.messageId,
+      destination: pendingShare.destination,
+      verified: true,
+    });
+    // Optimistic counter tick — bump the per-card total + per-destination
+    // count so the pill updates immediately. The next list refresh will
+    // re-project from ShareEvent and reconcile any drift.
+    setItems((prev) =>
+      prev.map((c) => {
+        if (c.messageId !== pendingShare.messageId) return c;
+        const prevPer = c.shareCounts.perDestination;
+        return {
+          ...c,
+          shareCounts: {
+            total: c.shareCounts.total + 1,
+            perDestination: {
+              ...prevPer,
+              [pendingShare.destination]: (prevPer[pendingShare.destination] ?? 0) + 1,
+            },
+          },
+        };
+      }),
+    );
+    setPendingShare(null);
+  }, [pendingShare]);
+
+  const handleShareSkip = useCallback((): void => {
+    setPendingShare(null);
+  }, []);
 
   const handleSetStatus = useCallback((card: SerializedNetworkCard, status: NetworkCardStatus) => {
     const prevState = card.state;
@@ -257,6 +313,7 @@ export function NetworkFeed({ initial }: NetworkFeedProps) {
                 reactions={reactionsByMessageId[card.messageId] ?? []}
                 onAddReaction={(emoji) => handleAddReaction(card.messageId, emoji)}
                 onRemoveReaction={(emoji) => handleRemoveReaction(card.messageId, emoji)}
+                onShareInitiated={handleShareInitiated}
               />
             </li>
           ))}
@@ -273,6 +330,17 @@ export function NetworkFeed({ initial }: NetworkFeedProps) {
         >
           {loadingMore ? 'Loading…' : 'Load more'}
         </button>
+      )}
+
+      {pendingShare && (
+        <ShareConfirmDialog
+          targetType="network_card"
+          targetId={pendingShare.messageId}
+          destination={pendingShare.destination}
+          open
+          onConfirm={handleShareConfirm}
+          onSkip={handleShareSkip}
+        />
       )}
     </div>
   );

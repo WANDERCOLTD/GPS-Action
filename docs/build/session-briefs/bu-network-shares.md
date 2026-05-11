@@ -1,9 +1,10 @@
 ---
 slug: bu-network-shares
-status: planned
+status: shipped
+shipped_in: "#335"
 phase: 2
 priority: medium
-note: "Share rail on /network cards + intent/verified counter. Depends on bu-share-event-polymorphic landing first (polymorphic ShareEvent table)."
+note: "Share rail on /network cards + intent/verified counter. Built on the polymorphic ShareEvent table from bu-share-event-polymorphic (ADR-0018). PostShare/D077 was never built; this BU did not parameterise the /feed rail (Option 1)."
 ---
 
 # SESSION BRIEF · bu-network-shares — share network cards to socials + WhatsApp

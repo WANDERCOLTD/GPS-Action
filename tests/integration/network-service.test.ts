@@ -30,6 +30,12 @@ vi.mock('@/server/db/client', () => ({
     featureFlag: {
       findUnique: vi.fn(),
     },
+    // bu-network-shares — listNetworkCards now projects share counts
+    // via prisma.shareEvent.groupBy. Default to an empty result so
+    // existing tests (which don't care about shares) stay green.
+    shareEvent: {
+      groupBy: vi.fn().mockResolvedValue([]),
+    },
   },
 }));
 

@@ -46,31 +46,32 @@ are rejected — too generic to be stable.
 
 The first segment must come from this approved list:
 
-| Prefix         | Surface                                                                                                         |
-| -------------- | --------------------------------------------------------------------------------------------------------------- |
-| `auth`         | Login, dev-login, account recovery                                                                              |
-| `feed`         | The main feed page and its post cards                                                                           |
-| `compose`      | The post composer (BU-composer; later FAB cards)                                                                |
-| `post`         | Post detail page and post-related components                                                                    |
-| `nav`          | Bottom tabs, sidebars, top-level navigation                                                                     |
-| `admin`        | Admin surfaces (queues, role grants, content mod)                                                               |
-| `network`      | Network tab — coordinator/group directory (D030)                                                                |
-| `inbox`        | Inbox tab — DMs, notifications, requests (D030)                                                                 |
-| `me`           | Me tab — profile, settings, account (D030)                                                                      |
-| `reaction`     | Reaction pill + tray on post cards (BU-reactions)                                                               |
-| `comment`      | Comment thread + composer on post detail (BU-comments)                                                          |
-| `link`         | Link preview cards on post cards + detail (BU-link-share — D060)                                                |
-| `requests`     | Requests workspace — submitter list, reviewer queue, claim/resolve (BU-requests-foundation, BU-requests-urgent) |
-| `alert`        | Urgent alert composer + FAB tile (BU-requests-urgent — D058)                                                    |
-| `data`         | Data inspector — entity index + per-entity pages (BU-requests-foundation, BU-admin-crud)                        |
-| `settings`     | Settings landing + admin sections (BU-requests-foundation, future BUs)                                          |
-| `intent`       | FAB intent picker — single FAB + tile grid (BU-fab-intent-picker — D044, D062)                                  |
-| `capabilities` | SRS capabilities mockup at `/capabilities` — static showcase tiles (`app/capabilities/`)                        |
-| `calendar`     | Calendar tab — agenda view, month grid, day panel (BU-calendar-view — D073)                                     |
-| `dev`          | Dev-only affordances on the demo path — banner toggle, dev tools (BU-one-click-polish)                          |
-| `search`       | Search overlay + full-results page (BU-search-surface — D078)                                                   |
-| `board`        | Coordination board — group picker, kanban view, ticket detail, notifications (bu-coordination-board)            |
-| `shortcut`     | Keyboard shortcut help overlay — backdrop, modal, rows, close (BU-keyboard-shortcuts)                           |
+| Prefix         | Surface                                                                                                           |
+| -------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `auth`         | Login, dev-login, account recovery                                                                                |
+| `feed`         | The main feed page and its post cards                                                                             |
+| `compose`      | The post composer (BU-composer; later FAB cards)                                                                  |
+| `post`         | Post detail page and post-related components                                                                      |
+| `nav`          | Bottom tabs, sidebars, top-level navigation                                                                       |
+| `admin`        | Admin surfaces (queues, role grants, content mod)                                                                 |
+| `network`      | Network tab — coordinator/group directory (D030)                                                                  |
+| `inbox`        | Inbox tab — DMs, notifications, requests (D030)                                                                   |
+| `me`           | Me tab — profile, settings, account (D030)                                                                        |
+| `reaction`     | Reaction pill + tray on post cards (BU-reactions)                                                                 |
+| `comment`      | Comment thread + composer on post detail (BU-comments)                                                            |
+| `link`         | Link preview cards on post cards + detail (BU-link-share — D060)                                                  |
+| `requests`     | Requests workspace — submitter list, reviewer queue, claim/resolve (BU-requests-foundation, BU-requests-urgent)   |
+| `alert`        | Urgent alert composer + FAB tile (BU-requests-urgent — D058)                                                      |
+| `data`         | Data inspector — entity index + per-entity pages (BU-requests-foundation, BU-admin-crud)                          |
+| `settings`     | Settings landing + admin sections (BU-requests-foundation, future BUs)                                            |
+| `intent`       | FAB intent picker — single FAB + tile grid (BU-fab-intent-picker — D044, D062)                                    |
+| `capabilities` | SRS capabilities mockup at `/capabilities` — static showcase tiles (`app/capabilities/`)                          |
+| `calendar`     | Calendar tab — agenda view, month grid, day panel (BU-calendar-view — D073)                                       |
+| `dev`          | Dev-only affordances on the demo path — banner toggle, dev tools (BU-one-click-polish)                            |
+| `search`       | Search overlay + full-results page (BU-search-surface — D078)                                                     |
+| `board`        | Coordination board — group picker, kanban view, ticket detail, notifications (bu-coordination-board)              |
+| `shortcut`     | Keyboard shortcut help overlay — backdrop, modal, rows, close (BU-keyboard-shortcuts)                             |
+| `share`        | Polymorphic share rail + verify-prompt dialog — used on /network cards, future on /feed posts (bu-network-shares) |
 
 To add a new area:
 
