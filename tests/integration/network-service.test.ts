@@ -43,6 +43,7 @@ import {
   listNetworkCards,
   setNetworkCardState,
   invalidateNetworkListCache,
+  invalidateNetworkSourcesCache,
   _networkCacheSize,
 } from '@/server/services/network';
 import { prisma } from '@/server/db/client';
@@ -55,6 +56,7 @@ const mockFlagFindUnique = vi.mocked(prisma.featureFlag.findUnique);
 beforeEach(() => {
   vi.clearAllMocks();
   invalidateNetworkListCache();
+  invalidateNetworkSourcesCache();
   mockAuditCreate.mockResolvedValue({} as never);
   mockFindMany.mockResolvedValue([]);
   // Default: flag row absent → fail-closed disabled → no OG fetch.
@@ -71,7 +73,14 @@ const baseRow = {
   text_body: 'Look at this',
   chat_id: 'gps-network@g.us',
   is_forwarded: false,
-  gps_chat_labels: {
+};
+
+// bu-network-source-chips — labels rows used by the service-side join.
+// Tests that exercise the source field / source filter pass this through
+// `fetchLabels`. Tests that don't care still need to pass it so the
+// labels fetcher doesn't try to reach Supabase and degrade to empty.
+const defaultLabels = [
+  {
     chat_id: 'gps-network@g.us',
     slug: 'gps-action-network',
     label: 'GPS Action Network!',
@@ -81,7 +90,8 @@ const baseRow = {
     icon: '🎯',
     member_count: 190,
   },
-};
+];
+const fetchLabels = () => Promise.resolve(defaultLabels);
 
 describe('listNetworkCards', () => {
   it('returns cards with default NEW state when no NetworkCardState row exists', async () => {
@@ -89,7 +99,7 @@ describe('listNetworkCards', () => {
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
 
     expect(result.fromCache).toBe(false);
@@ -119,7 +129,7 @@ describe('listNetworkCards', () => {
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
 
     expect(result.items[0]!.state.status).toBe('TRIAGED');
@@ -132,7 +142,7 @@ describe('listNetworkCards', () => {
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
 
     expect(result.items[0]!.textBody).toBeNull();
@@ -145,7 +155,7 @@ describe('listNetworkCards', () => {
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
 
     expect(result.items[0]!.textBody).toBe('Worth a read this morning');
@@ -156,11 +166,11 @@ describe('listNetworkCards', () => {
 
     const first = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
     const second = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
 
     expect(first.fromCache).toBe(false);
@@ -173,11 +183,11 @@ describe('listNetworkCards', () => {
 
     await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
     const refreshed = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: true, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
 
     expect(refreshed.fromCache).toBe(false);
@@ -192,7 +202,7 @@ describe('listNetworkCards', () => {
 
     const result = await listNetworkCards(
       { limit: 2, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
 
     expect(result.nextCursor).toBe('4');
@@ -203,7 +213,7 @@ describe('listNetworkCards', () => {
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
 
     expect(result.nextCursor).toBeNull();
@@ -216,7 +226,7 @@ describe('listNetworkCards', () => {
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
 
     expect(result.items[0]!.fromName).toBeNull();
@@ -235,7 +245,7 @@ describe('listNetworkCards', () => {
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
 
     expect(result.items).toEqual([]);
@@ -255,7 +265,7 @@ describe('listNetworkCards', () => {
 
     await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
 
     expect(errorSpy).toHaveBeenCalledWith(
@@ -271,7 +281,7 @@ describe('listNetworkCards', () => {
     await expect(
       listNetworkCards(
         { limit: 50, windowDays: 90, refresh: false, sources: [] },
-        { fetchUpstream },
+        { fetchUpstream, fetchLabels },
       ),
     ).rejects.toThrow('upstream 503');
   });
@@ -350,7 +360,7 @@ describe('setNetworkCardState', () => {
 
     await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
     expect(_networkCacheSize()).toBe(1);
 
@@ -418,7 +428,10 @@ describe('listNetworkCards source filter', () => {
     ...baseRow,
     id: 2,
     chat_id: 'hendon-jag@g.us',
-    gps_chat_labels: {
+  };
+  const twoSourcesLabels = [
+    ...defaultLabels,
+    {
       chat_id: 'hendon-jag@g.us',
       slug: 'hendon-jag',
       label: 'Hendon JAG',
@@ -428,14 +441,15 @@ describe('listNetworkCards source filter', () => {
       icon: '🚩',
       member_count: 80,
     },
-  };
+  ];
+  const fetchTwoLabels = () => Promise.resolve(twoSourcesLabels);
 
   it('returns every row when sources is empty', async () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow, otherChatRow]);
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels: fetchTwoLabels },
     );
 
     expect(result.items).toHaveLength(2);
@@ -446,7 +460,7 @@ describe('listNetworkCards source filter', () => {
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: ['hendon-jag'] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels: fetchTwoLabels },
     );
 
     expect(result.items).toHaveLength(1);
@@ -463,7 +477,7 @@ describe('listNetworkCards source filter', () => {
         refresh: false,
         sources: ['gps-action-network', 'hendon-jag'],
       },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels: fetchTwoLabels },
     );
 
     expect(result.items).toHaveLength(2);
@@ -474,7 +488,7 @@ describe('listNetworkCards source filter', () => {
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: ['retired-slug'] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels: fetchTwoLabels },
     );
 
     expect(result.items).toEqual([]);
@@ -491,7 +505,7 @@ describe('listNetworkCards source filter', () => {
         refresh: false,
         sources: ['gps-action-network', 'hendon-jag'],
       },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels: fetchTwoLabels },
     );
     const second = await listNetworkCards(
       // Reversed slug order — same cache slot expected.
@@ -501,7 +515,7 @@ describe('listNetworkCards source filter', () => {
         refresh: false,
         sources: ['hendon-jag', 'gps-action-network'],
       },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels: fetchTwoLabels },
     );
 
     expect(second.fromCache).toBe(true);
@@ -510,12 +524,12 @@ describe('listNetworkCards source filter', () => {
 });
 
 describe('upstreamToCard source + isForwarded', () => {
-  it('populates source from the embedded join', async () => {
+  it('populates source from the labels Map by chat_id', async () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
 
     expect(result.items[0]!.source).toEqual({
@@ -529,20 +543,22 @@ describe('upstreamToCard source + isForwarded', () => {
     });
   });
 
-  it('falls back to a synthetic source if gps_chat_labels is null', async () => {
-    const orphan = { ...baseRow, gps_chat_labels: null };
-    const fetchUpstream = vi.fn().mockResolvedValue([orphan]);
+  it('falls back to a synthetic source when no label row matches the chat_id', async () => {
+    // chat_id has no entry in the labels Map — simulates a SUPABASE
+    // config miss on the labels fetch, or a Grant-side timing window.
+    const orphanRow = { ...baseRow, chat_id: 'unknown-chat@g.us' };
+    const fetchUpstream = vi.fn().mockResolvedValue([orphanRow]);
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
 
     expect(result.items[0]!.source.slug).toBe('unknown');
-    expect(result.items[0]!.source.label).toBe('gps-network@g.us');
+    expect(result.items[0]!.source.label).toBe('unknown-chat@g.us');
     expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('gps_chat_labels join returned null'),
+      expect.stringContaining('no gps_chat_labels row for chat_id=unknown-chat@g.us'),
     );
     warnSpy.mockRestore();
   });
@@ -553,7 +569,7 @@ describe('upstreamToCard source + isForwarded', () => {
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
-      { fetchUpstream },
+      { fetchUpstream, fetchLabels },
     );
 
     expect(result.items[0]!.isForwarded).toBe(true);

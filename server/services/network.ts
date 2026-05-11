@@ -116,7 +116,10 @@ export function _networkCacheSize(): number {
 // touch sources, but the alternative is fiddlier than the cost.
 
 interface SourcesCacheEntry {
-  value: NetworkSource[];
+  /** Projected source set, sorted as Grant returns it. */
+  list: NetworkSource[];
+  /** Lookup by `chat_id` for the message-join path. */
+  byChatId: Map<string, NetworkCardSource>;
   expiresAt: number;
 }
 
@@ -128,6 +131,54 @@ function readSourcesCacheTtlMs(): number {
   // Default 24 hours per Grant's rate-limit guidance.
   const seconds = Number.isFinite(parsed) && parsed > 0 ? parsed : 24 * 60 * 60;
   return seconds * 1000;
+}
+
+/**
+ * Internal: fetch the labels cache entry (list + chat_id Map),
+ * honouring the 24h TTL. Both `listNetworkSources` (chip-strip
+ * surface) and `listNetworkCards` (message join) read through here.
+ *
+ * On SUPABASE config missing → degrade to an empty cache entry so
+ * downstream code still sees a Map (just an empty one) and renders
+ * the synthetic-source fallback path.
+ */
+async function getSourcesCacheEntry(deps: {
+  fetchSources?: typeof listGpsChatLabels;
+  bypassCache?: boolean;
+}): Promise<SourcesCacheEntry> {
+  if (!deps.bypassCache && sourcesCache.value && sourcesCache.value.expiresAt > Date.now()) {
+    return sourcesCache.value;
+  }
+  const fetchSources = deps.fetchSources ?? listGpsChatLabels;
+  let rows: GpsChatLabelRow[];
+  try {
+    rows = await fetchSources();
+  } catch (err) {
+    if (err instanceof SupabaseConfigError) {
+      console.error(
+        '[network] SUPABASE_URL / SUPABASE_ANON_KEY missing — degrading sources to empty',
+      );
+      const empty: SourcesCacheEntry = {
+        list: [],
+        byChatId: new Map(),
+        expiresAt: Number.MAX_SAFE_INTEGER,
+      };
+      return empty;
+    }
+    throw err;
+  }
+  const list = rows.map(labelRowToSource);
+  const byChatId = new Map<string, NetworkCardSource>();
+  for (const row of rows) byChatId.set(row.chat_id, labelRowToSource(row));
+  const entry: SourcesCacheEntry = {
+    list,
+    byChatId,
+    expiresAt: Date.now() + readSourcesCacheTtlMs(),
+  };
+  if (!deps.bypassCache) {
+    sourcesCache.value = entry;
+  }
+  return entry;
 }
 
 /**
@@ -143,27 +194,8 @@ export async function listNetworkSources(
     bypassCache?: boolean;
   } = {},
 ): Promise<NetworkSource[]> {
-  if (!deps.bypassCache && sourcesCache.value && sourcesCache.value.expiresAt > Date.now()) {
-    return sourcesCache.value.value;
-  }
-  const fetchSources = deps.fetchSources ?? listGpsChatLabels;
-  let rows: GpsChatLabelRow[];
-  try {
-    rows = await fetchSources();
-  } catch (err) {
-    if (err instanceof SupabaseConfigError) {
-      console.error(
-        '[network] SUPABASE_URL / SUPABASE_ANON_KEY missing — degrading sources to empty',
-      );
-      return [];
-    }
-    throw err;
-  }
-  const sources = rows.map(labelRowToSource);
-  if (!deps.bypassCache) {
-    sourcesCache.value = { value: sources, expiresAt: Date.now() + readSourcesCacheTtlMs() };
-  }
-  return sources;
+  const entry = await getSourcesCacheEntry(deps);
+  return entry.list;
 }
 
 /** Wholesale source-cache invalidation. Exposed for admin "Refresh sources". */
@@ -188,6 +220,13 @@ function labelRowToSource(row: GpsChatLabelRow): NetworkCardSource {
 interface ListDeps {
   /** Override the upstream fetcher — primarily for tests. */
   fetchUpstream?: typeof listGpsGroupMessages;
+  /**
+   * bu-network-source-chips — override the labels fetcher for the
+   * service-side join. Tests pass a stub that returns canned label
+   * rows; default reads from `listGpsChatLabels`. Hits the same 24h
+   * cache as `listNetworkSources`.
+   */
+  fetchLabels?: typeof listGpsChatLabels;
   /**
    * Override the link-preview enrichment path. Default reads the
    * `network_link_previews` flag and (when on) fetches OG metadata via
@@ -219,13 +258,25 @@ export async function listNetworkCards(
 
   const fetchUpstream = deps.fetchUpstream ?? listGpsGroupMessages;
   const cursorId = input.cursor !== undefined ? Number.parseInt(input.cursor, 10) : undefined;
+
+  // bu-network-source-chips — fetch messages and labels in parallel.
+  // Labels feed both the source filter (slug → chat_id resolution)
+  // and the per-card source join. The labels call hits the same 24h
+  // cache as listNetworkSources, so on a warm cache this is a single
+  // upstream round-trip total (the messages fetch).
   let rows: GpsGroupMessageRow[];
+  let labels: SourcesCacheEntry;
   try {
-    rows = await fetchUpstream({
-      windowDays: input.windowDays,
-      limit: input.limit,
-      cursorId: Number.isFinite(cursorId) ? cursorId : undefined,
-    });
+    const [messagesResult, labelsResult] = await Promise.all([
+      fetchUpstream({
+        windowDays: input.windowDays,
+        limit: input.limit,
+        cursorId: Number.isFinite(cursorId) ? cursorId : undefined,
+      }),
+      getSourcesCacheEntry({ fetchSources: deps.fetchLabels }),
+    ]);
+    rows = messagesResult;
+    labels = labelsResult;
   } catch (err) {
     // Graceful degrade when SUPABASE_URL / SUPABASE_ANON_KEY are absent —
     // the surface promised in .env.example is "returns an empty list".
@@ -247,10 +298,12 @@ export async function listNetworkCards(
   // Unknown slugs are silently dropped at the filter step — shared
   // URLs with a retired chip slug just yield an empty list, no error.
   if (input.sources.length > 0) {
-    const allowed = new Set(input.sources);
-    rows = rows.filter((row) =>
-      row.gps_chat_labels ? allowed.has(row.gps_chat_labels.slug) : false,
-    );
+    const allowedSlugs = new Set(input.sources);
+    const allowedChatIds = new Set<string>();
+    for (const [chatId, source] of labels.byChatId) {
+      if (allowedSlugs.has(source.slug)) allowedChatIds.add(chatId);
+    }
+    rows = rows.filter((row) => allowedChatIds.has(row.chat_id));
   }
 
   const messageIds = rows.map((row) => BigInt(row.id));
@@ -279,7 +332,9 @@ export async function listNetworkCards(
     });
   }
 
-  const baseItems: NetworkCard[] = rows.map((row) => upstreamToCard(row, stateByMessageId));
+  const baseItems: NetworkCard[] = rows.map((row) =>
+    upstreamToCard(row, stateByMessageId, labels.byChatId),
+  );
   const resolveLinkPreview = deps.resolveLinkPreview ?? (await buildDefaultLinkPreviewResolver());
   const previewedItems = await enrichWithLinkPreviews(baseItems, resolveLinkPreview);
 
@@ -361,6 +416,7 @@ async function enrichWithLinkPreviews(
 function upstreamToCard(
   row: GpsGroupMessageRow,
   stateByMessageId: Map<string, NetworkCardWorkflowState>,
+  sourceByChatId: Map<string, NetworkCardSource>,
 ): NetworkCard {
   const id = BigInt(row.id);
   const state = stateByMessageId.get(id.toString()) ?? defaultState();
@@ -378,37 +434,39 @@ function upstreamToCard(
     // Replaced by the bulk projection after enrichment. Seed with the
     // zero object so the type is always satisfied before the join.
     shareCounts: emptyNetworkCardShareCounts(),
-    source: sourceFromRow(row),
+    source: sourceForChatId(row.chat_id, row.id, sourceByChatId),
     isForwarded: row.is_forwarded,
   };
 }
 
 /**
- * bu-network-source-chips — derive the `source` field from the embedded
- * `gps_chat_labels` join. The view's row count matches `gps.allowed_chats`,
- * so this is non-null by construction; if the wire ever delivers a null
- * (Grant changes the view shape, a partial-relation hiccup), we fall back
- * to a synthetic source derived from `chat_id` so the renderer still has
- * something to display — and log loudly so we notice.
+ * bu-network-source-chips — look up the source for a message's
+ * `chat_id` in the labels Map (cached separately at 24h TTL).
+ * `gps_chat_labels` is a view of `gps.allowed_chats`, so every
+ * message row should hit; if it ever doesn't (labels cache empty
+ * from a SUPABASE config miss, or Grant adds a chat without a label
+ * row), fall back to a synthetic source derived from `chat_id` so
+ * the renderer still has something to display.
  */
-function sourceFromRow(row: GpsGroupMessageRow): NetworkCardSource {
-  if (row.gps_chat_labels) {
-    return {
-      slug: row.gps_chat_labels.slug,
-      label: row.gps_chat_labels.label,
-      description: row.gps_chat_labels.description,
-      displayOrder: row.gps_chat_labels.display_order,
-      color: row.gps_chat_labels.color,
-      icon: row.gps_chat_labels.icon,
-      memberCount: row.gps_chat_labels.member_count,
-    };
+function sourceForChatId(
+  chatId: string,
+  messageId: number,
+  sourceByChatId: Map<string, NetworkCardSource>,
+): NetworkCardSource {
+  const source = sourceByChatId.get(chatId);
+  if (source) return source;
+  // Warn once per missing chat_id per process — labels cache is
+  // long-lived (24h), so the same chat_id would warn on every call
+  // through the day. Bounded set keeps the log volume sane.
+  if (!warnedMissingChatIds.has(chatId)) {
+    console.warn(
+      `[network] no gps_chat_labels row for chat_id=${chatId} (message id=${messageId}); falling back to synthetic source`,
+    );
+    warnedMissingChatIds.add(chatId);
   }
-  console.warn(
-    `[network] gps_chat_labels join returned null for chat_id=${row.chat_id} (message id=${row.id}); falling back to synthetic source`,
-  );
   return {
     slug: 'unknown',
-    label: row.chat_id,
+    label: chatId,
     description: null,
     displayOrder: 9999,
     color: null,
@@ -416,6 +474,8 @@ function sourceFromRow(row: GpsGroupMessageRow): NetworkCardSource {
     memberCount: null,
   };
 }
+
+const warnedMissingChatIds = new Set<string>();
 
 /**
  * bu-network-shares — default projection. Wraps the share-event service
