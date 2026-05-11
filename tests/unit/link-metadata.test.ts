@@ -146,3 +146,97 @@ describe('fetchLinkMetadata · favicon', () => {
     }
   });
 });
+
+describe('fetchLinkMetadata · HTML entity decoding', () => {
+  it('decodes hex numeric refs in og:title (e.g. &#xb7; → ·)', async () => {
+    primeFetch(
+      `<html><head>
+        <meta property="og:title" content="455K views &#xb7; 30K reactions" />
+      </head></html>`,
+      'https://example.test/page',
+    );
+
+    const result = await fetchLinkMetadata({ url: 'https://example.test/page' });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.title).toBe('455K views · 30K reactions');
+    }
+  });
+
+  it('decodes hex refs for curly apostrophe (&#x2019;) in og:description', async () => {
+    primeFetch(
+      `<html><head>
+        <meta property="og:title" content="t" />
+        <meta property="og:description" content="Republic&#x2019;s dictators" />
+      </head></html>`,
+      'https://example.test/page',
+    );
+
+    const result = await fetchLinkMetadata({ url: 'https://example.test/page' });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.description).toBe('Republic’s dictators');
+    }
+  });
+
+  it('decodes decimal numeric refs (&#8217; → ’)', async () => {
+    primeFetch(
+      `<html><head>
+        <meta property="og:title" content="That&#8217;s great" />
+      </head></html>`,
+      'https://example.test/page',
+    );
+
+    const result = await fetchLinkMetadata({ url: 'https://example.test/page' });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.title).toBe('That’s great');
+    }
+  });
+
+  it('still decodes the named-ref short list (&amp; &quot; &lt; &gt; &nbsp;)', async () => {
+    primeFetch(
+      `<html><head>
+        <meta property="og:title" content="A &amp; B &quot;C&quot; &lt;D&gt;&nbsp;E" />
+      </head></html>`,
+      'https://example.test/page',
+    );
+
+    const result = await fetchLinkMetadata({ url: 'https://example.test/page' });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.title).toBe('A & B "C" <D> E');
+    }
+  });
+
+  it('passes through unknown / malformed refs unchanged', async () => {
+    primeFetch(
+      `<html><head>
+        <meta property="og:title" content="Unknown &foo; ref" />
+      </head></html>`,
+      'https://example.test/page',
+    );
+
+    const result = await fetchLinkMetadata({ url: 'https://example.test/page' });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.title).toBe('Unknown &foo; ref');
+    }
+  });
+
+  it('passes through out-of-range codepoints unchanged (no throw)', async () => {
+    primeFetch(
+      // 0x110000 is one beyond the Unicode max — fromCodePoint throws.
+      `<html><head>
+        <meta property="og:title" content="bad &#x110000; ref" />
+      </head></html>`,
+      'https://example.test/page',
+    );
+
+    const result = await fetchLinkMetadata({ url: 'https://example.test/page' });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.title).toBe('bad &#x110000; ref');
+    }
+  });
+});
