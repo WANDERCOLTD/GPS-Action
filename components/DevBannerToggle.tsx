@@ -103,12 +103,23 @@ export const DevBannerToggle: FC<DevBannerToggleProps> = ({ enabled }) => {
   }, []);
 
   const toggle = useCallback(() => {
-    setVisible((prev) => {
-      const next = !prev;
-      writeDevBannerVisible(next);
-      emitDevBannerVisibilityChange();
-      return next;
-    });
+    // Compute the next value from the persisted source so we never
+    // call side-effecting code (writeDevBannerVisible, dispatchEvent)
+    // from inside React's setState updater. React 19 may invoke the
+    // updater during render; a synchronous CustomEvent dispatch from
+    // there cascades into peer components' setState (e.g.
+    // DevBannerWrapper subscribing to the visibility-change event),
+    // which trips the "setState during render of another component"
+    // warning.
+    //
+    // localStorage is the canonical source — reading it before the
+    // toggle keeps the two state copies (this component's `visible`
+    // ref + the persisted flag) in lock-step without relying on
+    // stale React state.
+    const next = !readDevBannerVisible();
+    writeDevBannerVisible(next);
+    setVisible(next);
+    emitDevBannerVisibilityChange();
   }, []);
 
   // CustomEvent subscriber. The global `KeyboardShortcuts` listener
