@@ -88,12 +88,18 @@ describe('resolveKey — sequence bindings', () => {
 });
 
 describe('resolveKey — registry coverage', () => {
-  it('every registered sequence binding resolves to its href', () => {
+  it('every registered sequence binding resolves to its href OR event', () => {
     for (const b of SHORTCUT_BINDINGS) {
       if (b.kind !== 'sequence') continue;
       const armed = { prefix: b.prefix, expiresAt: NOW + 500 };
       const out = resolveKey({ key: b.key, sequence: armed, now: NOW });
-      expect(out).toEqual({ kind: 'navigate', href: b.href });
+      if (b.eventName) {
+        expect(out).toEqual({ kind: 'event', eventName: b.eventName });
+      } else if (b.href) {
+        expect(out).toEqual({ kind: 'navigate', href: b.href });
+      } else {
+        throw new Error(`sequence binding ${b.prefix}-${b.key} has neither href nor eventName`);
+      }
     }
   });
 
@@ -107,5 +113,26 @@ describe('resolveKey — registry coverage', () => {
         expect(out).toEqual({ kind: 'navigate', href: b.action });
       }
     }
+  });
+
+  it('contextual bindings are documentation-only — the resolver ignores them', () => {
+    for (const b of SHORTCUT_BINDINGS) {
+      if (b.kind !== 'contextual') continue;
+      // Contextual bindings carry display strings, not event.key codes, so
+      // they don't surface from resolveKey for any plain keypress. The
+      // entries exist purely so the help overlay can document them.
+      expect(b.macKeys.length).toBeGreaterThan(0);
+      expect(b.pcKeys.length).toBeGreaterThan(0);
+      expect(b.label.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('resolveKey — g u dev banner toggle', () => {
+  it('returns an event outcome for the registered eventName', async () => {
+    const { TOGGLE_DEV_BANNER_EVENT } = await import('@/shared/shortcuts');
+    const armed = { prefix: 'g', expiresAt: NOW + 500 };
+    const out = resolveKey({ key: 'u', sequence: armed, now: NOW });
+    expect(out).toEqual({ kind: 'event', eventName: TOGGLE_DEV_BANNER_EVENT });
   });
 });
