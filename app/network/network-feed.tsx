@@ -28,7 +28,7 @@
  */
 
 import type { CSSProperties } from 'react';
-import { useCallback, useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import type { ShareDestination } from '@prisma/client';
 import { ClientOnly } from '@/components/ClientOnly';
 import { NetworkCard } from '@/components/NetworkCard';
@@ -69,6 +69,13 @@ export function NetworkFeed({ initial }: NetworkFeedProps) {
   const [reactionsByMessageId, setReactionsByMessageId] = useState<Record<string, FeedReaction[]>>(
     {},
   );
+  // Ref mirrors the state — read inside effects to compute which
+  // messageIds need fetching without taking `reactionsByMessageId`
+  // as an effect dep (would loop on every fetch resolution) and
+  // without calling a side-effecting fetch from inside a setState
+  // updater (React 19 catches that as setState-during-render).
+  const reactionsRef = useRef(reactionsByMessageId);
+  reactionsRef.current = reactionsByMessageId;
   // bu-network-shares — verify-prompt state. Tracks which card and
   // destination are awaiting confirmation. Null = no prompt visible.
   // Lifted here (out of NetworkCard) so that NetworkCard stays pure-
@@ -89,17 +96,17 @@ export function NetworkFeed({ initial }: NetworkFeedProps) {
     }
   }, []);
 
-  // Initial fetch + after items change. The dep list intentionally
-  // omits `reactionsByMessageId` — including it would loop the effect
-  // every time the fetch resolved. We diff manually via `missing`
-  // inside the effect body instead.
+  // Initial fetch + after items change. We diff against the ref
+  // (not the state) so `reactionsByMessageId` can stay out of the
+  // dep list (would loop on every fetch resolution) and the side-
+  // effecting fetch stays at the top level of the effect (not
+  // inside a setState updater — React 19's setState-during-render
+  // detector flags any side effect cascading through a setState
+  // call, including server actions that trigger Router updates).
   useEffect(() => {
     const ids = items.map((c) => c.messageId);
-    setReactionsByMessageId((prev) => {
-      const missing = ids.filter((id) => !(id in prev));
-      if (missing.length > 0) void fetchReactionsFor(missing);
-      return prev;
-    });
+    const missing = ids.filter((id) => !(id in reactionsRef.current));
+    if (missing.length > 0) void fetchReactionsFor(missing);
   }, [items, fetchReactionsFor]);
 
   const handleRefresh = useCallback(() => {
