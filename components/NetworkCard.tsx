@@ -41,6 +41,7 @@
 import type { CSSProperties, MouseEvent } from 'react';
 import type { ShareDestination } from '@prisma/client';
 import type { NetworkCardStatus, SerializedNetworkCard } from '@/shared/network-card';
+import { getSourceColor } from '@/shared/styles/source-palette';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
 import { ReactionPill } from '@/components/ReactionPill';
 import { ShareCountPill } from '@/components/ShareCountPill';
@@ -83,10 +84,7 @@ export function NetworkCard({
   const title = card.linkTitle ?? hostnameOf(card.url);
   const sender = card.fromName ?? 'anonymous member';
   const isAnon = card.fromName === null;
-  // Today the allowlist is GPS Action Network! + a test group; both
-  // render generically. When more groups land a label table joins by
-  // chat_id (Grant's `gps_chat_labels` view).
-  const groupLabel = 'GPS Action Network!';
+  const sourceColor = getSourceColor(card.source);
 
   // When a link preview is available, the LinkPreviewCard becomes the
   // primary clickable surface (hero + title + description + CTA). The
@@ -133,8 +131,19 @@ export function NetworkCard({
           {sender}
         </span>
         <span aria-hidden="true">·</span>
-        <span data-testid="network-card-group" data-message-id={card.messageId}>
-          {groupLabel}
+        <span
+          data-testid="network-card-group"
+          data-message-id={card.messageId}
+          data-source-slug={card.source.slug}
+          style={sourceLabelStyle}
+        >
+          <span aria-hidden="true" style={sourceDotStyle(sourceColor)} />
+          {card.source.icon && (
+            <span aria-hidden="true" style={sourceIconStyle}>
+              {card.source.icon}
+            </span>
+          )}
+          {card.source.label}
         </span>
         <span aria-hidden="true">·</span>
         <time
@@ -145,6 +154,19 @@ export function NetworkCard({
         >
           {relativeTime(card.sentAt)}
         </time>
+        {card.isForwarded && (
+          <>
+            <span aria-hidden="true">·</span>
+            <span
+              data-testid="network-card-forwarded-badge"
+              data-message-id={card.messageId}
+              style={forwardedBadgeStyle}
+              title="Forwarded from elsewhere — original sender not preserved"
+            >
+              ↪ forwarded
+            </span>
+          </>
+        )}
       </p>
 
       {/* Layout shell — LHS holds the content (hero/body/reactions/triage),
@@ -346,6 +368,34 @@ const metaRowStyle: CSSProperties = {
   flexWrap: 'wrap',
   gap: 'var(--space-2)',
   alignItems: 'baseline',
+};
+
+// bu-network-source-chips — source label cluster (dot + icon + label).
+const sourceLabelStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 'var(--space-1)',
+};
+
+const sourceDotStyle = (color: string): CSSProperties => ({
+  display: 'inline-block',
+  width: 8,
+  height: 8,
+  borderRadius: '50%',
+  background: color,
+  flexShrink: 0,
+});
+
+const sourceIconStyle: CSSProperties = {
+  fontSize: 'var(--text-sm)',
+  lineHeight: 1,
+  opacity: 0.75,
+};
+
+// bu-network-source-chips — "↪ forwarded" badge for is_forwarded rows.
+const forwardedBadgeStyle: CSSProperties = {
+  fontStyle: 'italic',
+  color: 'var(--colour-text-tertiary)',
 };
 
 const triageRowStyle: CSSProperties = {

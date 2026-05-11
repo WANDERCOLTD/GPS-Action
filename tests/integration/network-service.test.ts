@@ -70,6 +70,17 @@ const baseRow = {
   link_title: 'A useful article',
   text_body: 'Look at this',
   chat_id: 'gps-network@g.us',
+  is_forwarded: false,
+  gps_chat_labels: {
+    chat_id: 'gps-network@g.us',
+    slug: 'gps-action-network',
+    label: 'GPS Action Network!',
+    description: null,
+    display_order: 1,
+    color: '#3fb950',
+    icon: '🎯',
+    member_count: 190,
+  },
 };
 
 describe('listNetworkCards', () => {
@@ -77,7 +88,7 @@ describe('listNetworkCards', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -107,7 +118,7 @@ describe('listNetworkCards', () => {
     ]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -120,7 +131,7 @@ describe('listNetworkCards', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([{ ...baseRow, text_body: baseRow.url }]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -133,7 +144,7 @@ describe('listNetworkCards', () => {
       .mockResolvedValue([{ ...baseRow, text_body: 'Worth a read this morning' }]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -144,11 +155,11 @@ describe('listNetworkCards', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
 
     const first = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
     const second = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -160,9 +171,12 @@ describe('listNetworkCards', () => {
   it('bypasses cache when refresh: true', async () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
 
-    await listNetworkCards({ limit: 50, windowDays: 90, refresh: false }, { fetchUpstream });
+    await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { fetchUpstream },
+    );
     const refreshed = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: true },
+      { limit: 50, windowDays: 90, refresh: true, sources: [] },
       { fetchUpstream },
     );
 
@@ -177,7 +191,7 @@ describe('listNetworkCards', () => {
     ]);
 
     const result = await listNetworkCards(
-      { limit: 2, windowDays: 90, refresh: false },
+      { limit: 2, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -188,7 +202,7 @@ describe('listNetworkCards', () => {
     const fetchUpstream = vi.fn().mockResolvedValue([{ ...baseRow, id: 9 }]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -201,7 +215,7 @@ describe('listNetworkCards', () => {
       .mockResolvedValue([{ ...baseRow, from_name: null, sender_hash: 'hash-anon' }]);
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -220,7 +234,7 @@ describe('listNetworkCards', () => {
       );
 
     const result = await listNetworkCards(
-      { limit: 50, windowDays: 90, refresh: false },
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
       { fetchUpstream },
     );
 
@@ -239,7 +253,10 @@ describe('listNetworkCards', () => {
       );
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await listNetworkCards({ limit: 50, windowDays: 90, refresh: false }, { fetchUpstream });
+    await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { fetchUpstream },
+    );
 
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining('SUPABASE_URL / SUPABASE_ANON_KEY missing'),
@@ -252,7 +269,10 @@ describe('listNetworkCards', () => {
     const fetchUpstream = vi.fn().mockRejectedValue(new SupabaseFetchError('upstream 503', 503));
 
     await expect(
-      listNetworkCards({ limit: 50, windowDays: 90, refresh: false }, { fetchUpstream }),
+      listNetworkCards(
+        { limit: 50, windowDays: 90, refresh: false, sources: [] },
+        { fetchUpstream },
+      ),
     ).rejects.toThrow('upstream 503');
   });
 
@@ -268,7 +288,7 @@ describe('listNetworkCards', () => {
       });
 
       const result = await listNetworkCards(
-        { limit: 50, windowDays: 90, refresh: false },
+        { limit: 50, windowDays: 90, refresh: false, sources: [] },
         { fetchUpstream, resolveLinkPreview },
       );
 
@@ -287,7 +307,7 @@ describe('listNetworkCards', () => {
       const resolveLinkPreview = vi.fn().mockResolvedValue(null);
 
       const result = await listNetworkCards(
-        { limit: 50, windowDays: 90, refresh: false },
+        { limit: 50, windowDays: 90, refresh: false, sources: [] },
         { fetchUpstream, resolveLinkPreview },
       );
 
@@ -309,7 +329,7 @@ describe('listNetworkCards', () => {
       });
 
       await listNetworkCards(
-        { limit: 50, windowDays: 90, refresh: false },
+        { limit: 50, windowDays: 90, refresh: false, sources: [] },
         { fetchUpstream, resolveLinkPreview },
       );
 
@@ -328,7 +348,10 @@ describe('setNetworkCardState', () => {
   it('upserts the state row, writes audit, and invalidates the cache', async () => {
     const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
 
-    await listNetworkCards({ limit: 50, windowDays: 90, refresh: false }, { fetchUpstream });
+    await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { fetchUpstream },
+    );
     expect(_networkCacheSize()).toBe(1);
 
     mockUpsert.mockResolvedValueOnce({
@@ -385,5 +408,228 @@ describe('setNetworkCardState', () => {
         }),
       }),
     );
+  });
+});
+
+// ── bu-network-source-chips ──────────────────────────────────────────────
+
+describe('listNetworkCards source filter', () => {
+  const otherChatRow = {
+    ...baseRow,
+    id: 2,
+    chat_id: 'hendon-jag@g.us',
+    gps_chat_labels: {
+      chat_id: 'hendon-jag@g.us',
+      slug: 'hendon-jag',
+      label: 'Hendon JAG',
+      description: 'Local action group',
+      display_order: 2,
+      color: '#dc2626',
+      icon: '🚩',
+      member_count: 80,
+    },
+  };
+
+  it('returns every row when sources is empty', async () => {
+    const fetchUpstream = vi.fn().mockResolvedValue([baseRow, otherChatRow]);
+
+    const result = await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { fetchUpstream },
+    );
+
+    expect(result.items).toHaveLength(2);
+  });
+
+  it('filters to a single slug when sources has one entry', async () => {
+    const fetchUpstream = vi.fn().mockResolvedValue([baseRow, otherChatRow]);
+
+    const result = await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: ['hendon-jag'] },
+      { fetchUpstream },
+    );
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]!.source.slug).toBe('hendon-jag');
+  });
+
+  it('accepts multiple slugs (OR semantics)', async () => {
+    const fetchUpstream = vi.fn().mockResolvedValue([baseRow, otherChatRow]);
+
+    const result = await listNetworkCards(
+      {
+        limit: 50,
+        windowDays: 90,
+        refresh: false,
+        sources: ['gps-action-network', 'hendon-jag'],
+      },
+      { fetchUpstream },
+    );
+
+    expect(result.items).toHaveLength(2);
+  });
+
+  it('returns an empty list when sources matches no rows', async () => {
+    const fetchUpstream = vi.fn().mockResolvedValue([baseRow, otherChatRow]);
+
+    const result = await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: ['retired-slug'] },
+      { fetchUpstream },
+    );
+
+    expect(result.items).toEqual([]);
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it('caches separately by source set (order-independent)', async () => {
+    const fetchUpstream = vi.fn().mockResolvedValue([baseRow, otherChatRow]);
+
+    await listNetworkCards(
+      {
+        limit: 50,
+        windowDays: 90,
+        refresh: false,
+        sources: ['gps-action-network', 'hendon-jag'],
+      },
+      { fetchUpstream },
+    );
+    const second = await listNetworkCards(
+      // Reversed slug order — same cache slot expected.
+      {
+        limit: 50,
+        windowDays: 90,
+        refresh: false,
+        sources: ['hendon-jag', 'gps-action-network'],
+      },
+      { fetchUpstream },
+    );
+
+    expect(second.fromCache).toBe(true);
+    expect(fetchUpstream).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('upstreamToCard source + isForwarded', () => {
+  it('populates source from the embedded join', async () => {
+    const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
+
+    const result = await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { fetchUpstream },
+    );
+
+    expect(result.items[0]!.source).toEqual({
+      slug: 'gps-action-network',
+      label: 'GPS Action Network!',
+      description: null,
+      displayOrder: 1,
+      color: '#3fb950',
+      icon: '🎯',
+      memberCount: 190,
+    });
+  });
+
+  it('falls back to a synthetic source if gps_chat_labels is null', async () => {
+    const orphan = { ...baseRow, gps_chat_labels: null };
+    const fetchUpstream = vi.fn().mockResolvedValue([orphan]);
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const result = await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { fetchUpstream },
+    );
+
+    expect(result.items[0]!.source.slug).toBe('unknown');
+    expect(result.items[0]!.source.label).toBe('gps-network@g.us');
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('gps_chat_labels join returned null'),
+    );
+    warnSpy.mockRestore();
+  });
+
+  it('passes is_forwarded through to the card', async () => {
+    const forwardedRow = { ...baseRow, is_forwarded: true };
+    const fetchUpstream = vi.fn().mockResolvedValue([forwardedRow]);
+
+    const result = await listNetworkCards(
+      { limit: 50, windowDays: 90, refresh: false, sources: [] },
+      { fetchUpstream },
+    );
+
+    expect(result.items[0]!.isForwarded).toBe(true);
+  });
+});
+
+describe('listNetworkSources', () => {
+  it('returns source set with rows mapped to NetworkSource', async () => {
+    const { listNetworkSources } = await import('@/server/services/network');
+    const fetchSources = vi.fn().mockResolvedValue([
+      {
+        chat_id: 'gps-network@g.us',
+        slug: 'gps-action-network',
+        label: 'GPS Action Network!',
+        description: null,
+        display_order: 1,
+        color: '#3fb950',
+        icon: '🎯',
+        member_count: 190,
+      },
+    ]);
+
+    const sources = await listNetworkSources({ fetchSources, bypassCache: true });
+
+    expect(sources).toEqual([
+      {
+        slug: 'gps-action-network',
+        label: 'GPS Action Network!',
+        description: null,
+        displayOrder: 1,
+        color: '#3fb950',
+        icon: '🎯',
+        memberCount: 190,
+      },
+    ]);
+  });
+
+  it('degrades to an empty list when SUPABASE config is missing', async () => {
+    const { listNetworkSources } = await import('@/server/services/network');
+    const { SupabaseConfigError } = await import('@/server/lib/supabase');
+    const fetchSources = vi
+      .fn()
+      .mockRejectedValue(
+        new SupabaseConfigError('SUPABASE_URL and SUPABASE_ANON_KEY must be set.'),
+      );
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const sources = await listNetworkSources({ fetchSources, bypassCache: true });
+
+    expect(sources).toEqual([]);
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('SUPABASE_URL / SUPABASE_ANON_KEY missing'),
+    );
+    errorSpy.mockRestore();
+  });
+
+  it('caches the source set across calls', async () => {
+    const { listNetworkSources, invalidateNetworkSourcesCache } =
+      await import('@/server/services/network');
+    invalidateNetworkSourcesCache();
+    const fetchSources = vi.fn().mockResolvedValue([
+      {
+        chat_id: 'gps-network@g.us',
+        slug: 'gps-action-network',
+        label: 'GPS Action Network!',
+        description: null,
+        display_order: 1,
+        color: '#3fb950',
+        icon: '🎯',
+        member_count: 190,
+      },
+    ]);
+
+    await listNetworkSources({ fetchSources });
+    await listNetworkSources({ fetchSources });
+
+    expect(fetchSources).toHaveBeenCalledTimes(1);
   });
 });

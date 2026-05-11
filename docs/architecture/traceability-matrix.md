@@ -109,6 +109,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | bu-kanban-event-config | 1 | — | — |
 | bu-network-card-layout | 1 | — | — |
 | bu-network-shares | 7 | — | D047, D065, D077 |
+| bu-network-source-chips | 2 | — | — |
 | bu-search-includes-comments | 2 | — | D078 |
 | bu-search-includes-kanban | 1 | — | — |
 | bu-ticket-view-fixes | 7 | — | — |

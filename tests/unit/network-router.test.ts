@@ -115,6 +115,17 @@ describe('network.list', () => {
           link_title: 'A useful article',
           text_body: 'Worth a read',
           chat_id: 'gps-network@g.us',
+          is_forwarded: false,
+          gps_chat_labels: {
+            chat_id: 'gps-network@g.us',
+            slug: 'gps-action-network',
+            label: 'GPS Action Network!',
+            description: null,
+            display_order: 1,
+            color: '#3fb950',
+            icon: '🎯',
+            member_count: 190,
+          },
         },
       ]),
     );

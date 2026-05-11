@@ -30,16 +30,20 @@ import { getLinkPreview } from '@/server/services/link-preview-cache';
 import { fetchLinkMetadata } from '@/server/services/link-metadata';
 import { getNetworkCardShareCounts } from '@/server/services/share-event';
 import {
+  listGpsChatLabels,
   listGpsGroupMessages,
   SupabaseConfigError,
+  type GpsChatLabelRow,
   type GpsGroupMessageRow,
 } from '@/server/lib/supabase';
 import type {
   NetworkCard,
   NetworkCardLinkPreview,
   NetworkCardShareCounts,
+  NetworkCardSource,
   NetworkCardWorkflowState,
   NetworkListResponse,
+  NetworkSource,
 } from '@/shared/network-card';
 import { emptyNetworkCardShareCounts } from '@/shared/network-card';
 import type { NetworkListInput, NetworkSetCardStateInput } from '@/shared/validation/network';
@@ -65,7 +69,9 @@ function readCacheTtlMs(): number {
 const cache = new Map<string, CacheEntry>();
 
 function cacheKey(input: NetworkListInput): string {
-  return `${input.windowDays}:${input.limit}:${input.cursor ?? 'first'}`;
+  // Sort sources so `?source=a,b` and `?source=b,a` share a cache slot.
+  const sources = input.sources.length ? [...input.sources].sort().join(',') : 'all';
+  return `${input.windowDays}:${input.limit}:${input.cursor ?? 'first'}:${sources}`;
 }
 
 function cacheGet(key: string): NetworkListResponse | null {
@@ -92,11 +98,89 @@ function cacheSet(key: string, value: NetworkListResponse): void {
 /** Wholesale cache invalidation. Used after any mutation. */
 export function invalidateNetworkListCache(): void {
   cache.clear();
+  sourcesCache.value = null;
 }
 
 /** Test-only: peek at cache size for assertions. */
 export function _networkCacheSize(): number {
   return cache.size;
+}
+
+// ── Source list cache (chip strip) ───────────────────────────────────────
+//
+// `gps_chat_labels` changes ~weekly at most (per Grant). Per the Round 2
+// rate-limit guidance, hold a 24h TTL by default. Configurable via
+// NETWORK_SOURCES_CACHE_TTL_SECONDS for tests / ops. Cleared by any
+// `setNetworkCardState` mutation (the same `invalidateNetworkListCache`
+// path) — strictly that's wasted invalidation, since triage doesn't
+// touch sources, but the alternative is fiddlier than the cost.
+
+interface SourcesCacheEntry {
+  value: NetworkSource[];
+  expiresAt: number;
+}
+
+const sourcesCache: { value: SourcesCacheEntry | null } = { value: null };
+
+function readSourcesCacheTtlMs(): number {
+  const raw = process.env.NETWORK_SOURCES_CACHE_TTL_SECONDS;
+  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+  // Default 24 hours per Grant's rate-limit guidance.
+  const seconds = Number.isFinite(parsed) && parsed > 0 ? parsed : 24 * 60 * 60;
+  return seconds * 1000;
+}
+
+/**
+ * bu-network-source-chips — fetch the active source set for the chip
+ * strip. Cached at 24h TTL by default (configurable). Empty when
+ * SUPABASE_URL / SUPABASE_ANON_KEY are missing — degrades gracefully
+ * the same way `listNetworkCards` does.
+ */
+export async function listNetworkSources(
+  deps: {
+    fetchSources?: typeof listGpsChatLabels;
+    /** Skip the cache layer — used by tests. */
+    bypassCache?: boolean;
+  } = {},
+): Promise<NetworkSource[]> {
+  if (!deps.bypassCache && sourcesCache.value && sourcesCache.value.expiresAt > Date.now()) {
+    return sourcesCache.value.value;
+  }
+  const fetchSources = deps.fetchSources ?? listGpsChatLabels;
+  let rows: GpsChatLabelRow[];
+  try {
+    rows = await fetchSources();
+  } catch (err) {
+    if (err instanceof SupabaseConfigError) {
+      console.error(
+        '[network] SUPABASE_URL / SUPABASE_ANON_KEY missing — degrading sources to empty',
+      );
+      return [];
+    }
+    throw err;
+  }
+  const sources = rows.map(labelRowToSource);
+  if (!deps.bypassCache) {
+    sourcesCache.value = { value: sources, expiresAt: Date.now() + readSourcesCacheTtlMs() };
+  }
+  return sources;
+}
+
+/** Wholesale source-cache invalidation. Exposed for admin "Refresh sources". */
+export function invalidateNetworkSourcesCache(): void {
+  sourcesCache.value = null;
+}
+
+function labelRowToSource(row: GpsChatLabelRow): NetworkCardSource {
+  return {
+    slug: row.slug,
+    label: row.label,
+    description: row.description,
+    displayOrder: row.display_order,
+    color: row.color,
+    icon: row.icon,
+    memberCount: row.member_count,
+  };
 }
 
 // ── List ─────────────────────────────────────────────────────────────────
@@ -155,6 +239,18 @@ export async function listNetworkCards(
       return { items: [], nextCursor: null, fetchedAt: new Date(), fromCache: false };
     }
     throw err;
+  }
+
+  // bu-network-source-chips — filter by source slug before the
+  // state/share/preview joins so we don't waste DB queries on rows
+  // that won't render. Empty `sources` = no filter (the "All" chip).
+  // Unknown slugs are silently dropped at the filter step — shared
+  // URLs with a retired chip slug just yield an empty list, no error.
+  if (input.sources.length > 0) {
+    const allowed = new Set(input.sources);
+    rows = rows.filter((row) =>
+      row.gps_chat_labels ? allowed.has(row.gps_chat_labels.slug) : false,
+    );
   }
 
   const messageIds = rows.map((row) => BigInt(row.id));
@@ -282,6 +378,42 @@ function upstreamToCard(
     // Replaced by the bulk projection after enrichment. Seed with the
     // zero object so the type is always satisfied before the join.
     shareCounts: emptyNetworkCardShareCounts(),
+    source: sourceFromRow(row),
+    isForwarded: row.is_forwarded,
+  };
+}
+
+/**
+ * bu-network-source-chips — derive the `source` field from the embedded
+ * `gps_chat_labels` join. The view's row count matches `gps.allowed_chats`,
+ * so this is non-null by construction; if the wire ever delivers a null
+ * (Grant changes the view shape, a partial-relation hiccup), we fall back
+ * to a synthetic source derived from `chat_id` so the renderer still has
+ * something to display — and log loudly so we notice.
+ */
+function sourceFromRow(row: GpsGroupMessageRow): NetworkCardSource {
+  if (row.gps_chat_labels) {
+    return {
+      slug: row.gps_chat_labels.slug,
+      label: row.gps_chat_labels.label,
+      description: row.gps_chat_labels.description,
+      displayOrder: row.gps_chat_labels.display_order,
+      color: row.gps_chat_labels.color,
+      icon: row.gps_chat_labels.icon,
+      memberCount: row.gps_chat_labels.member_count,
+    };
+  }
+  console.warn(
+    `[network] gps_chat_labels join returned null for chat_id=${row.chat_id} (message id=${row.id}); falling back to synthetic source`,
+  );
+  return {
+    slug: 'unknown',
+    label: row.chat_id,
+    description: null,
+    displayOrder: 9999,
+    color: null,
+    icon: null,
+    memberCount: null,
   };
 }
 

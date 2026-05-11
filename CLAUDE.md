@@ -181,7 +181,9 @@ Companion scenario: SCN-31 — Sharon searches for Hendon. Branch
 will be `feat/search-surface-<YYYYMMDD>` when a build session starts.
 
 **Recently shipped:** BU-feed-filter (#115 — chip strip on `/feed`),
-BU-icon-nav (#152), BU-icon-strips (#174).
+BU-icon-nav (#152), BU-icon-strips (#174),
+bu-network-source-chips (#343 — chip strip + per-source meta row +
+forwarded badge on `/network`).
 
 **Next BU candidates (unshipped briefs):**
 

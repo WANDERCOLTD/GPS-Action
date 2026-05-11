@@ -1,9 +1,10 @@
 ---
 slug: bu-network-source-chips
-status: ready
+status: shipped
+shipped_in: '#343'
 phase: 2
 priority: high
-note: "Draft 2026-05-11. Round 2 Grant answers landed 2026-05-11 — gps_chat_labels view shape locked, Round-1 patches all shipped. Status flipped planned → ready. Pre-condition for retiring /feed as the canonical surface. Build can start when Paul greenlights."
+note: "Shipped 2026-05-11. Three rounds of Grant Q&A (#339 / #340 / #341) plus a Round-3 backend-shipped clarification (gps_chat_labels = view of gps.allowed_chats, slug NOT NULL via INSERT trigger). Chips above /network with URL-state filter, source meta-row on each card, forwarded badge. Pre-condition for retiring /feed as the canonical surface — still pending."
 ---
 
 # SESSION BRIEF · bu-network-source-chips — multi-source `/network` with chip filtering
