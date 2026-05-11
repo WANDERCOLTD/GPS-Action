@@ -29,9 +29,6 @@ vi.mock('react', async () => {
       const value = (idx in stateSlots ? stateSlots[idx] : init) as T;
       return [value, setter] as const;
     },
-    // No-op effect — diagnostic hydrate probe doesn't need to fire in
-    // tree-walk tests.
-    useEffect: () => undefined,
   };
 });
 
