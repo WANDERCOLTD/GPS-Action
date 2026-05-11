@@ -33,8 +33,10 @@ vi.mock('react', async () => {
 });
 
 const pushSpy = vi.fn<(href: string) => void>();
+let pathnameValue: string = '/feed';
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: pushSpy }),
+  usePathname: () => pathnameValue,
 }));
 
 // IntentFabSheet imports Radix + JSX modules that don't survive this test's
@@ -91,6 +93,7 @@ describe('IntentFab — split pill', () => {
   beforeEach(() => {
     resetState();
     pushSpy.mockReset();
+    pathnameValue = '/feed';
   });
 
   afterEach(() => {
@@ -211,5 +214,24 @@ describe('IntentFab — split pill', () => {
     expect(pushSpy).not.toHaveBeenCalled();
     const tree2 = render();
     expect(sheetIsOpen(tree2)).toBe(true);
+  });
+
+  it('returns null on /network (FAB suppressed on read-only inbound surface)', () => {
+    pathnameValue = '/network';
+    const tree = render();
+    expect(tree).toBeNull();
+  });
+
+  it('returns null on /network/* sub-routes', () => {
+    pathnameValue = '/network/some-subroute';
+    const tree = render();
+    expect(tree).toBeNull();
+  });
+
+  it('still renders on /feed', () => {
+    pathnameValue = '/feed';
+    const tree = render();
+    expect(tree).not.toBeNull();
+    expect(findByTestId(tree, 'intent-fab')).toBeDefined();
   });
 });

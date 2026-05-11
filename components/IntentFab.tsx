@@ -19,10 +19,14 @@
 
 import * as React from 'react';
 import { useState, type CSSProperties } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Plus, ClipboardPaste } from 'lucide-react';
 import { IntentFabSheet } from './IntentFabSheet';
 import { readClipboardAndContinue } from './IntentFabPasteHandler';
+
+// Routes where the FAB suppresses itself. /network is a read-only
+// inbound surface — composing a post from there is off-flow.
+const HIDDEN_FAB_PATHS = ['/network'];
 
 const pillStyle: CSSProperties = {
   position: 'fixed',
@@ -37,6 +41,10 @@ const pillStyle: CSSProperties = {
   boxShadow: '0 4px 16px color-mix(in srgb, var(--colour-primary) 35%, transparent)',
   overflow: 'hidden',
   zIndex: 100,
+  // Removes the iOS 300ms tap delay and double-tap-to-zoom on the
+  // pill so the press registers a real click instead of decaying
+  // into a "highlight then nothing" gesture.
+  touchAction: 'manipulation',
 };
 
 const halfBase: CSSProperties = {
@@ -76,7 +84,12 @@ const captionStyle: CSSProperties = {
 
 export function IntentFab() {
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  if (pathname && HIDDEN_FAB_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    return null;
+  }
 
   const handlePaste = async () => {
     const outcome = await readClipboardAndContinue(router);

@@ -30,6 +30,9 @@ vi.mock('react', async () => {
     // The IntentFabSheet's clipboard-feature-detection effect is a
     // post-mount side effect; the tree-walk tests don't need it to run.
     useEffect: () => undefined,
+    // useRef stub — the iOS ghost-click guard refs `openedAt`, but
+    // tree-walking tests don't exercise pointer events.
+    useRef: <T,>(initial: T) => ({ current: initial }),
   };
 });
 
