@@ -243,6 +243,7 @@ describe('NetworkCard', () => {
           description: 'OG description here',
           imageUrl: 'https://example.com/hero.jpg',
           siteName: 'Example',
+          faviconUrl: null,
         },
       }),
       onSetStatus: vi.fn(),
@@ -255,6 +256,103 @@ describe('NetworkCard', () => {
     // The plain title link is suppressed — the hero card replaces it
     // as the primary clickable surface (no double-link to same URL).
     expect(findByTestId(tree, 'network-card-link')).toBeUndefined();
+  });
+
+  // ── bu-network-unfurl-fixes ───────────────────────────────────────────
+
+  describe('link preview size + favicon plumbing', () => {
+    function previewProps(tree: AnyElement): Record<string, unknown> | undefined {
+      const wrapper = findByTestId(tree, 'network-card-preview');
+      const child = (wrapper?.props.children ?? null) as AnyElement | null;
+      return child?.props as Record<string, unknown> | undefined;
+    }
+
+    it('passes size="large" to LinkPreviewCard for normal URLs', () => {
+      const tree = NetworkCard({
+        card: makeCard({
+          url: 'https://www.theguardian.com/uk-news/2026/may/01/example',
+          linkPreview: {
+            title: 'A title',
+            description: null,
+            imageUrl: 'https://example.com/hero.jpg',
+            siteName: 'The Guardian',
+            faviconUrl: 'https://www.theguardian.com/favicon.ico',
+          },
+        }),
+        onSetStatus: vi.fn(),
+        pending: false,
+      }) as AnyElement;
+      expect(previewProps(tree)?.size).toBe('large');
+    });
+
+    it('drops to size="small" for x.com URLs (avatar reads as thumbnail)', () => {
+      const tree = NetworkCard({
+        card: makeCard({
+          url: 'https://x.com/somebody/status/123',
+          linkPreview: {
+            title: 'A tweet',
+            description: null,
+            imageUrl: 'https://pbs.twimg.com/profile_images/avatar.jpg',
+            siteName: 'X',
+            faviconUrl: null,
+          },
+        }),
+        onSetStatus: vi.fn(),
+        pending: false,
+      }) as AnyElement;
+      expect(previewProps(tree)?.size).toBe('small');
+    });
+
+    it('drops to size="small" for twitter.com URLs', () => {
+      const tree = NetworkCard({
+        card: makeCard({
+          url: 'https://twitter.com/somebody/status/123',
+          linkPreview: {
+            title: null,
+            description: null,
+            imageUrl: 'https://pbs.twimg.com/profile_images/avatar.jpg',
+            siteName: null,
+            faviconUrl: null,
+          },
+        }),
+        onSetStatus: vi.fn(),
+        pending: false,
+      }) as AnyElement;
+      expect(previewProps(tree)?.size).toBe('small');
+    });
+
+    it('forwards faviconUrl from the preview to LinkPreviewCard', () => {
+      const favicon = 'https://www.cufi.org.uk/favicon.ico';
+      const tree = NetworkCard({
+        card: makeCard({
+          url: 'https://www.cufi.org.uk/events/11feb2026/',
+          linkPreview: {
+            title: 'An event',
+            description: null,
+            imageUrl: null,
+            siteName: 'CUFI',
+            faviconUrl: favicon,
+          },
+        }),
+        onSetStatus: vi.fn(),
+        pending: false,
+      }) as AnyElement;
+      expect(previewProps(tree)?.linkFaviconUrl).toBe(favicon);
+    });
+  });
+
+  it('long URLs in body text wrap rather than overflow the card', () => {
+    const tree = NetworkCard({
+      card: makeCard({
+        textBody:
+          'See https://www.facebook.com/some.user/posts/pfbid0LongOpaqueTokenWithNoBreakOpportunitiesAtAll1234567890abcdef',
+      }),
+      onSetStatus: vi.fn(),
+      pending: false,
+    }) as AnyElement;
+    const body = findByTestId(tree, 'network-card-body');
+    const style = body?.props.style as { overflowWrap?: string } | undefined;
+    expect(style?.overflowWrap).toBe('anywhere');
   });
 
   // ── BU-network-reactions ──────────────────────────────────────────────
@@ -401,6 +499,7 @@ describe('NetworkCard', () => {
             description: null,
             imageUrl: null,
             siteName: null,
+            faviconUrl: null,
           },
         }),
         onSetStatus: vi.fn(),

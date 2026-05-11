@@ -48,6 +48,13 @@ export interface NetworkCardLinkPreview {
   description: string | null;
   imageUrl: string | null;
   siteName: string | null;
+  /**
+   * Page favicon (resolved absolute URL). Rendered as a small inline
+   * icon in the site row when `imageUrl` is null — pages with no
+   * `og:image` collapse to a text-with-icon card instead of a blank
+   * grey hero block.
+   */
+  faviconUrl: string | null;
 }
 
 /**
