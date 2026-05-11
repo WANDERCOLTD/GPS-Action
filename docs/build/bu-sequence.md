@@ -59,6 +59,7 @@ shipped — login → feed → compose → post-with-AM-URL → click through.
 |---|---|---|
 | **bu-composer** — BU-composer | ✅ Merged | — |
 | **bu-icon-strips** — bu-icon-strips | ✅ Merged | — |
+| **bu-network-shares** — bu-network-shares | ✅ Merged | #TBD |
 | **bu-postcode-or-place** — bu-postcode-or-place | ✅ Merged | — |
 | **erd-slice-1** — ERD Slice 1 | ✅ Merged | #1 |
 | **f06-eslint-rules** — F06 | ✅ Merged | #2 |
@@ -146,7 +147,6 @@ by hand — run `npm run trackers`):
 - **bu-vercel-prep** _[high]_ — bu-vercel-prep
 - **bu-broadcast** _[medium]_ — bu-broadcast
 - **bu-drafts-inbox** _[medium]_ — bu-drafts-inbox
-- **bu-network-shares** _[medium]_ — bu-network-shares
 - **bu-post-share-counter** _[medium]_ — bu-post-share-counter
 - **bu-reviewer-kind-review-queue** _[medium]_ — bu-reviewer-kind-review-queue
 - **bu-composer-link-first** _[low]_ — BU-composer-link-first

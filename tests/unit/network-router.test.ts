@@ -32,6 +32,12 @@ vi.mock('@/server/db/client', () => ({
     featureFlag: {
       findUnique: vi.fn(),
     },
+    // bu-network-shares — listNetworkCards now projects share counts.
+    // Default to an empty groupBy result so the existing assertions
+    // (which don't care about shares) stay green.
+    shareEvent: {
+      groupBy: vi.fn().mockResolvedValue([]),
+    },
   },
 }));
 

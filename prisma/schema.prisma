@@ -1535,8 +1535,8 @@ model NetworkCardState {
 //     history; parents use soft-delete in MVP so this rarely fires)
 
 enum ShareTargetType {
-  post // bu-share-event-polymorphic Phase A — only enabled value
-  // network_card — enabled by bu-network-shares (a later BU)
+  post // bu-share-event-polymorphic Phase A
+  network_card // bu-network-shares — share events on /network cards
   // comment, profile, group — enabled by their respective future BUs
 }
 
