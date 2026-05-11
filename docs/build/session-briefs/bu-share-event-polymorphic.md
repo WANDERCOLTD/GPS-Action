@@ -1,9 +1,10 @@
 ---
 slug: bu-share-event-polymorphic
-status: planned
+status: shipped
 phase: 2
 priority: high
-note: "Rename PostShare → ShareEvent and make it polymorphic via (targetType, targetId). Foundation for bu-network-shares. Touches D077-shipped surfaces — three-phase additive-then-cleanup migration."
+shipped_in: "#332"
+note: "Polymorphic ShareEvent table shipped in a single PR. Phase B/C of the brief became no-ops because PostShare (D077 / ADR-0003) was spec-only and never landed — there was no legacy table to swap/drop. ShareEvent ships as the universal share counter from day one for any future surface (network-shares, comment-shares, etc.)."
 ---
 
 # SESSION BRIEF · bu-share-event-polymorphic — polymorphic share counter
