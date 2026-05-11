@@ -144,6 +144,7 @@ Briefs in `planned` or `in_progress` status (auto-generated; do not edit
 by hand — run `npm run trackers`):
 
 <!-- AUTOGEN:planned:start -->
+- **bu-network-source-chips** _[high]_ — bu-network-source-chips
 - **bu-prod-auth** _[high]_ — bu-prod-auth
 - **bu-vercel-prep** _[high]_ — bu-vercel-prep
 - **bu-broadcast** _[medium]_ — bu-broadcast
