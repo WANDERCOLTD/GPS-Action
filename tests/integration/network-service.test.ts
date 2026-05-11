@@ -444,8 +444,23 @@ describe('listNetworkCards source filter', () => {
   ];
   const fetchTwoLabels = () => Promise.resolve(twoSourcesLabels);
 
-  it('returns every row when sources is empty', async () => {
-    const fetchUpstream = vi.fn().mockResolvedValue([baseRow, otherChatRow]);
+  /**
+   * Smart upstream mock that honours `args.chatIds` the same way the
+   * real PostgREST query would — filters the canned row set by
+   * chat_id when a list is supplied. Mirrors the production
+   * `chat_id=in.(...)` semantics, so assertions on result length
+   * reflect what the wire actually delivers.
+   */
+  function smartFetchUpstream(rows: (typeof baseRow)[]) {
+    return vi.fn().mockImplementation(async (args: { chatIds?: string[] }) => {
+      if (!args.chatIds || args.chatIds.length === 0) return rows;
+      const allowed = new Set(args.chatIds);
+      return rows.filter((r) => allowed.has(r.chat_id));
+    });
+  }
+
+  it('returns every row when sources is empty (no chatIds passed upstream)', async () => {
+    const fetchUpstream = smartFetchUpstream([baseRow, otherChatRow]);
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: [] },
@@ -453,10 +468,11 @@ describe('listNetworkCards source filter', () => {
     );
 
     expect(result.items).toHaveLength(2);
+    expect(fetchUpstream).toHaveBeenCalledWith(expect.objectContaining({ chatIds: undefined }));
   });
 
-  it('filters to a single slug when sources has one entry', async () => {
-    const fetchUpstream = vi.fn().mockResolvedValue([baseRow, otherChatRow]);
+  it('pushes the slug filter upstream as a chat_id allowlist', async () => {
+    const fetchUpstream = smartFetchUpstream([baseRow, otherChatRow]);
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: ['hendon-jag'] },
@@ -465,10 +481,13 @@ describe('listNetworkCards source filter', () => {
 
     expect(result.items).toHaveLength(1);
     expect(result.items[0]!.source.slug).toBe('hendon-jag');
+    expect(fetchUpstream).toHaveBeenCalledWith(
+      expect.objectContaining({ chatIds: ['hendon-jag@g.us'] }),
+    );
   });
 
-  it('accepts multiple slugs (OR semantics)', async () => {
-    const fetchUpstream = vi.fn().mockResolvedValue([baseRow, otherChatRow]);
+  it('accepts multiple slugs (OR semantics) — chat_id allowlist is union', async () => {
+    const fetchUpstream = smartFetchUpstream([baseRow, otherChatRow]);
 
     const result = await listNetworkCards(
       {
@@ -481,10 +500,12 @@ describe('listNetworkCards source filter', () => {
     );
 
     expect(result.items).toHaveLength(2);
+    const calls = fetchUpstream.mock.calls[0]![0] as { chatIds?: string[] };
+    expect(calls.chatIds).toEqual(expect.arrayContaining(['gps-network@g.us', 'hendon-jag@g.us']));
   });
 
-  it('returns an empty list when sources matches no rows', async () => {
-    const fetchUpstream = vi.fn().mockResolvedValue([baseRow, otherChatRow]);
+  it('short-circuits to empty when sources matches no known slug (no upstream call)', async () => {
+    const fetchUpstream = smartFetchUpstream([baseRow, otherChatRow]);
 
     const result = await listNetworkCards(
       { limit: 50, windowDays: 90, refresh: false, sources: ['retired-slug'] },
@@ -493,10 +514,11 @@ describe('listNetworkCards source filter', () => {
 
     expect(result.items).toEqual([]);
     expect(result.nextCursor).toBeNull();
+    expect(fetchUpstream).not.toHaveBeenCalled();
   });
 
   it('caches separately by source set (order-independent)', async () => {
-    const fetchUpstream = vi.fn().mockResolvedValue([baseRow, otherChatRow]);
+    const fetchUpstream = smartFetchUpstream([baseRow, otherChatRow]);
 
     await listNetworkCards(
       {

@@ -110,6 +110,14 @@ interface ListGpsGroupMessagesArgs {
   limit: number;
   /** Optional cursor — when set, fetch rows with `id` strictly less than this. */
   cursorId?: number;
+  /**
+   * bu-network-source-chips — optional chat_id allowlist. When non-empty,
+   * PostgREST `chat_id=in.(...)` filters to just these chats. Pushing the
+   * filter upstream is essential: without it, a 50-row id-DESC page can be
+   * dominated by one chat (e.g. after a backfill into one source) and the
+   * service-side filter would surface zero rows from the desired source.
+   */
+  chatIds?: string[];
   /** Optional fetch override — primarily for tests. Defaults to global fetch. */
   fetchImpl?: typeof fetch;
 }
@@ -140,6 +148,14 @@ export async function listGpsGroupMessages(
   params.set('sent_at', `gte.${sinceIso}`);
   if (args.cursorId !== undefined) {
     params.set('id', `lt.${args.cursorId}`);
+  }
+  if (args.chatIds && args.chatIds.length > 0) {
+    // PostgREST `in.(v1,v2)`. Each value gets wrapped in double quotes
+    // (chat_ids contain `@` and `.`, so quoting keeps the parser happy)
+    // and the inner quotes inside the value are escaped — though our
+    // chat_ids don't contain quotes, do the escape defensively.
+    const quoted = args.chatIds.map((id) => `"${id.replace(/"/g, '\\"')}"`).join(',');
+    params.set('chat_id', `in.(${quoted})`);
   }
   params.set('order', 'id.desc');
   params.set('limit', String(args.limit));
