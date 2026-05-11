@@ -85,13 +85,23 @@ function RootErrorFallback() {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const ctx = await createTRPCContext();
 
-  const [calendarEnabled, coordBoardEnabled, networkFeedEnabled] = await Promise.all([
+  const [
+    calendarEnabled,
+    coordBoardEnabled,
+    networkFeedEnabled,
+    networkFirstEnabled,
+    feedTabHidden,
+  ] = await Promise.all([
     // BU-calendar-view / D073 — Calendar tab gated by `calendar_enabled`.
     isFeatureEnabled('calendar_enabled'),
     // BU-coordination-board — Board tab gated by `coord_board_v1`.
     isFeatureEnabled('coord_board_v1'),
     // BU-network-feed / D083 — Network tab gated by `network_feed`.
     isFeatureEnabled('network_feed'),
+    // bu-network-first — dims Feed/Calendar/Requests as legacy.
+    isFeatureEnabled('network_first'),
+    // bu-network-first — hides Feed tab entirely when on (default OFF so Feed stays visible).
+    isFeatureEnabled('hide_feed_tab'),
   ]);
 
   // Unread badge source switches by flag: kanban callers reach the new
@@ -143,6 +153,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   calendarEnabled={calendarEnabled}
                   coordBoardEnabled={coordBoardEnabled}
                   networkFeedEnabled={networkFeedEnabled}
+                  networkFirstEnabled={networkFirstEnabled}
+                  feedTabVisible={!feedTabHidden}
                 />
                 <DevBannerToggle enabled={process.env.NODE_ENV !== 'production' || isDemoMode()} />
                 <HeaderRefreshButton />

@@ -60,6 +60,10 @@ interface AppNavProps {
   coordBoardEnabled?: boolean;
   /** BU-network-feed / D083: when true, renders the Network tab between Calendar and Requests. */
   networkFeedEnabled?: boolean;
+  /** bu-network-first: when true, Feed / Calendar / Requests render at reduced opacity to signal legacy. */
+  networkFirstEnabled?: boolean;
+  /** bu-network-first: when false, the Feed tab is hidden entirely (default true — Feed remains visible). */
+  feedTabVisible?: boolean;
 }
 
 type ActiveKey =
@@ -122,6 +126,14 @@ const activeStyle: CSSProperties = {
   fontWeight: 600,
 };
 
+// bu-network-first: when the flag is on, Feed / Calendar / Requests
+// render at reduced opacity to signal "legacy surface" while Network
+// is the primary one. Off → normal linkStyle.
+const deemphasizedStyle: CSSProperties = {
+  ...linkStyle,
+  opacity: 0.4,
+};
+
 const ICON_SIZE = 22;
 const ICON_STROKE = 2;
 
@@ -130,8 +142,11 @@ export function AppNav({
   calendarEnabled = false,
   coordBoardEnabled = false,
   networkFeedEnabled = false,
+  networkFirstEnabled = false,
+  feedTabVisible = true,
 }: AppNavProps) {
   const active = deriveActive(usePathname());
+  const legacyStyle = networkFirstEnabled ? deemphasizedStyle : linkStyle;
 
   return (
     <nav
@@ -171,23 +186,25 @@ export function AppNav({
           </Link>
         </IconChipTooltip>
       )}
-      <IconChipTooltip label="Feed">
-        <Link
-          href="/feed"
-          aria-label="Feed"
-          data-testid="nav-feed-link"
-          style={active === 'feed' ? activeStyle : linkStyle}
-        >
-          <Newspaper size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
-        </Link>
-      </IconChipTooltip>
+      {feedTabVisible && (
+        <IconChipTooltip label="Feed">
+          <Link
+            href="/feed"
+            aria-label="Feed"
+            data-testid="nav-feed-link"
+            style={active === 'feed' ? activeStyle : legacyStyle}
+          >
+            <Newspaper size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          </Link>
+        </IconChipTooltip>
+      )}
       {calendarEnabled && (
         <IconChipTooltip label="Calendar">
           <Link
             href="/calendar"
             aria-label="Calendar"
             data-testid="nav-calendar-link"
-            style={active === 'calendar' ? activeStyle : linkStyle}
+            style={active === 'calendar' ? activeStyle : legacyStyle}
           >
             <CalendarClock size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
           </Link>
@@ -198,7 +215,7 @@ export function AppNav({
           href={coordBoardEnabled ? '/notifications' : '/requests'}
           aria-label={coordBoardEnabled ? 'Notifications' : 'Requests'}
           data-testid="nav-requests-link"
-          style={active === 'requests' ? activeStyle : linkStyle}
+          style={active === 'requests' ? activeStyle : legacyStyle}
         >
           <Inbox size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
           {unreadNotificationCount > 0 && (
