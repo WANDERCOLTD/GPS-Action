@@ -20,8 +20,14 @@
  *
  * Falls back gracefully:
  *   - missing title → URL host (truncated)
- *   - missing image → hero block collapsed; favicon (when supplied)
- *     renders as a small icon in the site row
+ *   - missing image, but favicon present → "favicon hero" — the
+ *     favicon at 64×64 centered on a tinted block, so cards from
+ *     hosts without `og:image` (zoom.us, chat.whatsapp.com, anything
+ *     auth-walled) still have a visual anchor instead of going
+ *     text-only. Suppresses the inline favicon in the site row to
+ *     avoid showing the same icon twice. Large-size only.
+ *   - missing image AND favicon → hero block collapsed; site row
+ *     stays text-only.
  *   - missing site name → URL host
  *   - missing description → omitted
  */
@@ -96,9 +102,15 @@ export function LinkPreviewCard({
   const isLarge = size === 'large';
   // Hero rendered only when we have a real og:image. Without one, the
   // 16:9 grey block reads as "broken image" — collapsing it and leaning
-  // on the favicon in the site row is the honest fallback (per
-  // bu-network-unfurl-fixes).
+  // on the favicon is the honest fallback (per bu-network-unfurl-fixes).
   const hasHero = Boolean(linkImageUrl);
+  // Favicon-hero fallback: when there's no og:image but we DO have a
+  // favicon, render it at 64×64 centered on a tinted block as a hero
+  // substitute. Gives empty-OG cards (zoom.us, chat.whatsapp.com,
+  // anything auth-walled) a visual anchor instead of going text-only.
+  // Large size only — small cards already get the favicon inline in
+  // the site row.
+  const hasFaviconHero = !hasHero && isLarge && Boolean(linkFaviconUrl);
 
   // Host-duplication dedup (BU-link-preview-dedup):
   //
@@ -183,6 +195,31 @@ export function LinkPreviewCard({
         minHeight: hasHero ? 96 : undefined,
       };
 
+  const faviconHeroStyle: CSSProperties = {
+    width: '100%',
+    aspectRatio: '16 / 9',
+    // Tinted block (not pure grey) so the hero reads as deliberate, not
+    // a broken-image placeholder. Slight tint of the primary brand
+    // keeps it on-system across themes.
+    background:
+      'color-mix(in srgb, var(--colour-primary-subtle) 70%, var(--colour-surface-raised))',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  };
+
+  const faviconHeroImgStyle: CSSProperties = {
+    width: 64,
+    height: 64,
+    borderRadius: 8,
+    // Soft drop-shadow so the favicon reads as a "card" floating over
+    // the tinted block, not pasted flat onto it. Token-derived alpha
+    // so the shadow tracks the active theme.
+    boxShadow: '0 2px 6px color-mix(in srgb, var(--colour-text-primary) 8%, transparent)',
+    background: 'var(--colour-surface-raised)',
+  };
+
   const imageStyle: CSSProperties = isLarge
     ? {
         width: '100%',
@@ -259,10 +296,19 @@ export function LinkPreviewCard({
       data-am-action={amAction || undefined}
     >
       {hasHero && <div style={imageStyle} aria-hidden="true" />}
+      {hasFaviconHero && (
+        <div
+          data-testid="link-preview-card-favicon-hero"
+          style={faviconHeroStyle}
+          aria-hidden="true"
+        >
+          <img src={linkFaviconUrl ?? ''} alt="" style={faviconHeroImgStyle} />
+        </div>
+      )}
       <div style={bodyStyle}>
         {showSiteRow && (
           <div style={siteRowStyle}>
-            {!hasHero && linkFaviconUrl && (
+            {!hasHero && !hasFaviconHero && linkFaviconUrl && (
               <img
                 src={linkFaviconUrl}
                 alt=""

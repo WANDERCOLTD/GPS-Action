@@ -193,12 +193,12 @@ describe('LinkPreviewCard', () => {
       size: 'large' as const,
     };
 
-    it('collapses the hero block when linkImageUrl is null', () => {
+    it('does not render the image hero block when linkImageUrl is null', () => {
       const el = render(baseFaviconProps);
       expect(el.props['data-has-hero']).toBe('false');
-      // The image div is gated on hasHero — its presence is detectable
-      // via the inline backgroundImage style key. With no hero, there
-      // is no descendant carrying that style.
+      // The image hero is gated on hasHero — its presence is detectable
+      // via the inline backgroundImage style key. With no og:image, the
+      // image block isn't there (the favicon-hero takes its place).
       const descendants = flatChildren(el).slice(1);
       const withBg = descendants.find((e) => {
         const s = e.props.style as { backgroundImage?: unknown } | undefined;
@@ -207,27 +207,49 @@ describe('LinkPreviewCard', () => {
       expect(withBg).toBeUndefined();
     });
 
-    it('renders the favicon img in the site row when no hero', () => {
+    it('renders the favicon-hero on the large variant when no og:image but favicon present', () => {
       const el = render(baseFaviconProps);
-      const favicon = findByTestId(el, 'link-preview-card-favicon');
-      expect(favicon).toBeDefined();
-      expect(favicon?.type).toBe('img');
-      expect(favicon?.props.src).toBe('https://www.cufi.org.uk/favicon.ico');
-      expect(favicon?.props.alt).toBe('');
+      const heroBlock = findByTestId(el, 'link-preview-card-favicon-hero');
+      expect(heroBlock).toBeDefined();
+      // The hero block contains an <img> of the favicon at hero size.
+      // findByTestId returns a generic element type; walk the children
+      // to find the inner <img> rather than asserting on the structured
+      // shape directly.
+      const imgs = flatChildren(heroBlock!).filter((e) => e.type === 'img');
+      expect(imgs).toHaveLength(1);
+      expect(imgs[0]?.props.src).toBe('https://www.cufi.org.uk/favicon.ico');
     });
 
-    it('does NOT render the favicon when a hero image IS present', () => {
+    it('suppresses the inline site-row favicon when the favicon-hero is shown', () => {
+      const el = render(baseFaviconProps);
+      // No duplicate of the favicon as a 14×14 inline icon.
+      expect(findByTestId(el, 'link-preview-card-favicon')).toBeUndefined();
+    });
+
+    it('keeps the inline site-row favicon on the small variant (no hero on small)', () => {
+      const el = render({ ...baseFaviconProps, size: 'small' });
+      // Small variant doesn't get the favicon-hero treatment; inline site-row
+      // favicon stays as the visual anchor.
+      expect(findByTestId(el, 'link-preview-card-favicon-hero')).toBeUndefined();
+      const favicon = findByTestId(el, 'link-preview-card-favicon');
+      expect(favicon).toBeDefined();
+      expect(favicon?.props.src).toBe('https://www.cufi.org.uk/favicon.ico');
+    });
+
+    it('does NOT render any favicon block when a hero image IS present', () => {
       const el = render({
         ...baseFaviconProps,
         linkImageUrl: 'https://example.com/hero.jpg',
       });
       expect(el.props['data-has-hero']).toBe('true');
       expect(findByTestId(el, 'link-preview-card-favicon')).toBeUndefined();
+      expect(findByTestId(el, 'link-preview-card-favicon-hero')).toBeUndefined();
     });
 
-    it('does NOT render the favicon when no favicon URL is supplied', () => {
+    it('does NOT render any favicon block when no favicon URL is supplied', () => {
       const el = render({ ...baseFaviconProps, linkFaviconUrl: null });
       expect(findByTestId(el, 'link-preview-card-favicon')).toBeUndefined();
+      expect(findByTestId(el, 'link-preview-card-favicon-hero')).toBeUndefined();
     });
 
     it('drops the min-height reservation on small variant when no hero', () => {

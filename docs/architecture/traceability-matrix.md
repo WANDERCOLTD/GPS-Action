@@ -111,6 +111,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | bu-network-shares | 7 | — | D047, D065, D077 |
 | bu-network-sort-options | 1 | — | — |
 | bu-network-source-chips | 2 | — | — |
+| bu-network-zoom-card | 2 | — | — |
 | bu-search-includes-comments | 2 | — | D078 |
 | bu-search-includes-kanban | 1 | — | — |
 | bu-ticket-view-fixes | 7 | — | — |
