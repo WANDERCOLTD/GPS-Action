@@ -176,3 +176,36 @@ describe('parseSourcesParam', () => {
     ]);
   });
 });
+
+describe('NetworkSourceChipStrip · preserveParams', () => {
+  it('appends preserved params to source-chip hrefs', () => {
+    const tree = NetworkSourceChipStrip({
+      sources: SOURCES,
+      active: [],
+      preserveParams: { sort: 'oldest' },
+    }) as AnyElement;
+    const chips = chipsBySlug(tree);
+    expect(chips.get('hendon-jag')?.props.href).toBe('/network?source=hendon-jag&sort=oldest');
+  });
+
+  it('appends preserved params to the All chip href', () => {
+    const tree = NetworkSourceChipStrip({
+      sources: SOURCES,
+      active: ['gps-action-network'],
+      preserveParams: { sort: 'oldest' },
+    }) as AnyElement;
+    const all = findAllChip(tree);
+    // Tapping "All" should clear the source filter but preserve sort.
+    expect(all?.props.href).toBe('/network?sort=oldest');
+  });
+
+  it('omits preserved params that are undefined', () => {
+    const tree = NetworkSourceChipStrip({
+      sources: SOURCES,
+      active: [],
+      preserveParams: { sort: undefined },
+    }) as AnyElement;
+    const chips = chipsBySlug(tree);
+    expect(chips.get('hendon-jag')?.props.href).toBe('/network?source=hendon-jag');
+  });
+});

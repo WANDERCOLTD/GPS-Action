@@ -39,6 +39,16 @@ export const networkSourceSlugSchema = z
   .max(SOURCE_SLUG_MAX_LENGTH)
   .regex(SOURCE_SLUG_REGEX, 'Source slug must be kebab-case (lowercase letters, digits, hyphens).');
 
+/**
+ * bu-network-sort-options — v1 axes. Both axes use the same compound
+ * (sent_at, id) sort key — `recent` is DESC, `oldest` is ASC. Other
+ * candidates from the brief (most-reacted, most-shared, triage-status)
+ * need backend joins and stay parked until shipped separately.
+ */
+export const NETWORK_SORT_OPTIONS = ['recent', 'oldest'] as const;
+export const networkSortSchema = z.enum(NETWORK_SORT_OPTIONS);
+export type NetworkSort = z.infer<typeof networkSortSchema>;
+
 export const networkListSchema = z.object({
   limit: z.number().int().positive().max(NETWORK_LIST_MAX_LIMIT).default(NETWORK_LIST_MAX_LIMIT),
   /** Opaque cursor — encodes the last-seen `id` for pagination. */
@@ -60,6 +70,13 @@ export const networkListSchema = z.object({
    * 400-ing when a chip is later retired).
    */
   sources: z.array(networkSourceSlugSchema).default([]),
+  /**
+   * bu-network-sort-options — member-facing sort direction.
+   * `recent` (default) = newest sent_at first; `oldest` = ascending.
+   * Both use the same compound (sent_at, id) sort key so pagination
+   * is keyset-stable on either axis.
+   */
+  sort: networkSortSchema.default('recent'),
 });
 
 export type NetworkListInput = z.infer<typeof networkListSchema>;
