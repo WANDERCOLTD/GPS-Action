@@ -1966,12 +1966,12 @@ principle. The right pattern needs care.
 
 ### Detection approach (cheapest-first)
 
-| Signal | Catches | Cost |
-|---|---|---|
-| URL host regex (`zoom.us`, `teams.microsoft.com`, `meet.google.com`, `eventbrite.`, `lu.ma`) | ~80% of event cards | trivial |
-| Keyword scan on `textBody` (`Zoom Meeting`, `Join Meeting`, `RSVP`, `When:`, `Time:`, `Where:`, `.ics`) | plain-text invites without a meeting URL | trivial |
-| `chrono-node` parse of `textBody` | extract `eventAt` from prose ("May 11, 2026 06:45 PM", "next Tue 7pm") | one dep, ~30KB |
-| LLM (Haiku) extraction on flagged cards | messy / multi-line / multi-lingual residue | $/card |
+| Signal                                                                                                  | Catches                                                                | Cost           |
+| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------- |
+| URL host regex (`zoom.us`, `teams.microsoft.com`, `meet.google.com`, `eventbrite.`, `lu.ma`)            | ~80% of event cards                                                    | trivial        |
+| Keyword scan on `textBody` (`Zoom Meeting`, `Join Meeting`, `RSVP`, `When:`, `Time:`, `Where:`, `.ics`) | plain-text invites without a meeting URL                               | trivial        |
+| `chrono-node` parse of `textBody`                                                                       | extract `eventAt` from prose ("May 11, 2026 06:45 PM", "next Tue 7pm") | one dep, ~30KB |
+| LLM (Haiku) extraction on flagged cards                                                                 | messy / multi-line / multi-lingual residue                             | $/card         |
 
 Recommended: hybrid — heuristic (URL host + keyword) flags `isEvent`; `chrono-node` extracts the datetime. Expect ~70–80% precision; needs curate affordances.
 
