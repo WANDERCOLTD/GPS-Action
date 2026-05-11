@@ -73,19 +73,57 @@ the feed re-renders. Shareable, bookmarkable.
 
 ---
 
-## Decisions needed BEFORE build starts
+## Locked from Grant (2026-05-11)
 
-All in `bu-network-source-chips--grant-questions.md`. Until those
-land:
-- We don't know if `gps_chat_labels` carries a stable `slug` or just
-  a `label` (affects URL state encoding).
-- We don't know the visibility model (does Grant filter on his side
-  by role, or do we filter post-fetch?).
-- We don't know if a `priority` / `display_order` column exists for
-  chip ordering.
+Section B (URL-extraction) of the questions doc is fully answered.
+The following are now contract, not guess:
 
-Plus the URL-extraction questions from the prior conversation (also
-captured in the same questions doc).
+- **URL extraction** = server-side regex on `body_text` (`https://…`
+  → `www.…` → bare-domain with TLD allowlist). First match wins.
+- **WA's own link-preview is captured first** when available
+  (`link_preview.url` / `link_preview.title`); `link_title=null` +
+  `message_type=text` ⇒ user typed the URL plain, no WA unfurl.
+- **No host blocklist.** Top hosts: x.com (17), facebook.com (16),
+  zoom.us (9), chat.whatsapp.com (9), instagram.com (8).
+- **Shorteners stored as-is** — but our OG fetcher already follows
+  redirects (`server/services/link-metadata.ts:84`), so no action
+  required.
+- **No-URL messages dropped by design** — `/network` is a link-feed
+  by contract.
+- **Forwards = ~28% of the feed** (47/167 rows). Currently render
+  forwarder's name, not original sender. Grant will expose
+  `is_forwarded: boolean` on the next view revision (requested
+  2026-05-11). Original-sender preservation parked.
+- **Curation CLI hides ~18 rows** — `id` gaps are deliberate; don't
+  debug them as missing data.
+
+**Two patches Grant offered, both accepted (Round 1 reply,
+2026-05-11):**
+
+1. **Email-domain false-positive regex fix** — require leading
+   whitespace / start-of-string, not `@`. Real loss in current data
+   (e.g. `hello@aberdeenperformingarts.com` was extracted as a URL).
+2. **`urls text[]` column** for multi-URL messages
+   (`regexp_matches` plural). Real loss in current data — id=13's
+   `petition.parliament.uk` link was dropped because a Facebook
+   link came first. Build will render first URL as primary preview;
+   "+N more links" UI is a follow-up.
+
+## Still blocked
+
+Section A (`gps_chat_labels` view shape) is the remaining gating
+question. Until Grant returns:
+
+- We don't know if the view carries a stable `slug` or just a
+  `label` (affects URL state encoding — `?source=…`).
+- We don't know the visibility model (Grant-side RLS by role, or
+  post-fetch filter our side).
+- We don't know if a `display_order` / priority column exists.
+- We don't know what extra metadata (colour_hint, icon_glyph,
+  member_count, region_slug, description) is available.
+
+Section C (operational — privacy, outage contract) and D (nice-to-
+have — WA msg ID, WA-side reactions, threads) also outstanding.
 
 ---
 
@@ -167,6 +205,14 @@ captured in the same questions doc).
   appearing in N groups).
 - **Comments on network cards** (currently reactions + notes only;
   comments would need a polymorphic target like ShareEvent in ADR-0018).
+- **Forwarded badge on cards** — once Grant exposes `is_forwarded`,
+  surface a small "↪ forwarded" indicator in the meta row (~28% of
+  the feed today). Sets honest expectations re sender identity.
+- **`chat.whatsapp.com` group-invite treatment** — 9/167 rows are
+  WA group-invite links that OG-unfurl to nothing useful. A specific
+  card variant ("Join WhatsApp group: X") would read more cleanly.
+- **"+N more links" surfacing** for multi-URL messages once the
+  `urls text[]` column lands.
 
 ### Can't (and what to do instead)
 
