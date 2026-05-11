@@ -1,9 +1,9 @@
 ---
 slug: bu-network-source-chips
-status: planned
+status: ready
 phase: 2
 priority: high
-note: "Draft 2026-05-11. Blocked on Grant decisions captured in bu-network-source-chips--grant-questions.md. Pre-condition for retiring /feed as the canonical surface."
+note: "Draft 2026-05-11. Round 2 Grant answers landed 2026-05-11 — gps_chat_labels view shape locked, Round-1 patches all shipped. Status flipped planned → ready. Pre-condition for retiring /feed as the canonical surface. Build can start when Paul greenlights."
 ---
 
 # SESSION BRIEF · bu-network-source-chips — multi-source `/network` with chip filtering
@@ -73,7 +73,9 @@ the feed re-renders. Shareable, bookmarkable.
 
 ---
 
-## Locked from Grant (2026-05-11)
+## Locked from Grant
+
+### Round 1 (2026-05-11) — URL extraction
 
 Section B (URL-extraction) of the questions doc is fully answered.
 The following are now contract, not guess:
@@ -97,33 +99,81 @@ The following are now contract, not guess:
 - **Curation CLI hides ~18 rows** — `id` gaps are deliberate; don't
   debug them as missing data.
 
-**Two patches Grant offered, both accepted (Round 1 reply,
-2026-05-11):**
+**Three patches Grant offered, all shipped in Round 2 drop
+(2026-05-11):**
 
-1. **Email-domain false-positive regex fix** — require leading
-   whitespace / start-of-string, not `@`. Real loss in current data
-   (e.g. `hello@aberdeenperformingarts.com` was extracted as a URL).
+1. **Email-domain false-positive regex fix** — bare-domain pattern
+   now requires leading whitespace / start-of-string, not `@`.
+   ~3–4 historical rows still have bad `url` extractions; Grant
+   will re-extract from raw on request (Round 2 reply: yes).
 2. **`urls text[]` column** for multi-URL messages
-   (`regexp_matches` plural). Real loss in current data — id=13's
-   `petition.parliament.uk` link was dropped because a Facebook
-   link came first. Build will render first URL as primary preview;
+   (`regexp_matches` plural). Ordered by first appearance, deduped,
+   trailing punctuation stripped. `url` (singular) preserved as
+   `urls[0]` (or `link_preview.url` when WA preview present, in
+   which case it's prepended so `urls[0] === url`). Existing rows
+   backfilled. Build renders first URL as primary preview;
    "+N more links" UI is a follow-up.
+3. **`is_forwarded boolean`** sourced from `context.forwarded`.
+   47/167 existing rows backfilled to `true`. Sender remains the
+   forwarder, as discussed. Build surfaces a "↪ forwarded" badge
+   in the card meta row (1-line change in `NetworkCard.tsx` meta
+   row).
+
+### Round 2 (2026-05-11) — `gps_chat_labels` view shape
+
+Section A is answered. The view ships with this shape:
+
+| Column | Type | Notes |
+|---|---|---|
+| `chat_id` | text | The `@g.us` identifier (unchanged) |
+| `slug` | text | Stable kebab-case, persistent across label renames — use as URL state key |
+| `label` | text | Free-text display name (may change without breaking URLs) |
+| `description` | text | 1–2 sentence summary; surface in tooltip / manage-sources view |
+| `display_order` | int | Lower = earlier; default 100; sort `display_order ASC, label ASC` |
+| `color` | text | Hex string (nullable). Treat as fallback — we override per-`slug` from our token palette |
+| `icon` | text | Single emoji or icon hint (nullable). Emoji acceptable |
+| `member_count` | int | Manually set for now; v2 = periodic Whapi sync. Display in manage-sources only, not on the chip itself |
+
+**Seed (current state):**
+- `gps-action-network` → "GPS Action Network!" · `#3fb950` · 🎯 ·
+  190 members · `display_order=1`
+- `test-group` → "Test (Grant + burner)" · `#8b949e` · 🧪 ·
+  2 members · `display_order=999`
+
+**Visibility model:** Grant-side returns everything in
+`gps.allowed_chats`. We filter post-fetch in tRPC if/when role
+gating becomes a need (deferred from this BU — no coordinator-only
+chat exists yet).
+
+**Renames:** `chat_id` stable upstream; Grant keeps `slug` stable
+across label edits. URL state encoded via `slug` survives renames.
+If Grant ever rotates a `slug` (rare, deliberate), risk is a
+broken `?source=…` link — accepted.
+
+**Rate limit + cache:** PostgREST anon ~200 req/min per IP soft-
+throttled. Grant's recommendation, adopted:
+- `gps_chat_labels` — 24h server-side cache + manual admin
+  "Refresh sources" purge button (small follow-up; not in this
+  BU's scope).
+- `gps_group_messages` — existing 60s dev / 300s prod cache
+  preserved.
 
 ## Still blocked
 
-Section A (`gps_chat_labels` view shape) is the remaining gating
-question. Until Grant returns:
+Section A is answered enough to build. Two minor follow-ups in the
+Round 2 reply, **non-gating** for this BU:
 
-- We don't know if the view carries a stable `slug` or just a
-  `label` (affects URL state encoding — `?source=…`).
-- We don't know the visibility model (Grant-side RLS by role, or
-  post-fetch filter our side).
-- We don't know if a `display_order` / priority column exists.
-- We don't know what extra metadata (colour_hint, icon_glyph,
-  member_count, region_slug, description) is available.
+- **A5 · onboarding SLA** — what happens to messages whose
+  `chat_id` has no `gps_chat_labels` row? Build assumes every row
+  joins (true today; both chats have labels).
+- **A6 · backfill semantics** — does Whapi backfill history on
+  group-add or only forward from join? Informs empty-state copy
+  for new chips. Build ships a generic empty state; tighten copy
+  if/when Grant answers.
 
 Section C (operational — privacy, outage contract) and D (nice-to-
-have — WA msg ID, WA-side reactions, threads) also outstanding.
+have — WA msg ID, WA-side reactions, threads) still outstanding;
+none gate the build.
 
 ---
 
@@ -132,18 +182,20 @@ have — WA msg ID, WA-side reactions, threads) also outstanding.
 ### Build in this session (estimate: 1 session)
 
 **Backend — source join:**
-- `server/lib/supabase.ts` — extend `GpsGroupMessageRow` shape and the
-  PostgREST query to include the new `gps_chat_labels` columns
-  (assume: `chat_id, slug, label, display_order, visibility`).
-  Likely a server-side join via PostgREST's `gps_chat_labels(...)`
-  embedded-resource syntax.
-- `server/services/network.ts` — add `source: { slug, label }` to
+- `server/lib/supabase.ts` — extend `GpsGroupMessageRow` shape and
+  the PostgREST query to embed `gps_chat_labels` columns:
+  `chat_id, slug, label, description, display_order, color, icon,
+  member_count`. Embedded-resource syntax (PostgREST
+  `select=*,gps_chat_labels(slug,label,...)`).
+- `server/services/network.ts` — add `source: { slug, label,
+  description, displayOrder, color, icon, memberCount }` to
   `NetworkCard`. Extend `NetworkListInput` with `sources?: string[]`
-  (slugs). Cache key includes the sorted source set.
+  (slugs). Cache key includes the sorted source set. Add a separate
+  `listSources()` call returning the active source set (24h cache).
 - `shared/network-card.ts` — new `NetworkCardSource` type. Serialise
   through to `SerializedNetworkCard`.
 - `shared/validation/network.ts` — accept `sources` array in the
-  input schema.
+  input schema. Slug validation: kebab-case, max length 64.
 
 **Frontend — chip strip:**
 - New `components/NetworkSourceChipStrip.tsx` (or reuse the existing
@@ -151,16 +203,33 @@ have — WA msg ID, WA-side reactions, threads) also outstanding.
 - `app/(member)/network/page.tsx` — read `sources` from `searchParams`,
   pass to the tRPC call, render chips above the card list.
 - URL-state-encoded: `?source=slug-a,slug-b`. Empty = "All".
+- **Chip ordering** = `display_order ASC, label ASC` (Grant's
+  recipe; answers open product Q1).
+- **Brand colours** = per-`slug` map maintained in
+  `styles/source-palette.ts` (new), keyed off our token palette
+  (`styles/tokens.css`). Grant's `color` column is the fallback for
+  unknown slugs. Initial map: `gps-action-network` →
+  `var(--token-brand-primary)` (or whatever reads as "core
+  network" in our palette); `test-group` → `var(--token-muted)`.
+- **Icon** = Grant's `icon` column rendered as-is (emoji). No
+  lucide mapping in v1.
 
-**Visibility gating (if Grant exposes a `visibility` column):**
-- Service-side filter: drop rows whose source has `visibility != 'public'`
-  unless the caller has the relevant role. Source list returned to the
-  client likewise filtered.
+**Visibility gating:** Deferred. Grant returns everything in
+`gps.allowed_chats`; both currently-seeded chats are effectively
+public. When the first coordinator-only source ships (e.g. a
+steward channel), add a local `NetworkSource.visibleToRole` mirror
+or hard-code the filter — design choice deferred to that BU.
 
 **NetworkCard:**
-- Meta row's hard-coded `'GPS Action Network!'` string (NetworkCard.tsx:88)
-  is replaced by `card.source.label`. Optional: a small per-source
-  colour dot / glyph hint when the labels table includes one.
+- Meta row's hard-coded `'GPS Action Network!'` string
+  (`NetworkCard.tsx:88`) replaced by `card.source.label`.
+- Small per-source colour dot rendered before the label, sourced
+  from `styles/source-palette.ts` lookup (fallback to
+  `card.source.color`).
+- Per-source emoji `icon` rendered inline with the label
+  (subtle; `opacity: 0.7` or similar).
+- "↪ forwarded" badge when `card.isForwarded` is true (new field,
+  populated from Grant's `is_forwarded` column shipped in Round 2).
 
 **Tests:**
 - Unit: service returns correct chip set; filter narrows the list;
@@ -241,16 +310,28 @@ have — WA msg ID, WA-side reactions, threads) also outstanding.
 
 ## Open product questions to surface (separate from Grant)
 
-1. **Chip ordering** — alphabetical, `display_order` from Grant,
-   "most active in last 7 days", or pinned-first? Affects whose
-   group sits where.
+1. ~~**Chip ordering**~~ — **Resolved 2026-05-11.** Use Grant's
+   `display_order ASC, label ASC`. Grant left wide gaps (1, 999)
+   so we can ask him to slot new sources at deliberate priorities.
 2. **Default selection** — "All" (no chip active = everything) or
-   the viewer's regional/affiliated chats by default?
+   the viewer's regional/affiliated chats by default? Recommend
+   "All" for v1 (simpler, no regional model on `gps_chat_labels`
+   yet); revisit when `region_slug` lands.
 3. **Empty state** — chip selected but window empty. Copy?
-4. **Counts on chips** — total in window, or "new since last visit"
-   (requires a per-user lastSeenAt per source)?
-5. **Long chip list** — 10+ groups. Horizontal scroll, overflow menu,
-   or a separate "Manage sources" page?
+   Depends partly on A6 backfill semantics (raised in Round 2
+   reply). Recommend a generic line for v1: "No links from
+   `<label>` in the current window. Try widening the time range
+   or selecting another source."
+4. **Counts on chips** — total in window, or "new since last
+   visit" (requires per-user `lastSeenAt` per source)? Recommend
+   **no count on chip** for v1 — chips are filters, not roster
+   metrics. Counts of unread items are a separate feature when
+   per-user state exists.
+5. **Long chip list** — 10+ groups. Horizontal scroll, overflow
+   menu, or a separate "Manage sources" page? Recommend
+   horizontal scroll for v1; "Manage sources" overlay (using
+   `description` + `member_count`) when source count ≥ 8 — but
+   that's a follow-up, not v1.
 
 ---
 
