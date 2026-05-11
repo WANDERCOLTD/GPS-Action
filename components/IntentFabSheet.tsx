@@ -96,6 +96,18 @@ export function IntentFabSheet({ onClose }: IntentFabSheetProps): ReactElement {
         asChild
         aria-describedby={undefined}
         onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          // iOS Safari race: the click that fires Dialog.Trigger can
+          // reach the document-level pointerdown listener BEFORE
+          // Dialog.Content is mounted. Radix sees that pointerdown as
+          // "outside" (Content doesn't exist yet) and closes the dialog
+          // it just opened. Suppress when the originating target lives
+          // inside the FAB pill — the FAB is never "outside" us.
+          const target = e.target as Element | null;
+          if (target?.closest('[data-testid="intent-fab"]')) {
+            e.preventDefault();
+          }
+        }}
       >
         <div style={sheetStyle} data-testid="intent-fab-sheet">
           <div style={headerStyle}>
