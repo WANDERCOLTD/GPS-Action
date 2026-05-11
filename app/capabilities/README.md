@@ -7,7 +7,8 @@ onto a tile, with a status badge sourced from
 
 Reached at `/capabilities`. Public — no auth gate.
 
-**Build Unit:** none (one-off showcase page, not a feature build)
+**Build Unit:** none (one-off showcase page, not a feature build).
+Last refresh against the audit: `chore/capabilities-refresh-20260511`.
 **Spec:** `docs/build/srs-coverage.md`
 
 ---
@@ -15,12 +16,22 @@ Reached at `/capabilities`. Public — no auth gate.
 ## What it is
 
 - Hero band with the **only real link** on the page: a primary CTA
-  "Open the App" → `/feed`.
+  "Open the App" → `/feed`. Sub-counter splits shipped SRS tiles
+  from shipped beyond-SRS surfaces so the headline number isn't
+  misleading (most of the shipped product sits outside SRS v1.1).
 - One section per SRS module (§4 Intelligence Gathering through §14
   Councillor Campaign Engine), plus §19 Networks addendum, §3 Roles,
   §15 NFRs and §16 Integrations.
-- Each tile uses an SRS-verbatim phrase, the section reference, a
-  Lucide icon, and one of five status badges.
+- A final **"Beyond the SRS"** section catalogues phantom features
+  shipped under the D001 / D002 post-first reframe — Coordination
+  Feed, Network Feed, Coordination Board, Composer + Intent Picker,
+  Nav Tabs, Reactions, Comments, Cultural-moment posts, Tick-or-cross,
+  Hero images, Demo mode, Feature flags, Spec-traceability, Honest
+  reach metrics, Self-dispatch, Admin tools. Source of truth for the
+  list: the "Phantom features" appendix in `srs-coverage.md`.
+- Each tile uses an SRS-verbatim phrase (or BU/decision ref for
+  phantom tiles), the section reference, a Lucide icon, and one of
+  five status badges.
 
 ## Status legend
 

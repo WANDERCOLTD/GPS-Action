@@ -1,10 +1,41 @@
 ---
 title: SRS v1.1 — Codebase Coverage Audit
 status: draft
-date: 2026-04-28
+date: 2026-05-11
 authored_by: Paul + Claude
 spec_source: docs/feature-spec/GPS_Software_Requirements_v1.1.docx
-codebase_ref: 1ed6ed8 (main, 2026-04-28)
+codebase_ref: d839b34 (main, 2026-05-11)
+previous_refs:
+  - 1ed6ed8 (main, 2026-04-28)
+---
+
+## Changes since 2026-04-28 (`1ed6ed8`)
+
+Status changes only; full table edits applied inline below.
+
+- **§9 Module 6 (Activist Calendar) — promoted from ❌ to 🟡.** `/calendar`
+  route shipped with Agenda · Month · Near-me views (BU-calendar-view
+  #151, BU-month-nav #153, BU-calendar-near-me #169) plus event-time
+  + location-input on posts (BU-event-time, BU-post-location-input,
+  BU-postcode-or-place). Colour-coded categories and concerning-event
+  auto-alerts still ❌.
+- **NFR-10 (Full-text search) — promoted from 🛠️ to ✅.**
+  BU-search-surface shipped (Posts · People · Regions · Comments ·
+  Kanban) — magnifier in `AppNav` → `/search` overlay + URL-
+  addressable results page.
+- **§5.1 Task Board note clarified.** `/board` snapshot gallery + group
+  share allow-list shipped (BU-board-gallery #246, BU-board-palette,
+  BU-coord-board-share-allowlist-ui #276, BU-kanban-event-config). Still
+  classed 🟡 — closer to Monday-style than the previous note implied
+  but not multi-board kanban.
+- **§6.2 Third-Party Contacts — re-tagged from ❌ to 🛠️.** BU-contact
+  Slice 4 brief / D-log entry exists, so it belongs in "future build",
+  not "no decision".
+- **Phantom features list — eight more entries** (Coordination Feed,
+  Network Feed, Coordination Board, Composer + intent picker, Search
+  surface, Admin tools, Calendar surfaces, Nav Tabs consolidation).
+  See appendix.
+
 ---
 
 # SRS v1.1 — Codebase Coverage Audit
@@ -113,7 +144,7 @@ Read this audit as a **checklist for SRS v1.2** rather than a punch-list for eng
 
 | § | Requirement | Status | Evidence | Notes |
 |---|---|---|---|---|
-| 5 | Monday.com-style task system tailored to GPS | 🟡 | `Request` model | Generic claim-and-lease queue ✓; not the multi-board kanban UX SRS implies. |
+| 5 | Monday.com-style task system tailored to GPS | 🟡 | `Request` model + `/board` kanban (BU-board-gallery #246, BU-board-palette, BU-coord-board-share-allowlist-ui #276) | Generic claim-and-lease queue ✓; `/board` kanban snapshot gallery + group share allow-list ✓; multi-board UX still not the SRS frame. |
 | 5.1 | Lifecycle Unassigned → In Progress → Under Review → Completed/Closed | 🟡 | `RequestStatus` enum | Five values today; D054 plans collapse to three. |
 | 5.1 | Individual or team assignment | ❌ | — | Single-claimer only. |
 | 5.1 | Escalation to national team | ❌ | — | |
@@ -144,7 +175,7 @@ Read this audit as a **checklist for SRS v1.2** rather than a punch-list for eng
 | 6.1 | Volunteer verifiable before access | 🟡 | `verifiedAt` + BU-vetting | Schema + flow ✓; production gating not yet wired. |
 | 6.1 | Public signup form (name / postcode / email → queue) | 🛠️ | — | Maps to §19.4 enrolment forms — also not built. |
 | 6.1 | NDAs + IP rights assignment | ❌ | — | |
-| 6.2 | Third-party individual records (journalists / politicians / councillors / event organisers / activists) | ❌ | D-log 1935 (`BU-contact` Slice 4) | |
+| 6.2 | Third-party individual records (journalists / politicians / councillors / event organisers / activists) | 🛠️ | D-log 1935 (`BU-contact` Slice 4) | Brief lives in D-log; promote to ❌ only if Slice 4 is cancelled. |
 | 6.2 | Per-individual fields (affiliations / region / track record / linked alerts/campaigns) | 🛠️ | — | |
 | 6.2 | Organisation records (type / regions / contacts / funding sources / linked individuals/alerts) | ❌ | — | |
 | 6.2 | Full CRM search (region / category / association) | ❌ | — | NFR-10 also pending. |
@@ -187,9 +218,9 @@ Read this audit as a **checklist for SRS v1.2** rather than a punch-list for eng
 
 | § | Requirement | Status | Evidence | Notes |
 |---|---|---|---|---|
-| 9 | Shared calendar (GPS / concerning / neutral / deadlines) | ❌ | — | No `Event` entity. |
-| 9 | Colour-coded categories | ❌ | — | |
-| 9 | Filter by region / location / date / type | ❌ | — | |
+| 9 | Shared calendar (GPS / concerning / neutral / deadlines) | 🟡 | `/calendar` route (BU-calendar-view #151, BU-month-nav #153, BU-calendar-near-me #169); event-time + location on `Post` (BU-event-time, BU-post-location-input, BU-postcode-or-place) | Agenda · Month · Near-me views ✓; concerning / neutral / deadlines as separate categories not modelled. |
+| 9 | Colour-coded categories | ❌ | — | Not yet — single Post type today. |
+| 9 | Filter by region / location / date / type | 🟡 | Near-me Haversine sort (#169) | Distance-sorted ✓; explicit region/type filter not in calendar UI. |
 | 9 | AI auto-detection from Eventbrite + event sites + social listings | 🔮 | — | |
 | 9 | Auto-alert volunteers on concerning events | ❌ | — | Depends on alert subsystem. |
 | 9 | Recommended-response actions on alerts | ❌ | — | |
@@ -316,7 +347,7 @@ Read this audit as a **checklist for SRS v1.2** rather than a punch-list for eng
 | NFR-07 | Configurable scrape / monitor schedule | Medium | ❌ | — | No scrape jobs exist. |
 | NFR-08 | Scale to 500 concurrent volunteers | Medium | 🛠️ | — | Untested; engineering-roadmap will surface load testing. |
 | NFR-09 | CSV / Excel export from CRM / alerts / campaigns | Medium | ❌ | — | |
-| NFR-10 | Full-text search across records / alerts / transcripts / CRM | Medium | 🛠️ | `BU-search-surface` planned | Member search first; broader search later. |
+| NFR-10 | Full-text search across records / alerts / transcripts / CRM | Medium | ✅ | BU-search-surface · BU-search-result-cards · BU-search-includes-comments · BU-search-includes-kanban | Posts · People · Regions · Comments · Kanban — magnifier in `AppNav` → `/search` overlay + URL-addressable results. Alert + transcript search still ❌ pending those subsystems. |
 | NFR-11 | SMTP + OAuth Gmail/Outlook integration | Medium | 🔮 | — | |
 | NFR-12 | Content-library MFA + RBAC separate from main login | High | ❌ | — | Depends on NFR-01. |
 
@@ -485,6 +516,14 @@ The Addendum *amends* §17 and is meant to be Phase 1. Schema check follows.
 | Brief-status traceability (`@spec` / `@bu` / `@adr` annotations + `trace` script) | F13 / D038 | Eng discipline. |
 | Honest-tracking-only commitment | D047 | Reach numbers never inflated. |
 | Self-dispatch as default (vs SRS dispatch-queue framing) | D013, D016 | Conscious divergence from §5 task-assignment model. |
+| Coordination Feed (`/feed`) | BU-feed (#13) · BU-feed-card-affordances · BU-feed-card-clamp | The core member surface — chronological post stream. The post-first reframe (D001/D002) made this the spine rather than an alerts queue. |
+| Network Feed (`/network`) | BU-network-feed · BU-network-link-previews · BU-network-reactions · BU-network-shares · ADR-0017 | Read-side surface for the GPS Action Network WhatsApp link stream — searchable, multi-device, flag-gated. |
+| Coordination Board (`/board`) | BU-coordination-board · BU-board-gallery (#246) · BU-board-palette · BU-kanban-event-config · BU-coord-board-share-allowlist-ui (#276) · BU-ticket-detail-relayout · BU-ticket-view-fixes | Group-scoped kanban + snapshot gallery + share allow-list. Closer to SRS §5 "Monday-style" than the original §5 row credited; folded into §5.1 evidence. |
+| Composer + Intent Picker (`/compose`) | BU-composer · BU-fab-intent-picker · BU-composer-intent-polish · BU-composer-bespoke-per-intent · BU-link-first-composer · BU-link-share | FAB → tile picker → per-intent composer. AM-link auto-collapse lives here (folded into §5.3 evidence). |
+| Admin tools | BU-admin-crud · BU-admin-audit-integration · BU-admin-bulk-ops · BU-admin-group-membership | User CRUD + audit + bulk ops + group membership — partial satisfaction of §3 Super Admin. |
+| Search surface | BU-search-surface · BU-search-result-cards · BU-search-includes-comments · BU-search-includes-kanban | Now satisfies NFR-10 inline; listed here too for ship-list completeness. |
+| Calendar surfaces | BU-calendar-view (#151) · BU-calendar-near-me (#169) · BU-month-nav (#153) · BU-event-time · BU-post-location-input · BU-postcode-or-place | Now satisfies §9 partial inline; listed here for ship-list completeness. |
+| Nav Tabs (consolidation) | BU-sticky-nav · BU-icon-nav (#152) · BU-icon-strips (#174) · BU-feed-filter (#115) | Sticky icon-only AppNav + chip strips unified under one idiom. Listed as a single capability rather than four separate UX details. |
 
 ### Done (also in SRS — worth confirming)
 
