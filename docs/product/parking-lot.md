@@ -1947,3 +1947,47 @@ principle. The right pattern needs care.
 4. Should the "New" marker stick around for some grace period (e.g., 24 h after first sight) so a quick scan doesn't immediately mark everything read?
 
 **Promote when:** members start asking "where's the bit I haven't seen yet?", or feed volume grows past ~30 posts/week per group.
+
+---
+
+## Network-card event detection + calendar view
+
+**Surfaced:** 2026-05-11 — `/network` shows lots of Zoom/Teams/Eventbrite-style invites in `textBody`. Idea: detect "event" cards and surface them on a calendar view, duplicating the `/calendar` (Post.eventAt-driven) UI but sourced from Network cards.
+
+**Status:** PARKED.
+
+### Signals available on a Network card
+
+- `textBody` — raw WhatsApp text (free-form prose, e.g. `Time: May 11, 2026 06:45 PM London`, `Every week on Mon`)
+- `url` — shared link (host is the strongest single signal)
+- `linkPreview` — OG title/description/image
+- `sentAt` — when the message landed
+- **No structured event field today.** `Post` has `eventAt/eventEndsAt`; `NetworkCardState` does not.
+
+### Detection approach (cheapest-first)
+
+| Signal | Catches | Cost |
+|---|---|---|
+| URL host regex (`zoom.us`, `teams.microsoft.com`, `meet.google.com`, `eventbrite.`, `lu.ma`) | ~80% of event cards | trivial |
+| Keyword scan on `textBody` (`Zoom Meeting`, `Join Meeting`, `RSVP`, `When:`, `Time:`, `Where:`, `.ics`) | plain-text invites without a meeting URL | trivial |
+| `chrono-node` parse of `textBody` | extract `eventAt` from prose ("May 11, 2026 06:45 PM", "next Tue 7pm") | one dep, ~30KB |
+| LLM (Haiku) extraction on flagged cards | messy / multi-line / multi-lingual residue | $/card |
+
+Recommended: hybrid — heuristic (URL host + keyword) flags `isEvent`; `chrono-node` extracts the datetime. Expect ~70–80% precision; needs curate affordances.
+
+### Implementation sketch (when promoted)
+
+- Detector lib in `shared/network-event/` — pure functions, fully unit-testable
+- Add `eventAt` (nullable) + `isEventOverride` (tri-state: auto/yes/no) to `NetworkCardState`
+- Server: enrich `network.list` output with `{ isEvent, eventAt }` derived from detector + override
+- UI: new "Events" chip on `/network`; new route `app/network/calendar/page.tsx` mirroring `app/calendar/page.tsx` (agenda/month) reading flagged cards
+- Curate: "Not an event" / "Confirm time" actions writing to `NetworkCardState`
+
+### Open questions before promoting
+
+1. Do flagged events feed `/calendar` directly, or stay on a separate `/network/calendar` view? (Mixing Post events with WhatsApp-sourced events has trust/quality implications.)
+2. Should detected events auto-promote to `Post` rows (via the existing Network → Post promote flow), so they land on `/calendar` for free?
+3. Recurrence — do we surface "every Mon" as a series, or only the next occurrence?
+4. Timezone — `chrono-node` defaults to server tz; need to lock to Europe/London (or honour an explicit timezone string in the text).
+
+**Promote when:** members ask "what events are coming up in the Network?", or someone reports missing a meeting that was sat in the Network feed. Related to `bu-calendar-near-me` (Path B geocoding) — same calendar UI primitives.
