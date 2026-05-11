@@ -40,13 +40,20 @@ vi.mock('next/navigation', () => ({
 }));
 
 // IntentFabSheet imports Radix + JSX modules that don't survive this test's
-// transform; stub it and inspect the React element IntentFab renders for it
-// (open prop) directly.
+// transform; stub it. The sheet's open/close lives on Dialog.Root now, so
+// we check Dialog.Root's `open` prop on the rendered tree.
 vi.mock('@/components/IntentFabSheet', () => ({
   IntentFabSheet: () => null,
 }));
 
-const { IntentFabSheet: MockedSheet } = await import('@/components/IntentFabSheet');
+// Radix Dialog primitives — pass-throughs so flatChildren can walk into them.
+vi.mock('@radix-ui/react-dialog', () => {
+  const Root = ({ children }: { children?: ReactElement }) => children as ReactElement;
+  const Trigger = ({ children }: { children?: ReactElement }) => children as ReactElement;
+  return { Root, Trigger };
+});
+
+const Dialog = await import('@radix-ui/react-dialog');
 
 const { IntentFab } = await import('@/components/IntentFab');
 
@@ -75,8 +82,8 @@ function findByType(el: AnyElement, type: unknown): AnyElement | undefined {
 }
 
 function sheetIsOpen(tree: AnyElement): boolean {
-  const el = findByType(tree, MockedSheet);
-  return Boolean(el?.props.open);
+  const root = findByType(tree, Dialog.Root);
+  return Boolean(root?.props.open);
 }
 
 function resetState(): void {
@@ -156,11 +163,23 @@ describe('IntentFab — split pill', () => {
     const tree1 = render();
     expect(sheetIsOpen(tree1)).toBe(false);
 
-    const primary = findByTestId(tree1, 'intent-fab-button-primary');
-    (primary?.props.onClick as () => void)();
+    // Primary button is a Dialog.Trigger child — clicking it dispatches
+    // through Radix, which calls Dialog.Root's onOpenChange. Simulate that
+    // directly so the test doesn't need a DOM + the real Radix runtime.
+    const root = findByType(tree1, Dialog.Root);
+    (root?.props.onOpenChange as (o: boolean) => void)(true);
 
     const tree2 = render();
     expect(sheetIsOpen(tree2)).toBe(true);
+  });
+
+  it('primary button is wrapped in Dialog.Trigger (Radix handles open click, dodges iOS ghost-click race)', () => {
+    const tree = render();
+    const trigger = findByType(tree, Dialog.Trigger);
+    expect(trigger).toBeDefined();
+    // The Trigger contains the primary button (asChild forwards props onto it).
+    const primaryUnderTrigger = trigger && findByTestId(trigger, 'intent-fab-button-primary');
+    expect(primaryUnderTrigger).toBeDefined();
   });
 
   it('paste tap routes to /compose with the right query when clipboard contains a URL', async () => {

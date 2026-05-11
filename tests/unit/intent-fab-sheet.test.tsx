@@ -101,13 +101,8 @@ describe('IntentFabSheet', () => {
     vi.unstubAllGlobals();
   });
 
-  it('returns null when open is false', () => {
-    const tree = render({ open: false, onClose: () => {} });
-    expect(tree).toBeNull();
-  });
-
   it('renders the input, hint, and tile grid with canonical testids (paste button gated on clipboard support)', () => {
-    const tree = render({ open: true, onClose: () => {} });
+    const tree = render({ onClose: () => {} });
     expect(findByTestId(tree, 'intent-fab-sheet')).toBeDefined();
     expect(findByTestId(tree, 'intent-fab-input')).toBeDefined();
     expect(findByTestId(tree, 'intent-fab-hint')).toBeDefined();
@@ -118,31 +113,31 @@ describe('IntentFabSheet', () => {
   it('renders the paste button when clipboardSupported state is true', () => {
     // clipboardSupported is the third useState slot (after input + pasteNote)
     stateSlots[2] = true;
-    const tree = render({ open: true, onClose: () => {} });
+    const tree = render({ onClose: () => {} });
     expect(findByTestId(tree, 'intent-fab-paste')).toBeDefined();
   });
 
   it('does not render the paste button when clipboardSupported is false', () => {
-    const tree = render({ open: true, onClose: () => {} });
+    const tree = render({ onClose: () => {} });
     expect(findByTestId(tree, 'intent-fab-paste')).toBeUndefined();
   });
 
   it('textarea placeholder includes the long-press hint when clipboardSupported is false', () => {
-    const tree = render({ open: true, onClose: () => {} });
+    const tree = render({ onClose: () => {} });
     const input = findByTestId(tree, 'intent-fab-input');
     expect(input?.props.placeholder).toMatch(/tap and hold/i);
   });
 
   it('textarea placeholder is plain when clipboardSupported is true', () => {
     stateSlots[2] = true;
-    const tree = render({ open: true, onClose: () => {} });
+    const tree = render({ onClose: () => {} });
     const input = findByTestId(tree, 'intent-fab-input');
     expect(input?.props.placeholder).not.toMatch(/tap and hold/i);
     expect(input?.props.placeholder).toMatch(/paste a link/i);
   });
 
   it('renders enabled and disabled tiles distinctly', () => {
-    const tree = render({ open: true, onClose: () => {} });
+    const tree = render({ onClose: () => {} });
     const enabled = findAllByTestId(tree as AnyElement, 'intent-tile-pick');
     const disabled = findAllByTestId(tree as AnyElement, 'intent-tile-disabled');
     expect(enabled.length).toBeGreaterThan(0);
@@ -150,26 +145,26 @@ describe('IntentFabSheet', () => {
   });
 
   it('hint kind is `none` when input is empty', () => {
-    const tree = render({ open: true, onClose: () => {} });
+    const tree = render({ onClose: () => {} });
     const hint = findByTestId(tree, 'intent-fab-hint');
     expect(hint?.props['data-hint-kind']).toBe('none');
   });
 
   it('hint kind is `url` when input looks like a link', () => {
     stateSlots[0] = 'www.example.com';
-    const tree = render({ open: true, onClose: () => {} });
+    const tree = render({ onClose: () => {} });
     expect(findByTestId(tree, 'intent-fab-hint')?.props['data-hint-kind']).toBe('url');
   });
 
   it('hint kind is `text` when input is free-form prose', () => {
     stateSlots[0] = 'Park Royal walkout tonight';
-    const tree = render({ open: true, onClose: () => {} });
+    const tree = render({ onClose: () => {} });
     expect(findByTestId(tree, 'intent-fab-hint')?.props['data-hint-kind']).toBe('text');
   });
 
   it('tapping a tile with no input routes to /compose with just the intent', () => {
     const onClose = vi.fn();
-    const tree = render({ open: true, onClose });
+    const tree = render({ onClose });
     const tile = findAllByTestId(tree as AnyElement, 'intent-tile-pick')[0];
     (tile?.props.onClick as () => void)();
     expect(pushSpy).toHaveBeenCalledTimes(1);
@@ -180,7 +175,7 @@ describe('IntentFabSheet', () => {
 
   it('tapping a tile with a URL in the input routes to /compose with intent + linkUrl', () => {
     stateSlots[0] = 'www.example.com';
-    const tree = render({ open: true, onClose: () => {} });
+    const tree = render({ onClose: () => {} });
     const tile = findAllByTestId(tree as AnyElement, 'intent-tile-pick')[0];
     (tile?.props.onClick as () => void)();
     const href = pushSpy.mock.calls[0]?.[0] as string;
@@ -190,7 +185,7 @@ describe('IntentFabSheet', () => {
 
   it('tapping a tile with text in the input routes to /compose with intent + title', () => {
     stateSlots[0] = 'Park Royal walkout tonight';
-    const tree = render({ open: true, onClose: () => {} });
+    const tree = render({ onClose: () => {} });
     const tile = findAllByTestId(tree as AnyElement, 'intent-tile-pick')[0];
     (tile?.props.onClick as () => void)();
     const href = pushSpy.mock.calls[0]?.[0] as string;
@@ -199,7 +194,7 @@ describe('IntentFabSheet', () => {
   });
 
   it('disabled tiles have no onClick handler and render the disabled attribute', () => {
-    const tree = render({ open: true, onClose: () => {} });
+    const tree = render({ onClose: () => {} });
     const tile = findAllByTestId(tree as AnyElement, 'intent-tile-disabled')[0];
     expect(tile?.props.disabled).toBe(true);
     expect(tile?.props.onClick).toBeUndefined();
@@ -209,7 +204,7 @@ describe('IntentFabSheet', () => {
     const readText = vi.fn().mockResolvedValue('www.example.com');
     vi.stubGlobal('navigator', { clipboard: { readText } } as unknown as Navigator);
     stateSlots[2] = true; // clipboardSupported
-    const tree = render({ open: true, onClose: () => {} });
+    const tree = render({ onClose: () => {} });
     const paste = findByTestId(tree, 'intent-fab-paste');
     await (paste?.props.onClick as () => Promise<void>)();
     expect(readText).toHaveBeenCalledTimes(1);
@@ -220,19 +215,19 @@ describe('IntentFabSheet', () => {
     const readText = vi.fn().mockRejectedValue(new Error('denied'));
     vi.stubGlobal('navigator', { clipboard: { readText } } as unknown as Navigator);
     stateSlots[2] = true; // clipboardSupported
-    const tree = render({ open: true, onClose: () => {} });
+    const tree = render({ onClose: () => {} });
     const paste = findByTestId(tree, 'intent-fab-paste');
     await (paste?.props.onClick as () => Promise<void>)();
     // pasteNote is the second useState slot
     expect(stateSlots[1]).toMatch(/long-press|paste/i);
     stateSlots[2] = true;
-    const tree2 = render({ open: true, onClose: () => {} });
+    const tree2 = render({ onClose: () => {} });
     expect(findByTestId(tree2, 'intent-fab-paste-note')).toBeDefined();
   });
 
   it('close button fires onClose', () => {
     const onClose = vi.fn();
-    const tree = render({ open: true, onClose });
+    const tree = render({ onClose });
     const close = findByTestId(tree, 'intent-fab-close');
     (close?.props.onClick as () => void)();
     expect(onClose).toHaveBeenCalledTimes(1);
