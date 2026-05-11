@@ -26,6 +26,12 @@
  */
 export const SOURCE_PALETTE: Readonly<Record<string, string>> = Object.freeze({
   'gps-action-network': 'var(--colour-primary)',
+  // GPS Network ✅ or ❌ — verdict chat (Grant 2026-05-11, 1,096 historical
+  // link shares backfilled). Maps to the tick-or-cross filter tone used on
+  // /feed (success-green = community-validated). Token chosen to match the
+  // existing `gps-chip--success` palette so the chip reads as "approved
+  // signal" rather than competing with the urgent / cultural treatments.
+  'gps-network-yes-no': 'var(--colour-success)',
   'test-group': 'var(--colour-text-tertiary)',
 });
 

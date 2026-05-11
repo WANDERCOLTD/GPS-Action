@@ -119,6 +119,53 @@ describe('NetworkCard', () => {
     expect(sender?.props.children).toBe('anonymous member');
   });
 
+  it('renders the source label from card.source (not a hard-coded string)', () => {
+    const tree = NetworkCard({
+      card: makeCard({
+        source: {
+          slug: 'hendon-jag',
+          label: 'Hendon JAG',
+          description: null,
+          displayOrder: 2,
+          color: '#dc2626',
+          icon: '🚩',
+          memberCount: 80,
+        },
+      }),
+      onSetStatus: vi.fn(),
+      pending: false,
+    }) as AnyElement;
+
+    const group = findByTestId(tree, 'network-card-group');
+    expect(group).toBeDefined();
+    expect(group?.props['data-source-slug']).toBe('hendon-jag');
+    // The label text is one of the children (alongside the dot + icon spans).
+    const childArray = Array.isArray(group?.props.children)
+      ? group?.props.children
+      : [group?.props.children];
+    expect(childArray.includes('Hendon JAG')).toBe(true);
+  });
+
+  it('renders the forwarded badge when isForwarded is true', () => {
+    const tree = NetworkCard({
+      card: makeCard({ isForwarded: true }),
+      onSetStatus: vi.fn(),
+      pending: false,
+    }) as AnyElement;
+
+    expect(findByTestId(tree, 'network-card-forwarded-badge')).toBeDefined();
+  });
+
+  it('omits the forwarded badge when isForwarded is false', () => {
+    const tree = NetworkCard({
+      card: makeCard({ isForwarded: false }),
+      onSetStatus: vi.fn(),
+      pending: false,
+    }) as AnyElement;
+
+    expect(findByTestId(tree, 'network-card-forwarded-badge')).toBeUndefined();
+  });
+
   it('omits the body row when textBody is null', () => {
     const tree = NetworkCard({
       card: makeCard({ textBody: null }),
