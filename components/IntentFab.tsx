@@ -15,12 +15,19 @@
  * cannot drift between the in-sheet Paste button and this shortcut.
  * On clipboard miss (empty / denied / unsupported) the paste tap
  * falls back to opening the sheet so the member can paste manually.
+ *
+ * Open/close state is owned by `Dialog.Root` here. The "+" button is
+ * a `Dialog.Trigger` — Radix handles the open click natively, which
+ * dodges the iOS ghost-click race that a manual setOpen handler
+ * triggers (the same touch that opened the sheet would otherwise
+ * land on the freshly-mounted backdrop and close it).
  */
 
 import * as React from 'react';
 import { useState, type CSSProperties } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Plus, ClipboardPaste } from 'lucide-react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { IntentFabSheet } from './IntentFabSheet';
 import { readClipboardAndContinue } from './IntentFabPasteHandler';
 
@@ -41,9 +48,7 @@ const pillStyle: CSSProperties = {
   boxShadow: '0 4px 16px color-mix(in srgb, var(--colour-primary) 35%, transparent)',
   overflow: 'hidden',
   zIndex: 100,
-  // Removes the iOS 300ms tap delay and double-tap-to-zoom on the
-  // pill so the press registers a real click instead of decaying
-  // into a "highlight then nothing" gesture.
+  // Removes the iOS 300ms tap delay and double-tap-to-zoom on the pill.
   touchAction: 'manipulation',
 };
 
@@ -99,21 +104,22 @@ export function IntentFab() {
   };
 
   return (
-    <>
+    <Dialog.Root open={open} onOpenChange={setOpen}>
       <div style={pillStyle} data-testid="intent-fab" role="group" aria-label="Create or paste">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Create a post"
-          title="Create a post"
-          data-testid="intent-fab-button-primary"
-          style={primaryHalfStyle}
-        >
-          <Plus size={24} aria-hidden="true" strokeWidth={2.5} />
-          <span data-testid="intent-fab-caption-primary" style={captionStyle}>
-            Post
-          </span>
-        </button>
+        <Dialog.Trigger asChild>
+          <button
+            type="button"
+            aria-label="Create a post"
+            title="Create a post"
+            data-testid="intent-fab-button-primary"
+            style={primaryHalfStyle}
+          >
+            <Plus size={24} aria-hidden="true" strokeWidth={2.5} />
+            <span data-testid="intent-fab-caption-primary" style={captionStyle}>
+              Post
+            </span>
+          </button>
+        </Dialog.Trigger>
         <button
           type="button"
           onClick={handlePaste}
@@ -128,7 +134,7 @@ export function IntentFab() {
           </span>
         </button>
       </div>
-      <IntentFabSheet open={open} onClose={() => setOpen(false)} />
-    </>
+      <IntentFabSheet onClose={() => setOpen(false)} />
+    </Dialog.Root>
   );
 }

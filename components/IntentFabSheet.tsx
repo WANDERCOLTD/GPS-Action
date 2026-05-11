@@ -24,7 +24,7 @@
  */
 
 import * as React from 'react';
-import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactElement } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, ClipboardPaste } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -37,7 +37,7 @@ import {
 import { TILES, type Tile } from './KindPickerSheet';
 
 export interface IntentFabSheetProps {
-  open: boolean;
+  /** Called when the sheet should close. Open state itself lives on the parent's Dialog.Root. */
   onClose: () => void;
 }
 
@@ -45,20 +45,10 @@ const HINT_URL = "Looks like a link — we'll prefill the share.";
 const HINT_TEXT = "We'll start a post with this as the title.";
 const PASTE_DENIED_NOTE = 'Paste below with long-press, or type.';
 
-export function IntentFabSheet({ open, onClose }: IntentFabSheetProps): ReactElement | null {
+export function IntentFabSheet({ onClose }: IntentFabSheetProps): ReactElement {
   const router = useRouter();
   const [input, setInput] = useState<string>('');
   const [pasteNote, setPasteNote] = useState<string | null>(null);
-  // iOS Safari ghost-click guard. The same touch that opens the sheet
-  // can fire a synthetic pointerdown on the backdrop because the
-  // overlay mounts under the lifting finger — Radix then interprets
-  // that as "tap outside" and closes immediately, so the sheet flashes
-  // open then disappears. Stamp the open moment and ignore any
-  // pointer-down-outside events that arrive within 300ms.
-  const openedAtRef = useRef<number>(0);
-  useEffect(() => {
-    if (open) openedAtRef.current = Date.now();
-  }, [open]);
   // The Paste button only renders when the runtime can actually read
   // the clipboard. iOS Safari requires both a secure context (HTTPS or
   // localhost) and `navigator.clipboard.readText`; over HTTP on a LAN
@@ -75,8 +65,6 @@ export function IntentFabSheet({ open, onClose }: IntentFabSheetProps): ReactEle
         typeof navigator.clipboard?.readText === 'function',
     );
   }, []);
-
-  if (!open) return null;
 
   const trimmed = input.trim();
   const detection = trimmed ? normalizeUrl(trimmed) : null;
@@ -100,125 +88,115 @@ export function IntentFabSheet({ open, onClose }: IntentFabSheetProps): ReactEle
   };
 
   return (
-    <Dialog.Root
-      open={true}
-      onOpenChange={(o) => {
-        if (!o) onClose();
-      }}
-    >
-      <Dialog.Portal>
-        <Dialog.Overlay asChild>
-          <div style={backdropStyle} data-testid="intent-fab-backdrop" />
-        </Dialog.Overlay>
-        <Dialog.Content
-          asChild
-          aria-describedby={undefined}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onPointerDownOutside={(e) => {
-            if (Date.now() - openedAtRef.current < 300) e.preventDefault();
-          }}
-        >
-          <div style={sheetStyle} data-testid="intent-fab-sheet">
-            <div style={headerStyle}>
-              <Dialog.Title asChild>
-                <h2
-                  className="gps-subtitle"
-                  style={{ margin: 0, flex: 1 }}
-                  data-testid="intent-fab-title"
-                >
-                  What would you like to share?
-                </h2>
-              </Dialog.Title>
+    <Dialog.Portal>
+      <Dialog.Overlay asChild>
+        <div style={backdropStyle} data-testid="intent-fab-backdrop" />
+      </Dialog.Overlay>
+      <Dialog.Content
+        asChild
+        aria-describedby={undefined}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <div style={sheetStyle} data-testid="intent-fab-sheet">
+          <div style={headerStyle}>
+            <Dialog.Title asChild>
+              <h2
+                className="gps-subtitle"
+                style={{ margin: 0, flex: 1 }}
+                data-testid="intent-fab-title"
+              >
+                What would you like to share?
+              </h2>
+            </Dialog.Title>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              data-testid="intent-fab-close"
+              style={iconButtonStyle}
+            >
+              <X size={20} aria-hidden="true" />
+            </button>
+          </div>
+
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={
+              clipboardSupported
+                ? 'Paste a link or start typing…'
+                : 'Tap and hold to paste, or start typing…'
+            }
+            rows={3}
+            data-testid="intent-fab-input"
+            style={textareaStyle}
+          />
+
+          {clipboardSupported && (
+            <div style={pasteRowStyle}>
               <button
                 type="button"
-                onClick={onClose}
-                aria-label="Close"
-                data-testid="intent-fab-close"
-                style={iconButtonStyle}
+                onClick={handlePaste}
+                data-testid="intent-fab-paste"
+                aria-label="Paste from clipboard"
+                style={pasteButtonStyle}
               >
-                <X size={20} aria-hidden="true" />
+                <ClipboardPaste size={16} aria-hidden="true" />
+                <span>Paste</span>
               </button>
+              {pasteNote ? (
+                <span style={pasteNoteStyle} data-testid="intent-fab-paste-note">
+                  {pasteNote}
+                </span>
+              ) : null}
             </div>
+          )}
 
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={
-                clipboardSupported
-                  ? 'Paste a link or start typing…'
-                  : 'Tap and hold to paste, or start typing…'
-              }
-              rows={3}
-              data-testid="intent-fab-input"
-              style={textareaStyle}
-            />
+          <p
+            style={hintStyle}
+            data-testid="intent-fab-hint"
+            data-hint-kind={detection?.kind ?? 'none'}
+          >
+            {hint ?? ' '}
+          </p>
 
-            {clipboardSupported && (
-              <div style={pasteRowStyle}>
-                <button
-                  type="button"
-                  onClick={handlePaste}
-                  data-testid="intent-fab-paste"
-                  aria-label="Paste from clipboard"
-                  style={pasteButtonStyle}
-                >
-                  <ClipboardPaste size={16} aria-hidden="true" />
-                  <span>Paste</span>
-                </button>
-                {pasteNote ? (
-                  <span style={pasteNoteStyle} data-testid="intent-fab-paste-note">
-                    {pasteNote}
-                  </span>
-                ) : null}
-              </div>
-            )}
-
-            <p
-              style={hintStyle}
-              data-testid="intent-fab-hint"
-              data-hint-kind={detection?.kind ?? 'none'}
-            >
-              {hint ?? ' '}
-            </p>
-
-            <ul style={tileGridStyle} data-testid="intent-fab-tile-grid">
-              {TILES.map((tile) => (
-                <li key={tile.key}>
-                  {tile.disabled ? (
-                    <button
-                      type="button"
-                      disabled
-                      aria-disabled="true"
-                      title={tile.hint}
-                      data-testid="intent-tile-disabled"
-                      data-intent-key={tile.key}
-                      style={{
-                        ...tileBaseStyle(tile.accent),
-                        cursor: 'not-allowed',
-                        opacity: 0.55,
-                      }}
-                    >
-                      <TileBody tile={tile} />
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      title={tile.hint}
-                      data-testid="intent-tile-pick"
-                      data-intent-key={tile.key}
-                      onClick={() => handleTilePick(tile)}
-                      style={tileBaseStyle(tile.accent)}
-                    >
-                      <TileBody tile={tile} />
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+          <ul style={tileGridStyle} data-testid="intent-fab-tile-grid">
+            {TILES.map((tile) => (
+              <li key={tile.key}>
+                {tile.disabled ? (
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    title={tile.hint}
+                    data-testid="intent-tile-disabled"
+                    data-intent-key={tile.key}
+                    style={{
+                      ...tileBaseStyle(tile.accent),
+                      cursor: 'not-allowed',
+                      opacity: 0.55,
+                    }}
+                  >
+                    <TileBody tile={tile} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    title={tile.hint}
+                    data-testid="intent-tile-pick"
+                    data-intent-key={tile.key}
+                    onClick={() => handleTilePick(tile)}
+                    style={tileBaseStyle(tile.accent)}
+                  >
+                    <TileBody tile={tile} />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Dialog.Content>
+    </Dialog.Portal>
   );
 }
 
