@@ -165,7 +165,13 @@ export function NetworkCard({
                 linkDescription={card.linkPreview.description}
                 linkImageUrl={card.linkPreview.imageUrl}
                 linkSiteName={card.linkPreview.siteName}
-                size="large"
+                linkFaviconUrl={card.linkPreview.faviconUrl}
+                // X / Twitter posts surface the user's avatar as og:image,
+                // which renders as an oversized hero at the large size.
+                // Drop to the compact 96×96 thumbnail for those hosts so
+                // the avatar reads as a thumbnail rather than the card's
+                // hero (bu-network-unfurl-fixes).
+                size={isXLikeUrl(card.url) ? 'small' : 'large'}
               />
             </div>
           )}
@@ -182,6 +188,13 @@ export function NetworkCard({
                 fontSize: 'var(--text-sm)',
                 lineHeight: 'var(--line-normal)',
                 whiteSpace: 'pre-wrap',
+                // Long URLs pasted into the message body (e.g. Facebook
+                // post permalinks) have no whitespace to break on and
+                // overflow the card's right edge. `anywhere` breaks
+                // mid-token so the URL stays inside the card. Safe for
+                // ordinary prose — only kicks in when a token wouldn't
+                // otherwise fit.
+                overflowWrap: 'anywhere',
               }}
             >
               {card.textBody}
@@ -376,6 +389,22 @@ function hostnameOf(url: string): string {
     return new URL(url).hostname.replace(/^www\./, '');
   } catch {
     return url;
+  }
+}
+
+/**
+ * X / Twitter URLs return the user's avatar as `og:image`, which is
+ * close to square and ~400px — rendering it as a 16:9 hero blows it
+ * up. We drop those cards to the small (96×96 thumbnail) variant so
+ * the avatar reads as a thumbnail. Covers `x.com`, `twitter.com`,
+ * and the `mobile.` subdomain variants. (`www.` is stripped first.)
+ */
+function isXLikeUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    return host === 'x.com' || host === 'twitter.com' || host === 'mobile.twitter.com';
+  } catch {
+    return false;
   }
 }
 

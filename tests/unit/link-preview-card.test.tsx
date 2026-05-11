@@ -180,6 +180,63 @@ describe('LinkPreviewCard', () => {
     expect(JSON.stringify(cta)).toContain('Open link');
   });
 
+  // ── bu-network-unfurl-fixes: favicon fallback ────────────────────────
+
+  describe('favicon fallback (no og:image)', () => {
+    const baseFaviconProps = {
+      linkUrl: 'https://www.cufi.org.uk/events/11feb2026/',
+      linkTitle: 'An event title',
+      linkDescription: null,
+      linkImageUrl: null,
+      linkSiteName: 'CUFI',
+      linkFaviconUrl: 'https://www.cufi.org.uk/favicon.ico',
+      size: 'large' as const,
+    };
+
+    it('collapses the hero block when linkImageUrl is null', () => {
+      const el = render(baseFaviconProps);
+      expect(el.props['data-has-hero']).toBe('false');
+      // The image div is gated on hasHero — its presence is detectable
+      // via the inline backgroundImage style key. With no hero, there
+      // is no descendant carrying that style.
+      const descendants = flatChildren(el).slice(1);
+      const withBg = descendants.find((e) => {
+        const s = e.props.style as { backgroundImage?: unknown } | undefined;
+        return s && 'backgroundImage' in s;
+      });
+      expect(withBg).toBeUndefined();
+    });
+
+    it('renders the favicon img in the site row when no hero', () => {
+      const el = render(baseFaviconProps);
+      const favicon = findByTestId(el, 'link-preview-card-favicon');
+      expect(favicon).toBeDefined();
+      expect(favicon?.type).toBe('img');
+      expect(favicon?.props.src).toBe('https://www.cufi.org.uk/favicon.ico');
+      expect(favicon?.props.alt).toBe('');
+    });
+
+    it('does NOT render the favicon when a hero image IS present', () => {
+      const el = render({
+        ...baseFaviconProps,
+        linkImageUrl: 'https://example.com/hero.jpg',
+      });
+      expect(el.props['data-has-hero']).toBe('true');
+      expect(findByTestId(el, 'link-preview-card-favicon')).toBeUndefined();
+    });
+
+    it('does NOT render the favicon when no favicon URL is supplied', () => {
+      const el = render({ ...baseFaviconProps, linkFaviconUrl: null });
+      expect(findByTestId(el, 'link-preview-card-favicon')).toBeUndefined();
+    });
+
+    it('drops the min-height reservation on small variant when no hero', () => {
+      const el = render({ ...baseFaviconProps, size: 'small' });
+      const style = el.props.style as { minHeight?: number | undefined };
+      expect(style.minHeight).toBeUndefined();
+    });
+  });
+
   // ── Host-duplication dedup (BU-link-preview-dedup) ───────────────────
   //
   // When linkTitle AND linkSiteName are both null, the naive fallback

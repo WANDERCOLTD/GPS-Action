@@ -239,6 +239,7 @@ async function buildDefaultLinkPreviewResolver(): Promise<
         description: metadata.description,
         imageUrl: metadata.imageUrl,
         siteName: metadata.siteName,
+        faviconUrl: metadata.faviconUrl,
       };
     } catch {
       return null;

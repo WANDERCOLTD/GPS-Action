@@ -20,7 +20,8 @@
  *
  * Falls back gracefully:
  *   - missing title → URL host (truncated)
- *   - missing image → type-keyed placeholder block
+ *   - missing image → hero block collapsed; favicon (when supplied)
+ *     renders as a small icon in the site row
  *   - missing site name → URL host
  *   - missing description → omitted
  */
@@ -40,6 +41,13 @@ interface LinkPreviewCardProps {
   linkDescription?: string | null;
   linkImageUrl?: string | null;
   linkSiteName?: string | null;
+  /**
+   * Optional favicon for the source page. Renders as a 16×16 icon in
+   * the site row when `linkImageUrl` is null — gives pages with no
+   * `og:image` a visual anchor instead of a blank grey hero. Ignored
+   * when `linkImageUrl` is set.
+   */
+  linkFaviconUrl?: string | null;
   size: LinkPreviewSize;
   /**
    * Override the AM brand-mark + CTA. When undefined, the card
@@ -80,11 +88,17 @@ export function LinkPreviewCard({
   linkDescription,
   linkImageUrl,
   linkSiteName,
+  linkFaviconUrl,
   size,
   isAmAction,
 }: LinkPreviewCardProps): ReactElement {
   const host = hostFromUrl(linkUrl);
   const isLarge = size === 'large';
+  // Hero rendered only when we have a real og:image. Without one, the
+  // 16:9 grey block reads as "broken image" — collapsing it and leaning
+  // on the favicon in the site row is the honest fallback (per
+  // bu-network-unfurl-fixes).
+  const hasHero = Boolean(linkImageUrl);
 
   // Host-duplication dedup (BU-link-preview-dedup):
   //
@@ -163,7 +177,10 @@ export function LinkPreviewCard({
         textDecoration: 'none',
         color: 'inherit',
         position: 'relative',
-        minHeight: 96,
+        // Drop the fixed min-height when the side thumbnail is collapsed —
+        // a text-only card should size to its content, not reserve a
+        // 96-pixel slot for an image that isn't there.
+        minHeight: hasHero ? 96 : undefined,
       };
 
   const imageStyle: CSSProperties = isLarge
@@ -238,12 +255,23 @@ export function LinkPreviewCard({
       data-testid="link-preview-card"
       data-link-url={linkUrl}
       data-size={size}
+      data-has-hero={hasHero ? 'true' : 'false'}
       data-am-action={amAction || undefined}
     >
-      <div style={imageStyle} aria-hidden="true" />
+      {hasHero && <div style={imageStyle} aria-hidden="true" />}
       <div style={bodyStyle}>
         {showSiteRow && (
           <div style={siteRowStyle}>
+            {!hasHero && linkFaviconUrl && (
+              <img
+                src={linkFaviconUrl}
+                alt=""
+                width={14}
+                height={14}
+                data-testid="link-preview-card-favicon"
+                style={{ display: 'inline-block', flexShrink: 0, borderRadius: 2 }}
+              />
+            )}
             <span>{displaySite}</span>
             <ExternalLink size={11} aria-hidden="true" />
           </div>

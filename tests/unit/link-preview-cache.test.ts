@@ -30,6 +30,7 @@ const okMetadata = (overrides: Partial<LinkMetadataResult & { ok: true }> = {}) 
       description: 'A description',
       imageUrl: 'https://example.com/img.jpg',
       siteName: 'Example',
+      faviconUrl: 'https://example.com/favicon.ico',
       ...((overrides as { data?: object }).data ?? {}),
     },
   }) as LinkMetadataResult;
@@ -57,6 +58,7 @@ describe('getLinkPreview', () => {
       description: 'A description',
       imageUrl: 'https://example.com/img.jpg',
       siteName: 'Example',
+      faviconUrl: 'https://example.com/favicon.ico',
     });
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(fetcher).toHaveBeenCalledWith({ url: 'https://example.com/a' });

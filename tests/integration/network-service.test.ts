@@ -264,6 +264,7 @@ describe('listNetworkCards', () => {
         description: 'Resolved description',
         imageUrl: 'https://example.com/og.jpg',
         siteName: 'Example',
+        faviconUrl: 'https://example.com/favicon.ico',
       });
 
       const result = await listNetworkCards(
@@ -277,6 +278,7 @@ describe('listNetworkCards', () => {
         description: 'Resolved description',
         imageUrl: 'https://example.com/og.jpg',
         siteName: 'Example',
+        faviconUrl: 'https://example.com/favicon.ico',
       });
     });
 

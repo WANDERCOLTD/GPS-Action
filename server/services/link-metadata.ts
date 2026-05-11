@@ -50,6 +50,14 @@ export interface LinkMetadata {
   description: string | null;
   imageUrl: string | null;
   siteName: string | null;
+  /**
+   * Resolved absolute URL of the page's favicon. Used as a small inline
+   * decoration in `LinkPreviewCard`'s site row when no `og:image` is
+   * available, so cards with no hero collapse to text-with-icon rather
+   * than a blank grey block. Null when neither a `<link rel="icon">` nor
+   * a default `/favicon.ico` could be derived.
+   */
+  faviconUrl: string | null;
 }
 
 export type LinkMetadataResult = { ok: true; data: LinkMetadata } | { ok: false; reason: string };
@@ -182,7 +190,62 @@ function extractMetadata(html: string, finalUrl: string): LinkMetadata {
 
   const siteName = metaContent(head, 'og:site_name') ?? hostnameFor(finalUrl);
 
-  return { title, description, imageUrl, siteName };
+  const faviconUrl = extractFavicon(head, finalUrl);
+
+  return { title, description, imageUrl, siteName, faviconUrl };
+}
+
+/**
+ * Pull the page's favicon from `<link rel="icon">` /
+ * `<link rel="shortcut icon">` / `<link rel="apple-touch-icon">`.
+ * Prefer the entry with the largest declared `sizes`; fall back to
+ * the document's `/favicon.ico` if no `<link>` is found. Resolved to
+ * an absolute URL against the final (post-redirect) page URL.
+ *
+ * Tolerates attribute order swap (`href` before `rel`) and `rel`
+ * values with multiple tokens (`rel="icon shortcut"`). Returns null
+ * only when even the `/favicon.ico` fallback can't be constructed
+ * (invalid page URL).
+ */
+function extractFavicon(head: string, finalUrl: string): string | null {
+  const re = /<link\b[^>]*>/gi;
+  let best: { href: string; score: number } | null = null;
+  for (const match of head.matchAll(re)) {
+    const tag = match[0];
+    const rel = attr(tag, 'rel');
+    if (!rel) continue;
+    if (!/(?:^|\s)(?:icon|shortcut\s+icon|apple-touch-icon)(?:\s|$)/i.test(rel)) continue;
+    const href = attr(tag, 'href');
+    if (!href) continue;
+    // Score = largest dimension declared in sizes="32x32" / "any" /
+    // missing. apple-touch-icon defaults to 180 by spec; treat as a
+    // moderate boost over the unspecified shortcut icon (often 16/32).
+    const sizes = attr(tag, 'sizes');
+    let score = 0;
+    if (sizes) {
+      if (/any/i.test(sizes)) score = 9999;
+      else {
+        const dim = sizes.match(/(\d+)\s*[x×]\s*(\d+)/i);
+        if (dim) score = Math.max(Number(dim[1]), Number(dim[2]));
+      }
+    } else if (/apple-touch-icon/i.test(rel)) {
+      score = 180;
+    }
+    if (!best || score > best.score) best = { href, score };
+  }
+  if (best) return resolveUrl(best.href, finalUrl);
+  try {
+    return new URL('/favicon.ico', finalUrl).toString();
+  } catch {
+    return null;
+  }
+}
+
+/** Read a single attribute value out of a tag string. Tolerates single/double quotes. */
+function attr(tag: string, name: string): string | null {
+  const re = new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, 'i');
+  const m = tag.match(re);
+  return m?.[1] ? decodeEntities(m[1]) : null;
 }
 
 function matchTitleTag(head: string): string | null {
