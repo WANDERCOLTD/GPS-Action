@@ -24,7 +24,7 @@
  */
 
 import * as React from 'react';
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Plus, ClipboardPaste } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -105,6 +105,13 @@ export function IntentFab() {
   const [touchStartCount, setTouchStartCount] = useState(0);
   const [touchEndCount, setTouchEndCount] = useState(0);
   const [pointerDownCount, setPointerDownCount] = useState(0);
+  // Hydration probe — flips to true after first client-side effect.
+  // If "h N" stays N on the iPhone, React isn't running the bundle
+  // (hydration failed / bundle error), which is why no events fire.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   if (pathname && HIDDEN_FAB_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     return null;
@@ -123,7 +130,7 @@ export function IntentFab() {
         style={debugBadgeStyle}
         data-testid="intent-fab-debug-badge"
         aria-hidden="true"
-      >{`click ${clickCount}\nts    ${touchStartCount}\nte    ${touchEndCount}\npd    ${pointerDownCount}\nopen  ${open ? 'Y' : 'N'}`}</div>
+      >{`hydrate ${hydrated ? 'Y' : 'N'}\nclick   ${clickCount}\nts      ${touchStartCount}\nte      ${touchEndCount}\npd      ${pointerDownCount}\nopen    ${open ? 'Y' : 'N'}`}</div>
       <div style={pillStyle} data-testid="intent-fab" role="group" aria-label="Create or paste">
         <Dialog.Trigger asChild>
           <button
