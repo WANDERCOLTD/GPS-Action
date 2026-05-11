@@ -138,6 +138,10 @@ export async function listNetworkCards(
     // Don't cache: a server restart with vars set should serve real data
     // immediately, not the empty placeholder.
     if (err instanceof SupabaseConfigError) {
+      // Leave a breadcrumb in Vercel runtime logs. Without this the
+      // empty list is indistinguishable from a genuinely empty upstream
+      // — every prior debug session lost an hour to that ambiguity.
+      console.error('[network] SUPABASE_URL / SUPABASE_ANON_KEY missing — degrading to empty list');
       return { items: [], nextCursor: null, fetchedAt: new Date(), fromCache: false };
     }
     throw err;

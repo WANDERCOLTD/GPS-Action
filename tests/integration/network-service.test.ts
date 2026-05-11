@@ -224,6 +224,23 @@ describe('listNetworkCards', () => {
     expect(_networkCacheSize()).toBe(0);
   });
 
+  it('logs a breadcrumb when SupabaseConfigError is caught', async () => {
+    const { SupabaseConfigError } = await import('@/server/lib/supabase');
+    const fetchUpstream = vi
+      .fn()
+      .mockRejectedValue(
+        new SupabaseConfigError('SUPABASE_URL and SUPABASE_ANON_KEY must be set.'),
+      );
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await listNetworkCards({ limit: 50, windowDays: 90, refresh: false }, { fetchUpstream });
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('SUPABASE_URL / SUPABASE_ANON_KEY missing'),
+    );
+    errorSpy.mockRestore();
+  });
+
   it('propagates non-config errors (e.g. SupabaseFetchError) to the caller', async () => {
     const { SupabaseFetchError } = await import('@/server/lib/supabase');
     const fetchUpstream = vi.fn().mockRejectedValue(new SupabaseFetchError('upstream 503', 503));

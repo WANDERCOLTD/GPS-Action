@@ -17,19 +17,27 @@
  * do NOT restart it — that's /healthz's job.
  */
 
-import { pingDatabase } from '@/server/services/health';
+import { pingDatabase, pingSupabase } from '@/server/services/health';
 
 export async function GET(): Promise<Response> {
-  const databaseOk = await pingDatabase();
+  // Both checks in parallel — slowest dictates total latency.
+  const [databaseOk, supabase] = await Promise.all([pingDatabase(), pingSupabase()]);
 
-  const checks: Record<string, 'ok' | 'fail'> = {
+  // Supabase is a NON-FATAL upstream — a missing config or unreachable
+  // pipe degrades the /network surface to "Quiet in here" but does NOT
+  // make the app unable to serve traffic. Reported in the payload for
+  // visibility (so a curl of /readyz tells you "config-missing" vs
+  // "unreachable" vs "ok"), but does not flip /readyz to 503.
+  // Database remains the only fatal upstream.
+  const checks: Record<string, string> = {
     database: databaseOk ? 'ok' : 'fail',
+    supabase,
   };
 
-  const allOk = Object.values(checks).every((v) => v === 'ok');
+  const fatalsOk = databaseOk;
 
   return Response.json(
-    { status: allOk ? 'ready' : 'not_ready', checks },
-    { status: allOk ? 200 : 503 },
+    { status: fatalsOk ? 'ready' : 'not_ready', checks },
+    { status: fatalsOk ? 200 : 503 },
   );
 }

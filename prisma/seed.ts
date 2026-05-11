@@ -62,17 +62,39 @@ import { faker, en_GB, en, Faker } from '@faker-js/faker';
 import { prisma } from '@/server/db/client';
 
 // ── Production guard ─────────────────────────────────────────────────────
+//
+// Refuses to run against a production database by default. Three escape
+// hatches in priority order:
+//
+//   1. NODE_ENV != production       (the canonical local-dev path)
+//   2. DATABASE_URL contains a safe-looking token (staging, dev, ...)
+//   3. DEMO_MODE=1                  (explicit "yes I really mean it"
+//                                    for hosted demo environments like
+//                                    the Vercel preview/prod that runs
+//                                    NODE_ENV=production but is wired
+//                                    to a throwaway demo Postgres)
+//
+// #3 exists because Next.js sets NODE_ENV=production on every Vercel
+// build, and the demo Postgres URL has no obvious safe-token. Without
+// the explicit override, `pnpm seed:demo` in the Vercel buildCommand
+// silently no-ops — feature flags stay at migration default OFF, no
+// demo posts, no demo users. DEMO_MODE=1 is the same flag that
+// `vercel.json` already gates seeding on (#326), so re-using it as the
+// override keeps the surface coherent: one toggle controls "this env
+// is for demo data."
 
 const productionMode = process.env.NODE_ENV === 'production';
 const databaseUrl = process.env.DATABASE_URL ?? '';
 const looksSafe = /localhost|127\.0\.0\.1|\bstaging\b|\bdev\b|\bfixture\b|\btest\b/i.test(
   databaseUrl,
 );
+const demoModeOverride = process.env.DEMO_MODE === '1';
 
-if (productionMode && !looksSafe) {
+if (productionMode && !looksSafe && !demoModeOverride) {
   console.error(
     'Refusing to run F10 fixture seed against a production database. ' +
-      'Set NODE_ENV != production, or point DATABASE_URL at a localhost / staging / dev / test instance.',
+      'Set NODE_ENV != production, point DATABASE_URL at a localhost / staging / dev / test instance, ' +
+      'or set DEMO_MODE=1 to opt this environment in to demo seeding.',
   );
   process.exit(1);
 }
