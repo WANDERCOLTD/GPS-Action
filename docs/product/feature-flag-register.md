@@ -32,6 +32,8 @@
 | `coord_board_v1`        | rollout | OFF                    | OFF           | TTL: 2026-11-03 | Board tab in `AppNav` + `/board` placeholder. BU-coordination-board (planned, Direction A — kanban).                              |
 | `network_feed`          | rollout | OFF                    | OFF           | TTL: 2026-11-10 | `/network` surface — read-only feed of WhatsApp links from Grant (AIFA)'s pipe. BU-network-feed / ADR-0017 / D083.                |
 | `network_link_previews` | rollout | OFF                    | ON            | TTL: 2026-11-10 | OpenGraph hero/title/description on `/network` cards. BU-network-link-previews. Reuses `fetchLinkMetadata` + `<LinkPreviewCard>`. |
+| `network_first`         | rollout | OFF                    | OFF           | TTL: 2026-11-11 | Root `/` redirects to `/network` (was `/feed`); Feed/Calendar/Requests AppNav tabs dim to 40% opacity. bu-network-first.          |
+| `hide_feed_tab`         | rollout | OFF                    | OFF           | TTL: 2026-11-11 | When on, the Feed tab is removed from AppNav entirely. Pairs with `network_first` for "Network is the only home" IA.              |
 
 ## Flag rationale
 
@@ -145,6 +147,42 @@
   third-party hosts, malformed OG data, render glitches), flipping
   the flag OFF removes every preview block immediately. The list
   itself keeps working — preview is decorative, not load-bearing.
+
+### `network_first`
+
+- **Build unit:** bu-network-first (this PR — root redirect + nav
+  dim). Lightweight IA shift; no new surface, no new data.
+- **What it gates:** two things, both UI:
+  1. `app/page.tsx` — root `/` redirects authenticated users to
+     `/network` instead of `/feed`.
+  2. `components/AppNav.tsx` — Feed, Calendar, and Requests tabs
+     render at 40% opacity to signal "legacy surface" while
+     `/network` is the primary one. Active state still takes
+     precedence (clicked tab returns to full opacity).
+- **Default OFF in prod and dev:** the demotion is a deliberate IA
+  signal. Coordinator alignment first; flip on via admin UI when
+  ready to demo the network-first orientation.
+- **TTL:** 2026-11-11. At TTL: either fully rolled out (legacy tabs
+  permanently dim or removed) or we revert and the flag retires.
+- **Audit:** flag-flip rows captured in `audit_log` per D036 §7.
+- **Kill-switch posture:** flipping OFF restores the prior IA
+  (`/feed` is the root home, all tabs at full opacity) — no data
+  changes, no migrations needed.
+
+### `hide_feed_tab`
+
+- **Build unit:** bu-network-first (same PR).
+- **What it gates:** the `/feed` tab in `AppNav`. When on, the tab
+  is removed from the rendered nav entirely — the `/feed` route
+  itself still works (direct URL, bookmarks, links from elsewhere
+  in the app).
+- **Default OFF in prod and dev:** Feed stays visible. Flip on
+  only after `network_first` is on and `/feed` is genuinely
+  obsolete for the cohort.
+- **TTL:** 2026-11-11. At TTL: either Feed is fully retired and
+  this flag (plus the tab JSX) is removed, or we walk it back.
+- **Audit:** flag-flip rows captured in `audit_log` per D036 §7.
+- **Kill-switch posture:** trivial — flip OFF and Feed reappears.
 
 ## How to register a new flag
 
