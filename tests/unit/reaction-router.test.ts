@@ -23,6 +23,9 @@ vi.mock('@/server/db/client', () => ({
       groupBy: vi.fn(),
       findMany: vi.fn(),
     },
+    networkCardState: {
+      upsert: vi.fn(),
+    },
     auditLog: {
       create: vi.fn(),
     },
@@ -42,6 +45,7 @@ const mockReactionGroupBy = vi.mocked(prisma.reaction.groupBy);
 const mockReactionFindMany = vi.mocked(prisma.reaction.findMany);
 const mockAuditCreate = vi.mocked(prisma.auditLog.create);
 const mockFlagFindUnique = vi.mocked(prisma.featureFlag.findUnique);
+const mockNetworkCardStateUpsert = vi.mocked(prisma.networkCardState.upsert);
 
 function authedContext(): TRPCContext {
   return {
@@ -69,6 +73,7 @@ function publicContext(): TRPCContext {
 beforeEach(() => {
   vi.clearAllMocks();
   mockAuditCreate.mockResolvedValue({} as never);
+  mockNetworkCardStateUpsert.mockResolvedValue({} as never);
   // Default: flag enabled
   mockFlagFindUnique.mockResolvedValue({ enabledGlobally: true } as never);
 });
@@ -180,5 +185,116 @@ describe('reaction.listForPost', () => {
 
     expect(result).toContainEqual({ emoji: 'pray', count: 1, mine: true });
     expect(result).toContainEqual({ emoji: 'candle', count: 2, mine: false });
+  });
+});
+
+// ── BU-network-reactions ─────────────────────────────────────────────────
+
+describe('reaction.addToNetworkCard', () => {
+  it('rejects unauthenticated callers with UNAUTHORIZED', async () => {
+    const caller = createCaller(publicContext());
+
+    await expect(
+      caller.reaction.addToNetworkCard({ messageId: '42', emoji: 'heart' }),
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+  });
+
+  it('rejects when ff_reactions flag is off (FORBIDDEN)', async () => {
+    mockFlagFindUnique.mockResolvedValueOnce({ enabledGlobally: false } as never);
+    const caller = createCaller(authedContext());
+
+    await expect(
+      caller.reaction.addToNetworkCard({ messageId: '42', emoji: 'heart' }),
+    ).rejects.toBeInstanceOf(TRPCError);
+  });
+
+  it('rejects malformed messageId via Zod', async () => {
+    const caller = createCaller(authedContext());
+
+    await expect(
+      caller.reaction.addToNetworkCard({ messageId: 'not-a-number', emoji: 'heart' }),
+    ).rejects.toThrow();
+    await expect(
+      caller.reaction.addToNetworkCard({ messageId: '-1', emoji: 'heart' }),
+    ).rejects.toThrow();
+    await expect(
+      caller.reaction.addToNetworkCard({ messageId: '00042', emoji: 'heart' }),
+    ).rejects.toThrow();
+  });
+
+  it('accepts valid stringified bigints and ensures a state row before insert', async () => {
+    mockReactionCreate.mockResolvedValueOnce({} as never);
+    const caller = createCaller(authedContext());
+
+    const result = await caller.reaction.addToNetworkCard({
+      messageId: '42',
+      emoji: 'heart',
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(mockNetworkCardStateUpsert).toHaveBeenCalledWith({
+      where: { messageId: 42n },
+      create: { messageId: 42n, status: 'NEW' },
+      update: {},
+      select: { id: true },
+    });
+  });
+});
+
+describe('reaction.removeFromNetworkCard', () => {
+  it('rejects unauthenticated callers with UNAUTHORIZED', async () => {
+    const caller = createCaller(publicContext());
+
+    await expect(
+      caller.reaction.removeFromNetworkCard({ messageId: '42', emoji: 'heart' }),
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+  });
+
+  it('returns success when authed and a matching row exists', async () => {
+    mockReactionDeleteMany.mockResolvedValueOnce({ count: 1 });
+    const caller = createCaller(authedContext());
+
+    const result = await caller.reaction.removeFromNetworkCard({
+      messageId: '42',
+      emoji: 'heart',
+    });
+
+    expect(result).toEqual({ success: true });
+  });
+});
+
+describe('reaction.listForNetworkCard', () => {
+  it('aggregates for a public caller — mine: false everywhere', async () => {
+    mockReactionGroupBy.mockResolvedValueOnce([{ emoji: 'heart', _count: { _all: 2 } }] as never);
+
+    const caller = createCaller(publicContext());
+
+    const result = await caller.reaction.listForNetworkCard({ messageId: '42' });
+
+    expect(result).toEqual([{ emoji: 'heart', count: 2, mine: false }]);
+  });
+});
+
+describe('reaction.listForNetworkCards', () => {
+  it('returns a Record keyed by messageId with empty arrays for unreacted cards', async () => {
+    mockReactionGroupBy.mockResolvedValueOnce([
+      { targetId: '42', emoji: 'heart', _count: { _all: 1 } },
+    ] as never);
+
+    const caller = createCaller(publicContext());
+
+    const result = await caller.reaction.listForNetworkCards({
+      messageIds: ['42', '43'],
+    });
+
+    expect(result['42']).toEqual([{ emoji: 'heart', count: 1, mine: false }]);
+    expect(result['43']).toEqual([]);
+  });
+
+  it('caps input size via Zod', async () => {
+    const caller = createCaller(publicContext());
+    const tooMany = Array.from({ length: 201 }, (_, i) => String(i));
+
+    await expect(caller.reaction.listForNetworkCards({ messageIds: tooMany })).rejects.toThrow();
   });
 });

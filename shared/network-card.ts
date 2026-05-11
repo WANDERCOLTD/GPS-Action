@@ -102,6 +102,20 @@ export interface SerializedNetworkCard {
   linkPreview: NetworkCardLinkPreview | null;
 }
 
+/**
+ * BU-network-reactions — wire-boundary reaction aggregate. Identical
+ * shape to `FeedReaction` (components/PostCard.tsx) so the existing
+ * polymorphic ReactionPill can consume it directly without a wrapper.
+ * Lives here rather than in `shared/network-card` types because the
+ * /network surface lazy-fetches reactions per visible window — they're
+ * intentionally NOT part of the SerializedNetworkCard payload.
+ */
+export interface SerializedNetworkCardReaction {
+  emoji: 'candle' | 'pray' | 'heart' | 'strong' | 'target' | 'sparkle' | 'thumbsup' | 'sad';
+  count: number;
+  mine: boolean;
+}
+
 export interface SerializedNetworkListResponse {
   items: SerializedNetworkCard[];
   nextCursor: string | null;
