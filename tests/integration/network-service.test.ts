@@ -194,7 +194,7 @@ describe('listNetworkCards', () => {
     expect(fetchUpstream).toHaveBeenCalledTimes(2);
   });
 
-  it('emits a cursor when a full page is returned', async () => {
+  it('emits a compound cursor (sent_at|id) when a full page is returned', async () => {
     const fetchUpstream = vi.fn().mockResolvedValue([
       { ...baseRow, id: 5 },
       { ...baseRow, id: 4 },
@@ -205,7 +205,48 @@ describe('listNetworkCards', () => {
       { fetchUpstream, fetchLabels },
     );
 
-    expect(result.nextCursor).toBe('4');
+    // Encodes the last row's sent_at + id so the next page can keyset-
+    // paginate the compound sort. `id` alone is no longer safe — ids
+    // can be out of sent_at order after backfills.
+    expect(result.nextCursor).toBe(`${baseRow.sent_at}|4`);
+  });
+
+  it('passes the decoded compound cursor through to the upstream fetch', async () => {
+    const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
+
+    await listNetworkCards(
+      {
+        limit: 50,
+        windowDays: 90,
+        refresh: false,
+        sources: [],
+        cursor: '2026-05-10T12:00:00.000Z|123',
+      },
+      { fetchUpstream, fetchLabels },
+    );
+
+    expect(fetchUpstream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cursor: { sentAt: '2026-05-10T12:00:00.000Z', id: 123 },
+      }),
+    );
+  });
+
+  it('ignores a malformed / legacy id-only cursor and starts at page 1', async () => {
+    const fetchUpstream = vi.fn().mockResolvedValue([baseRow]);
+
+    await listNetworkCards(
+      {
+        limit: 50,
+        windowDays: 90,
+        refresh: false,
+        sources: [],
+        cursor: '42', // legacy id-only — no pipe separator
+      },
+      { fetchUpstream, fetchLabels },
+    );
+
+    expect(fetchUpstream).toHaveBeenCalledWith(expect.objectContaining({ cursor: undefined }));
   });
 
   it('emits no cursor when fewer rows than limit are returned', async () => {

@@ -106,6 +106,35 @@ export function _networkCacheSize(): number {
   return cache.size;
 }
 
+// ── Compound cursor (sent_at + id tiebreaker) ────────────────────────────
+//
+// Wire format: `<isoSentAt>|<id>`. Pipe is a safe separator — ISO 8601
+// never contains one, and ids are ASCII digits. Decoder is forgiving:
+// malformed or legacy id-only cursors fall through to a "first page"
+// query rather than 400-ing, so a bookmarked URL from before this
+// change still loads (it just starts from page 1 instead of where it
+// left off).
+
+const CURSOR_SEPARATOR = '|';
+
+function encodeCursor(sentAt: string, id: number): string {
+  return `${sentAt}${CURSOR_SEPARATOR}${id}`;
+}
+
+function decodeCursor(raw: string | undefined): { sentAt: string; id: number } | undefined {
+  if (raw === undefined) return undefined;
+  const idx = raw.indexOf(CURSOR_SEPARATOR);
+  if (idx < 0) {
+    // Legacy id-only cursor or malformed input — skip the cursor, return
+    // page 1. Prevents stale bookmarks 400-ing after the format change.
+    return undefined;
+  }
+  const sentAt = raw.slice(0, idx);
+  const id = Number.parseInt(raw.slice(idx + 1), 10);
+  if (!sentAt || !Number.isFinite(id)) return undefined;
+  return { sentAt, id };
+}
+
 // ── Source list cache (chip strip) ───────────────────────────────────────
 //
 // `gps_chat_labels` changes ~weekly at most (per Grant). Per the Round 2
@@ -257,7 +286,7 @@ export async function listNetworkCards(
   }
 
   const fetchUpstream = deps.fetchUpstream ?? listGpsGroupMessages;
-  const cursorId = input.cursor !== undefined ? Number.parseInt(input.cursor, 10) : undefined;
+  const decodedCursor = decodeCursor(input.cursor);
 
   // bu-network-source-chips — labels first so we can resolve the
   // slug filter into chat_ids and push them upstream into the
@@ -308,7 +337,7 @@ export async function listNetworkCards(
     rows = await fetchUpstream({
       windowDays: input.windowDays,
       limit: input.limit,
-      cursorId: Number.isFinite(cursorId) ? cursorId : undefined,
+      cursor: decodedCursor,
       chatIds: chatIdAllowlist,
     });
   } catch (err) {
@@ -364,7 +393,7 @@ export async function listNetworkCards(
   }));
 
   const lastRow = rows.length === input.limit ? rows[rows.length - 1] : undefined;
-  const nextCursor = lastRow ? String(lastRow.id) : null;
+  const nextCursor = lastRow ? encodeCursor(lastRow.sent_at, lastRow.id) : null;
 
   const response: NetworkListResponse = {
     items,

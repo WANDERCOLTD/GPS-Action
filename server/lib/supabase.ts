@@ -108,12 +108,22 @@ interface ListGpsGroupMessagesArgs {
   windowDays: number;
   /** Page size — capped upstream at 50. */
   limit: number;
-  /** Optional cursor — when set, fetch rows with `id` strictly less than this. */
-  cursorId?: number;
+  /**
+   * Compound cursor for keyset pagination. When set, fetches rows
+   * strictly older than (cursor.sentAt, cursor.id) in
+   * `(sent_at DESC, id DESC)` ordering. Both fields required together —
+   * `sent_at` is the primary sort key, `id` is the tiebreaker for rows
+   * sharing a sent_at (rare but possible at ms resolution).
+   *
+   * Replaces the id-only cursor used pre-backfill — id-only ordering
+   * placed Grant's recent 1,096-row backfill ahead of older live rows
+   * because their IDs were higher even though their sent_at was older.
+   */
+  cursor?: { sentAt: string; id: number };
   /**
    * bu-network-source-chips — optional chat_id allowlist. When non-empty,
    * PostgREST `chat_id=in.(...)` filters to just these chats. Pushing the
-   * filter upstream is essential: without it, a 50-row id-DESC page can be
+   * filter upstream is essential: without it, a 50-row page can be
    * dominated by one chat (e.g. after a backfill into one source) and the
    * service-side filter would surface zero rows from the desired source.
    */
@@ -129,8 +139,15 @@ interface ListGpsChatLabelsArgs {
 
 /**
  * Fetch a window of rows from `public.gps_group_messages`. Sort is
- * `id DESC` (PostgREST orders by the bigint primary key for stable
- * cursor pagination — `sent_at` ties on bulk imports).
+ * `sent_at DESC, id DESC` — the time-ordered feed members expect,
+ * with `id` as a deterministic tiebreaker for rows sharing a sent_at
+ * (ms-resolution collisions are rare but possible).
+ *
+ * Backfills change the id column behaviour (Grant's 1,096-row import
+ * into gps-network-yes-no got id range 178–1236 even though sent_at
+ * stretches back to February), so id-DESC alone surfaces backfilled-
+ * but-old rows ahead of newer live rows — broken UX. sent_at-DESC
+ * orders by actual chat time. Compound cursor handles tiebreakers.
  */
 export async function listGpsGroupMessages(
   args: ListGpsGroupMessagesArgs,
@@ -146,8 +163,15 @@ export async function listGpsGroupMessages(
     'id,sent_at,from_name,sender_hash,url,link_title,text_body,chat_id,is_forwarded',
   );
   params.set('sent_at', `gte.${sinceIso}`);
-  if (args.cursorId !== undefined) {
-    params.set('id', `lt.${args.cursorId}`);
+  if (args.cursor) {
+    // Keyset pagination on the compound sort key:
+    //   sent_at < cursor.sentAt
+    //   OR (sent_at = cursor.sentAt AND id < cursor.id)
+    // PostgREST expresses this with the `or=` parameter; nested logical
+    // operators inside `or=(...)` use comma-separated predicates.
+    const sentAt = args.cursor.sentAt;
+    const id = args.cursor.id;
+    params.set('or', `(sent_at.lt.${sentAt},and(sent_at.eq.${sentAt},id.lt.${id}))`);
   }
   if (args.chatIds && args.chatIds.length > 0) {
     // PostgREST `in.(v1,v2)`. Each value gets wrapped in double quotes
@@ -157,7 +181,7 @@ export async function listGpsGroupMessages(
     const quoted = args.chatIds.map((id) => `"${id.replace(/"/g, '\\"')}"`).join(',');
     params.set('chat_id', `in.(${quoted})`);
   }
-  params.set('order', 'id.desc');
+  params.set('order', 'sent_at.desc,id.desc');
   params.set('limit', String(args.limit));
 
   const response = await fetchImpl(`${config.url}/rest/v1/gps_group_messages?${params}`, {
