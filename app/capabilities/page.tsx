@@ -18,6 +18,7 @@ import {
   Antenna,
   ArrowRight,
   AtSign,
+  BadgeCheck,
   BarChart3,
   BookMarked,
   BookOpen,
@@ -37,30 +38,44 @@ import {
   FolderLock,
   Gavel,
   GitBranch,
+  GitCommit,
   Globe,
   GraduationCap,
   Hammer,
+  Handshake,
+  Heart,
   HeartHandshake,
   IdCard,
+  Image as ImageIcon,
   Inbox,
   KeyRound,
   Languages,
+  LayoutGrid,
+  LayoutList,
+  LayoutPanelTop,
   Lock,
   Mail,
   Megaphone,
+  MessageSquare,
+  Moon,
   Network,
   Newspaper,
   PenLine,
+  PenSquare,
   PiggyBank,
+  PlayCircle,
   Plug,
   Radar,
   Radio,
+  RadioTower,
+  Scale,
   Search,
   Send,
   Server,
   Share2,
   ShieldCheck,
   Sparkles,
+  ToggleLeft,
   Tv,
   UserCheck,
   UserCog,
@@ -68,6 +83,7 @@ import {
   Video,
   Vote,
   Workflow,
+  Wrench,
   type LucideProps,
 } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -161,7 +177,13 @@ const SECTIONS: Section[] = [
     ref: '§5',
     blurb: 'Monday-style task system tailored to GPS, with AI-assisted response drafting.',
     tiles: [
-      { icon: Workflow, title: 'Task Board', ref: '§5.1', status: 'partial' },
+      {
+        icon: Workflow,
+        title: 'Task Board',
+        ref: '§5.1',
+        status: 'partial',
+        note: '/board kanban + group share allow-list',
+      },
       { icon: Sparkles, title: 'AI Response Suggester', ref: '§5.2', status: 'future-build' },
       { icon: Sparkles, title: 'AI Recipient Identifier', ref: '§5.2', status: 'future-build' },
       {
@@ -183,7 +205,13 @@ const SECTIONS: Section[] = [
     tiles: [
       { icon: Users, title: 'Volunteer Directory', ref: '§6.1', status: 'partial' },
       { icon: UserCheck, title: 'Public Sign-Up Form', ref: '§6.1', status: 'future-build' },
-      { icon: IdCard, title: 'Third-Party Contacts', ref: '§6.2', status: 'not-done' },
+      {
+        icon: IdCard,
+        title: 'Third-Party Contacts',
+        ref: '§6.2',
+        status: 'future-build',
+        note: 'BU-contact Slice 4 planned',
+      },
       { icon: Building2, title: 'Organisation Records', ref: '§6.2', status: 'not-done' },
       { icon: UserCog, title: 'Display-Name Policy', ref: '§19.7', status: 'not-done' },
     ],
@@ -235,7 +263,13 @@ const SECTIONS: Section[] = [
     ref: '§9',
     blurb: 'Shared calendar of GPS, concerning, neutral and deadline events with auto-detection.',
     tiles: [
-      { icon: Calendar, title: 'Shared Calendar', ref: '§9', status: 'not-done' },
+      {
+        icon: Calendar,
+        title: 'Shared Calendar',
+        ref: '§9',
+        status: 'partial',
+        note: 'Agenda · Month · Near-me views',
+      },
       {
         icon: CalendarSearch,
         title: 'Event Auto-Detection',
@@ -424,7 +458,13 @@ const SECTIONS: Section[] = [
       },
       { icon: ShieldCheck, title: 'WCAG 2.2 AA', ref: 'NFR-04', status: 'shipped' },
       { icon: FileSpreadsheet, title: 'CSV / Excel Export', ref: 'NFR-09', status: 'not-done' },
-      { icon: Search, title: 'Full-Text Search', ref: 'NFR-10', status: 'future-build' },
+      {
+        icon: Search,
+        title: 'Full-Text Search',
+        ref: 'NFR-10',
+        status: 'shipped',
+        note: 'BU-search-surface — Posts · People · Regions · Comments · Kanban',
+      },
       { icon: Mail, title: 'SMTP + OAuth Mail', ref: 'NFR-11', status: 'future-integration' },
       { icon: Server, title: 'Configurable Scrape Schedule', ref: 'NFR-07', status: 'not-done' },
       { icon: Activity, title: 'Scale: 500 concurrent', ref: 'NFR-08', status: 'future-build' },
@@ -456,6 +496,127 @@ const SECTIONS: Section[] = [
       { icon: Database, title: 'Democracy Club', ref: '§16', status: 'future-integration' },
       { icon: Mail, title: 'Activist Mailer (export)', ref: '§16', status: 'shipped' },
       { icon: Cloud, title: 'Activist Mailer (API)', ref: '§16', status: 'future-integration' },
+    ],
+  },
+  {
+    kicker: 'Beyond the SRS',
+    title: 'Shipped, but not in the v1.1 spec',
+    ref: 'Phantom features',
+    blurb:
+      'Surfaces and primitives shipped through the build that pre-date or sit outside the v1.1 SRS — mostly the post-first reframe (D001 / D002) and the WhatsApp-pipe work that followed. Likely absorption candidates for SRS v1.2.',
+    tiles: [
+      {
+        icon: LayoutList,
+        title: 'Coordination Feed',
+        ref: '/feed',
+        status: 'shipped',
+        note: 'BU-feed — the core surface',
+      },
+      {
+        icon: RadioTower,
+        title: 'Network Feed',
+        ref: '/network',
+        status: 'shipped',
+        note: 'GPS Action Network WhatsApp pipe',
+      },
+      {
+        icon: LayoutGrid,
+        title: 'Coordination Board',
+        ref: '/board',
+        status: 'shipped',
+        note: 'Group kanban + snapshot gallery',
+      },
+      {
+        icon: PenSquare,
+        title: 'Composer + Intent Picker',
+        ref: '/compose',
+        status: 'shipped',
+        note: 'FAB → tile picker → per-intent composer',
+      },
+      {
+        icon: LayoutPanelTop,
+        title: 'Nav Tabs',
+        ref: 'app chrome',
+        status: 'shipped',
+        note: 'Sticky icon nav + chip strips unified',
+      },
+      {
+        icon: Heart,
+        title: 'Reactions',
+        ref: 'BU-reactions',
+        status: 'shipped',
+        note: '8-emoji curated set (D050)',
+      },
+      {
+        icon: MessageSquare,
+        title: 'Comments + @mentions',
+        ref: 'BU-comments',
+        status: 'shipped',
+        note: 'Polymorphic on Post + Request (D052)',
+      },
+      {
+        icon: Moon,
+        title: 'Cultural-Moment Posts',
+        ref: 'D033',
+        status: 'shipped',
+        note: 'Shabbat / remembrance bordeaux register',
+      },
+      {
+        icon: BadgeCheck,
+        title: 'Tick-or-Cross Verdict',
+        ref: 'BU-tick-or-cross',
+        status: 'shipped',
+        note: 'Amplify / flag with WhatsApp handoff (D069)',
+      },
+      {
+        icon: ImageIcon,
+        title: 'Hero Images (curated)',
+        ref: 'BU-post-hero-demo',
+        status: 'shipped',
+        note: 'Seeded allow-list; uploads deferred (D046)',
+      },
+      {
+        icon: PlayCircle,
+        title: 'Demo Mode',
+        ref: 'BU-demo-mode',
+        status: 'shipped',
+        note: 'Vercel preview unlock for stakeholders',
+      },
+      {
+        icon: ToggleLeft,
+        title: 'Feature Flags',
+        ref: 'D036',
+        status: 'shipped',
+        note: 'Homegrown rollout + audit-on-flip',
+      },
+      {
+        icon: GitCommit,
+        title: 'Spec ↔ Code Traceability',
+        ref: 'F13 / D038',
+        status: 'shipped',
+        note: '@spec / @bu / @adr annotations + trace script',
+      },
+      {
+        icon: Scale,
+        title: 'Honest Reach Metrics',
+        ref: 'D047',
+        status: 'shipped',
+        note: 'Verified vs intent share counts (BU-post-share-counter)',
+      },
+      {
+        icon: Handshake,
+        title: 'Self-Dispatch Model',
+        ref: 'D013 / D016',
+        status: 'shipped',
+        note: 'Members claim work — reframe of SRS §5 dispatch',
+      },
+      {
+        icon: Wrench,
+        title: 'Admin Tools',
+        ref: 'BU-admin-*',
+        status: 'shipped',
+        note: 'User CRUD + audit + bulk-ops + group membership',
+      },
     ],
   },
 ];
@@ -587,8 +748,14 @@ function StatusLegend(): ReactElement {
 }
 
 export default function CapabilitiesPage(): ReactElement {
-  const totalTiles = SECTIONS.reduce((acc, s) => acc + s.tiles.length, 0);
-  const shippedTiles = SECTIONS.reduce(
+  const srsSections = SECTIONS.filter((s) => s.kicker !== 'Beyond the SRS');
+  const phantomSections = SECTIONS.filter((s) => s.kicker === 'Beyond the SRS');
+  const srsTotal = srsSections.reduce((acc, s) => acc + s.tiles.length, 0);
+  const srsShipped = srsSections.reduce(
+    (acc, s) => acc + s.tiles.filter((t) => t.status === 'shipped').length,
+    0,
+  );
+  const phantomShipped = phantomSections.reduce(
     (acc, s) => acc + s.tiles.filter((t) => t.status === 'shipped').length,
     0,
   );
@@ -616,12 +783,26 @@ export default function CapabilitiesPage(): ReactElement {
           style={{
             maxWidth: '64ch',
             color: 'var(--colour-text-secondary)',
-            marginBottom: 'var(--space-5)',
+            marginBottom: 'var(--space-3)',
           }}
         >
           National + granular regional coordination, with AI assistance throughout. Eleven modules
           in the SRS, plus the Network of Networks addendum. Each tile names a requirement in the
-          spec&apos;s own words and shows where it sits in the build today.
+          spec&apos;s own words and shows where it sits in the build today. A final &ldquo;Beyond
+          the SRS&rdquo; section captures surfaces shipped under the D001 / D002 post-first reframe
+          that the v1.1 spec doesn&apos;t yet describe.
+        </p>
+        <p
+          className="gps-caption"
+          style={{
+            maxWidth: '64ch',
+            color: 'var(--colour-text-tertiary, var(--colour-text-secondary))',
+            marginBottom: 'var(--space-5)',
+            fontStyle: 'italic',
+          }}
+        >
+          Reflects SRS v1.1. Many &ldquo;Not done&rdquo; rows are slated for re-scope in v1.2 rather
+          than build — see <code>docs/build/srs-coverage.md</code> for the audit.
         </p>
         <div
           style={{
@@ -640,7 +821,7 @@ export default function CapabilitiesPage(): ReactElement {
             <ArrowRight size={18} aria-hidden />
           </a>
           <span className="gps-caption">
-            {shippedTiles} of {totalTiles} tiles shipped today.
+            {srsShipped} of {srsTotal} SRS tiles shipped, plus {phantomShipped} beyond-SRS surfaces.
           </span>
         </div>
         <StatusLegend />
