@@ -61,6 +61,11 @@ const SCHEMA_MODELS_AWAITING_METADATA: ReadonlyArray<string> = [
   'GroupShareWorkflow',
   'BoardColumn',
   'RequestSubscription',
+  // bu-share-event-polymorphic Phase A (ADR-0018) — added the ShareEvent
+  // model. Admin metadata lands once the service + UI consumer exists
+  // (Phase B). Drops off this list when bu-share-event-polymorphic
+  // Phase B ships the share-event admin surface.
+  'ShareEvent',
 ];
 
 // Metadata keys with no corresponding schema model. None today.
