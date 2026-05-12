@@ -1,9 +1,10 @@
 ---
 slug: bu-page-header-system
-status: ready
+status: shipped
+shipped_in: '#361'
 phase: 2
 priority: medium
-note: 'App-wide chrome refresh. Introduces reusable <PageHeader>, consolidates AppNav identity/refresh/settings into a <UserMenu> avatar, lands directional sticky behavior so chrome cohabits cleanly, AND mounts a per-page help integration (HelpSheet + UserMenu entry, no per-page content) as the scaffold for a follow-up content-authoring BU. Pairs with the BU-user-menu hand-off left in bu-sticky-nav (#106).'
+note: 'App-wide chrome refresh. Introduces reusable <PageHeader>, consolidates AppNav identity/refresh/settings into a <UserMenu> avatar, lands directional sticky behavior so chrome cohabits cleanly, AND mounts a per-page help integration (HelpSheet + UserMenu entry, no per-page content) as the scaffold for a follow-up content-authoring BU. Pairs with the BU-user-menu hand-off left in bu-sticky-nav (#106). Rolled out on /feed, /board, /requests, /notifications, /settings, /compose, /calendar, /network; /search, /capabilities, /post/[id] deferred to follow-up.'
 ---
 
 # SESSION BRIEF · bu-page-header-system — consistent page chrome across all routes

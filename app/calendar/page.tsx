@@ -122,11 +122,9 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
       }));
     return (
       <>
-        <PageHeader
-          title="Calendar"
-          description="What's happening near you"
-          actions={<CalendarToggle active="near" />}
-        />
+        <PageHeader title="Calendar" description="What's happening near you">
+          <CalendarToggle active="near" />
+        </PageHeader>
         <main style={mainStyle}>
           <NearMeView posts={candidates} initialSort={nearSort} />
         </main>
@@ -174,11 +172,9 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
 
     return (
       <>
-        <PageHeader
-          title="Calendar"
-          description="What's happening near you"
-          actions={<CalendarToggle active="month" />}
-        />
+        <PageHeader title="Calendar" description="What's happening near you">
+          <CalendarToggle active="month" />
+        </PageHeader>
         <main style={mainStyle}>
           <MonthView
             posts={posts}
@@ -202,11 +198,9 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
 
   return (
     <>
-      <PageHeader
-        title="Calendar"
-        description="What's happening near you"
-        actions={<CalendarToggle active="agenda" />}
-      />
+      <PageHeader title="Calendar" description="What's happening near you">
+        <CalendarToggle active="agenda" />
+      </PageHeader>
       <main style={mainStyle}>
         <AgendaView posts={posts} now={now} />
       </main>

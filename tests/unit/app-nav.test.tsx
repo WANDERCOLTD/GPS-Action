@@ -1,7 +1,7 @@
 /**
  * Unit tests for AppNav.
  *
- * @build-unit BU-sticky-nav BU-icon-nav BU-search-surface
+ * @build-unit BU-sticky-nav BU-icon-nav BU-search-surface bu-page-header-system
  * @spec architecture/decision-log.md (D054, D061, D065, D078)
  *
  * Vitest env is `node`, no RTL. We mock `next/navigation` so
@@ -18,6 +18,10 @@
  * BU-search-surface (2026-05-03, PR C): magnifier trigger appended
  * to the strip. testid `appnav-search-trigger`, aria-label `Search`,
  * routes to `/search`.
+ *
+ * bu-page-header-system (2026-05-12): Settings icon retired from
+ * AppNav — Settings now lives inside the <UserMenu> avatar popover.
+ * Three canonical link testids remain in the nav.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -71,7 +75,6 @@ function flatStrings(node: unknown): string {
 const NAV_LINKS: ReadonlyArray<readonly [string, string]> = [
   ['nav-feed-link', 'Feed'],
   ['nav-requests-link', 'Requests'],
-  ['nav-settings-link', 'Settings'],
   ['appnav-search-trigger', 'Search'],
 ];
 
@@ -87,11 +90,6 @@ describe('AppNav', () => {
     ['/feed/something', 'nav-feed-link'],
     ['/requests', 'nav-requests-link'],
     ['/requests/abc-123', 'nav-requests-link'],
-    // /data has no top-level tab — Data was demoted into the Settings page.
-    // Keep the Settings tab lit while a member browses /data subpages.
-    ['/data', 'nav-settings-link'],
-    ['/data/users', 'nav-settings-link'],
-    ['/settings', 'nav-settings-link'],
     // BU-search-surface — magnifier lights when on /search or /search/*
     ['/search', 'appnav-search-trigger'],
     ['/search/foo', 'appnav-search-trigger'],
@@ -173,12 +171,18 @@ describe('AppNav', () => {
     expect(findByTestId(tree, 'nav-app-strip')).toBeDefined();
   });
 
-  it('renders all four canonical link testids', () => {
+  it('renders all canonical link testids', () => {
     usePathnameMock.mockReturnValue('/feed');
     const tree = AppNav({}) as AnyElement;
     for (const [testId] of NAV_LINKS) {
       expect(findByTestId(tree, testId)).toBeDefined();
     }
+  });
+
+  it('does not render a Settings icon in the nav strip (moved to UserMenu)', () => {
+    usePathnameMock.mockReturnValue('/feed');
+    const tree = AppNav({}) as AnyElement;
+    expect(findByTestId(tree, 'nav-settings-link')).toBeUndefined();
   });
 
   // ── BU-icon-nav: aria-labels for screen readers ────────────────────────
@@ -237,7 +241,6 @@ describe('AppNav', () => {
   it.each([
     ['nav-feed-link', 'Feed'],
     ['nav-requests-link', 'Requests'],
-    ['nav-settings-link', 'Settings'],
     ['appnav-search-trigger', 'Search'],
   ])('%s is wrapped in IconChipTooltip with label %s', (testId, expectedLabel) => {
     usePathnameMock.mockReturnValue('/feed');
@@ -279,7 +282,6 @@ describe('AppNav', () => {
     const tree = AppNav({}) as AnyElement;
     expect(isActive(findByTestId(tree, 'appnav-search-trigger'))).toBe(true);
     expect(isActive(findByTestId(tree, 'nav-feed-link'))).toBe(false);
-    expect(isActive(findByTestId(tree, 'nav-settings-link'))).toBe(false);
   });
 
   it('marks the Calendar tab active on a /calendar/* sub-path', () => {
