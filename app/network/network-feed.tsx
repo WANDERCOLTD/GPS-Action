@@ -251,28 +251,25 @@ export function NetworkFeed({ initial, chipStrip, sortControl }: NetworkFeedProp
   }, []);
 
   const refreshButton = (
-    <>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)' }}>
       <style>{`@keyframes gps-network-refresh-spin { to { transform: rotate(360deg); } }`}</style>
-      {/*
-       * The freshness indicator was a visible text row before
-       * bu-page-header-system; it now lives inside the refresh
-       * button's `title` so the chrome stays compact. Mobile users
-       * lose the visible "3s ago" but still see the action affordance.
-       * Honest copy: cached state surfaces via the data-from-cache attr.
-       */}
       <span
         data-testid="network-fetched-status"
         data-from-cache={fromCache ? 'true' : 'false'}
         style={{
-          position: 'absolute',
-          width: 1,
-          height: 1,
-          overflow: 'hidden',
-          clip: 'rect(0 0 0 0)',
+          fontFamily: 'var(--font-ui)',
+          fontSize: 'var(--text-xs)',
+          color: 'var(--colour-text-tertiary)',
+          whiteSpace: 'nowrap',
         }}
       >
-        {fromCache ? 'cached' : 'fresh'} ·{' '}
-        <ClientOnly fallback={<>0s ago</>}>{relativeTime(fetchedAt)}</ClientOnly>
+        {/*
+         * `relativeTimeShort()` reads `Date.now()`, which drifts between
+         * SSR and first client paint. ClientOnly renders a static `0s`
+         * during SSR + first paint so hydration stays clean, then swaps
+         * to the live value.
+         */}
+        <ClientOnly fallback={<>0s</>}>{relativeTimeShort(fetchedAt)}</ClientOnly>
       </span>
       <button
         type="button"
@@ -280,7 +277,7 @@ export function NetworkFeed({ initial, chipStrip, sortControl }: NetworkFeedProp
         onClick={handleRefresh}
         disabled={refreshing}
         aria-label={refreshing ? 'Refreshing…' : 'Refresh'}
-        title={refreshing ? 'Refreshing…' : `Refresh · ${fromCache ? 'cached' : 'fresh'}`}
+        title={refreshing ? 'Refreshing…' : `${fromCache ? 'Cached' : 'Fresh'} · click to refresh`}
         style={refreshButtonStyle}
       >
         {refreshing ? (
@@ -293,7 +290,7 @@ export function NetworkFeed({ initial, chipStrip, sortControl }: NetworkFeedProp
           <RefreshCw size={18} aria-hidden="true" />
         )}
       </button>
-    </>
+    </div>
   );
 
   return (
@@ -420,14 +417,20 @@ const loadMoreButtonStyle: CSSProperties = {
   margin: 'var(--space-4) auto 0',
 };
 
-function relativeTime(iso: string): string {
+/** Compact relative time ("3s", "2m", "2h", "1d") for the inline
+ * freshness pill next to the refresh icon. The `ago` suffix from the
+ * older `relativeTime()` was redundant once the freshness sits beside
+ * an obvious refresh affordance. */
+function relativeTimeShort(iso: string): string {
   const ts = new Date(iso).getTime();
   if (Number.isNaN(ts)) return '';
   const diffMs = Date.now() - ts;
   const seconds = Math.round(diffMs / 1000);
-  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 60) return `${seconds}s`;
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return `${minutes}m`;
   const hours = Math.round(minutes / 60);
-  return `${hours}h ago`;
+  if (hours < 24) return `${hours}h`;
+  const days = Math.round(hours / 24);
+  return `${days}d`;
 }
