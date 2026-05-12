@@ -129,7 +129,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const menuUser = ctx.user ? { displayName: ctx.user.displayName } : null;
 
   return (
-    <html lang="en" data-theme="light">
+    <html lang="en" data-theme="light" suppressHydrationWarning>
       <body>
         <DemoBanner />
         {showHeader && (
