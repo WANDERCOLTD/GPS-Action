@@ -31,6 +31,7 @@ import '@/styles/components.css';
 import { AppNav } from '@/components/AppNav';
 import { HeaderLogo } from '@/components/HeaderLogo';
 import { HeaderShell } from '@/components/HeaderShell';
+import { HelpSheet } from '@/components/HelpSheet';
 import { UserMenu } from '@/components/UserMenu';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { IntentFab } from '@/components/IntentFab';
@@ -163,6 +164,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         </ErrorBoundary>
         {ctx.user && <IntentFab />}
         {ctx.user && <KeyboardShortcuts />}
+        <HelpSheet />
         <VersionBadge />
       </body>
     </html>

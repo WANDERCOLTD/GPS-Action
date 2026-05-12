@@ -72,6 +72,7 @@ The first segment must come from this approved list:
 | `board`        | Coordination board — group picker, kanban view, ticket detail, notifications (bu-coordination-board)              |
 | `shortcut`     | Keyboard shortcut help overlay — backdrop, modal, rows, close (BU-keyboard-shortcuts)                             |
 | `share`        | Polymorphic share rail + verify-prompt dialog — used on /network cards, future on /feed posts (bu-network-shares) |
+| `help`         | Per-page HelpSheet drawer — title, summary, action list, shortcut list, close (bu-page-header-system)             |
 
 To add a new area:
 

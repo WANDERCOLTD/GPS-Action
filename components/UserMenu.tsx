@@ -19,9 +19,11 @@
 
 import { useTransition, type CSSProperties } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import * as Popover from '@radix-ui/react-popover';
-import { Loader2, RefreshCw, Settings, User as UserIcon, UserCog } from 'lucide-react';
+import { CircleHelp, Loader2, RefreshCw, Settings, User as UserIcon, UserCog } from 'lucide-react';
+import { openHelpSheet } from '@/shared/help/emitter';
+import { matchHelpEntry } from '@/shared/help/registry';
 
 interface UserMenuProps {
   user: { displayName: string } | null;
@@ -101,9 +103,11 @@ function initialsFor(name: string): string {
 
 export function UserMenu({ user, isDev }: UserMenuProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isRefreshing, startRefresh] = useTransition();
 
   const triggerLabel = user ? `Account menu for ${user.displayName}` : 'Account menu';
+  const hasHelpForRoute = pathname ? matchHelpEntry(pathname) !== null : false;
 
   return (
     <>
@@ -181,6 +185,20 @@ export function UserMenu({ user, isDev }: UserMenuProps) {
               <Settings size={16} aria-hidden="true" />
               <span>Settings</span>
             </Link>
+
+            {hasHelpForRoute && (
+              <Popover.Close asChild>
+                <button
+                  type="button"
+                  data-testid="nav-user-menu-help"
+                  onClick={() => openHelpSheet()}
+                  style={itemStyle}
+                >
+                  <CircleHelp size={16} aria-hidden="true" />
+                  <span>Help with this page</span>
+                </button>
+              </Popover.Close>
+            )}
           </Popover.Content>
         </Popover.Portal>
       </Popover.Root>

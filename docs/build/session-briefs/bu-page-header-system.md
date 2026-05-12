@@ -99,7 +99,7 @@ identity affordances (profile, sign out, theme).
 | `components/HelpSheet.tsx` | Radix Dialog drawer. Side-sheet on desktop, bottom-sheet on phone. Reads `usePathname()` + `HELP_REGISTRY`. Mounted once in root layout. Testid: `help-sheet`. |
 | `shared/hooks/use-scroll-direction.ts` | Sustained-threshold scroll-direction detector. Returns `'up' \| 'down' \| null`. Threshold default 12px; rAF-debounced to survive iOS standalone rubber-band. |
 | `shared/help/emitter.ts` | Module-level event emitter. `openHelpSheet()` dispatches; UserMenu entry + `?` keypress fire it; HelpSheet subscribes. No React context plumbing required. |
-| `shared/help/registry.ts` | `HELP_REGISTRY: Record<string, HelpEntry>` + a `matchHelpEntry(pathname)` lookup. Ships empty in this BU. Each entry has `title`, `summary`, `actions: string[]`, optional `shortcuts: {key, label}[]`. |
+| `shared/help/registry.ts` | `HELP_REGISTRY: Record<string, HelpEntry>` + a `matchHelpEntry(pathname)` lookup. Ships with one seed entry for `/network` so the wiring is demonstrably end-to-end in the same PR; every other route's entry lands in the follow-up. Each entry has `title`, `summary`, `actions: string[]`, optional `shortcuts: {key, label}[]`. |
 
 ### Per-page rollout matrix
 
