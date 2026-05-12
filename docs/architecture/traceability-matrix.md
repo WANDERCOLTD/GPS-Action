@@ -112,7 +112,9 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | bu-network-seen-state | 2 | — | — |
 | bu-network-shares | 7 | — | D047, D065, D077 |
 | bu-network-sort-options | 1 | — | — |
+| bu-network-sort-toggle | 1 | — | — |
 | bu-network-source-chips | 2 | — | — |
+| bu-network-unread-icon | 1 | — | — |
 | bu-network-zoom-card | 2 | — | — |
 | bu-page-header-system | 9 | — | D003, D054, D061, D065, D073, D078 |
 | bu-search-includes-comments | 2 | — | D078 |
