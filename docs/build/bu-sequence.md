@@ -150,6 +150,8 @@ by hand — run `npm run trackers`):
 - **bu-vercel-prep** _[high]_ — bu-vercel-prep
 - **bu-broadcast** _[medium]_ — bu-broadcast
 - **bu-drafts-inbox** _[medium]_ — bu-drafts-inbox
+- **bu-network-card-body-clamp** _[medium]_ — bu-network-card-body-clamp
+- **bu-network-seen-state** _[medium]_ — bu-network-seen-state
 - **bu-network-sort-options** _[medium]_ — bu-network-sort-options
 - **bu-post-share-counter** _[medium]_ — bu-post-share-counter
 - **bu-reviewer-kind-review-queue** _[medium]_ — bu-reviewer-kind-review-queue
