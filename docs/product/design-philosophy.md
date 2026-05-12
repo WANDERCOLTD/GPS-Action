@@ -278,6 +278,7 @@ via Settings → "Data"). Still in use elsewhere — e.g.
 | Filter chip — Urgent        | `zap`                     | `FeedFilterChips` (BU-icon-strips)                                                                                                               |
 | Filter chip — Happening now | `radio`                   | `FeedFilterChips` (BU-icon-strips)                                                                                                               |
 | Filter chip — Meetings      | `users`                   | `FeedFilterChips` (BU-icon-strips)                                                                                                               |
+| Filter chip — Unread / new  | `sparkles`                | `NetworkUnreadChip` (bu-network-unread-icon — icon-only chip to free horizontal space on the source chip rail)                                   |
 | Comments tab — Activity     | `activity`                | `CommentList` (BU-icon-strips)                                                                                                                   |
 | Sort affordance — Distance  | `ruler-dimension-line`    | `NearMeView` (BU-icon-strips — map-scale-bar look)                                                                                               |
 | Search trigger              | `search`                  | `AppNav` (BU-search-surface, PR C — magnifier in the header strip)                                                                               |

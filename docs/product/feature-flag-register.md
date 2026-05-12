@@ -34,6 +34,7 @@
 | `network_link_previews` | rollout | OFF                    | ON            | TTL: 2026-11-10 | OpenGraph hero/title/description on `/network` cards. BU-network-link-previews. Reuses `fetchLinkMetadata` + `<LinkPreviewCard>`. |
 | `network_first`         | rollout | OFF                    | OFF           | TTL: 2026-11-11 | Root `/` redirects to `/network` (was `/feed`); Feed/Calendar/Requests AppNav tabs dim to 40% opacity. bu-network-first.          |
 | `hide_feed_tab`         | rollout | OFF                    | OFF           | TTL: 2026-11-11 | When on, the Feed tab is removed from AppNav entirely. Pairs with `network_first` for "Network is the only home" IA.              |
+| `network_unread_chip`   | rollout | OFF                    | OFF           | TTL: 2026-11-12 | Display gate for the sparkles "Unread only" chip on `/network`. `?unread=1` URL and client filter stay wired regardless.          |
 
 ## Flag rationale
 
@@ -183,6 +184,27 @@
   this flag (plus the tab JSX) is removed, or we walk it back.
 - **Audit:** flag-flip rows captured in `audit_log` per D036 §7.
 - **Kill-switch posture:** trivial — flip OFF and Feed reappears.
+
+### `network_unread_chip`
+
+- **Build unit:** bu-network-unread-icon (same PR). Sits on top of
+  `bu-network-seen-state` which shipped the underlying filter and the
+  `?unread=1` URL contract.
+- **What it gates:** display of the sparkles "Unread only" chip in
+  the `PageHeader` sort cluster on `/network`. The `?unread=1` URL
+  param and the client-side filter inside `NetworkFeed` remain wired
+  up regardless — flag OFF only hides the visible affordance, it
+  does not break existing bookmarked filter URLs.
+- **Default OFF in prod and dev:** the seen-state UX is still being
+  evaluated (first-visit fallback shipped in #365 was a recent
+  correction). Flip ON once the desktop + iPhone behaviour is
+  validated end-to-end with a real Whapi pipe trickle.
+- **TTL:** 2026-11-12 (six months from registration). At TTL: either
+  the chip is fully rolled out (flag + this row removed) or the
+  owner extends with a reason.
+- **Audit:** flag-flip rows captured in `audit_log` per D036 §7.
+- **Kill-switch posture:** trivial — flip OFF, chip disappears, URL
+  filter continues to work for anyone who has the bookmarked link.
 
 ## How to register a new flag
 

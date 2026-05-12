@@ -1,11 +1,11 @@
 /**
  * Unit tests for NetworkSortControl + parseSortParam.
  *
- * @build-unit bu-network-sort-options
+ * @build-unit bu-network-sort-options bu-network-sort-toggle
  *
  * Same tree-walk pattern as the chip-strip / feed-filter tests —
  * invokes the component as a plain function, walks the ReactElement
- * tree, asserts hrefs and active state.
+ * tree, asserts hrefs and current-state attributes.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -30,56 +30,37 @@ function flatChildren(el: AnyElement): AnyElement[] {
   return acc;
 }
 
-function optionsBySort(tree: AnyElement): Map<string, AnyElement> {
-  const out = new Map<string, AnyElement>();
-  for (const el of flatChildren(tree)) {
-    if (el.props['data-testid'] === 'network-sort-option') {
-      const sort = el.props['data-sort'];
-      if (typeof sort === 'string') out.set(sort, el);
-    }
-  }
-  return out;
+function toggle(tree: AnyElement): AnyElement | undefined {
+  return flatChildren(tree).find((el) => el.props['data-testid'] === 'network-sort-toggle');
 }
 
 describe('NetworkSortControl', () => {
-  it('renders both Newest and Oldest options', () => {
+  it('renders one anchor with data-current reflecting the active sort', () => {
     const tree = NetworkSortControl({ active: 'recent' }) as AnyElement;
-    const opts = optionsBySort(tree);
-    expect(opts.size).toBe(2);
-    expect(opts.has('recent')).toBe(true);
-    expect(opts.has('oldest')).toBe(true);
+    const a = toggle(tree);
+    expect(a).toBeDefined();
+    expect(a?.props['data-current']).toBe('recent');
+    expect(a?.props['data-next']).toBe('oldest');
   });
 
-  it('marks the active option with aria-current and data-active', () => {
-    const tree = NetworkSortControl({ active: 'oldest' }) as AnyElement;
-    const opts = optionsBySort(tree);
-    expect(opts.get('oldest')?.props['aria-current']).toBe('page');
-    expect(opts.get('oldest')?.props['data-active']).toBe('true');
-    expect(opts.get('recent')?.props['data-active']).toBe('false');
-  });
-
-  it('points "Newest" (default) at the bare /network (param stripped)', () => {
-    const tree = NetworkSortControl({ active: 'oldest' }) as AnyElement;
-    const opts = optionsBySort(tree);
-    expect(opts.get('recent')?.props.href).toBe('/network');
-  });
-
-  it('points "Oldest" at /network?sort=oldest', () => {
+  it('when active=recent, href points at /network?sort=oldest (the flipped target)', () => {
     const tree = NetworkSortControl({ active: 'recent' }) as AnyElement;
-    const opts = optionsBySort(tree);
-    expect(opts.get('oldest')?.props.href).toBe('/network?sort=oldest');
+    expect(toggle(tree)?.props.href).toBe('/network?sort=oldest');
   });
 
-  it('preserves source param when toggling sort', () => {
+  it('when active=oldest, href points at /network (param stripped — back to default)', () => {
+    const tree = NetworkSortControl({ active: 'oldest' }) as AnyElement;
+    expect(toggle(tree)?.props.href).toBe('/network');
+  });
+
+  it('preserves source param when flipping sort', () => {
     const tree = NetworkSortControl({
       active: 'recent',
       preserveParams: { source: 'hendon-jag,gps-action-network' },
     }) as AnyElement;
-    const opts = optionsBySort(tree);
-    expect(opts.get('oldest')?.props.href).toBe(
+    expect(toggle(tree)?.props.href).toBe(
       '/network?source=hendon-jag,gps-action-network&sort=oldest',
     );
-    expect(opts.get('recent')?.props.href).toBe('/network?source=hendon-jag,gps-action-network');
   });
 
   it('omits preserved params that are undefined', () => {
@@ -87,9 +68,15 @@ describe('NetworkSortControl', () => {
       active: 'recent',
       preserveParams: { source: undefined },
     }) as AnyElement;
-    const opts = optionsBySort(tree);
-    expect(opts.get('oldest')?.props.href).toBe('/network?sort=oldest');
-    expect(opts.get('recent')?.props.href).toBe('/network');
+    expect(toggle(tree)?.props.href).toBe('/network?sort=oldest');
+  });
+
+  it('aria-label describes the current state AND the action of tapping', () => {
+    const tree = NetworkSortControl({ active: 'recent' }) as AnyElement;
+    const label = toggle(tree)?.props['aria-label'];
+    expect(typeof label).toBe('string');
+    expect(label).toMatch(/Newest first/);
+    expect(label).toMatch(/oldest/i);
   });
 });
 
