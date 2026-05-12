@@ -26,6 +26,7 @@ import { isFeatureEnabled } from '@/server/services/flags';
 import { NetworkFeed } from '@/app/network/network-feed';
 import { NetworkSortControl, parseSortParam } from '@/components/NetworkSortControl';
 import { NetworkSourceChipStrip, parseSourcesParam } from '@/components/NetworkSourceChipStrip';
+import { NetworkUnreadChip, parseUnreadParam } from '@/components/NetworkUnreadChip';
 import { PageHeader } from '@/components/PageHeader';
 import { serializeNetworkListResponse } from '@/shared/network-card';
 
@@ -36,12 +37,17 @@ export const metadata = {
 interface NetworkPageProps {
   /**
    * Next 15 App Router: `searchParams` is a Promise (per the App Router
-   * async API change). The page reads `?source=slug-a,slug-b` and
-   * `?sort=recent|oldest` and threads both through to the chip strip
-   * (active state), the sort control (active state), and the tRPC
-   * `list` call (server-side filter + sort).
+   * async API change). The page reads `?source=slug-a,slug-b`,
+   * `?sort=recent|oldest`, and `?unread=1` and threads all three
+   * through to the chip strip (active state), the sort control (active
+   * state), the unread chip (active state), and the tRPC `list` call
+   * (server-side filter + sort).
    */
-  searchParams: Promise<{ source?: string | string[]; sort?: string | string[] }>;
+  searchParams: Promise<{
+    source?: string | string[];
+    sort?: string | string[];
+    unread?: string | string[];
+  }>;
 }
 
 export default async function NetworkPage({ searchParams }: NetworkPageProps) {
@@ -88,32 +94,52 @@ export default async function NetworkPage({ searchParams }: NetworkPageProps) {
   const params = await searchParams;
   const activeSources = parseSourcesParam(params.source);
   const activeSort = parseSortParam(params.sort);
+  const unreadOnly = parseUnreadParam(params.unread);
   const [initial, sources] = await Promise.all([
     caller.network.list({ sources: activeSources, sort: activeSort }),
     caller.network.listSources({}),
   ]);
   const initialSerialised = serializeNetworkListResponse(initial);
 
-  // Each filter surface must preserve the other's URL state when its
-  // own links are clicked — otherwise toggling a source chip would
-  // silently reset sort to default, and vice versa.
+  // Each filter surface must preserve the others' URL state when its
+  // own links are clicked — otherwise toggling one would silently
+  // reset the others to default.
   const sourceQs = activeSources.length ? [...activeSources].sort().join(',') : undefined;
   const sortQs = activeSort !== 'recent' ? activeSort : undefined;
+  const unreadQs = unreadOnly ? '1' : undefined;
 
+  // bu-network-seen-state — Unread-only chip rides alongside the
+  // source chip strip; both are server-rendered and passed into the
+  // client `NetworkFeed` together so the chip rail in the PageHeader
+  // stays a single horizontal cluster.
   const chipStrip = (
-    <NetworkSourceChipStrip
-      sources={sources}
-      active={activeSources}
-      preserveParams={{ sort: sortQs }}
-    />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+      <NetworkSourceChipStrip
+        sources={sources}
+        active={activeSources}
+        preserveParams={{ sort: sortQs, unread: unreadQs }}
+      />
+      <NetworkUnreadChip
+        active={unreadOnly}
+        preserveParams={{ source: sourceQs, sort: sortQs }}
+      />
+    </div>
   );
   const sortControl = (
-    <NetworkSortControl active={activeSort} preserveParams={{ source: sourceQs }} />
+    <NetworkSortControl
+      active={activeSort}
+      preserveParams={{ source: sourceQs, unread: unreadQs }}
+    />
   );
 
   return (
     <main style={{ maxWidth: 720, margin: '0 auto' }} data-testid="network-page">
-      <NetworkFeed initial={initialSerialised} chipStrip={chipStrip} sortControl={sortControl} />
+      <NetworkFeed
+        initial={initialSerialised}
+        chipStrip={chipStrip}
+        sortControl={sortControl}
+        unreadOnly={unreadOnly}
+      />
     </main>
   );
 }

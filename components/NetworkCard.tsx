@@ -40,6 +40,7 @@
 
 import type { CSSProperties, MouseEvent } from 'react';
 import type { ShareDestination } from '@prisma/client';
+import { EyeOff } from 'lucide-react';
 import type { NetworkCardStatus, SerializedNetworkCard } from '@/shared/network-card';
 import { isZoomUrl, parseZoomInvitation } from '@/shared/lib/parse-zoom-invitation';
 import { getSourceColor } from '@/shared/styles/source-palette';
@@ -71,6 +72,26 @@ interface NetworkCardProps {
    * but no verification prompt appears).
    */
   onShareInitiated?: (messageId: string, destination: ShareDestination) => void;
+  /**
+   * bu-network-seen-state — card arrived after the user's previous
+   * /network visit. Parent computes this from `localStorage`
+   * `lastVisitedAt` vs `card.sentAt`. Renders as a left-edge accent
+   * strip; absent / false renders nothing.
+   */
+  isNew?: boolean;
+  /**
+   * bu-network-seen-state — user has tapped the eye-off icon on this
+   * browser. Card renders dimmed but stays clickable; the strip (if
+   * `isNew`) still renders so "new but I dismissed it" reads
+   * coherently.
+   */
+  dismissed?: boolean;
+  /**
+   * bu-network-seen-state — toggles `dismissed` for this card. Omit
+   * to suppress the eye-off icon entirely (keeps callers that don't
+   * own seen-state working).
+   */
+  onToggleDismissed?: () => void;
 }
 
 export function NetworkCard({
@@ -82,6 +103,9 @@ export function NetworkCard({
   onRemoveReaction,
   canReact = true,
   onShareInitiated,
+  isNew = false,
+  dismissed = false,
+  onToggleDismissed,
 }: NetworkCardProps) {
   const title = card.linkTitle ?? hostnameOf(card.url);
   const sender = card.fromName ?? 'anonymous member';
@@ -121,8 +145,21 @@ export function NetworkCard({
       data-status={card.state.status}
       data-anon={isAnon ? 'true' : 'false'}
       data-has-preview={hasPreview ? 'true' : 'false'}
-      style={cardStyle}
+      data-is-new={isNew ? 'true' : 'false'}
+      data-dismissed={dismissed ? 'true' : 'false'}
+      style={cardStyleFor({ isNew, dismissed })}
     >
+      {isNew && (
+        <>
+          {/* bu-network-seen-state — left-edge accent strip. Absolutely
+              positioned so layout doesn't shift between isNew and not.
+              Screen-reader label sits next to it (visually hidden) so
+              the signal isn't colour-only per a11y. */}
+          <span aria-hidden="true" data-testid="network-card-new-strip" style={newStripStyle} />
+          <span style={visuallyHidden}>New — arrived since your last visit</span>
+        </>
+      )}
+
       {!hasPreview && (
         <header style={{ marginBottom: 'var(--space-2)' }}>
           <a
@@ -327,6 +364,24 @@ export function NetworkCard({
                 Reset
               </button>
             )}
+            {onToggleDismissed && (
+              <button
+                type="button"
+                data-testid="network-card-dismiss-toggle"
+                data-message-id={card.messageId}
+                data-dismissed={dismissed ? 'true' : 'false'}
+                onClick={(e: MouseEvent<HTMLButtonElement>) => {
+                  e.preventDefault();
+                  onToggleDismissed();
+                }}
+                aria-label={dismissed ? 'Mark as not seen' : 'Mark as seen'}
+                aria-pressed={dismissed}
+                title={dismissed ? 'Mark as not seen' : 'Mark as seen'}
+                style={dismissButtonStyle(dismissed)}
+              >
+                <EyeOff size={16} aria-hidden="true" />
+              </button>
+            )}
           </footer>
         </div>
 
@@ -368,13 +423,55 @@ export function NetworkCard({
 
 // ── Styling (inline, tokens-only — palette refresh in flight) ─────────────
 
-const cardStyle: CSSProperties = {
-  background: 'var(--colour-surface-raised)',
-  border: '1px solid var(--colour-border-subtle)',
-  borderRadius: 'var(--radius-md)',
-  padding: 'var(--space-4) var(--space-5)',
-  marginBottom: 'var(--space-3)',
-  fontFamily: 'var(--font-ui)',
+function cardStyleFor({ isNew, dismissed }: { isNew: boolean; dismissed: boolean }): CSSProperties {
+  return {
+    background: 'var(--colour-surface-raised)',
+    border: '1px solid var(--colour-border-subtle)',
+    borderRadius: 'var(--radius-md)',
+    padding: 'var(--space-4) var(--space-5)',
+    marginBottom: 'var(--space-3)',
+    fontFamily: 'var(--font-ui)',
+    // bu-network-seen-state — relative so the absolutely-positioned
+    // accent strip can hug the card's left edge without shifting
+    // layout. Opacity dims the whole card when dismissed; child
+    // links and buttons stay clickable.
+    position: 'relative',
+    opacity: dismissed ? 0.5 : 1,
+    // Hint for the accent strip's compositor on isNew — purely
+    // cosmetic, no effect on non-new cards.
+    transition: isNew ? 'opacity 120ms ease-out' : undefined,
+  };
+}
+
+// bu-network-seen-state — accent strip rendered as an absolutely-
+// positioned `<span>` so the layout never shifts. ~3px wide,
+// full-card-height (top/bottom: 0), accent-token colour. Tucks
+// just inside the rounded corner so it doesn't visually clip.
+const newStripStyle: CSSProperties = {
+  position: 'absolute',
+  left: 0,
+  top: 0,
+  bottom: 0,
+  width: 3,
+  background: 'var(--colour-primary)',
+  borderTopLeftRadius: 'var(--radius-md)',
+  borderBottomLeftRadius: 'var(--radius-md)',
+  pointerEvents: 'none',
+};
+
+// Visually-hidden text (sr-only equivalent). Pairs with the accent
+// strip so the "new" signal is announced to assistive tech even
+// though the visible indicator is colour-only.
+const visuallyHidden: CSSProperties = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
 };
 
 const titleLinkStyle: CSSProperties = {
@@ -458,6 +555,25 @@ const resetButtonStyle: CSSProperties = {
   color: 'var(--colour-text-tertiary)',
   borderStyle: 'dashed',
 };
+
+// bu-network-seen-state — eye-off toggle in the triage footer.
+// Square button matching triage-button height so the row aligns.
+function dismissButtonStyle(active: boolean): CSSProperties {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 32,
+    height: 32,
+    marginLeft: 'auto', // push to the far end of the triage row
+    borderRadius: 'var(--radius-pill)',
+    border: '1px solid var(--colour-border-subtle)',
+    background: active ? 'var(--colour-surface-sunken)' : 'transparent',
+    color: active ? 'var(--colour-text-primary)' : 'var(--colour-text-tertiary)',
+    cursor: 'pointer',
+    flexShrink: 0,
+  };
+}
 
 // ── Display helpers ────────────────────────────────────────────────────────
 
