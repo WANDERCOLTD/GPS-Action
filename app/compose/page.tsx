@@ -42,6 +42,7 @@ import {
   type PublishModalKindConfigBySlug,
 } from '@/components/PostForm';
 import { ArrowLink } from '@/components/ArrowLink';
+import { PageHeader } from '@/components/PageHeader';
 import { createPostAction } from '@/app/compose/actions';
 import { whatsappNetworkChannelUrlOrNull } from '@/shared/env/whatsapp-network-channel';
 import { getSiteOrigin } from '@/shared/site-origin';
@@ -123,29 +124,31 @@ export default async function ComposePage({ searchParams }: PageProps) {
   const siteOrigin = getSiteOrigin();
 
   return (
-    <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
-      <div style={{ marginBottom: 'var(--space-4)' }}>
-        <ArrowLink href="/feed" direction="back" testIdArea="compose" testIdSuffix="back-feed">
-          Back to feed
-        </ArrowLink>
-      </div>
-      <h1
-        className="gps-title"
-        style={{ marginBottom: 'var(--space-6)' }}
-        data-testid="compose-page-title"
+    <>
+      <PageHeader title="Create a post" />
+      <main
+        style={{
+          padding: 'var(--space-5) var(--space-8) var(--space-8)',
+          maxWidth: 720,
+          margin: '0 auto',
+        }}
       >
-        Create a post
-      </h1>
-      <PostForm
-        onSubmit={createPostAction}
-        intent={intent}
-        kindMap={kindMap}
-        kindConfigBySlug={kindConfigBySlug}
-        networkChannelUrl={networkChannelUrl}
-        siteOrigin={siteOrigin}
-        prefilledLinkUrl={prefilledLinkUrl || undefined}
-        prefilledTitle={prefilledTitle || undefined}
-      />
-    </main>
+        <div style={{ marginBottom: 'var(--space-4)' }}>
+          <ArrowLink href="/feed" direction="back" testIdArea="compose" testIdSuffix="back-feed">
+            Back to feed
+          </ArrowLink>
+        </div>
+        <PostForm
+          onSubmit={createPostAction}
+          intent={intent}
+          kindMap={kindMap}
+          kindConfigBySlug={kindConfigBySlug}
+          networkChannelUrl={networkChannelUrl}
+          siteOrigin={siteOrigin}
+          prefilledLinkUrl={prefilledLinkUrl || undefined}
+          prefilledTitle={prefilledTitle || undefined}
+        />
+      </main>
+    </>
   );
 }

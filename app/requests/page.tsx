@@ -14,6 +14,7 @@
 
 import { redirect } from 'next/navigation';
 import { ArrowLink } from '@/components/ArrowLink';
+import { PageHeader } from '@/components/PageHeader';
 import { listNotificationsForUser, countUnreadForUser } from '@/server/services/notification';
 import { createTRPCContext } from '@/server/routers/context';
 import { RequestRow } from '@/components/RequestRow';
@@ -71,162 +72,112 @@ export default async function RequestsPage() {
   ]);
 
   return (
-    <main
-      style={{
-        padding: 'var(--space-6) var(--space-4)',
-        maxWidth: 720,
-        margin: '0 auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-6)',
-      }}
-    >
-      <h1 className="gps-title" data-testid="requests-page-title">
-        Requests
-      </h1>
-
-      {/* Notifications section (BU-requests-vetting / D057) — only when there are any */}
-      {notifications.length > 0 && (
-        <section data-testid="requests-notifications-section">
-          <h2
-            className="gps-subtitle"
-            style={{
-              marginBottom: 'var(--space-3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)',
-            }}
-            data-testid="requests-notifications-title"
-          >
-            <span>Notifications</span>
-            {unreadCount > 0 && (
-              <span className="gps-chip gps-chip--static gps-chip--warning">{unreadCount} new</span>
-            )}
-          </h2>
-          <ul
-            style={{
-              margin: 0,
-              padding: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 'var(--space-2)',
-            }}
-            data-testid="requests-notifications-list"
-          >
-            {notifications.slice(0, 5).map((n) => (
-              <li
-                key={n.id}
-                data-testid="requests-notifications-row"
-                data-notification-id={n.id}
-                data-unread={n.readAt === null || undefined}
-                style={{
-                  listStyle: 'none',
-                  padding: 'var(--space-2) var(--space-3)',
-                  borderRadius: 'var(--radius-sm)',
-                  background:
-                    n.readAt === null
-                      ? 'var(--colour-warning-subtle)'
-                      : 'var(--colour-surface-raised)',
-                  borderLeft:
-                    n.readAt === null ? '3px solid var(--colour-warning)' : '3px solid transparent',
-                  borderTop: '1px solid var(--colour-border-subtle)',
-                  borderRight: '1px solid var(--colour-border-subtle)',
-                  borderBottom: '1px solid var(--colour-border-subtle)',
-                  fontSize: 'var(--text-sm)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                }}
-              >
-                <span style={{ flex: 1 }}>
-                  <strong>{n.fromDisplayName ?? 'Someone'}</strong>{' '}
-                  {n.type === 'request_mention' && 'mentioned you in a request'}
-                  {n.type === 'request_status_changed' && 'updated your request'}
-                  {n.type === 'request_resolved' && 'resolved your request'}
-                  {n.type === 'request_published' && 'published your draft'}
-                  {n.type === 'request_archived' && 'archived your draft'}
+    <>
+      <PageHeader title="Requests" description="Submitted requests and reviewer queue" />
+      <main
+        style={{
+          padding: 'var(--space-5) var(--space-4) var(--space-6)',
+          maxWidth: 720,
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-6)',
+        }}
+      >
+        {/* Notifications section (BU-requests-vetting / D057) — only when there are any */}
+        {notifications.length > 0 && (
+          <section data-testid="requests-notifications-section">
+            <h2
+              className="gps-subtitle"
+              style={{
+                marginBottom: 'var(--space-3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+              }}
+              data-testid="requests-notifications-title"
+            >
+              <span>Notifications</span>
+              {unreadCount > 0 && (
+                <span className="gps-chip gps-chip--static gps-chip--warning">
+                  {unreadCount} new
                 </span>
-                {n.requestId && (
-                  <ArrowLink
-                    href={`/requests/${n.requestId}`}
-                    direction="forward"
-                    size="sm"
-                    testIdArea="requests"
-                    testIdSuffix="notifications-open"
-                  >
-                    Open
-                  </ArrowLink>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* Submitter section — always visible */}
-      <section data-testid="requests-submitter-section">
-        <h2
-          className="gps-subtitle"
-          style={{ marginBottom: 'var(--space-3)' }}
-          data-testid="requests-submitter-title"
-        >
-          My requests ({mine.length})
-        </h2>
-        {mine.length === 0 ? (
-          <div
-            data-testid="requests-submitter-empty"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 'var(--space-1)',
-              padding: 'var(--space-4) 0',
-              fontFamily: 'var(--font-ui)',
-            }}
-          >
-            <p style={{ margin: 0, color: 'var(--colour-text-secondary)' }}>Nothing to show.</p>
-            <p
+              )}
+            </h2>
+            <ul
               style={{
                 margin: 0,
-                fontSize: 'var(--text-sm)',
-                color: 'var(--colour-text-tertiary)',
+                padding: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-2)',
               }}
+              data-testid="requests-notifications-list"
             >
-              Things you submit (vetting, flags, edit requests) will appear here.
-            </p>
-          </div>
-        ) : (
-          <ul style={{ margin: 0, padding: 0 }}>
-            {mine.map((r) => (
-              <RequestRow key={r.id} row={r} canAct={false} callerId={userId} />
-            ))}
-          </ul>
+              {notifications.slice(0, 5).map((n) => (
+                <li
+                  key={n.id}
+                  data-testid="requests-notifications-row"
+                  data-notification-id={n.id}
+                  data-unread={n.readAt === null || undefined}
+                  style={{
+                    listStyle: 'none',
+                    padding: 'var(--space-2) var(--space-3)',
+                    borderRadius: 'var(--radius-sm)',
+                    background:
+                      n.readAt === null
+                        ? 'var(--colour-warning-subtle)'
+                        : 'var(--colour-surface-raised)',
+                    borderLeft:
+                      n.readAt === null
+                        ? '3px solid var(--colour-warning)'
+                        : '3px solid transparent',
+                    borderTop: '1px solid var(--colour-border-subtle)',
+                    borderRight: '1px solid var(--colour-border-subtle)',
+                    borderBottom: '1px solid var(--colour-border-subtle)',
+                    fontSize: 'var(--text-sm)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                  }}
+                >
+                  <span style={{ flex: 1 }}>
+                    <strong>{n.fromDisplayName ?? 'Someone'}</strong>{' '}
+                    {n.type === 'request_mention' && 'mentioned you in a request'}
+                    {n.type === 'request_status_changed' && 'updated your request'}
+                    {n.type === 'request_resolved' && 'resolved your request'}
+                    {n.type === 'request_published' && 'published your draft'}
+                    {n.type === 'request_archived' && 'archived your draft'}
+                  </span>
+                  {n.requestId && (
+                    <ArrowLink
+                      href={`/requests/${n.requestId}`}
+                      direction="forward"
+                      size="sm"
+                      testIdArea="requests"
+                      testIdSuffix="notifications-open"
+                    >
+                      Open
+                    </ArrowLink>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
-      </section>
 
-      {/* Reviewer section — only if caller has a reviewer scope */}
-      {isReviewer && (
-        <section data-testid="requests-reviewer-section">
+        {/* Submitter section — always visible */}
+        <section data-testid="requests-submitter-section">
           <h2
             className="gps-subtitle"
             style={{ marginBottom: 'var(--space-3)' }}
-            data-testid="requests-reviewer-title"
+            data-testid="requests-submitter-title"
           >
-            Reviewer queue ({queue.length})
+            My requests ({mine.length})
           </h2>
-          <p
-            style={{
-              color: 'var(--colour-text-secondary)',
-              fontSize: 'var(--text-xs)',
-              marginBottom: 'var(--space-3)',
-            }}
-          >
-            {hasAdmin || hasUnscopedQueueManager
-              ? 'You see all Request types.'
-              : `You see: ${scopedTypes.map((t) => TYPE_LABELS[t]).join(', ')}.`}
-          </p>
-          {queue.length === 0 ? (
+          {mine.length === 0 ? (
             <div
-              data-testid="requests-reviewer-empty"
+              data-testid="requests-submitter-empty"
               style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -235,9 +186,7 @@ export default async function RequestsPage() {
                 fontFamily: 'var(--font-ui)',
               }}
             >
-              <p style={{ margin: 0, color: 'var(--colour-text-secondary)' }}>
-                Nothing in the queue.
-              </p>
+              <p style={{ margin: 0, color: 'var(--colour-text-secondary)' }}>Nothing to show.</p>
               <p
                 style={{
                   margin: 0,
@@ -245,40 +194,95 @@ export default async function RequestsPage() {
                   color: 'var(--colour-text-tertiary)',
                 }}
               >
-                New Requests will surface here as members submit them.
+                Things you submit (vetting, flags, edit requests) will appear here.
               </p>
             </div>
           ) : (
             <ul style={{ margin: 0, padding: 0 }}>
-              {queue.map((r) => (
-                <RequestRow key={r.id} row={r} canAct={true} callerId={userId} />
+              {mine.map((r) => (
+                <RequestRow key={r.id} row={r} canAct={false} callerId={userId} />
               ))}
             </ul>
           )}
-          <p
-            style={{
-              marginTop: 'var(--space-4)',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--colour-text-secondary)',
-            }}
-          >
-            Foundation BU: read-only. Claim, comment, and resolve actions land in BU-requests-urgent
-            and BU-requests-vetting.
-          </p>
         </section>
-      )}
 
-      <div
-        style={{
-          marginTop: 'var(--space-4)',
-          paddingTop: 'var(--space-4)',
-          borderTop: '1px solid var(--colour-border-subtle)',
-        }}
-      >
-        <ArrowLink href="/feed" direction="back" testIdArea="requests" testIdSuffix="back-feed">
-          Back to feed
-        </ArrowLink>
-      </div>
-    </main>
+        {/* Reviewer section — only if caller has a reviewer scope */}
+        {isReviewer && (
+          <section data-testid="requests-reviewer-section">
+            <h2
+              className="gps-subtitle"
+              style={{ marginBottom: 'var(--space-3)' }}
+              data-testid="requests-reviewer-title"
+            >
+              Reviewer queue ({queue.length})
+            </h2>
+            <p
+              style={{
+                color: 'var(--colour-text-secondary)',
+                fontSize: 'var(--text-xs)',
+                marginBottom: 'var(--space-3)',
+              }}
+            >
+              {hasAdmin || hasUnscopedQueueManager
+                ? 'You see all Request types.'
+                : `You see: ${scopedTypes.map((t) => TYPE_LABELS[t]).join(', ')}.`}
+            </p>
+            {queue.length === 0 ? (
+              <div
+                data-testid="requests-reviewer-empty"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--space-1)',
+                  padding: 'var(--space-4) 0',
+                  fontFamily: 'var(--font-ui)',
+                }}
+              >
+                <p style={{ margin: 0, color: 'var(--colour-text-secondary)' }}>
+                  Nothing in the queue.
+                </p>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--colour-text-tertiary)',
+                  }}
+                >
+                  New Requests will surface here as members submit them.
+                </p>
+              </div>
+            ) : (
+              <ul style={{ margin: 0, padding: 0 }}>
+                {queue.map((r) => (
+                  <RequestRow key={r.id} row={r} canAct={true} callerId={userId} />
+                ))}
+              </ul>
+            )}
+            <p
+              style={{
+                marginTop: 'var(--space-4)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--colour-text-secondary)',
+              }}
+            >
+              Foundation BU: read-only. Claim, comment, and resolve actions land in
+              BU-requests-urgent and BU-requests-vetting.
+            </p>
+          </section>
+        )}
+
+        <div
+          style={{
+            marginTop: 'var(--space-4)',
+            paddingTop: 'var(--space-4)',
+            borderTop: '1px solid var(--colour-border-subtle)',
+          }}
+        >
+          <ArrowLink href="/feed" direction="back" testIdArea="requests" testIdSuffix="back-feed">
+            Back to feed
+          </ArrowLink>
+        </div>
+      </main>
+    </>
   );
 }

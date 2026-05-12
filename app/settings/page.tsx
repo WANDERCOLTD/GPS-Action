@@ -12,6 +12,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLink } from '@/components/ArrowLink';
+import { PageHeader } from '@/components/PageHeader';
 import { createTRPCContext } from '@/server/routers/context';
 
 export const metadata = {
@@ -29,180 +30,187 @@ export default async function SettingsPage() {
   const canSeeData = isAdmin || isQueueManager;
 
   return (
-    <main
-      style={{
-        padding: 'var(--space-6) var(--space-4)',
-        maxWidth: 720,
-        margin: '0 auto',
-      }}
-    >
-      <div style={{ marginBottom: 'var(--space-4)' }}>
-        <ArrowLink href="/feed" direction="back" testIdArea="settings" testIdSuffix="back-feed-top">
-          Back to feed
-        </ArrowLink>
-      </div>
-      <h1 className="gps-title" data-testid="settings-page-title">
-        Settings
-      </h1>
-      <p
+    <>
+      <PageHeader
+        title="Settings"
+        description="Account preferences, notification settings, and admin controls"
+      />
+      <main
         style={{
-          color: 'var(--colour-text-secondary)',
-          fontSize: 'var(--text-sm)',
-          marginBottom: 'var(--space-6)',
+          padding: 'var(--space-5) var(--space-4) var(--space-6)',
+          maxWidth: 720,
+          margin: '0 auto',
         }}
       >
-        Account preferences, notification settings, and admin controls. Most of these surfaces are
-        stubs today; they land in their own BUs.
-      </p>
+        <div style={{ marginBottom: 'var(--space-4)' }}>
+          <ArrowLink
+            href="/feed"
+            direction="back"
+            testIdArea="settings"
+            testIdSuffix="back-feed-top"
+          >
+            Back to feed
+          </ArrowLink>
+        </div>
+        <p
+          style={{
+            color: 'var(--colour-text-secondary)',
+            fontSize: 'var(--text-sm)',
+            marginBottom: 'var(--space-6)',
+          }}
+        >
+          Most of these surfaces are stubs today; they land in their own BUs.
+        </p>
 
-      <ul
-        style={{
-          margin: 0,
-          padding: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'var(--space-2)',
-        }}
-        data-testid="settings-section-list"
-      >
-        <li
+        <ul
           style={{
-            listStyle: 'none',
-            padding: 'var(--space-4)',
-            background: 'var(--colour-surface-raised)',
-            border: '1px solid var(--colour-border-subtle)',
-            borderRadius: 'var(--radius-md)',
+            margin: 0,
+            padding: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-2)',
           }}
-          data-testid="settings-section-account"
+          data-testid="settings-section-list"
         >
-          <strong style={{ fontSize: 'var(--text-sm)' }}>Account</strong>
-          <p
-            style={{
-              margin: 'var(--space-1) 0 0 0',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--colour-text-secondary)',
-            }}
-          >
-            Display name, email, phone, profile photo. Lands in BU-account.
-          </p>
-        </li>
-        <li
-          style={{
-            listStyle: 'none',
-            padding: 'var(--space-4)',
-            background: 'var(--colour-surface-raised)',
-            border: '1px solid var(--colour-border-subtle)',
-            borderRadius: 'var(--radius-md)',
-          }}
-          data-testid="settings-section-notifications"
-        >
-          <strong style={{ fontSize: 'var(--text-sm)' }}>Notifications</strong>
-          <p
-            style={{
-              margin: 'var(--space-1) 0 0 0',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--colour-text-secondary)',
-            }}
-          >
-            In-app + push preferences. Lands with BU-requests-vetting (D057 Notifications entity).
-          </p>
-        </li>
-        {canSeeData && (
           <li
             style={{
               listStyle: 'none',
-              padding: 0,
+              padding: 'var(--space-4)',
               background: 'var(--colour-surface-raised)',
               border: '1px solid var(--colour-border-subtle)',
               borderRadius: 'var(--radius-md)',
             }}
-            data-testid="settings-section-data"
+            data-testid="settings-section-account"
           >
-            <Link
-              href="/data"
-              data-testid="settings-data-link"
+            <strong style={{ fontSize: 'var(--text-sm)' }}>Account</strong>
+            <p
               style={{
-                display: 'block',
-                padding: 'var(--space-4)',
-                color: 'inherit',
-                textDecoration: 'none',
+                margin: 'var(--space-1) 0 0 0',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--colour-text-secondary)',
               }}
             >
-              <strong style={{ fontSize: 'var(--text-sm)' }}>Data →</strong>
-              <p
-                style={{
-                  margin: 'var(--space-1) 0 0 0',
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--colour-text-secondary)',
-                }}
-              >
-                Inspect entities in the data model. Admins see all tables; queue managers see queue
-                tables. Read-only today; full CRUD lands in BU-admin-crud.
-              </p>
-            </Link>
+              Display name, email, phone, profile photo. Lands in BU-account.
+            </p>
           </li>
-        )}
-        {isAdmin && (
-          <>
+          <li
+            style={{
+              listStyle: 'none',
+              padding: 'var(--space-4)',
+              background: 'var(--colour-surface-raised)',
+              border: '1px solid var(--colour-border-subtle)',
+              borderRadius: 'var(--radius-md)',
+            }}
+            data-testid="settings-section-notifications"
+          >
+            <strong style={{ fontSize: 'var(--text-sm)' }}>Notifications</strong>
+            <p
+              style={{
+                margin: 'var(--space-1) 0 0 0',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--colour-text-secondary)',
+              }}
+            >
+              In-app + push preferences. Lands with BU-requests-vetting (D057 Notifications entity).
+            </p>
+          </li>
+          {canSeeData && (
             <li
               style={{
                 listStyle: 'none',
-                padding: 'var(--space-4)',
+                padding: 0,
                 background: 'var(--colour-surface-raised)',
                 border: '1px solid var(--colour-border-subtle)',
                 borderRadius: 'var(--radius-md)',
               }}
-              data-testid="settings-section-feature-flags"
+              data-testid="settings-section-data"
             >
-              <strong style={{ fontSize: 'var(--text-sm)' }}>Feature flags (admin)</strong>
-              <p
+              <Link
+                href="/data"
+                data-testid="settings-data-link"
                 style={{
-                  margin: 'var(--space-1) 0 0 0',
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--colour-text-secondary)',
+                  display: 'block',
+                  padding: 'var(--space-4)',
+                  color: 'inherit',
+                  textDecoration: 'none',
                 }}
               >
-                Toggle ff_reactions, ff_comments, etc. Lands as part of BU-admin-crud or its own
-                small BU. Today: read-only — see the Data section above (featureFlag entity).
-              </p>
+                <strong style={{ fontSize: 'var(--text-sm)' }}>Data →</strong>
+                <p
+                  style={{
+                    margin: 'var(--space-1) 0 0 0',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--colour-text-secondary)',
+                  }}
+                >
+                  Inspect entities in the data model. Admins see all tables; queue managers see
+                  queue tables. Read-only today; full CRUD lands in BU-admin-crud.
+                </p>
+              </Link>
             </li>
-            <li
-              style={{
-                listStyle: 'none',
-                padding: 'var(--space-4)',
-                background: 'var(--colour-surface-raised)',
-                border: '1px solid var(--colour-border-subtle)',
-                borderRadius: 'var(--radius-md)',
-              }}
-              data-testid="settings-section-urgent-ttl"
-            >
-              <strong style={{ fontSize: 'var(--text-sm)' }}>Urgent TTL (admin)</strong>
-              <p
+          )}
+          {isAdmin && (
+            <>
+              <li
                 style={{
-                  margin: 'var(--space-1) 0 0 0',
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--colour-text-secondary)',
+                  listStyle: 'none',
+                  padding: 'var(--space-4)',
+                  background: 'var(--colour-surface-raised)',
+                  border: '1px solid var(--colour-border-subtle)',
+                  borderRadius: 'var(--radius-md)',
                 }}
+                data-testid="settings-section-feature-flags"
               >
-                Default 4h per D058. Editable here once BU-requests-urgent ships the SystemSetting
-                model.
-              </p>
-            </li>
-          </>
-        )}
-      </ul>
+                <strong style={{ fontSize: 'var(--text-sm)' }}>Feature flags (admin)</strong>
+                <p
+                  style={{
+                    margin: 'var(--space-1) 0 0 0',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--colour-text-secondary)',
+                  }}
+                >
+                  Toggle ff_reactions, ff_comments, etc. Lands as part of BU-admin-crud or its own
+                  small BU. Today: read-only — see the Data section above (featureFlag entity).
+                </p>
+              </li>
+              <li
+                style={{
+                  listStyle: 'none',
+                  padding: 'var(--space-4)',
+                  background: 'var(--colour-surface-raised)',
+                  border: '1px solid var(--colour-border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                }}
+                data-testid="settings-section-urgent-ttl"
+              >
+                <strong style={{ fontSize: 'var(--text-sm)' }}>Urgent TTL (admin)</strong>
+                <p
+                  style={{
+                    margin: 'var(--space-1) 0 0 0',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--colour-text-secondary)',
+                  }}
+                >
+                  Default 4h per D058. Editable here once BU-requests-urgent ships the SystemSetting
+                  model.
+                </p>
+              </li>
+            </>
+          )}
+        </ul>
 
-      <div
-        style={{
-          marginTop: 'var(--space-6)',
-          paddingTop: 'var(--space-4)',
-          borderTop: '1px solid var(--colour-border-subtle)',
-        }}
-      >
-        <ArrowLink href="/feed" direction="back" testIdArea="settings" testIdSuffix="back-feed">
-          Back to feed
-        </ArrowLink>
-      </div>
-    </main>
+        <div
+          style={{
+            marginTop: 'var(--space-6)',
+            paddingTop: 'var(--space-4)',
+            borderTop: '1px solid var(--colour-border-subtle)',
+          }}
+        >
+          <ArrowLink href="/feed" direction="back" testIdArea="settings" testIdSuffix="back-feed">
+            Back to feed
+          </ArrowLink>
+        </div>
+      </main>
+    </>
   );
 }

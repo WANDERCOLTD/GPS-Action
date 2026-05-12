@@ -27,11 +27,13 @@
  * — the pill itself owns optimistic state, so this layer just relays.
  */
 
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import type { ShareDestination } from '@prisma/client';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { ClientOnly } from '@/components/ClientOnly';
 import { NetworkCard } from '@/components/NetworkCard';
+import { PageHeader } from '@/components/PageHeader';
 import { ShareConfirmDialog } from '@/components/ShareConfirmDialog';
 import { pingShareIntent } from '@/components/ShareGroup';
 import {
@@ -51,9 +53,13 @@ import type { FeedReaction, FeedReactionEmoji } from '@/components/PostCard';
 
 interface NetworkFeedProps {
   initial: SerializedNetworkListResponse;
+  /** Server-rendered chip strip (passed in from page.tsx). */
+  chipStrip: ReactNode;
+  /** Server-rendered sort control (passed in from page.tsx). */
+  sortControl: ReactNode;
 }
 
-export function NetworkFeed({ initial }: NetworkFeedProps) {
+export function NetworkFeed({ initial, chipStrip, sortControl }: NetworkFeedProps) {
   const [items, setItems] = useState<SerializedNetworkCard[]>(initial.items);
   const [cursor, setCursor] = useState<string | null>(initial.nextCursor);
   const [fetchedAt, setFetchedAt] = useState<string>(initial.fetchedAt);
@@ -244,111 +250,122 @@ export function NetworkFeed({ initial }: NetworkFeedProps) {
     });
   }, []);
 
-  return (
-    <div data-testid="network-feed">
-      <header
+  const refreshButton = (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+      <style>{`@keyframes gps-network-refresh-spin { to { transform: rotate(360deg); } }`}</style>
+      <span
+        data-testid="network-fetched-status"
+        data-from-cache={fromCache ? 'true' : 'false'}
         style={{
-          display: 'flex',
-          alignItems: 'baseline',
-          justifyContent: 'space-between',
-          marginBottom: 'var(--space-4)',
-          gap: 'var(--space-3)',
-          flexWrap: 'wrap',
+          fontFamily: 'var(--font-ui)',
+          fontSize: 'var(--text-xs)',
+          color: 'var(--colour-text-tertiary)',
+          whiteSpace: 'nowrap',
         }}
       >
-        <h1 className="gps-title" style={{ margin: 0 }}>
-          Network
-        </h1>
+        {/*
+         * `relativeTimeShort()` reads `Date.now()`, which drifts between
+         * SSR and first client paint. ClientOnly renders a static `0s`
+         * during SSR + first paint so hydration stays clean, then swaps
+         * to the live value.
+         */}
+        <ClientOnly fallback={<>0s</>}>{relativeTimeShort(fetchedAt)}</ClientOnly>
+      </span>
+      <button
+        type="button"
+        data-testid="network-refresh-button"
+        onClick={handleRefresh}
+        disabled={refreshing}
+        aria-label={refreshing ? 'Refreshing…' : 'Refresh'}
+        title={refreshing ? 'Refreshing…' : `${fromCache ? 'Cached' : 'Fresh'} · click to refresh`}
+        style={refreshButtonStyle}
+      >
+        {refreshing ? (
+          <Loader2
+            size={18}
+            aria-hidden="true"
+            style={{ animation: 'gps-network-refresh-spin 700ms linear infinite' }}
+          />
+        ) : (
+          <RefreshCw size={18} aria-hidden="true" />
+        )}
+      </button>
+    </div>
+  );
+
+  return (
+    <div data-testid="network-feed">
+      <PageHeader title="Network" description="Live from WhatsApp" actions={refreshButton}>
         <div
           style={{
             display: 'flex',
-            alignItems: 'baseline',
+            alignItems: 'center',
             gap: 'var(--space-3)',
-            color: 'var(--colour-text-tertiary)',
-            fontSize: 'var(--text-sm)',
-            fontFamily: 'var(--font-ui)',
+            minWidth: 0,
           }}
         >
-          <span data-testid="network-fetched-status" data-from-cache={fromCache ? 'true' : 'false'}>
-            {fromCache ? 'cached' : 'fresh'} ·{' '}
-            {/*
-             * `relativeTime()` reads `Date.now()`, which always drifts
-             * between SSR and first client paint — same fetchedAt, but
-             * a second has passed, so SSR renders "0s ago" and client
-             * hydrates to "1s ago". ClientOnly renders the static
-             * fallback during SSR + first paint (matching the server
-             * exactly), then swaps to the live formatter after mount.
-             */}
-            <ClientOnly fallback={<>0s ago</>}>{relativeTime(fetchedAt)}</ClientOnly>
-          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>{chipStrip}</div>
+          {sortControl}
+        </div>
+      </PageHeader>
+      <div style={{ padding: 'var(--space-5) var(--space-8) var(--space-8)' }}>
+        {error && (
+          <p
+            data-testid="network-error"
+            role="alert"
+            style={{
+              color: 'var(--colour-urgent)',
+              fontSize: 'var(--text-sm)',
+              margin: '0 0 var(--space-3) 0',
+            }}
+          >
+            {error}
+          </p>
+        )}
+
+        {items.length === 0 ? (
+          <NetworkEmptyState />
+        ) : (
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {items.map((card) => (
+              <li key={card.messageId}>
+                <NetworkCard
+                  card={card}
+                  pending={Boolean(pendingByMessageId[card.messageId])}
+                  onSetStatus={(status) => handleSetStatus(card, status)}
+                  reactions={reactionsByMessageId[card.messageId] ?? []}
+                  onAddReaction={(emoji) => handleAddReaction(card.messageId, emoji)}
+                  onRemoveReaction={(emoji) => handleRemoveReaction(card.messageId, emoji)}
+                  onShareInitiated={handleShareInitiated}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {cursor && (
           <button
             type="button"
-            data-testid="network-refresh-button"
-            onClick={handleRefresh}
-            disabled={refreshing}
-            style={refreshButtonStyle}
+            data-testid="network-load-more"
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            style={loadMoreButtonStyle}
           >
-            {refreshing ? 'Refreshing…' : 'Refresh'}
+            {loadingMore ? 'Loading…' : 'Load more'}
           </button>
-        </div>
-      </header>
+        )}
 
-      {error && (
-        <p
-          data-testid="network-error"
-          role="alert"
-          style={{
-            color: 'var(--colour-urgent)',
-            fontSize: 'var(--text-sm)',
-            margin: '0 0 var(--space-3) 0',
-          }}
-        >
-          {error}
-        </p>
-      )}
-
-      {items.length === 0 ? (
-        <NetworkEmptyState />
-      ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {items.map((card) => (
-            <li key={card.messageId}>
-              <NetworkCard
-                card={card}
-                pending={Boolean(pendingByMessageId[card.messageId])}
-                onSetStatus={(status) => handleSetStatus(card, status)}
-                reactions={reactionsByMessageId[card.messageId] ?? []}
-                onAddReaction={(emoji) => handleAddReaction(card.messageId, emoji)}
-                onRemoveReaction={(emoji) => handleRemoveReaction(card.messageId, emoji)}
-                onShareInitiated={handleShareInitiated}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {cursor && (
-        <button
-          type="button"
-          data-testid="network-load-more"
-          onClick={handleLoadMore}
-          disabled={loadingMore}
-          style={loadMoreButtonStyle}
-        >
-          {loadingMore ? 'Loading…' : 'Load more'}
-        </button>
-      )}
-
-      {pendingShare && (
-        <ShareConfirmDialog
-          targetType="network_card"
-          targetId={pendingShare.messageId}
-          destination={pendingShare.destination}
-          open
-          onConfirm={handleShareConfirm}
-          onSkip={handleShareSkip}
-        />
-      )}
+        {pendingShare && (
+          <ShareConfirmDialog
+            targetType="network_card"
+            targetId={pendingShare.messageId}
+            destination={pendingShare.destination}
+            open
+            onConfirm={handleShareConfirm}
+            onSkip={handleShareSkip}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -374,11 +391,14 @@ function NetworkEmptyState() {
 }
 
 const refreshButtonStyle: CSSProperties = {
-  fontFamily: 'var(--font-ui)',
-  fontSize: 'var(--text-sm)',
-  padding: 'var(--space-1) var(--space-3)',
-  border: '1px solid var(--colour-border-subtle)',
-  borderRadius: 'var(--radius-pill)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 32,
+  height: 32,
+  padding: 0,
+  border: 'none',
+  borderRadius: 'var(--radius-sm)',
   background: 'transparent',
   color: 'var(--colour-text-link)',
   cursor: 'pointer',
@@ -397,14 +417,20 @@ const loadMoreButtonStyle: CSSProperties = {
   margin: 'var(--space-4) auto 0',
 };
 
-function relativeTime(iso: string): string {
+/** Compact relative time ("3s", "2m", "2h", "1d") for the inline
+ * freshness pill next to the refresh icon. The `ago` suffix from the
+ * older `relativeTime()` was redundant once the freshness sits beside
+ * an obvious refresh affordance. */
+function relativeTimeShort(iso: string): string {
   const ts = new Date(iso).getTime();
   if (Number.isNaN(ts)) return '';
   const diffMs = Date.now() - ts;
   const seconds = Math.round(diffMs / 1000);
-  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 60) return `${seconds}s`;
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return `${minutes}m`;
   const hours = Math.round(minutes / 60);
-  return `${hours}h ago`;
+  if (hours < 24) return `${hours}h`;
+  const days = Math.round(hours / 24);
+  return `${days}d`;
 }

@@ -36,6 +36,7 @@ import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { EVENT_TIMEZONE, todayStartLondonUtc } from '@/shared/format-event-time';
+import { PageHeader } from '@/components/PageHeader';
 import { CalendarToggle } from './CalendarToggle';
 import { AgendaView, type AgendaPost } from './AgendaView';
 import { MonthView, type MonthPost } from './MonthView';
@@ -120,10 +121,14 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
         longitude: p.longitude,
       }));
     return (
-      <main style={mainStyle}>
-        <CalendarToggle active="near" />
-        <NearMeView posts={candidates} initialSort={nearSort} />
-      </main>
+      <>
+        <PageHeader title="Calendar" description="What's happening near you">
+          <CalendarToggle active="near" />
+        </PageHeader>
+        <main style={mainStyle}>
+          <NearMeView posts={candidates} initialSort={nearSort} />
+        </main>
+      </>
     );
   }
 
@@ -166,17 +171,21 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
     const nextMonthHref = `/calendar?view=month&month=${monthParamFor(monthAnchor, 1)}`;
 
     return (
-      <main style={mainStyle}>
-        <CalendarToggle active="month" />
-        <MonthView
-          posts={posts}
-          now={now.toISOString()}
-          monthAnchor={monthAnchor.toISOString()}
-          monthLabel={monthLabel}
-          prevMonthHref={prevMonthHref}
-          nextMonthHref={nextMonthHref}
-        />
-      </main>
+      <>
+        <PageHeader title="Calendar" description="What's happening near you">
+          <CalendarToggle active="month" />
+        </PageHeader>
+        <main style={mainStyle}>
+          <MonthView
+            posts={posts}
+            now={now.toISOString()}
+            monthAnchor={monthAnchor.toISOString()}
+            monthLabel={monthLabel}
+            prevMonthHref={prevMonthHref}
+            nextMonthHref={nextMonthHref}
+          />
+        </main>
+      </>
     );
   }
 
@@ -188,10 +197,14 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   const posts: AgendaPost[] = result.posts.map(toCalendarPost);
 
   return (
-    <main style={mainStyle}>
-      <CalendarToggle active="agenda" />
-      <AgendaView posts={posts} now={now} />
-    </main>
+    <>
+      <PageHeader title="Calendar" description="What's happening near you">
+        <CalendarToggle active="agenda" />
+      </PageHeader>
+      <main style={mainStyle}>
+        <AgendaView posts={posts} now={now} />
+      </main>
+    </>
   );
 }
 

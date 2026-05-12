@@ -16,7 +16,8 @@
  * shareable URLs clean.
  */
 
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ComponentType } from 'react';
+import { ArrowDownNarrowWide, ArrowUpNarrowWide } from 'lucide-react';
 import { NETWORK_SORT_OPTIONS, type NetworkSort } from '@/shared/validation/network';
 
 interface NetworkSortControlProps {
@@ -35,16 +36,22 @@ const LABEL: Record<NetworkSort, string> = {
   oldest: 'Oldest',
 };
 
+// Iconography (bu-page-header-system): "Newest" surfaces with the
+// descending-sort glyph (most recent → oldest, top-down); "Oldest"
+// surfaces with the ascending-sort glyph. Lucide uses the
+// NarrowWide/WideNarrow naming to disambiguate from arrow-only icons.
+const ICON: Record<
+  NetworkSort,
+  ComponentType<{ size?: number; 'aria-hidden'?: boolean | 'true' }>
+> = {
+  recent: ArrowDownNarrowWide,
+  oldest: ArrowUpNarrowWide,
+};
+
 const rowStyle: CSSProperties = {
   display: 'inline-flex',
   gap: 'var(--space-2)',
   alignItems: 'center',
-};
-
-const labelStyle: CSSProperties = {
-  fontFamily: 'var(--font-ui)',
-  fontSize: 'var(--text-sm)',
-  color: 'var(--colour-text-tertiary)',
 };
 
 function buildHref(sort: NetworkSort, preserve: Record<string, string | undefined>): string {
@@ -69,25 +76,24 @@ function buildHref(sort: NetworkSort, preserve: Record<string, string | undefine
 export function NetworkSortControl({ active, preserveParams = {} }: NetworkSortControlProps) {
   return (
     <div data-testid="network-sort-control" style={rowStyle}>
-      <span style={labelStyle} aria-hidden="true">
-        Sort:
-      </span>
       <nav aria-label="Sort order" style={{ display: 'inline-flex', gap: 'var(--space-2)' }}>
         {NETWORK_SORT_OPTIONS.map((sort) => {
           const isActive = sort === active;
           const href = buildHref(sort, preserveParams);
+          const Icon = ICON[sort];
           return (
             <a
               key={sort}
               href={href}
               aria-current={isActive ? 'page' : undefined}
               aria-label={`Sort by ${LABEL[sort].toLowerCase()}`}
+              title={LABEL[sort]}
               data-testid="network-sort-option"
               data-sort={sort}
               data-active={isActive ? 'true' : 'false'}
               className={isActive ? 'gps-chip gps-chip--active' : 'gps-chip'}
             >
-              {LABEL[sort]}
+              <Icon size={16} aria-hidden="true" />
             </a>
           );
         })}

@@ -46,7 +46,6 @@ const rowStyle: CSSProperties = {
   overflowX: 'auto',
   WebkitOverflowScrolling: 'touch',
   scrollbarWidth: 'none',
-  marginBottom: 'var(--space-4)',
   paddingBottom: 'var(--space-1)',
   WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 24px), transparent 100%)',
   maskImage: 'linear-gradient(to right, black calc(100% - 24px), transparent 100%)',
