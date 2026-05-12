@@ -24,6 +24,12 @@ const shortSha = gitSha ? gitSha.slice(0, 7) : '';
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Pin Turbopack's workspace root to this checkout (or worktree). Without
+  // this, `next dev` from a git worktree spins on the outer project's
+  // pnpm-workspace.yaml — module resolution loops and the server pegs CPU
+  // without ever serving a page. Safe in the root checkout too: `__dirname`
+  // resolves to whichever copy of next.config.mjs is running.
+  turbopack: { root: __dirname },
   // Hide the Next.js dev-mode indicator (the black "N" roundel in the
   // corner during `next dev`). It's noise during demo + design review.
   devIndicators: false,
