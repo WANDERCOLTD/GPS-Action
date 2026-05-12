@@ -100,7 +100,7 @@ identity affordances (profile, sign out, theme).
 | `components/HelpSheet.tsx` | Radix Dialog drawer. Side-sheet on desktop, bottom-sheet on phone. Reads `usePathname()` + `HELP_REGISTRY`. Mounted once in root layout. Testid: `help-sheet`. |
 | `shared/hooks/use-scroll-direction.ts` | Sustained-threshold scroll-direction detector. Returns `'up' \| 'down' \| null`. Threshold default 12px; rAF-debounced to survive iOS standalone rubber-band. |
 | `shared/help/emitter.ts` | Module-level event emitter. `openHelpSheet()` dispatches; UserMenu entry + `?` keypress fire it; HelpSheet subscribes. No React context plumbing required. |
-| `shared/help/registry.ts` | `HELP_REGISTRY: Record<string, HelpEntry>` + a `matchHelpEntry(pathname)` lookup. Ships with one seed entry for `/network` so the wiring is demonstrably end-to-end in the same PR; every other route's entry lands in the follow-up. Each entry has `title`, `summary`, `actions: string[]`, optional `shortcuts: {key, label}[]`. |
+| `shared/help/registry.ts` | `HELP_REGISTRY: Record<string, HelpEntry>` + a `matchHelpEntry(pathname)` lookup. Ships with five seeded entries: `/network` (real content — the canonical surface) and `/feed`, `/board`, `/calendar`, `/notifications` (honest "test feature" entries that explain the page and flag it for retirement once `/network` covers everything). Each entry has `title`, `summary`, `actions: string[]`, optional `shortcuts: {key, label}[]`. |
 
 ### Per-page rollout matrix
 
@@ -142,10 +142,11 @@ refresh on row 2) collapses into the new `<PageHeader>`:
 
 ### Out of scope
 
-- **Per-page help content authoring** — `HELP_REGISTRY` ships empty.
-  `bu-page-help-content` adds the actual summaries / action lists /
-  shortcut tables one route at a time, behind the integration this BU
-  lands. Pages with no entry never render the menu item.
+- **Help content for `/requests`, `/search`, `/settings`, `/compose`,
+  `/capabilities`, `/post/[id]`** — those routes don't ship help
+  content in this BU. `bu-page-help-content` adds them, one entry per
+  route, behind the integration this BU lands. Pages with no entry
+  never render the menu item.
 - **Coachmark sequences** — the spotlight/arrow pattern is explicitly
   rejected (anchor-brittle). HelpSheet covers the same ground at
   far lower maintenance cost.
