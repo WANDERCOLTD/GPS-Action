@@ -95,6 +95,11 @@ export default async function NetworkPage({ searchParams }: NetworkPageProps) {
   const activeSources = parseSourcesParam(params.source);
   const activeSort = parseSortParam(params.sort);
   const unreadOnly = parseUnreadParam(params.unread);
+  // bu-network-unread-icon — the Unread-only chip's *display* is
+  // flag-gated separately from `network_feed`; the `?unread=1` URL
+  // param and client-side filter remain wired regardless so existing
+  // bookmarks degrade gracefully when the flag is off.
+  const unreadChipEnabled = await isFeatureEnabled('network_unread_chip');
   const [initial, sources] = await Promise.all([
     caller.network.list({ sources: activeSources, sort: activeSort }),
     caller.network.listSources({}),
@@ -132,7 +137,12 @@ export default async function NetworkPage({ searchParams }: NetworkPageProps) {
       key="sort-cluster"
       style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
     >
-      <NetworkUnreadChip active={unreadOnly} preserveParams={{ source: sourceQs, sort: sortQs }} />
+      {unreadChipEnabled && (
+        <NetworkUnreadChip
+          active={unreadOnly}
+          preserveParams={{ source: sourceQs, sort: sortQs }}
+        />
+      )}
       <NetworkSortControl
         active={activeSort}
         preserveParams={{ source: sourceQs, unread: unreadQs }}

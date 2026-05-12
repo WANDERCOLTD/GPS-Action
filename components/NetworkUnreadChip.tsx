@@ -1,5 +1,5 @@
 /**
- * @build-unit bu-network-seen-state
+ * @build-unit bu-network-seen-state bu-network-unread-icon
  * @spec build/session-briefs/bu-network-seen-state.md
  *
  * "Unread only" chip for /network. Server component — renders a
@@ -11,9 +11,16 @@
  * has hydrated from localStorage (the server doesn't know which
  * cards are new — that decision belongs to the browser per the
  * tester-isolation rationale in the brief).
+ *
+ * bu-network-unread-icon: the chip is icon-only (sparkles) so it
+ * sits flush with the sort cluster on narrow viewports and yields
+ * horizontal space back to the source chip rail. Active/inactive
+ * state is conveyed by the `.gps-chip--active` highlight — the
+ * glyph itself does not swap.
  */
 
 import type { CSSProperties } from 'react';
+import { Sparkles } from 'lucide-react';
 
 interface NetworkUnreadChipProps {
   active: boolean;
@@ -42,17 +49,19 @@ const wrapperStyle: CSSProperties = {
 
 export function NetworkUnreadChip({ active, preserveParams = {} }: NetworkUnreadChipProps) {
   const href = buildHref(active, preserveParams);
+  const label = active ? 'Showing only unread — tap to show all' : 'Show only unread';
   return (
     <div style={wrapperStyle}>
       <a
         href={href}
         aria-current={active ? 'page' : undefined}
-        aria-label="Show only unread"
+        aria-label={label}
+        title={label}
         data-testid="network-unread-chip"
         data-active={active ? 'true' : 'false'}
         className={active ? 'gps-chip gps-chip--active' : 'gps-chip'}
       >
-        <span style={{ whiteSpace: 'nowrap' }}>Unread only</span>
+        <Sparkles size={16} aria-hidden="true" />
       </a>
     </div>
   );

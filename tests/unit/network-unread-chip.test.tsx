@@ -97,4 +97,22 @@ describe('NetworkUnreadChip', () => {
       'gps-chip gps-chip--active',
     );
   });
+
+  it('renders an icon child (the sparkles glyph) inside the chip', () => {
+    const tree = NetworkUnreadChip({ active: false }) as AnyElement;
+    const chip = findByTestId(tree, 'network-unread-chip');
+    const child = chip?.props.children as unknown;
+    expect(child && typeof child === 'object' && 'props' in child).toBe(true);
+    // aria-hidden on the icon — the <a> owns the human label.
+    expect((child as AnyElement).props['aria-hidden']).toBe('true');
+  });
+
+  it('aria-label and title differ between active and inactive', () => {
+    const off = NetworkUnreadChip({ active: false }) as AnyElement;
+    const offChip = findByTestId(off, 'network-unread-chip');
+    expect(offChip?.props['aria-label']).toMatch(/show only unread/i);
+    const on = NetworkUnreadChip({ active: true }) as AnyElement;
+    const onChip = findByTestId(on, 'network-unread-chip');
+    expect(onChip?.props['aria-label']).toMatch(/tap to show all/i);
+  });
 });
