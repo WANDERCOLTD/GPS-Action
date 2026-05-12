@@ -119,10 +119,7 @@ export default async function NetworkPage({ searchParams }: NetworkPageProps) {
         active={activeSources}
         preserveParams={{ sort: sortQs, unread: unreadQs }}
       />
-      <NetworkUnreadChip
-        active={unreadOnly}
-        preserveParams={{ source: sourceQs, sort: sortQs }}
-      />
+      <NetworkUnreadChip active={unreadOnly} preserveParams={{ source: sourceQs, sort: sortQs }} />
     </div>
   );
   const sortControl = (
