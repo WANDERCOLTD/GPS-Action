@@ -1,16 +1,24 @@
 /**
- * @build-unit BU-000-scaffold BU-001-lite BU-error-boundary BU-versioning BU-sticky-nav BU-calendar-view
+ * @build-unit BU-000-scaffold BU-001-lite BU-error-boundary BU-versioning BU-sticky-nav BU-calendar-view bu-page-header-system
  * @spec architecture/decision-log.md (D003, D065, D073)
  * @spec docs/build/phase-0-foundations.md
  * @spec docs/process/versioning.md
+ * @spec docs/build/session-briefs/bu-page-header-system.md
  *
  * Next.js root layout — PWA shell. Renders on every page.
  *
- * Per D065 the layout owns a single sticky `<header>` containing the
- * dev `LoggedInAs` strip, the `AppNav` link strip, and a soft-refresh
- * button. Page content scrolls underneath. Reviewer-access and
- * unread-notification-count are resolved here once and surface on
- * every page (not only on `/requests`).
+ * Per D065 the layout owns a single sticky `<header>`. Page content
+ * scrolls underneath. Reviewer-access and unread-notification-count
+ * are resolved here once and surface on every page.
+ *
+ * bu-page-header-system (2026-05-12): the sticky header is wrapped in
+ * `<HeaderShell>` which (1) writes its rendered height to the
+ * `--app-nav-height` CSS variable so per-page `<PageHeader>` mounts
+ * sit flush below it, and (2) hides the header on sustained
+ * scroll-down so reading surfaces get the full viewport. Identity,
+ * soft-refresh, and Settings consolidated into `<UserMenu>` —
+ * retired three separate header controls (`<LoggedInAs />`,
+ * `<HeaderRefreshButton />`, the Settings `<AppNav>` icon).
  *
  * BU-error-boundary (F11) wraps `children` so a single component crash
  * does not take the whole shell down. The sticky header sits OUTSIDE
@@ -20,12 +28,10 @@
 import type { ReactNode } from 'react';
 import '@/styles/tokens.css';
 import '@/styles/components.css';
-import { LoggedInAs } from '@/components/auth/LoggedInAs';
 import { AppNav } from '@/components/AppNav';
 import { HeaderLogo } from '@/components/HeaderLogo';
-import { HeaderRefreshButton } from '@/components/HeaderRefreshButton';
-import { DevBannerToggle } from '@/components/DevBannerToggle';
-import { DevBannerWrapper } from '@/components/DevBannerWrapper';
+import { HeaderShell } from '@/components/HeaderShell';
+import { UserMenu } from '@/components/UserMenu';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { IntentFab } from '@/components/IntentFab';
 import { KeyboardShortcuts } from '@/components/KeyboardShortcuts';
@@ -114,40 +120,29 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       : await countUnreadForUser(ctx.user.id)
     : 0;
 
-  // The sticky header is suppressed entirely when there is genuinely
-  // nothing to render in it — production with no user (LoggedInAs is a
-  // dev-only no-op there). In dev there is always at least the
-  // "Logged in as / Not logged in" strip, so the header is always shown.
-  const showHeader = !!ctx.user || process.env.NODE_ENV !== 'production' || isDemoMode();
+  // Header shows whenever there's a user, OR we're in dev / demo mode
+  // (where the UserMenu still renders a "Sign in" affordance even
+  // without an authed user). Production with no user → no header.
+  const isDev = process.env.NODE_ENV !== 'production' || isDemoMode();
+  const showHeader = !!ctx.user || isDev;
+  const menuUser = ctx.user ? { displayName: ctx.user.displayName } : null;
 
   return (
     <html lang="en" data-theme="light">
       <body>
         <DemoBanner />
         {showHeader && (
-          <header
-            data-testid="nav-header-shell"
-            style={{
-              position: 'sticky',
-              top: 0,
-              zIndex: 'var(--z-sticky-header)' as unknown as number,
-              background: 'var(--colour-surface-raised)',
-              borderBottom: '1px solid var(--colour-border-subtle)',
-            }}
-          >
-            <DevBannerWrapper>
-              <LoggedInAs user={ctx.user} />
-            </DevBannerWrapper>
-            {ctx.user && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  paddingRight: 'var(--space-4)',
-                }}
-              >
-                <HeaderLogo />
+          <HeaderShell>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                paddingRight: 'var(--space-4)',
+              }}
+            >
+              <HeaderLogo />
+              {ctx.user && (
                 <AppNav
                   unreadNotificationCount={unreadNotificationCount}
                   calendarEnabled={calendarEnabled}
@@ -156,11 +151,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   networkFirstEnabled={networkFirstEnabled}
                   feedTabVisible={!feedTabHidden}
                 />
-                <DevBannerToggle enabled={process.env.NODE_ENV !== 'production' || isDemoMode()} />
-                <HeaderRefreshButton />
+              )}
+              <div style={{ marginLeft: 'auto' }}>
+                <UserMenu user={menuUser} isDev={isDev} />
               </div>
-            )}
-          </header>
+            </div>
+          </HeaderShell>
         )}
         <ErrorBoundary name="root" fallback={<RootErrorFallback />}>
           {children}

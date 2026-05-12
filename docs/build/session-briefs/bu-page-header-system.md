@@ -3,7 +3,7 @@ slug: bu-page-header-system
 status: ready
 phase: 2
 priority: medium
-note: 'App-wide chrome refresh. Introduces reusable <PageHeader>, consolidates AppNav identity/refresh/settings into a <UserMenu> avatar, and lands directional sticky behavior so chrome cohabits cleanly. Pairs with the BU-user-menu hand-off left in bu-sticky-nav (#106). Companion follow-up: a coachmark/help-overlay BU once chrome is stable.'
+note: 'App-wide chrome refresh. Introduces reusable <PageHeader>, consolidates AppNav identity/refresh/settings into a <UserMenu> avatar, lands directional sticky behavior so chrome cohabits cleanly, AND mounts a per-page help integration (HelpSheet + UserMenu entry, no per-page content) as the scaffold for a follow-up content-authoring BU. Pairs with the BU-user-menu hand-off left in bu-sticky-nav (#106).'
 ---
 
 # SESSION BRIEF · bu-page-header-system — consistent page chrome across all routes
@@ -51,22 +51,32 @@ stabilise first or the overlay anchors keep moving.
 
 ## Objective
 
-Ship three things, designed independently but rolled out as one PR:
+Ship four things, designed independently but rolled out as one PR:
 
 1. **`<PageHeader>`** — one reusable component (title slot, optional
    description slot, optional actions slot). Mounted at the top of
    every member-facing route. Sticky directly under the AppNav.
 
 2. **`<UserMenu>`** — avatar control at the right end of AppNav.
-   Popover contains: who's logged in (name + role + region), switch
-   user (dev only), refresh data, settings link. Retires the
-   `<LoggedInAs />` strip, the standalone `<HeaderRefreshButton>`, and
-   the Settings nav icon — three controls collapse into one.
+   Popover contains: who's logged in, switch user (dev only), refresh
+   data, settings link, **"Help with this page"** (when the route has
+   authored help content). Retires the `<LoggedInAs />` strip, the
+   standalone `<HeaderRefreshButton>`, and the Settings nav icon —
+   three controls collapse into one.
 
 3. **Directional sticky behavior** — AppNav hides on sustained
    scroll-down (>12px threshold to survive iOS rubber-band),
    re-appears on scroll-up. `<PageHeader>` stays pinned at the top of
    the viewport throughout. Both visible at page load.
+
+4. **`<HelpSheet>` scaffold (integration only — no content)** —
+   page-aware help drawer (Radix Dialog, side-sheet on desktop /
+   bottom-sheet on phone). Triggered exclusively from the UserMenu
+   "Help with this page" entry (single anchor — no `?` icon scattered
+   in page chrome) and from a `?` keypress on desktop. Mounts in the
+   root layout, reads `usePathname()`, looks up help content from
+   `shared/help/registry.ts`. Registry ships **empty** in this BU; per-
+   page content is the follow-up `bu-page-help-content` BU.
 
 **Success looks like:** open any member-facing route → the page's
 identity and one-line description are unambiguous and stay pinned →
@@ -83,9 +93,13 @@ identity affordances (profile, sign out, theme).
 
 | File | Purpose |
 |---|---|
-| `components/PageHeader.tsx` | Title (`<h1>`) + optional description (`<p>`) + optional actions slot. Sticky styles. Testids: `page-header`, `page-header-title`, `page-header-description`, `page-header-actions`. |
-| `components/UserMenu.tsx` | Avatar button + radix `Popover` content. Reuses dev-user-switcher logic absorbed from `<LoggedInAs />`. Testids: `user-menu-trigger`, `user-menu-content`, `user-menu-switch-user`, `user-menu-refresh`, `user-menu-settings`. |
-| `shared/hooks/use-scroll-direction.ts` | Sustained-threshold scroll-direction detector. Returns `'up' \| 'down' \| 'idle'`. Threshold default 12px; debounce-frame to survive iOS standalone rubber-band. |
+| `components/PageHeader.tsx` | Title (`<h1>`) + optional description (`<p>`) + optional actions slot + optional children sub-row. Sticky styles. Testids: `page-header`, `page-header-title`, `page-header-description`, `page-header-actions`. |
+| `components/UserMenu.tsx` | Avatar button + radix `Popover` content. Reuses dev-user-switcher logic absorbed from `<LoggedInAs />`. Testids: `nav-user-menu-trigger`, `nav-user-menu-content`, `nav-user-menu-switch-user`, `nav-user-menu-refresh`, `nav-user-menu-settings`, `nav-user-menu-help`. |
+| `components/HeaderShell.tsx` | Sticky wrapper around the header content. Measures rendered height into `--app-nav-height`; transforms out on sustained scroll-down. Testid: `nav-header-shell`. |
+| `components/HelpSheet.tsx` | Radix Dialog drawer. Side-sheet on desktop, bottom-sheet on phone. Reads `usePathname()` + `HELP_REGISTRY`. Mounted once in root layout. Testid: `help-sheet`. |
+| `shared/hooks/use-scroll-direction.ts` | Sustained-threshold scroll-direction detector. Returns `'up' \| 'down' \| null`. Threshold default 12px; rAF-debounced to survive iOS standalone rubber-band. |
+| `shared/help/emitter.ts` | Module-level event emitter. `openHelpSheet()` dispatches; UserMenu entry + `?` keypress fire it; HelpSheet subscribes. No React context plumbing required. |
+| `shared/help/registry.ts` | `HELP_REGISTRY: Record<string, HelpEntry>` + a `matchHelpEntry(pathname)` lookup. Ships empty in this BU. Each entry has `title`, `summary`, `actions: string[]`, optional `shortcuts: {key, label}[]`. |
 
 ### Per-page rollout matrix
 
@@ -122,12 +136,18 @@ refresh on row 2) collapses into the new `<PageHeader>`:
 - `<LoggedInAs />` strip removed from root layout — logic absorbed into `<UserMenu>`.
 - `<HeaderRefreshButton>` removed from root layout — action moved into `<UserMenu>`.
 - Settings nav icon removed from `AppNav` — link moved into `<UserMenu>`.
+- `<DevBannerToggle />` + `<DevBannerWrapper />` removed from root layout — they only existed to show/hide the `<LoggedInAs />` strip. Component files stay in the codebase until orphans are confirmed.
 - Per-page ad-hoc title rendering (e.g. `/network`'s `<h1 className="gps-title">Network</h1>`) replaced by `<PageHeader>` mounts.
 
 ### Out of scope
 
-- **Coachmark / help-overlay system** — Grant's other ask. Defer to a
-  separate BU once chrome is stable; anchors move otherwise.
+- **Per-page help content authoring** — `HELP_REGISTRY` ships empty.
+  `bu-page-help-content` adds the actual summaries / action lists /
+  shortcut tables one route at a time, behind the integration this BU
+  lands. Pages with no entry never render the menu item.
+- **Coachmark sequences** — the spotlight/arrow pattern is explicitly
+  rejected (anchor-brittle). HelpSheet covers the same ground at
+  far lower maintenance cost.
 - New page-level descriptions for routes that don't currently warrant
   one (final copy lives with content owners).
 - Theme / avatar-image upload (UserMenu shows initials + role only).
@@ -179,7 +199,7 @@ refresh on row 2) collapses into the new `<PageHeader>`:
 - `/network` filter chips + sort + refresh land inside the new
   PageHeader — 1 row on mobile (horizontal scroll), no wrap.
 - All checks green: `pnpm typecheck && pnpm lint && pnpm test`.
-- F14 testids present (`page-header*`, `user-menu-*`).
+- F14 testids present (`page-header*`, `nav-user-menu-*`).
 - Scenario added or updated covering "Sharon sees consistent chrome
   across pages" (next SCN-NN).
 - `pnpm trackers` run if any `@spec` annotations change.
@@ -198,11 +218,11 @@ refresh on row 2) collapses into the new `<PageHeader>`:
 
 ## Follow-up BUs this unlocks
 
-- **bu-page-help-overlay** — Grant's second ask. Once chrome is
-  stable, mount per-page help (option list: empty-state instructions
-  for empty surfaces; "?" help button → side sheet for reference
-  content; coachmark sequence reserved for genuine multi-step flows).
-  Defer until this BU lands or anchors will move.
+- **bu-page-help-content** — Grant's second ask, content half.
+  Per-page `HELP_REGISTRY` entries: summary, what-you-can-do list,
+  shortcut table. One PR per route (or a small batch) so review stays
+  scoped. Integration points already mounted by this BU mean those
+  PRs touch only `shared/help/registry.ts`.
 - **bu-user-profile** — real avatar-image story, profile route,
   sign-out, theme toggle. UserMenu is the natural mount point.
 

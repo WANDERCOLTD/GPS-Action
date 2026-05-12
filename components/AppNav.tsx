@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * @build-unit BU-requests-foundation BU-sticky-nav BU-calendar-view BU-icon-nav BU-icon-strips BU-search-surface BU-coordination-board
+ * @build-unit BU-requests-foundation BU-sticky-nav BU-calendar-view BU-icon-nav BU-icon-strips BU-search-surface BU-coordination-board bu-page-header-system
  * @spec architecture/decision-log.md (D054, D061, D065, D073, D078)
  * @spec architecture/admin-surface.md
  *
@@ -9,15 +9,22 @@
  * layout inside the sticky `<header>`. Active link is derived from
  * `usePathname()` rather than a per-page `active` prop (D065).
  *
- *   [radio-tower]? | [kanban-square]? | [newspaper] | [calendar-clock]? | [inbox] | [settings] | [search]
+ *   [radio-tower]? | [kanban-square]? | [newspaper] | [calendar-clock]? | [inbox] | [search]
  *
- * Order locked: Network, Board, Feed, Calendar, Requests, Settings,
- * Search. Network leads when `network_feed` is on (BU-network-feed /
- * D083) — the WhatsApp-link feed is the freshest surface and goes
- * first so users land on it. Board (`coord_board_v1`) follows when
- * on. Calendar (`calendar_enabled` / D073) sits between Feed and
+ * Order locked: Network, Board, Feed, Calendar, Requests, Search.
+ * Network leads when `network_feed` is on (BU-network-feed / D083) —
+ * the WhatsApp-link feed is the freshest surface and goes first so
+ * users land on it. Board (`coord_board_v1`) follows when on.
+ * Calendar (`calendar_enabled` / D073) sits between Feed and
  * Requests. Flags are resolved in the layout (server component) and
  * passed down so this client component never reads from the database.
+ *
+ * bu-page-header-system (2026-05-12): Settings icon retired here —
+ * Settings now lives inside the `<UserMenu>` avatar popover at the
+ * right end of the sticky header, alongside "Switch user" (dev only)
+ * and "Refresh data". The `deriveActive` mapping still surfaces a
+ * `'settings'` key so non-AppNav callers (sub-nav, breadcrumbs) can
+ * continue to test the active route.
  *
  * BU-icon-nav (2026-04-30): tabs are icons-only. Each `<Link>` keeps
  * the prior text label as `aria-label` so screen readers continue to
@@ -40,15 +47,7 @@ import * as React from 'react';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  CalendarClock,
-  Inbox,
-  KanbanSquare,
-  Newspaper,
-  RadioTower,
-  Search,
-  Settings,
-} from 'lucide-react';
+import { CalendarClock, Inbox, KanbanSquare, Newspaper, RadioTower, Search } from 'lucide-react';
 import { IconChipTooltip } from '@/components/IconChipTooltip';
 
 interface AppNavProps {
@@ -243,16 +242,6 @@ export function AppNav({
               {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
             </span>
           )}
-        </Link>
-      </IconChipTooltip>
-      <IconChipTooltip label="Settings">
-        <Link
-          href="/settings"
-          aria-label="Settings"
-          data-testid="nav-settings-link"
-          style={active === 'settings' ? activeStyle : linkStyle}
-        >
-          <Settings size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
         </Link>
       </IconChipTooltip>
       <IconChipTooltip label="Search">
