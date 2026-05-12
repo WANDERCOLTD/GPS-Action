@@ -246,52 +246,40 @@ export function NetworkFeed({ initial }: NetworkFeedProps) {
 
   return (
     <div data-testid="network-feed">
-      <header
+      <div
         style={{
           display: 'flex',
-          alignItems: 'baseline',
-          justifyContent: 'space-between',
-          marginBottom: 'var(--space-4)',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          marginBottom: 'var(--space-3)',
           gap: 'var(--space-3)',
-          flexWrap: 'wrap',
+          color: 'var(--colour-text-tertiary)',
+          fontSize: 'var(--text-sm)',
+          fontFamily: 'var(--font-ui)',
         }}
       >
-        <h1 className="gps-title" style={{ margin: 0 }}>
-          Network
-        </h1>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: 'var(--space-3)',
-            color: 'var(--colour-text-tertiary)',
-            fontSize: 'var(--text-sm)',
-            fontFamily: 'var(--font-ui)',
-          }}
+        <span data-testid="network-fetched-status" data-from-cache={fromCache ? 'true' : 'false'}>
+          {fromCache ? 'cached' : 'fresh'} ·{' '}
+          {/*
+           * `relativeTime()` reads `Date.now()`, which always drifts
+           * between SSR and first client paint — same fetchedAt, but
+           * a second has passed, so SSR renders "0s ago" and client
+           * hydrates to "1s ago". ClientOnly renders the static
+           * fallback during SSR + first paint (matching the server
+           * exactly), then swaps to the live formatter after mount.
+           */}
+          <ClientOnly fallback={<>0s ago</>}>{relativeTime(fetchedAt)}</ClientOnly>
+        </span>
+        <button
+          type="button"
+          data-testid="network-refresh-button"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          style={refreshButtonStyle}
         >
-          <span data-testid="network-fetched-status" data-from-cache={fromCache ? 'true' : 'false'}>
-            {fromCache ? 'cached' : 'fresh'} ·{' '}
-            {/*
-             * `relativeTime()` reads `Date.now()`, which always drifts
-             * between SSR and first client paint — same fetchedAt, but
-             * a second has passed, so SSR renders "0s ago" and client
-             * hydrates to "1s ago". ClientOnly renders the static
-             * fallback during SSR + first paint (matching the server
-             * exactly), then swaps to the live formatter after mount.
-             */}
-            <ClientOnly fallback={<>0s ago</>}>{relativeTime(fetchedAt)}</ClientOnly>
-          </span>
-          <button
-            type="button"
-            data-testid="network-refresh-button"
-            onClick={handleRefresh}
-            disabled={refreshing}
-            style={refreshButtonStyle}
-          >
-            {refreshing ? 'Refreshing…' : 'Refresh'}
-          </button>
-        </div>
-      </header>
+          {refreshing ? 'Refreshing…' : 'Refresh'}
+        </button>
+      </div>
 
       {error && (
         <p

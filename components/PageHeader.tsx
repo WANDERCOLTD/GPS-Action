@@ -23,7 +23,10 @@ import type { CSSProperties, ReactNode } from 'react';
 interface PageHeaderProps {
   title: string;
   description?: string;
+  /** Right-aligned slot on the title row (refresh buttons, view toggles, etc.). */
   actions?: ReactNode;
+  /** Optional sub-row rendered below the title row (filter chips, sort pills, etc.). */
+  children?: ReactNode;
 }
 
 const wrapperStyle: CSSProperties = {
@@ -74,7 +77,12 @@ const actionsStyle: CSSProperties = {
   gap: 'var(--space-2)',
 };
 
-export function PageHeader({ title, description, actions }: PageHeaderProps) {
+const subRowStyle: CSSProperties = {
+  marginTop: 'var(--space-3)',
+  minWidth: 0,
+};
+
+export function PageHeader({ title, description, actions, children }: PageHeaderProps) {
   return (
     <header data-testid="page-header" style={wrapperStyle}>
       <div style={titleRowStyle}>
@@ -94,6 +102,11 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
           </div>
         )}
       </div>
+      {children && (
+        <div data-testid="page-header-subrow" style={subRowStyle}>
+          {children}
+        </div>
+      )}
     </header>
   );
 }

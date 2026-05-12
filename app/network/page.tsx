@@ -26,6 +26,7 @@ import { isFeatureEnabled } from '@/server/services/flags';
 import { NetworkFeed } from '@/app/network/network-feed';
 import { NetworkSortControl, parseSortParam } from '@/components/NetworkSortControl';
 import { NetworkSourceChipStrip, parseSourcesParam } from '@/components/NetworkSourceChipStrip';
+import { PageHeader } from '@/components/PageHeader';
 import { serializeNetworkListResponse } from '@/shared/network-card';
 
 export const metadata = {
@@ -47,39 +48,39 @@ export default async function NetworkPage({ searchParams }: NetworkPageProps) {
   const flagEnabled = await isFeatureEnabled('network_feed');
   if (!flagEnabled) {
     return (
-      <main
-        style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}
-        data-testid="network-flag-off"
-      >
-        <h1 className="gps-title" style={{ marginBottom: 'var(--space-3)' }}>
-          Network
-        </h1>
-        <p style={{ color: 'var(--colour-text-secondary)' }}>
-          The Network feed isn&rsquo;t turned on yet.
-        </p>
-      </main>
+      <>
+        <PageHeader title="Network" description="Live from WhatsApp" />
+        <main
+          style={{ padding: 'var(--space-6) var(--space-8)', maxWidth: 720, margin: '0 auto' }}
+          data-testid="network-flag-off"
+        >
+          <p style={{ color: 'var(--colour-text-secondary)' }}>
+            The Network feed isn&rsquo;t turned on yet.
+          </p>
+        </main>
+      </>
     );
   }
 
   const ctx = await createTRPCContext();
   if (!ctx.user) {
     return (
-      <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
-        <h1 className="gps-title" style={{ marginBottom: 'var(--space-3)' }}>
-          Network
-        </h1>
-        <p style={{ color: 'var(--colour-text-secondary)' }}>
-          Please{' '}
-          <a
-            href="/dev/login"
-            style={{ color: 'var(--colour-text-link)' }}
-            data-testid="network-login-link"
-          >
-            log in
-          </a>{' '}
-          to see the Network feed.
-        </p>
-      </main>
+      <>
+        <PageHeader title="Network" description="Live from WhatsApp" />
+        <main style={{ padding: 'var(--space-6) var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
+          <p style={{ color: 'var(--colour-text-secondary)' }}>
+            Please{' '}
+            <a
+              href="/dev/login"
+              style={{ color: 'var(--colour-text-link)' }}
+              data-testid="network-login-link"
+            >
+              log in
+            </a>{' '}
+            to see the Network feed.
+          </p>
+        </main>
+      </>
     );
   }
 
@@ -100,28 +101,36 @@ export default async function NetworkPage({ searchParams }: NetworkPageProps) {
   const sortQs = activeSort !== 'recent' ? activeSort : undefined;
 
   return (
-    <main
-      style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}
-      data-testid="network-page"
-    >
-      <div
+    <>
+      <PageHeader title="Network" description="Live from WhatsApp">
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-3)',
+            minWidth: 0,
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <NetworkSourceChipStrip
+              sources={sources}
+              active={activeSources}
+              preserveParams={{ sort: sortQs }}
+            />
+          </div>
+          <NetworkSortControl active={activeSort} preserveParams={{ source: sourceQs }} />
+        </div>
+      </PageHeader>
+      <main
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 'var(--space-4)',
-          marginBottom: 'var(--space-3)',
-          flexWrap: 'wrap',
+          padding: 'var(--space-5) var(--space-8) var(--space-8)',
+          maxWidth: 720,
+          margin: '0 auto',
         }}
+        data-testid="network-page"
       >
-        <NetworkSourceChipStrip
-          sources={sources}
-          active={activeSources}
-          preserveParams={{ sort: sortQs }}
-        />
-        <NetworkSortControl active={activeSort} preserveParams={{ source: sourceQs }} />
-      </div>
-      <NetworkFeed initial={initialSerialised} />
-    </main>
+        <NetworkFeed initial={initialSerialised} />
+      </main>
+    </>
   );
 }
