@@ -108,25 +108,27 @@ export default async function NetworkPage({ searchParams }: NetworkPageProps) {
   const sortQs = activeSort !== 'recent' ? activeSort : undefined;
   const unreadQs = unreadOnly ? '1' : undefined;
 
-  // bu-network-seen-state — Unread-only chip rides alongside the
-  // source chip strip; both are server-rendered and passed into the
-  // client `NetworkFeed` together so the chip rail in the PageHeader
-  // stays a single horizontal cluster.
+  // bu-network-seen-state — Unread-only chip used to ride INSIDE the
+  // source chip cluster with `flexWrap: 'wrap'`, but on narrow viewports
+  // (iPhone) the chip dropped to its own row, eating vertical space.
+  // It now travels with the sort control on the right edge of the
+  // PageHeader sub-row, where it stays pinned and doesn't compete with
+  // the horizontally-scrolling source rail.
   const chipStrip = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-      <NetworkSourceChipStrip
-        sources={sources}
-        active={activeSources}
-        preserveParams={{ sort: sortQs, unread: unreadQs }}
-      />
-      <NetworkUnreadChip active={unreadOnly} preserveParams={{ source: sourceQs, sort: sortQs }} />
-    </div>
+    <NetworkSourceChipStrip
+      sources={sources}
+      active={activeSources}
+      preserveParams={{ sort: sortQs, unread: unreadQs }}
+    />
   );
   const sortControl = (
-    <NetworkSortControl
-      active={activeSort}
-      preserveParams={{ source: sourceQs, unread: unreadQs }}
-    />
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+      <NetworkUnreadChip active={unreadOnly} preserveParams={{ source: sourceQs, sort: sortQs }} />
+      <NetworkSortControl
+        active={activeSort}
+        preserveParams={{ source: sourceQs, unread: unreadQs }}
+      />
+    </div>
   );
 
   return (
