@@ -100,37 +100,20 @@ export default async function NetworkPage({ searchParams }: NetworkPageProps) {
   const sourceQs = activeSources.length ? [...activeSources].sort().join(',') : undefined;
   const sortQs = activeSort !== 'recent' ? activeSort : undefined;
 
+  const chipStrip = (
+    <NetworkSourceChipStrip
+      sources={sources}
+      active={activeSources}
+      preserveParams={{ sort: sortQs }}
+    />
+  );
+  const sortControl = (
+    <NetworkSortControl active={activeSort} preserveParams={{ source: sourceQs }} />
+  );
+
   return (
-    <>
-      <PageHeader title="Network" description="Live from WhatsApp">
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-3)',
-            minWidth: 0,
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <NetworkSourceChipStrip
-              sources={sources}
-              active={activeSources}
-              preserveParams={{ sort: sortQs }}
-            />
-          </div>
-          <NetworkSortControl active={activeSort} preserveParams={{ source: sourceQs }} />
-        </div>
-      </PageHeader>
-      <main
-        style={{
-          padding: 'var(--space-5) var(--space-8) var(--space-8)',
-          maxWidth: 720,
-          margin: '0 auto',
-        }}
-        data-testid="network-page"
-      >
-        <NetworkFeed initial={initialSerialised} />
-      </main>
-    </>
+    <main style={{ maxWidth: 720, margin: '0 auto' }} data-testid="network-page">
+      <NetworkFeed initial={initialSerialised} chipStrip={chipStrip} sortControl={sortControl} />
+    </main>
   );
 }

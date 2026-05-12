@@ -27,11 +27,13 @@
  * — the pill itself owns optimistic state, so this layer just relays.
  */
 
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import type { ShareDestination } from '@prisma/client';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { ClientOnly } from '@/components/ClientOnly';
 import { NetworkCard } from '@/components/NetworkCard';
+import { PageHeader } from '@/components/PageHeader';
 import { ShareConfirmDialog } from '@/components/ShareConfirmDialog';
 import { pingShareIntent } from '@/components/ShareGroup';
 import {
@@ -51,9 +53,13 @@ import type { FeedReaction, FeedReactionEmoji } from '@/components/PostCard';
 
 interface NetworkFeedProps {
   initial: SerializedNetworkListResponse;
+  /** Server-rendered chip strip (passed in from page.tsx). */
+  chipStrip: ReactNode;
+  /** Server-rendered sort control (passed in from page.tsx). */
+  sortControl: ReactNode;
 }
 
-export function NetworkFeed({ initial }: NetworkFeedProps) {
+export function NetworkFeed({ initial, chipStrip, sortControl }: NetworkFeedProps) {
   const [items, setItems] = useState<SerializedNetworkCard[]>(initial.items);
   const [cursor, setCursor] = useState<string | null>(initial.nextCursor);
   const [fetchedAt, setFetchedAt] = useState<string>(initial.fetchedAt);
@@ -244,99 +250,125 @@ export function NetworkFeed({ initial }: NetworkFeedProps) {
     });
   }, []);
 
-  return (
-    <div data-testid="network-feed">
-      <div
+  const refreshButton = (
+    <>
+      <style>{`@keyframes gps-network-refresh-spin { to { transform: rotate(360deg); } }`}</style>
+      {/*
+       * The freshness indicator was a visible text row before
+       * bu-page-header-system; it now lives inside the refresh
+       * button's `title` so the chrome stays compact. Mobile users
+       * lose the visible "3s ago" but still see the action affordance.
+       * Honest copy: cached state surfaces via the data-from-cache attr.
+       */}
+      <span
+        data-testid="network-fetched-status"
+        data-from-cache={fromCache ? 'true' : 'false'}
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          marginBottom: 'var(--space-3)',
-          gap: 'var(--space-3)',
-          color: 'var(--colour-text-tertiary)',
-          fontSize: 'var(--text-sm)',
-          fontFamily: 'var(--font-ui)',
+          position: 'absolute',
+          width: 1,
+          height: 1,
+          overflow: 'hidden',
+          clip: 'rect(0 0 0 0)',
         }}
       >
-        <span data-testid="network-fetched-status" data-from-cache={fromCache ? 'true' : 'false'}>
-          {fromCache ? 'cached' : 'fresh'} ·{' '}
-          {/*
-           * `relativeTime()` reads `Date.now()`, which always drifts
-           * between SSR and first client paint — same fetchedAt, but
-           * a second has passed, so SSR renders "0s ago" and client
-           * hydrates to "1s ago". ClientOnly renders the static
-           * fallback during SSR + first paint (matching the server
-           * exactly), then swaps to the live formatter after mount.
-           */}
-          <ClientOnly fallback={<>0s ago</>}>{relativeTime(fetchedAt)}</ClientOnly>
-        </span>
-        <button
-          type="button"
-          data-testid="network-refresh-button"
-          onClick={handleRefresh}
-          disabled={refreshing}
-          style={refreshButtonStyle}
-        >
-          {refreshing ? 'Refreshing…' : 'Refresh'}
-        </button>
-      </div>
+        {fromCache ? 'cached' : 'fresh'} ·{' '}
+        <ClientOnly fallback={<>0s ago</>}>{relativeTime(fetchedAt)}</ClientOnly>
+      </span>
+      <button
+        type="button"
+        data-testid="network-refresh-button"
+        onClick={handleRefresh}
+        disabled={refreshing}
+        aria-label={refreshing ? 'Refreshing…' : 'Refresh'}
+        title={refreshing ? 'Refreshing…' : `Refresh · ${fromCache ? 'cached' : 'fresh'}`}
+        style={refreshButtonStyle}
+      >
+        {refreshing ? (
+          <Loader2
+            size={18}
+            aria-hidden="true"
+            style={{ animation: 'gps-network-refresh-spin 700ms linear infinite' }}
+          />
+        ) : (
+          <RefreshCw size={18} aria-hidden="true" />
+        )}
+      </button>
+    </>
+  );
 
-      {error && (
-        <p
-          data-testid="network-error"
-          role="alert"
+  return (
+    <div data-testid="network-feed">
+      <PageHeader title="Network" description="Live from WhatsApp" actions={refreshButton}>
+        <div
           style={{
-            color: 'var(--colour-urgent)',
-            fontSize: 'var(--text-sm)',
-            margin: '0 0 var(--space-3) 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-3)',
+            minWidth: 0,
           }}
         >
-          {error}
-        </p>
-      )}
+          <div style={{ flex: 1, minWidth: 0 }}>{chipStrip}</div>
+          {sortControl}
+        </div>
+      </PageHeader>
+      <div style={{ padding: 'var(--space-5) var(--space-8) var(--space-8)' }}>
+        {error && (
+          <p
+            data-testid="network-error"
+            role="alert"
+            style={{
+              color: 'var(--colour-urgent)',
+              fontSize: 'var(--text-sm)',
+              margin: '0 0 var(--space-3) 0',
+            }}
+          >
+            {error}
+          </p>
+        )}
 
-      {items.length === 0 ? (
-        <NetworkEmptyState />
-      ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {items.map((card) => (
-            <li key={card.messageId}>
-              <NetworkCard
-                card={card}
-                pending={Boolean(pendingByMessageId[card.messageId])}
-                onSetStatus={(status) => handleSetStatus(card, status)}
-                reactions={reactionsByMessageId[card.messageId] ?? []}
-                onAddReaction={(emoji) => handleAddReaction(card.messageId, emoji)}
-                onRemoveReaction={(emoji) => handleRemoveReaction(card.messageId, emoji)}
-                onShareInitiated={handleShareInitiated}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
+        {items.length === 0 ? (
+          <NetworkEmptyState />
+        ) : (
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {items.map((card) => (
+              <li key={card.messageId}>
+                <NetworkCard
+                  card={card}
+                  pending={Boolean(pendingByMessageId[card.messageId])}
+                  onSetStatus={(status) => handleSetStatus(card, status)}
+                  reactions={reactionsByMessageId[card.messageId] ?? []}
+                  onAddReaction={(emoji) => handleAddReaction(card.messageId, emoji)}
+                  onRemoveReaction={(emoji) => handleRemoveReaction(card.messageId, emoji)}
+                  onShareInitiated={handleShareInitiated}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
 
-      {cursor && (
-        <button
-          type="button"
-          data-testid="network-load-more"
-          onClick={handleLoadMore}
-          disabled={loadingMore}
-          style={loadMoreButtonStyle}
-        >
-          {loadingMore ? 'Loading…' : 'Load more'}
-        </button>
-      )}
+        {cursor && (
+          <button
+            type="button"
+            data-testid="network-load-more"
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            style={loadMoreButtonStyle}
+          >
+            {loadingMore ? 'Loading…' : 'Load more'}
+          </button>
+        )}
 
-      {pendingShare && (
-        <ShareConfirmDialog
-          targetType="network_card"
-          targetId={pendingShare.messageId}
-          destination={pendingShare.destination}
-          open
-          onConfirm={handleShareConfirm}
-          onSkip={handleShareSkip}
-        />
-      )}
+        {pendingShare && (
+          <ShareConfirmDialog
+            targetType="network_card"
+            targetId={pendingShare.messageId}
+            destination={pendingShare.destination}
+            open
+            onConfirm={handleShareConfirm}
+            onSkip={handleShareSkip}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -362,11 +394,14 @@ function NetworkEmptyState() {
 }
 
 const refreshButtonStyle: CSSProperties = {
-  fontFamily: 'var(--font-ui)',
-  fontSize: 'var(--text-sm)',
-  padding: 'var(--space-1) var(--space-3)',
-  border: '1px solid var(--colour-border-subtle)',
-  borderRadius: 'var(--radius-pill)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 32,
+  height: 32,
+  padding: 0,
+  border: 'none',
+  borderRadius: 'var(--radius-sm)',
   background: 'transparent',
   color: 'var(--colour-text-link)',
   cursor: 'pointer',
