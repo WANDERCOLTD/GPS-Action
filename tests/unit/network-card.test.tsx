@@ -398,18 +398,27 @@ describe('NetworkCard', () => {
     });
   });
 
-  it('long URLs in body text wrap rather than overflow the card', () => {
+  it('passes the body through to ClampedCardBody (which owns overflowWrap)', () => {
+    // bu-network-card-body-clamp: the body's overflowWrap +
+    // line-clamp lives in ClampedCardBody. NetworkCard hands it the
+    // body text + messageId + threshold; the clamp itself is hook-
+    // driven and out of reach of this pure-function test harness.
+    const longUrlBody =
+      'See https://www.facebook.com/some.user/posts/pfbid0LongOpaqueTokenWithNoBreakOpportunitiesAtAll1234567890abcdef';
     const tree = NetworkCard({
-      card: makeCard({
-        textBody:
-          'See https://www.facebook.com/some.user/posts/pfbid0LongOpaqueTokenWithNoBreakOpportunitiesAtAll1234567890abcdef',
-      }),
+      card: makeCard({ textBody: longUrlBody }),
       onSetStatus: vi.fn(),
       pending: false,
+      bodyClampThresholdLines: 6,
     }) as AnyElement;
-    const body = findByTestId(tree, 'network-card-body');
-    const style = body?.props.style as { overflowWrap?: string } | undefined;
-    expect(style?.overflowWrap).toBe('anywhere');
+
+    const clampedBody = flatChildren(tree).find(
+      (el) =>
+        typeof el.type === 'function' && (el.type as { name?: string }).name === 'ClampedCardBody',
+    );
+    expect(clampedBody).toBeDefined();
+    expect(clampedBody?.props.body).toBe(longUrlBody);
+    expect(clampedBody?.props.thresholdLines).toBe(6);
   });
 
   // ── BU-network-reactions ──────────────────────────────────────────────
@@ -654,6 +663,109 @@ describe('NetworkCard', () => {
       const innerCb = wa?.props.onShareInitiated as () => void;
       innerCb();
       expect(onShareInitiated).toHaveBeenCalledWith('42', 'whatsapp');
+    });
+  });
+
+  // bu-network-seen-state — NEW marker + dismiss toggle. All three
+  // props are optional; absent renders the prior behaviour (existing
+  // tests above already cover the no-prop path).
+  describe('seen-state', () => {
+    it('renders the NEW accent strip and SR label when isNew is true', () => {
+      const tree = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+        isNew: true,
+      }) as AnyElement;
+
+      const strip = findByTestId(tree, 'network-card-new-strip');
+      expect(strip).toBeDefined();
+      expect(strip?.props['aria-hidden']).toBe('true');
+      expect(tree.props['data-is-new']).toBe('true');
+    });
+
+    it('omits the NEW strip when isNew is false or unset', () => {
+      const without = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+      }) as AnyElement;
+      expect(findByTestId(without, 'network-card-new-strip')).toBeUndefined();
+      expect(without.props['data-is-new']).toBe('false');
+
+      const explicit = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+        isNew: false,
+      }) as AnyElement;
+      expect(findByTestId(explicit, 'network-card-new-strip')).toBeUndefined();
+    });
+
+    it('applies opacity 0.5 when dismissed', () => {
+      const tree = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+        dismissed: true,
+      }) as AnyElement;
+
+      const style = tree.props.style as { opacity?: number };
+      expect(style.opacity).toBe(0.5);
+      expect(tree.props['data-dismissed']).toBe('true');
+    });
+
+    it('renders the eye-off toggle only when onToggleDismissed is provided', () => {
+      const without = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+      }) as AnyElement;
+      expect(findByTestId(without, 'network-card-dismiss-toggle')).toBeUndefined();
+
+      const tree = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+        onToggleDismissed: vi.fn(),
+      }) as AnyElement;
+      const btn = findByTestId(tree, 'network-card-dismiss-toggle');
+      expect(btn).toBeDefined();
+      expect(btn?.props['aria-label']).toBe('Mark as seen');
+      expect(btn?.props['aria-pressed']).toBe(false);
+    });
+
+    it('fires onToggleDismissed and announces pressed state when dismissed', () => {
+      const onToggleDismissed = vi.fn();
+      const tree = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+        dismissed: true,
+        onToggleDismissed,
+      }) as AnyElement;
+
+      const btn = findByTestId(tree, 'network-card-dismiss-toggle');
+      expect(btn?.props['aria-pressed']).toBe(true);
+      expect(btn?.props['aria-label']).toBe('Mark as not seen');
+
+      const handler = btn?.props.onClick as (e: MouseEvent<HTMLButtonElement>) => void;
+      handler(fakeMouseEvent());
+      expect(onToggleDismissed).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the NEW strip visible on a dismissed card (composable signals)', () => {
+      const tree = NetworkCard({
+        card: makeCard(),
+        onSetStatus: vi.fn(),
+        pending: false,
+        isNew: true,
+        dismissed: true,
+      }) as AnyElement;
+
+      expect(findByTestId(tree, 'network-card-new-strip')).toBeDefined();
+      const style = tree.props.style as { opacity?: number };
+      expect(style.opacity).toBe(0.5);
     });
   });
 });

@@ -29,6 +29,7 @@ import { isFeatureEnabled } from '@/server/services/flags';
 import { getLinkPreview } from '@/server/services/link-preview-cache';
 import { fetchLinkMetadata } from '@/server/services/link-metadata';
 import { getNetworkCardShareCounts } from '@/server/services/share-event';
+import { getSystemSettingInt } from '@/server/services/system-setting';
 import {
   listGpsChatLabels,
   listGpsGroupMessages,
@@ -278,9 +279,15 @@ export async function listNetworkCards(
 ): Promise<NetworkListResponse> {
   const key = cacheKey(input);
 
+  // bu-network-card-body-clamp — threshold lives outside the LRU cache
+  // so an admin update via /settings takes effect on the next request
+  // without an explicit cache bust. Cheap (one indexed lookup) and
+  // decorates onto whatever response we return below.
+  const bodyClampThresholdLines = await readBodyClampThresholdLines();
+
   if (!input.refresh) {
     const cached = cacheGet(key);
-    if (cached) return { ...cached, fromCache: true };
+    if (cached) return { ...cached, fromCache: true, bodyClampThresholdLines };
   } else {
     cache.delete(key);
   }
@@ -303,7 +310,13 @@ export async function listNetworkCards(
   } catch (err) {
     if (err instanceof SupabaseConfigError) {
       console.error('[network] SUPABASE_URL / SUPABASE_ANON_KEY missing — degrading to empty list');
-      return { items: [], nextCursor: null, fetchedAt: new Date(), fromCache: false };
+      return {
+        items: [],
+        nextCursor: null,
+        fetchedAt: new Date(),
+        fromCache: false,
+        bodyClampThresholdLines,
+      };
     }
     throw err;
   }
@@ -325,6 +338,7 @@ export async function listNetworkCards(
         nextCursor: null,
         fetchedAt: new Date(),
         fromCache: false,
+        bodyClampThresholdLines,
       };
       cacheSet(key, empty);
       return empty;
@@ -344,7 +358,13 @@ export async function listNetworkCards(
   } catch (err) {
     if (err instanceof SupabaseConfigError) {
       console.error('[network] SUPABASE_URL / SUPABASE_ANON_KEY missing — degrading to empty list');
-      return { items: [], nextCursor: null, fetchedAt: new Date(), fromCache: false };
+      return {
+        items: [],
+        nextCursor: null,
+        fetchedAt: new Date(),
+        fromCache: false,
+        bodyClampThresholdLines,
+      };
     }
     throw err;
   }
@@ -401,10 +421,23 @@ export async function listNetworkCards(
     nextCursor,
     fetchedAt: new Date(),
     fromCache: false,
+    bodyClampThresholdLines,
   };
 
   cacheSet(key, response);
   return response;
+}
+
+/**
+ * bu-network-card-body-clamp — read the admin-tunable threshold from
+ * `SystemSetting`. Default 6 (seeded by migration; also the fallback
+ * when the row is missing for any reason). Wrapped in its own helper
+ * so the value is consistently sourced + so the lookup can be moved
+ * behind its own cache later if the per-request DB hit ever shows
+ * up in profiling (it shouldn't — single-row indexed lookup).
+ */
+async function readBodyClampThresholdLines(): Promise<number> {
+  return getSystemSettingInt('network_card_body_clamp_threshold_lines', 6);
 }
 
 // ── Link preview enrichment ──────────────────────────────────────────────

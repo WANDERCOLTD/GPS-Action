@@ -36,6 +36,12 @@ vi.mock('@/server/db/client', () => ({
     shareEvent: {
       groupBy: vi.fn().mockResolvedValue([]),
     },
+    // bu-network-card-body-clamp — listNetworkCards reads the
+    // threshold via getSystemSettingInt. Default to null (unset) so
+    // the fallback (6) applies and tests don't have to care.
+    systemSetting: {
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
   },
 }));
 

@@ -39,7 +39,9 @@
  */
 
 import type { CSSProperties, MouseEvent } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { ShareDestination } from '@prisma/client';
+import { EyeOff } from 'lucide-react';
 import type { NetworkCardStatus, SerializedNetworkCard } from '@/shared/network-card';
 import { isZoomUrl, parseZoomInvitation } from '@/shared/lib/parse-zoom-invitation';
 import { getSourceColor } from '@/shared/styles/source-palette';
@@ -71,6 +73,33 @@ interface NetworkCardProps {
    * but no verification prompt appears).
    */
   onShareInitiated?: (messageId: string, destination: ShareDestination) => void;
+  /**
+   * bu-network-seen-state — card arrived after the user's previous
+   * /network visit. Parent computes this from `localStorage`
+   * `lastVisitedAt` vs `card.sentAt`. Renders as a left-edge accent
+   * strip; absent / false renders nothing.
+   */
+  isNew?: boolean;
+  /**
+   * bu-network-seen-state — user has tapped the eye-off icon on this
+   * browser. Card renders dimmed but stays clickable; the strip (if
+   * `isNew`) still renders so "new but I dismissed it" reads
+   * coherently.
+   */
+  dismissed?: boolean;
+  /**
+   * bu-network-seen-state — toggles `dismissed` for this card. Omit
+   * to suppress the eye-off icon entirely (keeps callers that don't
+   * own seen-state working).
+   */
+  onToggleDismissed?: () => void;
+  /**
+   * bu-network-card-body-clamp — admin-tunable threshold (lines).
+   * When the rendered body exceeds this many lines, clamp to 3
+   * lines and show a "Show more" toggle. Omit to never clamp
+   * (used by tests / callers without server context).
+   */
+  bodyClampThresholdLines?: number;
 }
 
 export function NetworkCard({
@@ -82,6 +111,10 @@ export function NetworkCard({
   onRemoveReaction,
   canReact = true,
   onShareInitiated,
+  isNew = false,
+  dismissed = false,
+  onToggleDismissed,
+  bodyClampThresholdLines,
 }: NetworkCardProps) {
   const title = card.linkTitle ?? hostnameOf(card.url);
   const sender = card.fromName ?? 'anonymous member';
@@ -121,8 +154,45 @@ export function NetworkCard({
       data-status={card.state.status}
       data-anon={isAnon ? 'true' : 'false'}
       data-has-preview={hasPreview ? 'true' : 'false'}
-      style={cardStyle}
+      data-is-new={isNew ? 'true' : 'false'}
+      data-dismissed={dismissed ? 'true' : 'false'}
+      style={cardStyleFor({ isNew, dismissed })}
     >
+      {isNew && (
+        <>
+          {/* bu-network-seen-state — left-edge accent strip. Absolutely
+              positioned so layout doesn't shift between isNew and not.
+              Screen-reader label sits next to it (visually hidden) so
+              the signal isn't colour-only per a11y. */}
+          <span aria-hidden="true" data-testid="network-card-new-strip" style={newStripStyle} />
+          <span style={visuallyHidden}>New — arrived since your last visit</span>
+        </>
+      )}
+
+      {/* bu-network-seen-state — eye-off toggle, absolutely positioned
+          at the top-right of the card for one-tap access. Rendered
+          before the rest of the content so the tab order puts it
+          early — but the visual placement is independent of source
+          order thanks to absolute positioning. */}
+      {onToggleDismissed && (
+        <button
+          type="button"
+          data-testid="network-card-dismiss-toggle"
+          data-message-id={card.messageId}
+          data-dismissed={dismissed ? 'true' : 'false'}
+          onClick={(e: MouseEvent<HTMLButtonElement>) => {
+            e.preventDefault();
+            onToggleDismissed();
+          }}
+          aria-label={dismissed ? 'Mark as not seen' : 'Mark as seen'}
+          aria-pressed={dismissed}
+          title={dismissed ? 'Mark as not seen' : 'Mark as seen'}
+          style={dismissButtonStyle(dismissed)}
+        >
+          <EyeOff size={16} aria-hidden="true" />
+        </button>
+      )}
+
       {!hasPreview && (
         <header style={{ marginBottom: 'var(--space-2)' }}>
           <a
@@ -226,28 +296,11 @@ export function NetworkCard({
           )}
 
           {!isZoom && card.textBody && (
-            <p
-              data-testid="network-card-body"
-              data-message-id={card.messageId}
-              style={{
-                margin: 0,
-                marginBottom: 'var(--space-3)',
-                color: 'var(--colour-text-primary)',
-                fontFamily: 'var(--font-ui)',
-                fontSize: 'var(--text-sm)',
-                lineHeight: 'var(--line-normal)',
-                whiteSpace: 'pre-wrap',
-                // Long URLs pasted into the message body (e.g. Facebook
-                // post permalinks) have no whitespace to break on and
-                // overflow the card's right edge. `anywhere` breaks
-                // mid-token so the URL stays inside the card. Safe for
-                // ordinary prose — only kicks in when a token wouldn't
-                // otherwise fit.
-                overflowWrap: 'anywhere',
-              }}
-            >
-              {card.textBody}
-            </p>
+            <ClampedCardBody
+              body={card.textBody}
+              messageId={card.messageId}
+              thresholdLines={bodyClampThresholdLines}
+            />
           )}
 
           {/* Reactions sit directly above the triage row — the closing
@@ -368,13 +421,55 @@ export function NetworkCard({
 
 // ── Styling (inline, tokens-only — palette refresh in flight) ─────────────
 
-const cardStyle: CSSProperties = {
-  background: 'var(--colour-surface-raised)',
-  border: '1px solid var(--colour-border-subtle)',
-  borderRadius: 'var(--radius-md)',
-  padding: 'var(--space-4) var(--space-5)',
-  marginBottom: 'var(--space-3)',
-  fontFamily: 'var(--font-ui)',
+function cardStyleFor({ isNew, dismissed }: { isNew: boolean; dismissed: boolean }): CSSProperties {
+  return {
+    background: 'var(--colour-surface-raised)',
+    border: '1px solid var(--colour-border-subtle)',
+    borderRadius: 'var(--radius-md)',
+    padding: 'var(--space-4) var(--space-5)',
+    marginBottom: 'var(--space-3)',
+    fontFamily: 'var(--font-ui)',
+    // bu-network-seen-state — relative so the absolutely-positioned
+    // accent strip can hug the card's left edge without shifting
+    // layout. Opacity dims the whole card when dismissed; child
+    // links and buttons stay clickable.
+    position: 'relative',
+    opacity: dismissed ? 0.5 : 1,
+    // Hint for the accent strip's compositor on isNew — purely
+    // cosmetic, no effect on non-new cards.
+    transition: isNew ? 'opacity 120ms ease-out' : undefined,
+  };
+}
+
+// bu-network-seen-state — accent strip rendered as an absolutely-
+// positioned `<span>` so the layout never shifts. ~3px wide,
+// full-card-height (top/bottom: 0), accent-token colour. Tucks
+// just inside the rounded corner so it doesn't visually clip.
+const newStripStyle: CSSProperties = {
+  position: 'absolute',
+  left: 0,
+  top: 0,
+  bottom: 0,
+  width: 3,
+  background: 'var(--colour-primary)',
+  borderTopLeftRadius: 'var(--radius-md)',
+  borderBottomLeftRadius: 'var(--radius-md)',
+  pointerEvents: 'none',
+};
+
+// Visually-hidden text (sr-only equivalent). Pairs with the accent
+// strip so the "new" signal is announced to assistive tech even
+// though the visible indicator is colour-only.
+const visuallyHidden: CSSProperties = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
 };
 
 const titleLinkStyle: CSSProperties = {
@@ -459,6 +554,40 @@ const resetButtonStyle: CSSProperties = {
   borderStyle: 'dashed',
 };
 
+// bu-network-seen-state — eye-off toggle, absolutely positioned at
+// the top-right of the card for one-tap access on touch viewports.
+// 32×32 visible target; sits over the link preview hero on cards
+// that have one, so the background is *translucent* + blurred (glass
+// look on browsers that support backdrop-filter; the color-mix
+// alpha is the fallback elsewhere). Per global pref: color-mix for
+// alpha, never hex opacity.
+function dismissButtonStyle(active: boolean): CSSProperties {
+  const idleBg = 'color-mix(in srgb, var(--colour-surface-raised) 65%, transparent)';
+  const activeBg = 'color-mix(in srgb, var(--colour-surface-sunken) 80%, transparent)';
+  return {
+    position: 'absolute',
+    top: 'var(--space-2)',
+    right: 'var(--space-2)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 32,
+    height: 32,
+    padding: 0,
+    borderRadius: 'var(--radius-pill)',
+    border: '1px solid color-mix(in srgb, var(--colour-border-subtle) 70%, transparent)',
+    background: active ? activeBg : idleBg,
+    color: active ? 'var(--colour-text-primary)' : 'var(--colour-text-tertiary)',
+    cursor: 'pointer',
+    flexShrink: 0,
+    // Sit above the link preview / hero image but below the SR strip.
+    zIndex: 2,
+    // Glass look on Safari + Chrome; harmless no-op elsewhere.
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
+  };
+}
+
 // ── Display helpers ────────────────────────────────────────────────────────
 
 function hostnameOf(url: string): string {
@@ -484,6 +613,104 @@ function isXLikeUrl(url: string): boolean {
     return false;
   }
 }
+
+// bu-network-card-body-clamp — body wrapper. Sub-component so the
+// hooks (useRef / useState / useLayoutEffect) have a render context.
+// Tests can navigate via `findChildByTypeName(..., 'ClampedCardBody')`
+// or rely on the rendered structure when wrapped by a renderer.
+export function ClampedCardBody({
+  body,
+  messageId,
+  thresholdLines,
+}: {
+  body: string;
+  messageId: string;
+  thresholdLines?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [exceeds, setExceeds] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!ref.current || thresholdLines === undefined || thresholdLines <= 0) {
+      setExceeds(false);
+      return;
+    }
+    const styles = window.getComputedStyle(ref.current);
+    const fontSize = Number.parseFloat(styles.fontSize) || 14;
+    const computedLh = Number.parseFloat(styles.lineHeight);
+    const lineHeight = Number.isFinite(computedLh) ? computedLh : fontSize * 1.5;
+    const thresholdPx = lineHeight * thresholdLines;
+    setExceeds(ref.current.scrollHeight > thresholdPx + 1);
+  }, [body, thresholdLines]);
+
+  const clamped = exceeds && !expanded;
+  return (
+    <div
+      data-testid="network-card-body-wrapper"
+      data-message-id={messageId}
+      data-clamped={clamped ? 'true' : 'false'}
+      data-exceeds-threshold={exceeds ? 'true' : 'false'}
+      style={{ marginBottom: 'var(--space-3)' }}
+    >
+      <div
+        ref={ref}
+        data-testid="network-card-body"
+        data-message-id={messageId}
+        style={{
+          margin: 0,
+          color: 'var(--colour-text-primary)',
+          fontFamily: 'var(--font-ui)',
+          fontSize: 'var(--text-sm)',
+          lineHeight: 'var(--line-normal)',
+          whiteSpace: 'pre-wrap',
+          // Long URLs pasted into the message body (e.g. Facebook post
+          // permalinks) have no whitespace to break on and overflow
+          // the card's right edge. `anywhere` breaks mid-token so the
+          // URL stays inside the card.
+          overflowWrap: 'anywhere',
+          ...(clamped
+            ? {
+                display: '-webkit-box',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical' as const,
+                overflow: 'hidden',
+              }
+            : {}),
+        }}
+      >
+        {body}
+      </div>
+      {exceeds && (
+        <button
+          type="button"
+          data-testid="network-card-body-toggle"
+          data-message-id={messageId}
+          data-expanded={expanded ? 'true' : 'false'}
+          onClick={(e: MouseEvent<HTMLButtonElement>) => {
+            e.preventDefault();
+            setExpanded((prev) => !prev);
+          }}
+          style={showMoreButtonStyle}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+const showMoreButtonStyle: CSSProperties = {
+  marginTop: 'var(--space-1)',
+  padding: 0,
+  border: 'none',
+  background: 'transparent',
+  color: 'var(--colour-text-link)',
+  fontFamily: 'var(--font-ui)',
+  fontSize: 'var(--text-sm)',
+  cursor: 'pointer',
+  textDecoration: 'underline',
+};
 
 function relativeTime(iso: string): string {
   const sentAt = new Date(iso).getTime();

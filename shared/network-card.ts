@@ -138,6 +138,15 @@ export interface NetworkListResponse {
   nextCursor: string | null;
   fetchedAt: Date;
   fromCache: boolean;
+  /**
+   * bu-network-card-body-clamp — admin-tunable threshold (lines).
+   * When a card's rendered body exceeds this many lines, the client
+   * clamps to 3 lines and shows a "Show more" toggle. Seeded
+   * (default 6) via migration; tuned in `/settings`. Sourced
+   * outside the list cache so a setting change takes effect on the
+   * next request.
+   */
+  bodyClampThresholdLines: number;
 }
 
 // ── Wire-serialised variants (server-component → client-component boundary)
@@ -198,6 +207,8 @@ export interface SerializedNetworkListResponse {
   /** ISO 8601 string — when the upstream fetch completed. */
   fetchedAt: string;
   fromCache: boolean;
+  /** bu-network-card-body-clamp — see NetworkListResponse for semantics. */
+  bodyClampThresholdLines: number;
 }
 
 export function serializeNetworkCard(card: NetworkCard): SerializedNetworkCard {
@@ -252,5 +263,6 @@ export function serializeNetworkListResponse(
     nextCursor: response.nextCursor,
     fetchedAt: response.fetchedAt.toISOString(),
     fromCache: response.fromCache,
+    bodyClampThresholdLines: response.bodyClampThresholdLines,
   };
 }

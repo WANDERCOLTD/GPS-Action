@@ -28,7 +28,7 @@
  */
 
 import type { CSSProperties, ReactNode } from 'react';
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import type { ShareDestination } from '@prisma/client';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { ClientOnly } from '@/components/ClientOnly';
@@ -50,6 +50,12 @@ import type {
   SerializedNetworkListResponse,
 } from '@/shared/network-card';
 import type { FeedReaction, FeedReactionEmoji } from '@/components/PostCard';
+import {
+  getDismissedIds,
+  getLastVisitedAt,
+  setLastVisitedAt,
+  toggleDismissed as toggleDismissedInStorage,
+} from '@/shared/lib/network-seen-state';
 
 interface NetworkFeedProps {
   initial: SerializedNetworkListResponse;
@@ -57,13 +63,29 @@ interface NetworkFeedProps {
   chipStrip: ReactNode;
   /** Server-rendered sort control (passed in from page.tsx). */
   sortControl: ReactNode;
+  /**
+   * bu-network-seen-state — when true, hide cards where `isNew` is
+   * false. URL-bound via `?unread=1`. Defaults to false (show all).
+   */
+  unreadOnly?: boolean;
 }
 
-export function NetworkFeed({ initial, chipStrip, sortControl }: NetworkFeedProps) {
+export function NetworkFeed({
+  initial,
+  chipStrip,
+  sortControl,
+  unreadOnly = false,
+}: NetworkFeedProps) {
   const [items, setItems] = useState<SerializedNetworkCard[]>(initial.items);
   const [cursor, setCursor] = useState<string | null>(initial.nextCursor);
   const [fetchedAt, setFetchedAt] = useState<string>(initial.fetchedAt);
   const [fromCache, setFromCache] = useState<boolean>(initial.fromCache);
+  // bu-network-card-body-clamp — admin-tunable threshold piggybacks
+  // on the list response. Picks up any tune-change on the next page
+  // refresh (no live re-render needed; we don't shift this often).
+  const [bodyClampThresholdLines, setBodyClampThresholdLines] = useState<number>(
+    initial.bodyClampThresholdLines,
+  );
   const [pendingByMessageId, setPendingByMessageId] = useState<Record<string, boolean>>({});
   const [, startTransition] = useTransition();
   const [refreshing, setRefreshing] = useState(false);
@@ -90,6 +112,40 @@ export function NetworkFeed({ initial, chipStrip, sortControl }: NetworkFeedProp
     messageId: string;
     destination: ShareDestination;
   } | null>(null);
+
+  // bu-network-seen-state — per-browser state for the NEW marker and
+  // mark-as-seen toggle. Both reads happen once on mount inside an
+  // effect (SSR has no localStorage). `lastVisitedAtSnapshot` is the
+  // value at mount time — frozen for the lifetime of the page so
+  // cards arriving via refresh or load-more continue to be compared
+  // against the visit anchor rather than a moving target. First
+  // visit (snapshot === null) means every card is suppressed; the
+  // anchor is written immediately so the next visit has something
+  // to compare against.
+  const [lastVisitedAtSnapshot, setLastVisitedAtSnapshot] = useState<Date | null>(null);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [seenStateHydrated, setSeenStateHydrated] = useState(false);
+
+  useEffect(() => {
+    const previous = getLastVisitedAt();
+    setLastVisitedAtSnapshot(previous);
+    setDismissedIds(getDismissedIds());
+    setLastVisitedAt(new Date());
+    setSeenStateHydrated(true);
+  }, []);
+
+  const handleToggleDismissed = useCallback((messageId: string): void => {
+    const nowDismissed = toggleDismissedInStorage(messageId);
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      if (nowDismissed) {
+        next.add(messageId);
+      } else {
+        next.delete(messageId);
+      }
+      return next;
+    });
+  }, []);
 
   const fetchReactionsFor = useCallback(async (messageIds: string[]) => {
     if (messageIds.length === 0) return;
@@ -126,6 +182,7 @@ export function NetworkFeed({ initial, chipStrip, sortControl }: NetworkFeedProp
         setCursor(fresh.nextCursor);
         setFetchedAt(fresh.fetchedAt);
         setFromCache(fresh.fromCache);
+        setBodyClampThresholdLines(fresh.bodyClampThresholdLines);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Refresh failed.');
       } finally {
@@ -215,6 +272,32 @@ export function NetworkFeed({ initial, chipStrip, sortControl }: NetworkFeedProp
   const handleShareSkip = useCallback((): void => {
     setPendingShare(null);
   }, []);
+
+  // bu-network-seen-state — derive per-card isNew + the visible
+  // subset under the Unread-only filter. Both depend on the hydrated
+  // anchor; before hydration, `isNew` is false for every card and
+  // the filter is a no-op (server-rendered pass-through keeps SSR
+  // and first paint stable — no FOUC of NEW strips appearing on
+  // mount).
+  const isNewByMessageId = useMemo(() => {
+    const map = new Map<string, boolean>();
+    if (!seenStateHydrated || lastVisitedAtSnapshot === null) return map;
+    const anchorMs = lastVisitedAtSnapshot.getTime();
+    for (const card of items) {
+      const sentMs = new Date(card.sentAt).getTime();
+      if (!Number.isNaN(sentMs) && sentMs > anchorMs) map.set(card.messageId, true);
+    }
+    return map;
+  }, [items, lastVisitedAtSnapshot, seenStateHydrated]);
+
+  const visibleItems = useMemo(() => {
+    if (!unreadOnly) return items;
+    // Before hydration we don't know which cards are new — show
+    // nothing rather than flash the full list. After hydration,
+    // filter to isNew only.
+    if (!seenStateHydrated) return [];
+    return items.filter((c) => isNewByMessageId.get(c.messageId) === true);
+  }, [items, unreadOnly, seenStateHydrated, isNewByMessageId]);
 
   const handleSetStatus = useCallback((card: SerializedNetworkCard, status: NetworkCardStatus) => {
     const prevState = card.state;
@@ -323,11 +406,15 @@ export function NetworkFeed({ initial, chipStrip, sortControl }: NetworkFeedProp
           </p>
         )}
 
-        {items.length === 0 ? (
-          <NetworkEmptyState />
+        {visibleItems.length === 0 ? (
+          unreadOnly && items.length > 0 ? (
+            <NetworkAllCaughtUpState />
+          ) : (
+            <NetworkEmptyState />
+          )
         ) : (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {items.map((card) => (
+            {visibleItems.map((card) => (
               <li key={card.messageId}>
                 <NetworkCard
                   card={card}
@@ -337,6 +424,10 @@ export function NetworkFeed({ initial, chipStrip, sortControl }: NetworkFeedProp
                   onAddReaction={(emoji) => handleAddReaction(card.messageId, emoji)}
                   onRemoveReaction={(emoji) => handleRemoveReaction(card.messageId, emoji)}
                   onShareInitiated={handleShareInitiated}
+                  isNew={isNewByMessageId.get(card.messageId) ?? false}
+                  dismissed={dismissedIds.has(card.messageId)}
+                  onToggleDismissed={() => handleToggleDismissed(card.messageId)}
+                  bodyClampThresholdLines={bodyClampThresholdLines}
                 />
               </li>
             ))}
@@ -385,6 +476,30 @@ function NetworkEmptyState() {
       <p style={{ margin: 0, marginBottom: 'var(--space-2)' }}>Quiet in here.</p>
       <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--colour-text-tertiary)' }}>
         New shares from the network will appear when members post them.
+      </p>
+    </div>
+  );
+}
+
+// bu-network-seen-state — shown when the Unread-only filter is on
+// and no card has arrived since the user's previous visit. Distinct
+// from the genuinely-empty state — the underlying list is not empty,
+// the user has just caught up.
+function NetworkAllCaughtUpState() {
+  return (
+    <div
+      data-testid="network-all-caught-up"
+      style={{
+        textAlign: 'center',
+        padding: 'var(--space-8) 0',
+        color: 'var(--colour-text-secondary)',
+        fontFamily: 'var(--font-ui)',
+        fontSize: 'var(--text-base)',
+      }}
+    >
+      <p style={{ margin: 0, marginBottom: 'var(--space-2)' }}>You&rsquo;re all caught up.</p>
+      <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--colour-text-tertiary)' }}>
+        Turn off &ldquo;Unread only&rdquo; to see the full list.
       </p>
     </div>
   );
