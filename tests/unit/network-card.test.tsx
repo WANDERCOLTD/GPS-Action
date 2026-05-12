@@ -398,18 +398,27 @@ describe('NetworkCard', () => {
     });
   });
 
-  it('long URLs in body text wrap rather than overflow the card', () => {
+  it('passes the body through to ClampedCardBody (which owns overflowWrap)', () => {
+    // bu-network-card-body-clamp: the body's overflowWrap +
+    // line-clamp lives in ClampedCardBody. NetworkCard hands it the
+    // body text + messageId + threshold; the clamp itself is hook-
+    // driven and out of reach of this pure-function test harness.
+    const longUrlBody =
+      'See https://www.facebook.com/some.user/posts/pfbid0LongOpaqueTokenWithNoBreakOpportunitiesAtAll1234567890abcdef';
     const tree = NetworkCard({
-      card: makeCard({
-        textBody:
-          'See https://www.facebook.com/some.user/posts/pfbid0LongOpaqueTokenWithNoBreakOpportunitiesAtAll1234567890abcdef',
-      }),
+      card: makeCard({ textBody: longUrlBody }),
       onSetStatus: vi.fn(),
       pending: false,
+      bodyClampThresholdLines: 6,
     }) as AnyElement;
-    const body = findByTestId(tree, 'network-card-body');
-    const style = body?.props.style as { overflowWrap?: string } | undefined;
-    expect(style?.overflowWrap).toBe('anywhere');
+
+    const clampedBody = flatChildren(tree).find(
+      (el) =>
+        typeof el.type === 'function' && (el.type as { name?: string }).name === 'ClampedCardBody',
+    );
+    expect(clampedBody).toBeDefined();
+    expect(clampedBody?.props.body).toBe(longUrlBody);
+    expect(clampedBody?.props.thresholdLines).toBe(6);
   });
 
   // ── BU-network-reactions ──────────────────────────────────────────────

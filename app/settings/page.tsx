@@ -13,7 +13,9 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLink } from '@/components/ArrowLink';
 import { PageHeader } from '@/components/PageHeader';
+import { SystemSettingNumberField } from '@/components/SystemSettingNumberField';
 import { createTRPCContext } from '@/server/routers/context';
+import { getSystemSettingInt } from '@/server/services/system-setting';
 
 export const metadata = {
   title: 'Settings — GPS Action',
@@ -28,6 +30,16 @@ export default async function SettingsPage() {
   const isAdmin = ctx.activeRoles.includes('admin');
   const isQueueManager = ctx.activeRoles.includes('queue_manager');
   const canSeeData = isAdmin || isQueueManager;
+
+  // bu-network-card-body-clamp — read both admin-settable values
+  // server-side so the edit fields hydrate with their current
+  // database value. Non-admins skip this read entirely.
+  const [urgentTtlHours, networkBodyClampThresholdLines] = isAdmin
+    ? await Promise.all([
+        getSystemSettingInt('urgent_ttl_hours', 4),
+        getSystemSettingInt('network_card_body_clamp_threshold_lines', 6),
+      ])
+    : [4, 6];
 
   return (
     <>
@@ -173,27 +185,28 @@ export default async function SettingsPage() {
                   small BU. Today: read-only — see the Data section above (featureFlag entity).
                 </p>
               </li>
+              <li style={{ listStyle: 'none' }} data-testid="settings-section-urgent-ttl">
+                <SystemSettingNumberField
+                  settingKey="urgent_ttl_hours"
+                  label="Urgent TTL (hours)"
+                  description="How long an urgent request stays urgent before auto-downgrading (D058). Default 4."
+                  initialValue={urgentTtlHours}
+                  min={1}
+                  max={48}
+                />
+              </li>
               <li
-                style={{
-                  listStyle: 'none',
-                  padding: 'var(--space-4)',
-                  background: 'var(--colour-surface-raised)',
-                  border: '1px solid var(--colour-border-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                }}
-                data-testid="settings-section-urgent-ttl"
+                style={{ listStyle: 'none' }}
+                data-testid="settings-section-network-card-body-clamp"
               >
-                <strong style={{ fontSize: 'var(--text-sm)' }}>Urgent TTL (admin)</strong>
-                <p
-                  style={{
-                    margin: 'var(--space-1) 0 0 0',
-                    fontSize: 'var(--text-xs)',
-                    color: 'var(--colour-text-secondary)',
-                  }}
-                >
-                  Default 4h per D058. Editable here once BU-requests-urgent ships the SystemSetting
-                  model.
-                </p>
+                <SystemSettingNumberField
+                  settingKey="network_card_body_clamp_threshold_lines"
+                  label="Network card body clamp threshold (lines)"
+                  description="When a /network card's body exceeds this many rendered lines, it clamps to 3 lines and shows a 'Show more' toggle. Default 6."
+                  initialValue={networkBodyClampThresholdLines}
+                  min={3}
+                  max={30}
+                />
               </li>
             </>
           )}

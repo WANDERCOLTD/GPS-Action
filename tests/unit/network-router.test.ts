@@ -38,6 +38,12 @@ vi.mock('@/server/db/client', () => ({
     shareEvent: {
       groupBy: vi.fn().mockResolvedValue([]),
     },
+    // bu-network-card-body-clamp — listNetworkCards reads the
+    // threshold via getSystemSettingInt. Default to null (unset) so
+    // the fallback (6) applies and tests don't have to care.
+    systemSetting: {
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
   },
 }));
 
@@ -155,6 +161,10 @@ describe('network.list', () => {
       items: expect.any(Array),
       nextCursor: null,
       fromCache: false,
+      // bu-network-card-body-clamp — threshold flows through the
+      // list response. The mock SystemSetting.findUnique returns
+      // null, so the fallback (6) applies.
+      bodyClampThresholdLines: 6,
     });
     expect(result.items[0]).toMatchObject({
       id: 1n,

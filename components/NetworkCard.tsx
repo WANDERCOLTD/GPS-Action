@@ -39,6 +39,7 @@
  */
 
 import type { CSSProperties, MouseEvent } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { ShareDestination } from '@prisma/client';
 import { EyeOff } from 'lucide-react';
 import type { NetworkCardStatus, SerializedNetworkCard } from '@/shared/network-card';
@@ -92,6 +93,13 @@ interface NetworkCardProps {
    * own seen-state working).
    */
   onToggleDismissed?: () => void;
+  /**
+   * bu-network-card-body-clamp — admin-tunable threshold (lines).
+   * When the rendered body exceeds this many lines, clamp to 3
+   * lines and show a "Show more" toggle. Omit to never clamp
+   * (used by tests / callers without server context).
+   */
+  bodyClampThresholdLines?: number;
 }
 
 export function NetworkCard({
@@ -106,6 +114,7 @@ export function NetworkCard({
   isNew = false,
   dismissed = false,
   onToggleDismissed,
+  bodyClampThresholdLines,
 }: NetworkCardProps) {
   const title = card.linkTitle ?? hostnameOf(card.url);
   const sender = card.fromName ?? 'anonymous member';
@@ -287,28 +296,11 @@ export function NetworkCard({
           )}
 
           {!isZoom && card.textBody && (
-            <p
-              data-testid="network-card-body"
-              data-message-id={card.messageId}
-              style={{
-                margin: 0,
-                marginBottom: 'var(--space-3)',
-                color: 'var(--colour-text-primary)',
-                fontFamily: 'var(--font-ui)',
-                fontSize: 'var(--text-sm)',
-                lineHeight: 'var(--line-normal)',
-                whiteSpace: 'pre-wrap',
-                // Long URLs pasted into the message body (e.g. Facebook
-                // post permalinks) have no whitespace to break on and
-                // overflow the card's right edge. `anywhere` breaks
-                // mid-token so the URL stays inside the card. Safe for
-                // ordinary prose — only kicks in when a token wouldn't
-                // otherwise fit.
-                overflowWrap: 'anywhere',
-              }}
-            >
-              {card.textBody}
-            </p>
+            <ClampedCardBody
+              body={card.textBody}
+              messageId={card.messageId}
+              thresholdLines={bodyClampThresholdLines}
+            />
           )}
 
           {/* Reactions sit directly above the triage row — the closing
@@ -616,6 +608,104 @@ function isXLikeUrl(url: string): boolean {
     return false;
   }
 }
+
+// bu-network-card-body-clamp — body wrapper. Sub-component so the
+// hooks (useRef / useState / useLayoutEffect) have a render context.
+// Tests can navigate via `findChildByTypeName(..., 'ClampedCardBody')`
+// or rely on the rendered structure when wrapped by a renderer.
+export function ClampedCardBody({
+  body,
+  messageId,
+  thresholdLines,
+}: {
+  body: string;
+  messageId: string;
+  thresholdLines?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [exceeds, setExceeds] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!ref.current || thresholdLines === undefined || thresholdLines <= 0) {
+      setExceeds(false);
+      return;
+    }
+    const styles = window.getComputedStyle(ref.current);
+    const fontSize = Number.parseFloat(styles.fontSize) || 14;
+    const computedLh = Number.parseFloat(styles.lineHeight);
+    const lineHeight = Number.isFinite(computedLh) ? computedLh : fontSize * 1.5;
+    const thresholdPx = lineHeight * thresholdLines;
+    setExceeds(ref.current.scrollHeight > thresholdPx + 1);
+  }, [body, thresholdLines]);
+
+  const clamped = exceeds && !expanded;
+  return (
+    <div
+      data-testid="network-card-body-wrapper"
+      data-message-id={messageId}
+      data-clamped={clamped ? 'true' : 'false'}
+      data-exceeds-threshold={exceeds ? 'true' : 'false'}
+      style={{ marginBottom: 'var(--space-3)' }}
+    >
+      <div
+        ref={ref}
+        data-testid="network-card-body"
+        data-message-id={messageId}
+        style={{
+          margin: 0,
+          color: 'var(--colour-text-primary)',
+          fontFamily: 'var(--font-ui)',
+          fontSize: 'var(--text-sm)',
+          lineHeight: 'var(--line-normal)',
+          whiteSpace: 'pre-wrap',
+          // Long URLs pasted into the message body (e.g. Facebook post
+          // permalinks) have no whitespace to break on and overflow
+          // the card's right edge. `anywhere` breaks mid-token so the
+          // URL stays inside the card.
+          overflowWrap: 'anywhere',
+          ...(clamped
+            ? {
+                display: '-webkit-box',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical' as const,
+                overflow: 'hidden',
+              }
+            : {}),
+        }}
+      >
+        {body}
+      </div>
+      {exceeds && (
+        <button
+          type="button"
+          data-testid="network-card-body-toggle"
+          data-message-id={messageId}
+          data-expanded={expanded ? 'true' : 'false'}
+          onClick={(e: MouseEvent<HTMLButtonElement>) => {
+            e.preventDefault();
+            setExpanded((prev) => !prev);
+          }}
+          style={showMoreButtonStyle}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+const showMoreButtonStyle: CSSProperties = {
+  marginTop: 'var(--space-1)',
+  padding: 0,
+  border: 'none',
+  background: 'transparent',
+  color: 'var(--colour-text-link)',
+  fontFamily: 'var(--font-ui)',
+  fontSize: 'var(--text-sm)',
+  cursor: 'pointer',
+  textDecoration: 'underline',
+};
 
 function relativeTime(iso: string): string {
   const sentAt = new Date(iso).getTime();

@@ -24,6 +24,7 @@ import { notificationKanbanRouter } from '@/server/routers/notification-kanban';
 import { adminRouter } from '@/server/routers/admin';
 import { searchRouter } from '@/server/routers/search';
 import { networkRouter } from '@/server/routers/network';
+import { systemSettingRouter } from '@/server/routers/system-setting';
 import { isDemoMode } from '@/shared/demo-mode';
 
 export const appRouter = router({
@@ -47,6 +48,7 @@ export const appRouter = router({
   admin: adminRouter,
   search: searchRouter,
   network: networkRouter,
+  systemSetting: systemSettingRouter,
 });
 
 export type AppRouter = typeof appRouter;

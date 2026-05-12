@@ -80,6 +80,12 @@ export function NetworkFeed({
   const [cursor, setCursor] = useState<string | null>(initial.nextCursor);
   const [fetchedAt, setFetchedAt] = useState<string>(initial.fetchedAt);
   const [fromCache, setFromCache] = useState<boolean>(initial.fromCache);
+  // bu-network-card-body-clamp — admin-tunable threshold piggybacks
+  // on the list response. Picks up any tune-change on the next page
+  // refresh (no live re-render needed; we don't shift this often).
+  const [bodyClampThresholdLines, setBodyClampThresholdLines] = useState<number>(
+    initial.bodyClampThresholdLines,
+  );
   const [pendingByMessageId, setPendingByMessageId] = useState<Record<string, boolean>>({});
   const [, startTransition] = useTransition();
   const [refreshing, setRefreshing] = useState(false);
@@ -176,6 +182,7 @@ export function NetworkFeed({
         setCursor(fresh.nextCursor);
         setFetchedAt(fresh.fetchedAt);
         setFromCache(fresh.fromCache);
+        setBodyClampThresholdLines(fresh.bodyClampThresholdLines);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Refresh failed.');
       } finally {
@@ -420,6 +427,7 @@ export function NetworkFeed({
                   isNew={isNewByMessageId.get(card.messageId) ?? false}
                   dismissed={dismissedIds.has(card.messageId)}
                   onToggleDismissed={() => handleToggleDismissed(card.messageId)}
+                  bodyClampThresholdLines={bodyClampThresholdLines}
                 />
               </li>
             ))}
