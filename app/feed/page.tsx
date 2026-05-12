@@ -13,6 +13,7 @@ import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { FeedList } from '@/components/FeedList';
 import { FeedFilterChips } from '@/components/FeedFilterChips';
+import { PageHeader } from '@/components/PageHeader';
 import { loadMorePosts, addReactionAction, removeReactionAction } from '@/app/feed/actions';
 import type { FeedPost, FeedCursor, FeedReactionEmoji } from '@/components/PostCard';
 import { isFeedFilter, type FeedFilter } from '@/shared/feed-filters';
@@ -36,22 +37,22 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
 
   if (!ctx.user) {
     return (
-      <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
-        <h1 className="gps-title" style={{ marginBottom: 'var(--space-3)' }}>
-          GPS Action
-        </h1>
-        <p style={{ color: 'var(--colour-text-secondary)' }}>
-          Please{' '}
-          <a
-            href="/dev/login"
-            style={{ color: 'var(--colour-text-link)' }}
-            data-testid="feed-login-link"
-          >
-            log in
-          </a>{' '}
-          to see the feed.
-        </p>
-      </main>
+      <>
+        <PageHeader title="Feed" description="Posts from your network" />
+        <main style={{ padding: 'var(--space-6) var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
+          <p style={{ color: 'var(--colour-text-secondary)' }}>
+            Please{' '}
+            <a
+              href="/dev/login"
+              style={{ color: 'var(--colour-text-link)' }}
+              data-testid="feed-login-link"
+            >
+              log in
+            </a>{' '}
+            to see the feed.
+          </p>
+        </main>
+      </>
     );
   }
 
@@ -116,18 +117,28 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
     : null;
 
   return (
-    <main style={{ padding: 'var(--space-8)', maxWidth: 720, margin: '0 auto' }}>
-      <FeedFilterChips active={filter} />
-      <FeedList
-        key={filter}
-        initialPosts={posts}
-        initialCursor={cursor}
-        loadMore={loadMorePosts.bind(null, filter)}
-        onAddReaction={addReactionAction}
-        onRemoveReaction={removeReactionAction}
-        canReact={reactionsEnabled}
-        reactionsEnabled={reactionsEnabled}
-      />
-    </main>
+    <>
+      <PageHeader title="Feed" description="Posts from your network">
+        <FeedFilterChips active={filter} />
+      </PageHeader>
+      <main
+        style={{
+          padding: 'var(--space-5) var(--space-8) var(--space-8)',
+          maxWidth: 720,
+          margin: '0 auto',
+        }}
+      >
+        <FeedList
+          key={filter}
+          initialPosts={posts}
+          initialCursor={cursor}
+          loadMore={loadMorePosts.bind(null, filter)}
+          onAddReaction={addReactionAction}
+          onRemoveReaction={removeReactionAction}
+          canReact={reactionsEnabled}
+          reactionsEnabled={reactionsEnabled}
+        />
+      </main>
+    </>
   );
 }

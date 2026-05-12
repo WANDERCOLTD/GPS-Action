@@ -19,6 +19,7 @@ import { redirect } from 'next/navigation';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
+import { PageHeader } from '@/components/PageHeader';
 import {
   BoardGroupPicker,
   type BoardGroupKind,
@@ -55,34 +56,20 @@ export default async function BoardPage() {
   }));
 
   return (
-    <main
-      style={{
-        padding: 'var(--space-6) var(--space-4)',
-        maxWidth: 720,
-        margin: '0 auto',
-      }}
-    >
-      <h1
+    <>
+      <PageHeader
+        title="Coordination"
+        description="Open the board for any working group you belong to."
+      />
+      <main
         style={{
-          margin: 0,
-          marginBottom: 'var(--space-2)',
-          fontSize: 'var(--text-xl)',
-          fontFamily: 'var(--font-ui)',
+          padding: 'var(--space-5) var(--space-4) var(--space-6)',
+          maxWidth: 720,
+          margin: '0 auto',
         }}
       >
-        Coordination boards
-      </h1>
-      <p
-        style={{
-          margin: 0,
-          marginBottom: 'var(--space-5)',
-          color: 'var(--colour-text-secondary)',
-          lineHeight: 1.5,
-        }}
-      >
-        Open the board for any working group you belong to.
-      </p>
-      <BoardGroupPicker groups={groups} />
-    </main>
+        <BoardGroupPicker groups={groups} />
+      </main>
+    </>
   );
 }

@@ -23,6 +23,7 @@ import {
   type NotificationRowData,
 } from '@/components/notifications/NotificationRow';
 import { NotificationCapacityCallout } from '@/components/notifications/NotificationCapacityCallout';
+import { PageHeader } from '@/components/PageHeader';
 
 export const metadata = {
   title: 'Notifications — GPS Action',
@@ -64,52 +65,51 @@ export default async function NotificationsPage() {
   const atCap = rows.length >= PANE_LIMIT;
 
   return (
-    <main
-      data-testid="notifications-page"
-      style={{
-        padding: 'var(--space-6) var(--space-4)',
-        maxWidth: 720,
-        margin: '0 auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-4)',
-      }}
-    >
-      <h1 className="gps-title" data-testid="notifications-page-title">
-        Notifications
-      </h1>
+    <>
+      <PageHeader title="Notifications" description="Recent activity on your requests" />
+      <main
+        data-testid="notifications-page"
+        style={{
+          padding: 'var(--space-5) var(--space-4) var(--space-6)',
+          maxWidth: 720,
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-4)',
+        }}
+      >
+        {rows.length === 0 ? (
+          <p
+            data-testid="notifications-empty"
+            style={{
+              margin: 0,
+              padding: 'var(--space-4) 0',
+              color: 'var(--colour-text-secondary)',
+              fontFamily: 'var(--font-ui)',
+              fontSize: 'var(--text-sm)',
+            }}
+          >
+            No notifications yet.
+          </p>
+        ) : (
+          <div
+            data-testid="notifications-list"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              border: '1px solid var(--colour-border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              overflow: 'hidden',
+            }}
+          >
+            {rows.map((row) => (
+              <NotificationRow key={row.id} notification={row} />
+            ))}
+          </div>
+        )}
 
-      {rows.length === 0 ? (
-        <p
-          data-testid="notifications-empty"
-          style={{
-            margin: 0,
-            padding: 'var(--space-4) 0',
-            color: 'var(--colour-text-secondary)',
-            fontFamily: 'var(--font-ui)',
-            fontSize: 'var(--text-sm)',
-          }}
-        >
-          No notifications yet.
-        </p>
-      ) : (
-        <div
-          data-testid="notifications-list"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            border: '1px solid var(--colour-border-subtle)',
-            borderRadius: 'var(--radius-sm)',
-            overflow: 'hidden',
-          }}
-        >
-          {rows.map((row) => (
-            <NotificationRow key={row.id} notification={row} />
-          ))}
-        </div>
-      )}
-
-      {atCap && <NotificationCapacityCallout shown={rows.length} />}
-    </main>
+        {atCap && <NotificationCapacityCallout shown={rows.length} />}
+      </main>
+    </>
   );
 }
