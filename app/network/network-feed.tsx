@@ -119,9 +119,10 @@ export function NetworkFeed({
   // value at mount time — frozen for the lifetime of the page so
   // cards arriving via refresh or load-more continue to be compared
   // against the visit anchor rather than a moving target. First
-  // visit (snapshot === null) means every card is suppressed; the
-  // anchor is written immediately so the next visit has something
-  // to compare against.
+  // visit (snapshot === null) treats every card as new for this
+  // session, so the Unread-only chip surfaces the whole list instead
+  // of looking broken; the anchor written this visit means the next
+  // visit narrows to genuinely-new cards.
   const [lastVisitedAtSnapshot, setLastVisitedAtSnapshot] = useState<Date | null>(null);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [seenStateHydrated, setSeenStateHydrated] = useState(false);
@@ -281,7 +282,14 @@ export function NetworkFeed({
   // mount).
   const isNewByMessageId = useMemo(() => {
     const map = new Map<string, boolean>();
-    if (!seenStateHydrated || lastVisitedAtSnapshot === null) return map;
+    if (!seenStateHydrated) return map;
+    // First visit ever: no prior anchor to compare against. Treat every
+    // card as new for this session so Unread-only shows the full list
+    // on first paint rather than an empty "all caught up" state.
+    if (lastVisitedAtSnapshot === null) {
+      for (const card of items) map.set(card.messageId, true);
+      return map;
+    }
     const anchorMs = lastVisitedAtSnapshot.getTime();
     for (const card of items) {
       const sentMs = new Date(card.sentAt).getTime();
