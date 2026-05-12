@@ -160,6 +160,30 @@ export function NetworkCard({
         </>
       )}
 
+      {/* bu-network-seen-state — eye-off toggle, absolutely positioned
+          at the top-right of the card for one-tap access. Rendered
+          before the rest of the content so the tab order puts it
+          early — but the visual placement is independent of source
+          order thanks to absolute positioning. */}
+      {onToggleDismissed && (
+        <button
+          type="button"
+          data-testid="network-card-dismiss-toggle"
+          data-message-id={card.messageId}
+          data-dismissed={dismissed ? 'true' : 'false'}
+          onClick={(e: MouseEvent<HTMLButtonElement>) => {
+            e.preventDefault();
+            onToggleDismissed();
+          }}
+          aria-label={dismissed ? 'Mark as not seen' : 'Mark as seen'}
+          aria-pressed={dismissed}
+          title={dismissed ? 'Mark as not seen' : 'Mark as seen'}
+          style={dismissButtonStyle(dismissed)}
+        >
+          <EyeOff size={16} aria-hidden="true" />
+        </button>
+      )}
+
       {!hasPreview && (
         <header style={{ marginBottom: 'var(--space-2)' }}>
           <a
@@ -364,24 +388,6 @@ export function NetworkCard({
                 Reset
               </button>
             )}
-            {onToggleDismissed && (
-              <button
-                type="button"
-                data-testid="network-card-dismiss-toggle"
-                data-message-id={card.messageId}
-                data-dismissed={dismissed ? 'true' : 'false'}
-                onClick={(e: MouseEvent<HTMLButtonElement>) => {
-                  e.preventDefault();
-                  onToggleDismissed();
-                }}
-                aria-label={dismissed ? 'Mark as not seen' : 'Mark as seen'}
-                aria-pressed={dismissed}
-                title={dismissed ? 'Mark as not seen' : 'Mark as seen'}
-                style={dismissButtonStyle(dismissed)}
-              >
-                <EyeOff size={16} aria-hidden="true" />
-              </button>
-            )}
           </footer>
         </div>
 
@@ -556,22 +562,32 @@ const resetButtonStyle: CSSProperties = {
   borderStyle: 'dashed',
 };
 
-// bu-network-seen-state — eye-off toggle in the triage footer.
-// Square button matching triage-button height so the row aligns.
+// bu-network-seen-state — eye-off toggle, absolutely positioned at
+// the top-right of the card for one-tap access on touch viewports.
+// 36×36 visible target with `padding` extending the hit area toward
+// 44×44 per WCAG. Stays clear of the link-preview hero when
+// `hasPreview` because it's positioned relative to the article (not
+// the content). The card's `position: relative` (cardStyleFor) is
+// what anchors this.
 function dismissButtonStyle(active: boolean): CSSProperties {
   return {
+    position: 'absolute',
+    top: 'var(--space-2)',
+    right: 'var(--space-2)',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 32,
-    height: 32,
-    marginLeft: 'auto', // push to the far end of the triage row
+    width: 36,
+    height: 36,
+    padding: 0,
     borderRadius: 'var(--radius-pill)',
     border: '1px solid var(--colour-border-subtle)',
-    background: active ? 'var(--colour-surface-sunken)' : 'transparent',
+    background: active ? 'var(--colour-surface-sunken)' : 'var(--colour-surface-raised)',
     color: active ? 'var(--colour-text-primary)' : 'var(--colour-text-tertiary)',
     cursor: 'pointer',
     flexShrink: 0,
+    // Sit above the link preview / hero image but below the SR strip.
+    zIndex: 2,
   };
 }
 
