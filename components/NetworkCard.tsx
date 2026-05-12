@@ -556,12 +556,14 @@ const resetButtonStyle: CSSProperties = {
 
 // bu-network-seen-state — eye-off toggle, absolutely positioned at
 // the top-right of the card for one-tap access on touch viewports.
-// 36×36 visible target with `padding` extending the hit area toward
-// 44×44 per WCAG. Stays clear of the link-preview hero when
-// `hasPreview` because it's positioned relative to the article (not
-// the content). The card's `position: relative` (cardStyleFor) is
-// what anchors this.
+// 32×32 visible target; sits over the link preview hero on cards
+// that have one, so the background is *translucent* + blurred (glass
+// look on browsers that support backdrop-filter; the color-mix
+// alpha is the fallback elsewhere). Per global pref: color-mix for
+// alpha, never hex opacity.
 function dismissButtonStyle(active: boolean): CSSProperties {
+  const idleBg = 'color-mix(in srgb, var(--colour-surface-raised) 65%, transparent)';
+  const activeBg = 'color-mix(in srgb, var(--colour-surface-sunken) 80%, transparent)';
   return {
     position: 'absolute',
     top: 'var(--space-2)',
@@ -569,17 +571,20 @@ function dismissButtonStyle(active: boolean): CSSProperties {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     padding: 0,
     borderRadius: 'var(--radius-pill)',
-    border: '1px solid var(--colour-border-subtle)',
-    background: active ? 'var(--colour-surface-sunken)' : 'var(--colour-surface-raised)',
+    border: '1px solid color-mix(in srgb, var(--colour-border-subtle) 70%, transparent)',
+    background: active ? activeBg : idleBg,
     color: active ? 'var(--colour-text-primary)' : 'var(--colour-text-tertiary)',
     cursor: 'pointer',
     flexShrink: 0,
     // Sit above the link preview / hero image but below the SR strip.
     zIndex: 2,
+    // Glass look on Safari + Chrome; harmless no-op elsewhere.
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
   };
 }
 
