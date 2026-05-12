@@ -107,7 +107,9 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | bu-coordination-board | 53 | SCN-34 | — |
 | bu-group-identity | 2 | — | — |
 | bu-kanban-event-config | 1 | — | — |
+| bu-network-card-body-clamp | 4 | — | — |
 | bu-network-card-layout | 1 | — | — |
+| bu-network-seen-state | 2 | — | — |
 | bu-network-shares | 7 | — | D047, D065, D077 |
 | bu-network-sort-options | 1 | — | — |
 | bu-network-source-chips | 2 | — | — |
