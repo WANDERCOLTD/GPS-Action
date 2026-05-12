@@ -121,8 +121,17 @@ export default async function NetworkPage({ searchParams }: NetworkPageProps) {
       preserveParams={{ sort: sortQs, unread: unreadQs }}
     />
   );
+  // React 19 warns when an element constructed in one component is
+  // rendered as a JSX sibling (in `NetworkFeed`) without an explicit
+  // key — the inline siblings around it get positional keys at the
+  // call site, this one arrives via prop with no source position and
+  // so doesn't. Setting the key at creation time satisfies the check
+  // without needing the consumer to know about it.
   const sortControl = (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+    <div
+      key="sort-cluster"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
+    >
       <NetworkUnreadChip active={unreadOnly} preserveParams={{ source: sourceQs, sort: sortQs }} />
       <NetworkSortControl
         active={activeSort}

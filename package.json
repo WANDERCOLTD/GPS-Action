@@ -1,6 +1,6 @@
 {
   "name": "gps-action",
-  "version": "0.2.240",
+  "version": "0.2.242",
   "private": true,
   "packageManager": "pnpm@11.0.6",
   "description": "GPS Action — purpose-built platform for coordinated activism",
