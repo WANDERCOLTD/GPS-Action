@@ -217,6 +217,28 @@ Anonymous callers skip step 2 and read the admin default directly.
 
 ---
 
+## Immediate-need split (Paul, 2026-05-12)
+
+> "I need current search to return /network items — how can we do that now? Is it done?"
+
+**It is not done.** Current `search.query` covers Posts / People / Regions / Partner orgs / Tickets / Comments. Network messages are unreachable from search today.
+
+**Phase 1 fast lane — ship network search without flags or prefs.** A minimal PR that lands the user-visible behaviour ("type 'hendon' → see network messages") and leaves the admin/per-user machinery for Phase 2:
+
+- Append `'network'` to `SEARCH_ENTITY_TYPES` in `shared/validation/search.ts`.
+- Add `searchNetworkMessages(q, callerId, limit)` to `server/services/search.ts` per the "Service" section above (ILIKE only; TODO comment in place).
+- Extend `searchAll`'s `Promise.all` + result shape with `network`. **Skip** the `getEnabledScopes` gate in Phase 1 — every authenticated caller gets network results unconditionally.
+- Add `SearchNetworkHitRow` to `components/SearchHitRows.tsx`; append `'network'` to `SearchShell.GROUPS`.
+- Re-export `NetworkSearchHit` from `server/routers/search.ts`.
+- Update `app/api/analytics/search/route.ts` `VALID_ENTITY_TYPES`.
+- Tests for the network branch only; no migration, no ADR, no decision-log entry, no settings page.
+
+**Phase 2 — the rest of this brief.** Schema (`UserSearchScopePreference` + `SearchScope` enum), the seven `ff_search_*` flag rows, `searchScopePrefs` service with the cascade-eval order, `/settings/search` page, telemetry, ADR-00NN, D079. Lands on top of Phase 1.
+
+**Why split:** Phase 1 unblocks the immediate "find that message" use case in one session. Phase 2 carries the heavier load (schema + ADR + UI + tests) and benefits from Phase 1 being live so we can pilot defaults against real usage before flipping the other six scopes on.
+
+---
+
 ## Related
 
 - BU-search-surface (#189, D078 / ADR-0004) — the foundation
