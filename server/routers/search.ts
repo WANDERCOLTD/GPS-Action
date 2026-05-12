@@ -28,6 +28,7 @@ export type {
   PartnerOrgSearchHit,
   TicketSearchHit,
   CommentSearchHit,
+  NetworkSearchHit,
   SearchAuthorRole,
 } from '@/server/services/search';
 

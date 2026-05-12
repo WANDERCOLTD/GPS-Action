@@ -6,6 +6,10 @@
  * @spec build/session-briefs/bu-search-includes-kanban.md
  * @spec build/session-briefs/bu-search-includes-comments.md
  *
+ * Phase 1 of bu-search-network-and-scope-prefs adds `network` as a
+ * sixth result group — see `searchNetworkMessages` below. The brief
+ * lives on a sibling branch; @spec wiring lands when it merges.
+ *
  * App-wide member search service.
  *
  * Returns results grouped by entity in the order locked by **D078 §4**:
@@ -41,6 +45,15 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/server/db/client';
 import { getPostVisibilityFilter } from '@/server/services/visibility';
+import { isFeatureEnabled } from '@/server/services/flags';
+import {
+  listGpsChatLabels,
+  searchGpsGroupMessages,
+  SupabaseConfigError,
+  type GpsChatLabelRow,
+  type GpsGroupMessageRow,
+} from '@/server/lib/supabase';
+import type { NetworkCardStatusValue } from '@/shared/validation/network';
 import type { SearchEntityType } from '@/shared/validation/search';
 
 // ── Public types ─────────────────────────────────────────────────────────
@@ -140,6 +153,40 @@ export interface CommentSearchHit {
   createdAt: string;
 }
 
+/**
+ * Network-message hit shape. Phase 1 of
+ * `docs/build/session-briefs/bu-search-network-and-scope-prefs.md` —
+ * search over Grant (AIFA)'s `public.gps_group_messages` view via the
+ * Supabase REST edge in `server/lib/supabase.ts`. ILIKE only; no GIN
+ * index (the view lives in Grant's project — see TODO in
+ * `searchNetworkMessages`).
+ *
+ * `messageId` is the upstream BigInt id, stringified for wire safety
+ * (matches the network-card serializer). `href` deep-links to the
+ * source-filtered `/network` page (best we can do without focus
+ * support, which Phase 2 may add). `sourceLabel` / `sourceSlug` come
+ * from the `gps_chat_labels` join — slug falls back to `'unknown'`
+ * when the labels cache is empty (no SUPABASE_URL / SUPABASE_ANON_KEY
+ * in this env), in which case `chatId` doubles as the visible label.
+ * `triageStatus` is `'NEW'` when no `NetworkCardState` row exists for
+ * the message, mirroring the surface's default.
+ */
+export interface NetworkSearchHit {
+  messageId: string;
+  href: string;
+  /** ISO 8601 string. Wire-format dates per D073. */
+  sentAt: string;
+  fromName: string | null;
+  textExcerpt: string;
+  linkTitle: string | null;
+  url: string | null;
+  chatId: string;
+  sourceLabel: string;
+  sourceSlug: string;
+  isForwarded: boolean;
+  triageStatus: NetworkCardStatusValue;
+}
+
 export interface SearchResults {
   posts: PostSearchHit[];
   people: PersonSearchHit[];
@@ -147,6 +194,7 @@ export interface SearchResults {
   partnerOrgs: PartnerOrgSearchHit[];
   tickets: TicketSearchHit[];
   comments: CommentSearchHit[];
+  network: NetworkSearchHit[];
 }
 
 export interface SearchAllInput {
@@ -183,8 +231,9 @@ export async function searchAll(input: SearchAllInput): Promise<SearchResults> {
 
   // Run the group queries concurrently. Group order in the response
   // is fixed (D078 §4 + bu-search-includes-kanban) — clients render in
-  // receipt order.
-  const [posts, people, regions, partnerOrgs, tickets, comments] = await Promise.all([
+  // receipt order. `network` is appended at the tail by Phase 1 of
+  // bu-search-network-and-scope-prefs.
+  const [posts, people, regions, partnerOrgs, tickets, comments, network] = await Promise.all([
     shouldSearch('posts', input.type) ? searchPosts(q, input.callerId, limit) : [],
     shouldSearch('people', input.type) ? searchPeople(q, limit) : [],
     shouldSearch('regions', input.type) ? searchRegions(q, limit) : [],
@@ -192,9 +241,10 @@ export async function searchAll(input: SearchAllInput): Promise<SearchResults> {
     [] as PartnerOrgSearchHit[],
     shouldSearch('tickets', input.type) ? searchTickets(q, input.callerId, limit) : [],
     shouldSearch('comments', input.type) ? searchComments(q, input.callerId, limit) : [],
+    shouldSearch('network', input.type) ? searchNetworkMessages(q, input.callerId, limit) : [],
   ]);
 
-  return { posts, people, regions, partnerOrgs, tickets, comments };
+  return { posts, people, regions, partnerOrgs, tickets, comments, network };
 }
 
 // ── Per-entity queries ───────────────────────────────────────────────────
@@ -581,6 +631,89 @@ async function searchComments(
   });
 }
 
+/**
+ * Phase 1 network-message search (bu-search-network-and-scope-prefs).
+ *
+ * Composes `searchGpsGroupMessages` (Supabase REST, ILIKE over
+ * `text_body` / `link_title` / `from_name`) with the
+ * `gps_chat_labels` projection (24h-cached upstream via the network
+ * service, but called directly here — the cache hit rate keeps this
+ * cheap) and our own `NetworkCardState` table for triage status.
+ *
+ * Visibility: any authenticated caller may search the network feed,
+ * mirroring the `/network` surface itself. Anonymous callers get
+ * `[]` — the surface is members-only by construction.
+ *
+ * Surface-flag cascade: if `network_feed` is off in this env, return
+ * `[]` so the search surface never leads members to a "feed isn't
+ * turned on yet" landing page. Per-scope flags + per-user prefs land
+ * in Phase 2.
+ *
+ * TODO(search-perf): no GIN index on gps_group_messages — ILIKE
+ * only. Revisit when row count > 50k or p95 latency > 500ms. See
+ * `docs/build/session-briefs/bu-search-network-and-scope-prefs.md`.
+ */
+async function searchNetworkMessages(
+  q: string,
+  callerId: string | null,
+  limit: number,
+): Promise<NetworkSearchHit[]> {
+  if (callerId === null) return [];
+
+  const surfaceEnabled = await isFeatureEnabled('network_feed');
+  if (!surfaceEnabled) return [];
+
+  let rows: GpsGroupMessageRow[];
+  try {
+    rows = await searchGpsGroupMessages({ q, limit });
+  } catch (err) {
+    if (err instanceof SupabaseConfigError) return [];
+    throw err;
+  }
+
+  if (rows.length === 0) return [];
+
+  let labels: GpsChatLabelRow[];
+  try {
+    labels = await listGpsChatLabels();
+  } catch (err) {
+    if (err instanceof SupabaseConfigError) return [];
+    // Any other label-fetch error: degrade to synthetic labels so the
+    // result rows still render with chat_id as the visible identifier.
+    labels = [];
+  }
+  const labelByChatId = new Map<string, GpsChatLabelRow>(labels.map((l) => [l.chat_id, l]));
+
+  const messageIds = rows.map((row) => BigInt(row.id));
+  const stateRows = await prisma.networkCardState.findMany({
+    where: { messageId: { in: messageIds } },
+    select: { messageId: true, status: true },
+  });
+  const statusByMessageId = new Map<string, NetworkCardStatusValue>();
+  for (const state of stateRows) {
+    statusByMessageId.set(state.messageId.toString(), state.status);
+  }
+
+  return rows.map((row): NetworkSearchHit => {
+    const label = labelByChatId.get(row.chat_id);
+    const idString = row.id.toString();
+    return {
+      messageId: idString,
+      href: label ? `/network?source=${label.slug}` : '/network',
+      sentAt: row.sent_at,
+      fromName: row.from_name,
+      textExcerpt: clampExcerpt(row.text_body ?? row.link_title ?? ''),
+      linkTitle: row.link_title,
+      url: row.url || null,
+      chatId: row.chat_id,
+      sourceLabel: label?.label ?? row.chat_id,
+      sourceSlug: label?.slug ?? 'unknown',
+      isForwarded: row.is_forwarded,
+      triageStatus: statusByMessageId.get(idString) ?? 'NEW',
+    };
+  });
+}
+
 async function hasActiveAdminGrant(callerId: string): Promise<boolean> {
   const count = await prisma.roleGrant.count({
     where: { userId: callerId, role: 'admin', revokedAt: null },
@@ -603,6 +736,7 @@ function emptyResults(): SearchResults {
     partnerOrgs: [],
     tickets: [],
     comments: [],
+    network: [],
   };
 }
 

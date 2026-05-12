@@ -24,8 +24,44 @@ vi.mock('@/server/db/client', () => ({
     request: { findMany: vi.fn() },
     comment: { findMany: vi.fn() },
     roleGrant: { count: vi.fn() },
+    networkCardState: { findMany: vi.fn() },
   },
 }));
+
+// ── Mock the supabase edge + flags service ──────────────────────────────
+//
+// bu-search-network-and-scope-prefs Phase 1: network search composes a
+// PostgREST call (`searchGpsGroupMessages`), a labels fetch
+// (`listGpsChatLabels`), and a flag check (`isFeatureEnabled`). Mock
+// them so unit tests stay offline. The mocks live behind `vi.hoisted`
+// so vitest's mock-hoister sees them before the factory runs.
+
+const supabaseMocks = vi.hoisted(() => ({
+  searchGpsGroupMessages: vi.fn(),
+  listGpsChatLabels: vi.fn(),
+}));
+
+vi.mock('@/server/lib/supabase', async () => {
+  const actual =
+    await vi.importActual<typeof import('@/server/lib/supabase')>('@/server/lib/supabase');
+  return {
+    ...actual,
+    searchGpsGroupMessages: supabaseMocks.searchGpsGroupMessages,
+    listGpsChatLabels: supabaseMocks.listGpsChatLabels,
+  };
+});
+
+const flagsMocks = vi.hoisted(() => ({
+  isFeatureEnabled: vi.fn<(name: string) => Promise<boolean>>(),
+}));
+
+vi.mock('@/server/services/flags', () => ({
+  isFeatureEnabled: flagsMocks.isFeatureEnabled,
+}));
+
+const searchGpsGroupMessagesMock = supabaseMocks.searchGpsGroupMessages;
+const listGpsChatLabelsMock = supabaseMocks.listGpsChatLabels;
+const isFeatureEnabledMock = flagsMocks.isFeatureEnabled;
 
 import { searchAll } from '@/server/services/search';
 import { prisma } from '@/server/db/client';
@@ -36,6 +72,7 @@ const mockRegionFind = vi.mocked(prisma.region.findMany);
 const mockRequestFind = vi.mocked(prisma.request.findMany);
 const mockCommentFind = vi.mocked(prisma.comment.findMany);
 const mockRoleGrantCount = vi.mocked(prisma.roleGrant.count);
+const mockNetworkStateFind = vi.mocked(prisma.networkCardState.findMany);
 
 beforeEach(() => {
   mockPostFind.mockReset().mockResolvedValue([]);
@@ -44,6 +81,13 @@ beforeEach(() => {
   mockRequestFind.mockReset().mockResolvedValue([]);
   mockCommentFind.mockReset().mockResolvedValue([]);
   mockRoleGrantCount.mockReset().mockResolvedValue(0);
+  mockNetworkStateFind.mockReset().mockResolvedValue([]);
+  searchGpsGroupMessagesMock.mockReset().mockResolvedValue([]);
+  listGpsChatLabelsMock.mockReset().mockResolvedValue([]);
+  // Network feed surface defaults OFF — most existing tests neither
+  // need nor want the network branch to run. Network-specific tests
+  // flip this to true at the top of their it() blocks.
+  isFeatureEnabledMock.mockReset().mockResolvedValue(false);
 });
 
 // ── Min query length ─────────────────────────────────────────────────────
@@ -58,6 +102,7 @@ describe('searchAll — min query length', () => {
       partnerOrgs: [],
       tickets: [],
       comments: [],
+      network: [],
     });
     expect(mockPostFind).not.toHaveBeenCalled();
     expect(mockUserFind).not.toHaveBeenCalled();
@@ -74,6 +119,7 @@ describe('searchAll — min query length', () => {
       partnerOrgs: [],
       tickets: [],
       comments: [],
+      network: [],
     });
     expect(mockPostFind).not.toHaveBeenCalled();
     expect(mockRequestFind).not.toHaveBeenCalled();
@@ -615,5 +661,168 @@ describe('searchComments — result shape', () => {
     ] as unknown as never);
     const out = await searchAll({ q: 'short', callerId: null });
     expect(out.comments[0]?.excerpt).toBe('short body');
+  });
+});
+
+// ── Network search (bu-search-network-and-scope-prefs Phase 1) ───────────
+
+describe('searchNetworkMessages — auth + flag gates', () => {
+  it('returns no network results for anonymous callers', async () => {
+    isFeatureEnabledMock.mockResolvedValue(true);
+    const out = await searchAll({ q: 'hendon', callerId: null });
+    expect(out.network).toEqual([]);
+    expect(searchGpsGroupMessagesMock).not.toHaveBeenCalled();
+  });
+
+  it('returns no network results when network_feed flag is off', async () => {
+    isFeatureEnabledMock.mockResolvedValue(false);
+    searchGpsGroupMessagesMock.mockResolvedValue([
+      {
+        id: 7,
+        sent_at: '2026-05-10T09:00:00Z',
+        from_name: 'Sharon',
+        sender_hash: 'h',
+        url: 'https://example.com',
+        link_title: null,
+        text_body: 'about hendon',
+        chat_id: 'chat-a',
+        is_forwarded: false,
+      },
+    ]);
+    const out = await searchAll({ q: 'hendon', callerId: 'user-1' });
+    expect(out.network).toEqual([]);
+    expect(searchGpsGroupMessagesMock).not.toHaveBeenCalled();
+  });
+
+  it('hits the upstream once network_feed is on and caller is authenticated', async () => {
+    isFeatureEnabledMock.mockImplementation(async (name) => name === 'network_feed');
+    await searchAll({ q: 'hendon', callerId: 'user-1' });
+    expect(searchGpsGroupMessagesMock).toHaveBeenCalledOnce();
+    expect(searchGpsGroupMessagesMock.mock.calls[0]?.[0]).toMatchObject({
+      q: 'hendon',
+    });
+  });
+});
+
+describe('searchNetworkMessages — result shape', () => {
+  beforeEach(() => {
+    isFeatureEnabledMock.mockImplementation(async (name) => name === 'network_feed');
+  });
+
+  it('maps upstream rows + labels + state to NetworkSearchHit shape', async () => {
+    searchGpsGroupMessagesMock.mockResolvedValue([
+      {
+        id: 42,
+        sent_at: '2026-05-10T09:00:00.000Z',
+        from_name: 'Sharon',
+        sender_hash: 'h',
+        url: 'https://example.com/article',
+        link_title: 'Hendon update',
+        text_body: 'A message about hendon schools',
+        chat_id: 'chat-a',
+        is_forwarded: false,
+      },
+    ]);
+    listGpsChatLabelsMock.mockResolvedValue([
+      {
+        chat_id: 'chat-a',
+        slug: 'hendon-yes',
+        label: 'Hendon yes/no',
+        description: null,
+        display_order: 1,
+        color: null,
+        icon: null,
+        member_count: null,
+      },
+    ]);
+    mockNetworkStateFind.mockResolvedValue([
+      // BigInt-typed messageId; mirror the prisma shape.
+      { messageId: BigInt(42), status: 'TRIAGED' },
+    ] as unknown as never);
+
+    const out = await searchAll({ q: 'hendon', callerId: 'user-1' });
+    expect(out.network).toEqual([
+      {
+        messageId: '42',
+        href: '/network?source=hendon-yes',
+        sentAt: '2026-05-10T09:00:00.000Z',
+        fromName: 'Sharon',
+        textExcerpt: 'A message about hendon schools',
+        linkTitle: 'Hendon update',
+        url: 'https://example.com/article',
+        chatId: 'chat-a',
+        sourceLabel: 'Hendon yes/no',
+        sourceSlug: 'hendon-yes',
+        isForwarded: false,
+        triageStatus: 'TRIAGED',
+      },
+    ]);
+  });
+
+  it('defaults triageStatus to NEW when no NetworkCardState row exists', async () => {
+    searchGpsGroupMessagesMock.mockResolvedValue([
+      {
+        id: 99,
+        sent_at: '2026-05-10T09:00:00.000Z',
+        from_name: null,
+        sender_hash: 'h',
+        url: 'https://example.com',
+        link_title: null,
+        text_body: 'hendon',
+        chat_id: 'chat-a',
+        is_forwarded: true,
+      },
+    ]);
+    listGpsChatLabelsMock.mockResolvedValue([]);
+    mockNetworkStateFind.mockResolvedValue([] as unknown as never);
+
+    const out = await searchAll({ q: 'hendon', callerId: 'user-1' });
+    expect(out.network[0]?.triageStatus).toBe('NEW');
+    expect(out.network[0]?.isForwarded).toBe(true);
+  });
+
+  it('falls back to chatId when no label row is found', async () => {
+    searchGpsGroupMessagesMock.mockResolvedValue([
+      {
+        id: 1,
+        sent_at: '2026-05-10T09:00:00.000Z',
+        from_name: 'Sharon',
+        sender_hash: 'h',
+        url: 'https://example.com',
+        link_title: null,
+        text_body: 'hendon',
+        chat_id: 'chat-unknown',
+        is_forwarded: false,
+      },
+    ]);
+    listGpsChatLabelsMock.mockResolvedValue([]);
+    mockNetworkStateFind.mockResolvedValue([] as unknown as never);
+
+    const out = await searchAll({ q: 'hendon', callerId: 'user-1' });
+    const hit = out.network[0];
+    expect(hit?.sourceLabel).toBe('chat-unknown');
+    expect(hit?.sourceSlug).toBe('unknown');
+    expect(hit?.href).toBe('/network');
+  });
+});
+
+describe('searchNetworkMessages — type filter', () => {
+  beforeEach(() => {
+    isFeatureEnabledMock.mockImplementation(async (name) => name === 'network_feed');
+  });
+
+  it('runs only the network branch in full mode with type=network', async () => {
+    await searchAll({ q: 'hendon', callerId: 'user-1', type: 'network' });
+    expect(searchGpsGroupMessagesMock).toHaveBeenCalledOnce();
+    expect(mockPostFind).not.toHaveBeenCalled();
+    expect(mockUserFind).not.toHaveBeenCalled();
+    expect(mockRegionFind).not.toHaveBeenCalled();
+    expect(mockRequestFind).not.toHaveBeenCalled();
+    expect(mockCommentFind).not.toHaveBeenCalled();
+  });
+
+  it('skips the network branch in full mode with type=posts', async () => {
+    await searchAll({ q: 'hendon', callerId: 'user-1', type: 'posts' });
+    expect(searchGpsGroupMessagesMock).not.toHaveBeenCalled();
   });
 });

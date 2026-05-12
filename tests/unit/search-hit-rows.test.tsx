@@ -20,6 +20,7 @@ import {
   SearchRegionHitRow,
   SearchTicketHitRow,
   SearchCommentHitRow,
+  SearchNetworkHitRow,
 } from '@/components/SearchHitRows';
 import type {
   PostSearchHit,
@@ -27,6 +28,7 @@ import type {
   RegionSearchHit,
   TicketSearchHit,
   CommentSearchHit,
+  NetworkSearchHit,
 } from '@/server/routers/search';
 import { AvatarBubble, KindChip } from '@/components/post-meta';
 
@@ -370,6 +372,101 @@ describe('SearchCommentHitRow', () => {
     let called = 0;
     const tree = SearchCommentHitRow({
       hit: makeComment(),
+      position: 0,
+      onClick: () => {
+        called += 1;
+      },
+    }) as AnyElement;
+    (tree.props.onClick as (...args: unknown[]) => void)();
+    expect(called).toBe(1);
+  });
+});
+
+// ── Network row (bu-search-network-and-scope-prefs Phase 1) ──────────────
+
+function makeNetwork(overrides: Partial<NetworkSearchHit> = {}): NetworkSearchHit {
+  return {
+    messageId: '42',
+    href: '/network?source=hendon-yes',
+    sentAt: '2026-05-10T09:00:00.000Z',
+    fromName: 'Sharon',
+    textExcerpt: 'A message about hendon schools',
+    linkTitle: null,
+    url: 'https://example.com',
+    chatId: 'chat-a',
+    sourceLabel: 'Hendon yes/no',
+    sourceSlug: 'hendon-yes',
+    isForwarded: false,
+    triageStatus: 'NEW',
+    ...overrides,
+  };
+}
+
+describe('SearchNetworkHitRow', () => {
+  it('renders a Link to the network href with entity_type and position metadata', () => {
+    const tree = SearchNetworkHitRow({ hit: makeNetwork(), position: 3 }) as AnyElement;
+    expect(tree.props.href).toBe('/network?source=hendon-yes');
+    expect(tree.props['data-entity-type']).toBe('network');
+    expect(tree.props['data-position']).toBe(3);
+    expect(tree.props['data-message-id']).toBe('42');
+  });
+
+  it('surfaces the source label in the byline', () => {
+    const tree = SearchNetworkHitRow({ hit: makeNetwork(), position: 0 }) as AnyElement;
+    const sourceLabel = findByTestId(tree, 'search-network-source-label');
+    expect(sourceLabel).toBeDefined();
+    const texts = flatChildren(sourceLabel as AnyElement)
+      .map((e) => e.props.children)
+      .filter((c): c is string => typeof c === 'string');
+    expect(texts.some((t) => t.includes('Hendon yes/no'))).toBe(true);
+  });
+
+  it('renders the forwarded badge when isForwarded is true', () => {
+    const tree = SearchNetworkHitRow({
+      hit: makeNetwork({ isForwarded: true }),
+      position: 0,
+    }) as AnyElement;
+    expect(findByTestId(tree, 'search-network-forwarded-badge')).toBeDefined();
+  });
+
+  it('omits the forwarded badge when isForwarded is false', () => {
+    const tree = SearchNetworkHitRow({
+      hit: makeNetwork({ isForwarded: false }),
+      position: 0,
+    }) as AnyElement;
+    expect(findByTestId(tree, 'search-network-forwarded-badge')).toBeUndefined();
+  });
+
+  it('falls back to "Anonymous" when fromName is null or blank', () => {
+    const nullName = SearchNetworkHitRow({
+      hit: makeNetwork({ fromName: null }),
+      position: 0,
+    }) as AnyElement;
+    const blankName = SearchNetworkHitRow({
+      hit: makeNetwork({ fromName: '   ' }),
+      position: 0,
+    }) as AnyElement;
+    const texts = (tree: AnyElement) =>
+      flatChildren(tree)
+        .map((e) => e.props.children)
+        .filter((c): c is string => typeof c === 'string');
+    expect(texts(nullName)).toContain('Anonymous');
+    expect(texts(blankName)).toContain('Anonymous');
+  });
+
+  it('renders the excerpt text', () => {
+    const tree = SearchNetworkHitRow({
+      hit: makeNetwork({ textExcerpt: 'A message about hendon schools' }),
+      position: 0,
+    }) as AnyElement;
+    const excerpt = findByTestId(tree, 'search-network-excerpt');
+    expect(excerpt?.props.children).toBe('A message about hendon schools');
+  });
+
+  it('forwards onClick to the Link (for analytics)', () => {
+    let called = 0;
+    const tree = SearchNetworkHitRow({
+      hit: makeNetwork(),
       position: 0,
       onClick: () => {
         called += 1;

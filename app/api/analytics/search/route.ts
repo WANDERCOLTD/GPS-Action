@@ -31,6 +31,7 @@ const VALID_ENTITY_TYPES = new Set([
   'partnerOrgs',
   'tickets',
   'comments',
+  'network',
 ] as const);
 
 interface SearchEventPayload {

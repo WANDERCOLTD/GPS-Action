@@ -15,6 +15,7 @@ export const SEARCH_ENTITY_TYPES = [
   'partnerOrgs',
   'tickets',
   'comments',
+  'network',
 ] as const;
 export type SearchEntityType = (typeof SEARCH_ENTITY_TYPES)[number];
 

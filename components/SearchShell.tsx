@@ -43,6 +43,7 @@ import {
   SearchRegionHitRow,
   SearchTicketHitRow,
   SearchCommentHitRow,
+  SearchNetworkHitRow,
 } from '@/components/SearchHitRows';
 import { readRecentlyViewed, type RecentlyViewedItem } from '@/components/recently-viewed-posts';
 import { emitSearchEvent } from '@/components/search-telemetry';
@@ -105,6 +106,11 @@ const GROUPS: ReadonlyArray<{
     key: 'comments',
     label: 'Comments',
     pluralised: (n) => (n === 1 ? '1 comment' : `${n} comments`),
+  },
+  {
+    key: 'network',
+    label: 'From the network feed',
+    pluralised: (n) => (n === 1 ? '1 network message' : `${n} network messages`),
   },
 ];
 
@@ -239,6 +245,7 @@ const EMPTY_RESULTS: SearchResults = {
   partnerOrgs: [],
   tickets: [],
   comments: [],
+  network: [],
 };
 
 export function SearchShell({
@@ -334,7 +341,8 @@ export function SearchShell({
       results.regions.length +
       results.partnerOrgs.length +
       results.tickets.length +
-      results.comments.length
+      results.comments.length +
+      results.network.length
     : 0;
   const showZeroState = mode === 'typeahead' && !hasQuery;
   const showResults = mode === 'full' || (mode === 'typeahead' && hasQuery && results !== null);
@@ -358,7 +366,7 @@ export function SearchShell({
           name="q"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search posts, people, regions, tickets, comments…"
+          placeholder="Search posts, people, regions, tickets, comments, network…"
           autoFocus
           autoComplete="off"
           inputMode="search"
@@ -603,6 +611,19 @@ function ResultList({ results, entityType, cap, groupPosition }: ResultListProps
         {hits.map((hit, idx) => (
           <li key={hit.id}>
             <SearchCommentHitRow hit={hit} position={idx} onClick={fireClick(idx)} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (entityType === 'network') {
+    const hits = results.network.slice(0, cap);
+    return (
+      <ul style={resultListStyle}>
+        {hits.map((hit, idx) => (
+          <li key={hit.messageId}>
+            <SearchNetworkHitRow hit={hit} position={idx} onClick={fireClick(idx)} />
           </li>
         ))}
       </ul>

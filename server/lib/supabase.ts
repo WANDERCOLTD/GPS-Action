@@ -211,6 +211,75 @@ export async function listGpsGroupMessages(
   return rows;
 }
 
+interface SearchGpsGroupMessagesArgs {
+  /** Free-text query. Matched ILIKE against text_body, link_title, from_name. */
+  q: string;
+  /** Page size. */
+  limit: number;
+  /** Optional fetch override — primarily for tests. Defaults to global fetch. */
+  fetchImpl?: typeof fetch;
+}
+
+/**
+ * Phase 1 of bu-search-network-and-scope-prefs — text search over
+ * `public.gps_group_messages`. PostgREST `or` filter ILIKE-matches the
+ * query against `text_body`, `link_title`, and `from_name`. No time
+ * window (search spans all history Grant exposes via the view).
+ *
+ * Sanitisation: strips PostgREST `or`-grammar control characters
+ * (`,`, `(`, `)`) from the query so a quoted phrase or paste with
+ * commas can't break the filter expression. `*` is left as-is —
+ * users typing wildcards get the substring semantics they expect.
+ *
+ * Index strategy: ILIKE only in v1; Grant's view sits in his Supabase
+ * project, so trigram GIN would require a cross-project migration.
+ * Revisit when row count > 50k or p95 latency > 500ms.
+ */
+export async function searchGpsGroupMessages(
+  args: SearchGpsGroupMessagesArgs,
+): Promise<GpsGroupMessageRow[]> {
+  const config = readConfig();
+  const fetchImpl = args.fetchImpl ?? fetch;
+
+  // Strip PostgREST `or` control chars — the wrapper is `or=(a,b,c)`,
+  // so unescaped commas / parens inside a value break the parser.
+  const safeQ = args.q.replace(/[(),]/g, '').trim();
+  if (safeQ.length === 0) return [];
+  // PostgREST `ilike` uses `*` as the wildcard token (not `%`) inside
+  // URL-encoded values.
+  const pattern = `*${safeQ}*`;
+
+  const params = new URLSearchParams();
+  params.set(
+    'select',
+    'id,sent_at,from_name,sender_hash,url,link_title,text_body,chat_id,is_forwarded',
+  );
+  params.set(
+    'or',
+    `(text_body.ilike.${pattern},link_title.ilike.${pattern},from_name.ilike.${pattern})`,
+  );
+  params.set('order', 'sent_at.desc,id.desc');
+  params.set('limit', String(args.limit));
+
+  const response = await fetchImpl(`${config.url}/rest/v1/gps_group_messages?${params}`, {
+    headers: {
+      apikey: config.anonKey,
+      Authorization: `Bearer ${config.anonKey}`,
+      Accept: 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new SupabaseFetchError(
+      `Supabase REST search query failed (${response.status}): ${body.slice(0, 200)}`,
+      response.status,
+    );
+  }
+
+  return (await response.json()) as GpsGroupMessageRow[];
+}
+
 /**
  * bu-network-source-chips — fetch the source set for the chip strip.
  * Returns every row in `public.gps_chat_labels` ordered by

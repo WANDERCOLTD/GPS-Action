@@ -20,7 +20,7 @@
 import * as React from 'react';
 import type { CSSProperties, MouseEventHandler, ReactElement } from 'react';
 import Link from 'next/link';
-import { MapPin, Kanban, MessageSquare } from 'lucide-react';
+import { MapPin, Kanban, MessageSquare, RadioTower } from 'lucide-react';
 import { AvatarBubble, KindChip, formatRole } from '@/components/post-meta';
 import { RelativeTime } from '@/components/RelativeTime';
 import type {
@@ -29,6 +29,7 @@ import type {
   RegionSearchHit,
   TicketSearchHit,
   CommentSearchHit,
+  NetworkSearchHit,
   SearchAuthorRole,
 } from '@/server/routers/search';
 
@@ -324,6 +325,79 @@ const commentParentTitleStyle: CSSProperties = {
   fontWeight: 'var(--weight-medium)',
   color: 'var(--colour-text-primary)',
 };
+
+// ── Network row ─────────────────────────────────────────────────────────
+
+interface SearchNetworkHitRowProps {
+  hit: NetworkSearchHit;
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
+  testId?: string;
+  position: number;
+}
+
+const networkForwardedBadgeStyle: CSSProperties = {
+  ...roleChipStyle,
+  textTransform: 'none' as const,
+  letterSpacing: '0.02em',
+};
+
+export function SearchNetworkHitRow({
+  hit,
+  onClick,
+  testId = 'search-result-item',
+  position,
+}: SearchNetworkHitRowProps): ReactElement {
+  const senderLabel = hit.fromName?.trim() || 'Anonymous';
+  // Excerpt falls back to link title when the upstream row has no
+  // text body — link-only messages still want something to render.
+  const excerpt = hit.textExcerpt || hit.linkTitle || hit.url || '';
+  return (
+    <Link
+      href={hit.href}
+      style={rowLinkStyle}
+      onClick={onClick}
+      data-testid={testId}
+      data-entity-type="network"
+      data-position={position}
+      data-message-id={hit.messageId}
+    >
+      <div style={bylineStyle}>
+        <RadioTower
+          size={16}
+          strokeWidth={2}
+          aria-hidden="true"
+          style={{ color: 'var(--colour-text-secondary)', flexShrink: 0 }}
+        />
+        <strong style={{ fontSize: 'var(--text-sm)' }}>{senderLabel}</strong>
+        <span style={metaStyle} aria-hidden="true">
+          ·
+        </span>
+        <span style={metaStyle} data-testid="search-network-source-label">
+          {hit.sourceLabel}
+        </span>
+        <span style={metaStyle} aria-hidden="true">
+          ·
+        </span>
+        <RelativeTime
+          date={hit.sentAt}
+          style={{ fontSize: 'var(--text-xs)', color: 'var(--colour-text-secondary)' }}
+        />
+        {hit.isForwarded && (
+          <span
+            style={networkForwardedBadgeStyle}
+            data-testid="search-network-forwarded-badge"
+            title="Forwarded from elsewhere"
+          >
+            ↪ forwarded
+          </span>
+        )}
+      </div>
+      <span style={commentExcerptStyle} data-testid="search-network-excerpt">
+        {excerpt}
+      </span>
+    </Link>
+  );
+}
 
 export function SearchCommentHitRow({
   hit,
