@@ -87,13 +87,13 @@ export function NetworkSortControl({ active, preserveParams = {} }: NetworkSortC
               href={href}
               aria-current={isActive ? 'page' : undefined}
               aria-label={`Sort by ${LABEL[sort].toLowerCase()}`}
+              title={LABEL[sort]}
               data-testid="network-sort-option"
               data-sort={sort}
               data-active={isActive ? 'true' : 'false'}
               className={isActive ? 'gps-chip gps-chip--active' : 'gps-chip'}
             >
-              <Icon size={14} aria-hidden="true" />
-              <span>{LABEL[sort]}</span>
+              <Icon size={16} aria-hidden="true" />
             </a>
           );
         })}
