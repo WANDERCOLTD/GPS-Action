@@ -1,9 +1,10 @@
 ---
 slug: bu-spread-polish-responsive
-status: ready
+status: shipped
+shipped_in: "#371"
 phase: 2
 priority: medium
-note: "Stub 2026-05-15. Post-merge polish on bu-network-spread-gallery (#369). Three asks bundled: (1) page-width unification via shared top-chrome container, (2) generalise PostShareGroup to Shareable + drop share strip on spread detail sheet, (3) responsive pass across phone/tablet/desktop viewports. No share counter at v1 (just buttons)."
+note: "Shipped 2026-05-15. Post-merge polish on bu-network-spread-gallery (#369). Three asks bundled: (1) page-width unification via shared top-chrome container, (2) generalise PostShareGroup to Shareable + drop share strip on spread detail sheet, (3) responsive pass across phone/tablet/desktop viewports. No share counter at v1 (just buttons). Analytics for link-preview shares deferred to a follow-up BU that extends ShareTargetType."
 ---
 
 # SESSION BRIEF · bu-spread-polish-responsive — gallery polish + share strip + responsive pass
