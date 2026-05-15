@@ -64,6 +64,13 @@ interface NetworkFeedProps {
   /** Server-rendered sort control (passed in from page.tsx). */
   sortControl: ReactNode;
   /**
+   * bu-network-spread-gallery — server-rendered "switch to gallery"
+   * anchor. Slotted in the PageHeader `actions` row beside the
+   * refresh button so view-switchers sit in a consistent position
+   * with the gallery's reciprocal "list view" anchor.
+   */
+  galleryButton?: ReactNode;
+  /**
    * bu-network-seen-state — when true, hide cards where `isNew` is
    * false. URL-bound via `?unread=1`. Defaults to false (show all).
    */
@@ -74,6 +81,7 @@ export function NetworkFeed({
   initial,
   chipStrip,
   sortControl,
+  galleryButton,
   unreadOnly = false,
 }: NetworkFeedProps) {
   const [items, setItems] = useState<SerializedNetworkCard[]>(initial.items);
@@ -386,7 +394,16 @@ export function NetworkFeed({
 
   return (
     <div data-testid="network-feed">
-      <PageHeader title="Network" description="Live from WhatsApp" actions={refreshButton}>
+      <PageHeader
+        title="Network"
+        description="Links shared in your WhatsApp groups, newest first"
+        actions={
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            {galleryButton}
+            {refreshButton}
+          </div>
+        }
+      >
         <div
           style={{
             display: 'flex',

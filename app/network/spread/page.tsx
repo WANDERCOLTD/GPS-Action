@@ -10,6 +10,7 @@
  * Gated by the same `network_feed` feature flag as /network.
  */
 
+import { List } from 'lucide-react';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
@@ -101,14 +102,16 @@ export default async function SpreadPage({ searchParams }: SpreadPageProps) {
     <main style={{ maxWidth: 1200, margin: '0 auto' }} data-testid="network-spread-page">
       <PageHeader
         title="What’s spreading"
-        description={`${response.tiles.length} ${response.tiles.length === 1 ? 'item' : 'items'} · last ${response.windowDays} days`}
+        description={`What’s actually circulating — same links as Network, grouped by URL. ${response.tiles.length} ${response.tiles.length === 1 ? 'item' : 'items'} · last ${response.windowDays} days.`}
         actions={
           <a
             href={sourceQs ? `/network?source=${sourceQs}` : '/network'}
             className="gps-chip"
             data-testid="network-spread-back-to-list"
+            aria-label="Switch to list view — see every share as a separate card"
+            title="List view — see every share as a separate card"
           >
-            List view
+            <List size={16} aria-hidden="true" />
           </a>
         }
       />
