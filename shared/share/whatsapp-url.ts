@@ -30,7 +30,22 @@ export interface WhatsAppShareInput {
 export function whatsAppShareUrl(input: WhatsAppShareInput): string {
   const { postId, postTitle, postBody, originUrl } = input;
   const postUrl = `${stripTrailingSlash(originUrl)}/post/${postId}`;
-  const text = composeMessage(postTitle, postBody, postUrl);
+  return whatsAppShareUrlForUrl({ url: postUrl, title: postTitle, body: postBody });
+}
+
+/**
+ * Generic variant — share an arbitrary URL (gallery tiles, deep
+ * links other than posts). Same message-composition rules (cap at
+ * MAX_TEXT_CHARS, title-and-URL preserved on truncation).
+ */
+export interface WhatsAppShareForUrlInput {
+  readonly url: string;
+  readonly title: string;
+  readonly body?: string;
+}
+
+export function whatsAppShareUrlForUrl(input: WhatsAppShareForUrlInput): string {
+  const text = composeMessage(input.title, input.body ?? '', input.url);
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
 

@@ -36,7 +36,7 @@ import { isFeatureEnabled } from '@/server/services/flags';
 import { CommentList } from '@/components/CommentList';
 import { ReactionPill } from '@/components/ReactionPill';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
-import { PostShareGroup } from '@/components/PostShareGroup';
+import { PostShareGroup, postToShareable } from '@/components/PostShareGroup';
 import { RelativeTime } from '@/components/RelativeTime';
 import { formatEventRange } from '@/shared/format-event-time';
 import { ReviewedByBadge } from '@/components/ReviewedByBadge';
@@ -250,9 +250,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
         vertically in the right rail). */}
         <div style={{ marginBottom: 'var(--space-4)' }}>
           <PostShareGroup
-            postId={post.id}
-            postTitle={post.title}
-            postBody={post.body}
+            shareable={postToShareable({ id: post.id, title: post.title, body: post.body })}
             variant="detail-bar"
           />
         </div>

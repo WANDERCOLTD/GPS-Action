@@ -25,6 +25,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { pingShareIntent } from '@/components/WhatsAppShareButton';
 
 const POST_ID = '0123456789ab';
+// bu-spread-polish-responsive: pingShareIntent was refactored to take
+// a `Shareable['source']` discriminator. The post path is unchanged
+// in behaviour — same beacon payload — but the helper signature is
+// now `pingShareIntent({ type: 'post', postId })`.
+const POST_SOURCE = { type: 'post' as const, postId: POST_ID };
 
 describe('WhatsAppShareButton — analytics ping (D067)', () => {
   let beaconSpy: ReturnType<typeof vi.fn>;
@@ -45,7 +50,7 @@ describe('WhatsAppShareButton — analytics ping (D067)', () => {
   });
 
   it('sends the share-intent beacon with the post id and destination', () => {
-    pingShareIntent(POST_ID);
+    pingShareIntent(POST_SOURCE);
     expect(beaconSpy).toHaveBeenCalledTimes(1);
     const [url, blob] = beaconSpy.mock.calls[0]!;
     expect(url).toBe('/api/analytics/share-intent');
@@ -55,7 +60,7 @@ describe('WhatsAppShareButton — analytics ping (D067)', () => {
 
   it('falls back to fetch when sendBeacon refuses the payload', () => {
     beaconSpy.mockReturnValueOnce(false);
-    pingShareIntent(POST_ID);
+    pingShareIntent(POST_SOURCE);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     const [url, init] = fetchSpy.mock.calls[0]!;
     expect(url).toBe('/api/analytics/share-intent');
@@ -69,7 +74,7 @@ describe('WhatsAppShareButton — analytics ping (D067)', () => {
 
   it('falls back to fetch when navigator has no sendBeacon', () => {
     vi.stubGlobal('navigator', {});
-    pingShareIntent(POST_ID);
+    pingShareIntent(POST_SOURCE);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -77,7 +82,7 @@ describe('WhatsAppShareButton — analytics ping (D067)', () => {
     vi.unstubAllGlobals();
     // window is now undefined again.
     expect(typeof globalThis.window).toBe('undefined');
-    pingShareIntent(POST_ID);
+    pingShareIntent(POST_SOURCE);
     // Nothing to assert beyond "no throw" — but we re-stub afterwards
     // so the global state remains consistent for siblings.
     vi.stubGlobal('window', {});
