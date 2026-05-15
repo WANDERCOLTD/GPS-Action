@@ -15,6 +15,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { getSourceColor } from '@/shared/styles/source-palette';
 import { SourceBadge } from '@/components/SourceBadge';
+import { PostShareGroup, spreadTileToShareable } from '@/components/PostShareGroup';
 import type { SpreadOccurrence, SpreadTile } from '@/shared/network-spread';
 
 interface NetworkSpreadDetailSheetProps {
@@ -301,6 +302,33 @@ export function NetworkSpreadDetailSheet({ tile, onClose }: NetworkSpreadDetailS
               )}
             </div>
           ))}
+
+          {/*
+            bu-spread-polish-responsive: share strip sits between the
+            spread-trace timeline and the Open-link CTA — same vertical
+            slot as the share-bar on a Post detail. Uses the
+            generalised PostShareGroup with a `link-preview` source;
+            analytics for gallery shares is a follow-up BU (just
+            buttons at v1 per the brief).
+          */}
+          <div
+            style={{
+              marginTop: 'var(--space-4)',
+              paddingTop: 'var(--space-3)',
+              borderTop: '1px solid var(--colour-border-subtle)',
+              display: 'flex',
+              justifyContent: 'flex-start',
+            }}
+          >
+            <PostShareGroup
+              shareable={spreadTileToShareable({
+                url: tile.url,
+                title: tile.title,
+                normalizedUrl: tile.normalizedUrl,
+              })}
+              variant="detail-bar"
+            />
+          </div>
         </div>
 
         <div style={ctaRow}>

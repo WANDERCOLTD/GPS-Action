@@ -54,7 +54,7 @@ import { MessageSquare, Calendar, MapPin } from 'lucide-react';
 import { ReactionPill } from '@/components/ReactionPill';
 import { RelativeTime } from '@/components/RelativeTime';
 import { LinkPreviewCard } from '@/components/LinkPreviewCard';
-import { PostShareGroup } from '@/components/PostShareGroup';
+import { PostShareGroup, postToShareable } from '@/components/PostShareGroup';
 import { formatEventRange } from '@/shared/format-event-time';
 import { ReviewedByBadge } from '@/components/ReviewedByBadge';
 import { AvatarBubble, KindChip, SignalBadgeRow, formatRole } from '@/components/post-meta';
@@ -499,9 +499,7 @@ export const PostCard: FC<PostCardProps> = ({
           }}
         >
           <PostShareGroup
-            postId={post.id}
-            postTitle={post.title}
-            postBody={post.body}
+            shareable={postToShareable({ id: post.id, title: post.title, body: post.body })}
             variant="card-rail"
           />
 

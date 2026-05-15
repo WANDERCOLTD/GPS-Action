@@ -416,7 +416,20 @@ export function NetworkFeed({
           {sortControl}
         </div>
       </PageHeader>
-      <div style={{ padding: 'var(--space-5) var(--space-8) var(--space-8)' }}>
+      {/*
+        bu-spread-polish-responsive (#370): the card list is a reading
+        column capped at 720px; the surrounding `<main>` now sits at
+        1200px so the PageHeader chrome matches /network/spread's
+        width. The body cap lives here so the chrome — sticky header,
+        chip strip, sort cluster — stays full-width and aligned.
+      */}
+      <div
+        style={{
+          maxWidth: 720,
+          margin: '0 auto',
+          padding: 'var(--space-5) var(--space-8) var(--space-8)',
+        }}
+      >
         {error && (
           <p
             data-testid="network-error"

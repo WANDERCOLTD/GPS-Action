@@ -32,10 +32,15 @@ import { renderToString } from 'react-dom/server';
 import { createElement } from 'react';
 import { WhatsAppShareButton } from '@/components/WhatsAppShareButton';
 
+// bu-spread-polish-responsive: WhatsAppShareButton was refactored to
+// take a Shareable. Test fixture wraps the same fields as before.
 const baseProps = {
-  postId: 'p-12345',
-  postTitle: 'A boost-worthy post',
-  postBody: 'Body of the post.',
+  shareable: {
+    url: '/post/p-12345',
+    title: 'A boost-worthy post',
+    body: 'Body of the post.',
+    source: { type: 'post' as const, postId: 'p-12345' },
+  },
 };
 
 describe('WhatsAppShareButton — server render is origin-independent (D080)', () => {

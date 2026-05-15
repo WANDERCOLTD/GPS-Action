@@ -168,7 +168,7 @@ export default async function NetworkPage({ searchParams }: NetworkPageProps) {
   );
 
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto' }} data-testid="network-page">
+    <main style={{ maxWidth: 1200, margin: '0 auto' }} data-testid="network-page">
       <NetworkFeed
         initial={initialSerialised}
         chipStrip={chipStrip}

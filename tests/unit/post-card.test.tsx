@@ -22,6 +22,16 @@ vi.mock('@/components/LinkPreviewCard', () => ({
 
 vi.mock('@/components/PostShareGroup', () => ({
   PostShareGroup: () => null,
+  // bu-spread-polish-responsive: PostShareGroup now ships
+  // `postToShareable` alongside the component. Tests stub a no-op so
+  // the import resolves; PostCard's call site builds a Shareable
+  // payload but the mocked component renders nothing either way.
+  postToShareable: () => ({
+    url: '',
+    title: '',
+    body: '',
+    source: { type: 'post', postId: '' },
+  }),
 }));
 
 vi.mock('@/components/ReactionPill', () => ({

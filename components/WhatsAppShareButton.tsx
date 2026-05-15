@@ -42,46 +42,46 @@
 
 import type { FC, MouseEvent as ReactMouseEvent } from 'react';
 import * as React from 'react';
-import { whatsAppShareUrl } from '@/shared/share/whatsapp-url';
+import { whatsAppShareUrlForUrl } from '@/shared/share/whatsapp-url';
 import { getSiteOrigin } from '@/shared/site-origin';
+import type { Shareable } from '@/shared/share';
 
 interface WhatsAppShareButtonProps {
-  postId: string;
-  postTitle: string;
-  postBody: string;
+  shareable: Shareable;
   variant?: 'compact' | 'pill';
 }
 
 export const WhatsAppShareButton: FC<WhatsAppShareButtonProps> = ({
-  postId,
-  postTitle,
-  postBody,
+  shareable,
   variant = 'compact',
 }) => {
-  // Two-phase origin resolution (D080). Server render and first client
-  // paint use originUrl='' — emits a relative /post/<id> deep link —
-  // so the rendered HTML is byte-identical regardless of which host the
-  // request landed on. After mount, swap to getSiteOrigin() to produce
-  // the fully-qualified URL WhatsApp's preview parser expects.
+  // Two-phase origin resolution (D080). Posts render server-side with
+  // a relative `/post/<id>` deep link, swapping to the absolute URL
+  // after mount so WhatsApp's preview parser latches on. Gallery
+  // tiles already carry an absolute URL (the upstream article link),
+  // so the origin is only prepended for `post`-sourced shareables.
   const [origin, setOrigin] = React.useState<string>('');
   React.useEffect(() => {
     setOrigin(getSiteOrigin());
   }, []);
 
-  const href = whatsAppShareUrl({
-    postId,
-    postTitle,
-    postBody,
-    originUrl: origin,
+  const href = whatsAppShareUrlForUrl({
+    url: resolveShareUrl(shareable, origin),
+    title: shareable.title,
+    body: shareable.body ?? '',
   });
 
   function handleClick(event: ReactMouseEvent<HTMLAnchorElement>): void {
     event.stopPropagation();
-    pingShareIntent(postId);
+    pingShareIntent(shareable.source);
   }
 
   const isPill = variant === 'pill';
   const size = isPill ? 40 : 32;
+
+  // Test-attribute back-compat: post shares still carry data-post-id
+  // so the existing PostCard test suite keeps working.
+  const isPost = shareable.source.type === 'post';
 
   return (
     <a
@@ -92,7 +92,8 @@ export const WhatsAppShareButton: FC<WhatsAppShareButtonProps> = ({
       title="Share on WhatsApp"
       onClick={handleClick}
       data-testid="post-share-whatsapp"
-      data-post-id={postId}
+      data-share-source={shareable.source.type}
+      data-post-id={isPost ? shareable.source.postId : undefined}
       data-variant={variant}
       style={{
         display: 'inline-flex',
@@ -139,13 +140,39 @@ const WhatsAppGlyph: FC<WhatsAppGlyphProps> = ({ size }) => (
 );
 
 /**
+ * Resolve the URL that goes into the WhatsApp share message.
+ * - `post` source: prepend the runtime origin to the post's relative
+ *   deep link (the post's `shareable.url` is `/post/<id>`).
+ * - `link-preview` source: pass the absolute URL through unchanged.
+ */
+function resolveShareUrl(shareable: Shareable, origin: string): string {
+  if (shareable.source.type === 'post') {
+    const base = stripTrailingSlash(origin);
+    return `${base}${shareable.url}`;
+  }
+  return shareable.url;
+}
+
+function stripTrailingSlash(origin: string): string {
+  return origin.endsWith('/') ? origin.slice(0, -1) : origin;
+}
+
+/**
  * Exported for direct unit testing — the component now calls hooks
  * (D080) so it can no longer be invoked outside a render context, but
  * the analytics ping behaviour is independently testable here.
+ *
+ * For `post`-sourced shareables, hits the legacy `share-intent`
+ * endpoint with `{ postId, destination }`. For `link-preview`-sourced
+ * shareables, the analytics endpoint doesn't yet accept that target
+ * type (deferred to a follow-up BU that extends `ShareTargetType`),
+ * so we silently no-op — the share itself still works, just the
+ * intent counter isn't incremented.
  */
-export function pingShareIntent(postId: string): void {
+export function pingShareIntent(source: Shareable['source']): void {
   if (typeof window === 'undefined') return;
-  const payload = JSON.stringify({ postId, destination: 'whatsapp' });
+  if (source.type !== 'post') return;
+  const payload = JSON.stringify({ postId: source.postId, destination: 'whatsapp' });
   const url = '/api/analytics/share-intent';
   try {
     if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
