@@ -322,6 +322,70 @@ describe('listNetworkSpread', () => {
     expect(occurrences[1]!.textBody).toBeNull();
   });
 
+  it('fire-and-forget warms LinkPreview for URLs without a cached row', async () => {
+    // 3 distinct upstream URLs; 1 already has a LinkPreview row →
+    // warming should be invoked for the 2 uncached URLs only.
+    mockFindMany.mockResolvedValue([
+      {
+        url: 'https://example.com/cached',
+        normalizedUrl: 'https://example.com/cached',
+        title: 'Cached',
+        imageUrl: 'https://example.com/c.jpg',
+        siteName: 'Example',
+        linkType: 'Other',
+      },
+    ] as never);
+    const rows = [
+      makeRow({ id: 1, chat_id: 'chat-action', url: 'https://example.com/cached' }),
+      makeRow({ id: 2, chat_id: 'chat-action', url: 'https://example.com/uncached-a' }),
+      makeRow({ id: 3, chat_id: 'chat-action', url: 'https://example.com/uncached-b' }),
+    ];
+    const fetchUpstream = vi.fn().mockResolvedValue(rows);
+    const fetchLabels = vi.fn().mockResolvedValue(labels);
+    const warmLinkPreview = vi.fn().mockResolvedValue(null);
+
+    await listNetworkSpread(
+      { windowDays: 30, sources: [], types: [], sort: 'mostSpread' },
+      {
+        fetchUpstream,
+        fetchLabels,
+        fetchOverrides: async () => new Map(),
+        warmLinkPreview,
+      },
+    );
+
+    // Yield to the microtask queue so the fire-and-forget warming
+    // promise settles before we assert.
+    await new Promise((r) => setImmediate(r));
+
+    const calledUrls = warmLinkPreview.mock.calls.map((c) => c[0]).sort();
+    expect(calledUrls).toEqual([
+      'https://example.com/uncached-a',
+      'https://example.com/uncached-b',
+    ]);
+  });
+
+  it('swallows warming errors — preview fetch failures never crash the request', async () => {
+    mockFindMany.mockResolvedValue([] as never);
+    const rows = [makeRow({ id: 1, chat_id: 'chat-action', url: 'https://broken.example/x' })];
+    const fetchUpstream = vi.fn().mockResolvedValue(rows);
+    const fetchLabels = vi.fn().mockResolvedValue(labels);
+    const warmLinkPreview = vi.fn().mockRejectedValue(new Error('boom'));
+
+    // Should not throw, even though every warm call rejects.
+    await expect(
+      listNetworkSpread(
+        { windowDays: 30, sources: [], types: [], sort: 'mostSpread' },
+        {
+          fetchUpstream,
+          fetchLabels,
+          fetchOverrides: async () => new Map(),
+          warmLinkPreview,
+        },
+      ),
+    ).resolves.toBeDefined();
+  });
+
   it('decorates occurrence.source with iconOverride when one exists (ADR-0020)', async () => {
     const rows = [
       makeRow({

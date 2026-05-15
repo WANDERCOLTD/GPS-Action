@@ -43,6 +43,7 @@ import {
 import { normalizeUrl } from '@/server/lib/url-normalize';
 import { classifyUrl, type LinkType } from '@/server/lib/url-type';
 import { stripUrlFromText } from '@/server/lib/strip-url-from-text';
+import { getLinkPreview } from '@/server/services/link-preview-cache';
 import { listSourceIconOverrides } from '@/server/services/source-icon-overrides';
 import type {
   SpreadLinkType,
@@ -72,7 +73,17 @@ interface ListSpreadDeps {
   fetchLabels?: typeof listGpsChatLabels;
   /** ADR-0020 — override the per-slug icon-override map (tests). */
   fetchOverrides?: typeof listSourceIconOverrides;
+  /**
+   * Cache-warming hook for tile URLs without a `LinkPreview` row.
+   * Defaults to `getLinkPreview` (read-through cache); tests pass a
+   * no-op or a counting fake to verify the warming pattern without
+   * hitting the network or DB.
+   */
+  warmLinkPreview?: (url: string) => Promise<unknown>;
 }
+
+/** Max parallel cache-warm fetches per request (rate-limit safety). */
+const WARM_CONCURRENCY = 8;
 
 function trendingWindowHours(): number {
   const raw = process.env.NETWORK_SPREAD_TRENDING_WINDOW_HOURS;
@@ -181,6 +192,23 @@ export async function listNetworkSpread(
         })
       : [];
   const previewByUrl = new Map(previews.map((p) => [p.url, p]));
+
+  // ── 4b. Fire-and-forget warm uncached URLs ───────────────────
+  //
+  // /network only enriches the cards it actually renders (one page
+  // at a time). /network/spread surfaces everything in the window,
+  // so most URLs older than the latest /network page have no
+  // LinkPreview row and fall through to the no-og tile fallback.
+  // Kick off `getLinkPreview` for every uncached URL without
+  // awaiting — first render still shows fallbacks, subsequent
+  // renders pick up the cached rows. Concurrency-capped to keep
+  // X / FB rate-limiters happy. Errors swallowed: preview is
+  // decorative, never load-bearing.
+  const warm = deps.warmLinkPreview ?? ((url: string) => getLinkPreview(url));
+  const uncachedUrls = exactUrls.filter((u) => !previewByUrl.has(u));
+  if (uncachedUrls.length > 0) {
+    void warmInBackground(uncachedUrls, warm);
+  }
 
   // ── 5. Group by normalizedUrl ────────────────────────────────
   interface Bucket {
@@ -308,4 +336,37 @@ export async function listNetworkSpread(
     windowDays: input.windowDays,
     trendingWindowHours: trendingHours,
   };
+}
+
+/**
+ * Run `warm` over the URL list with bounded concurrency. Errors are
+ * swallowed — the preview cache is decorative; one failed fetch
+ * doesn't block the rest. Caller invokes via `void warmInBackground`
+ * so the promise isn't awaited; on long-lived hosts (local dev,
+ * traditional Node servers) the warming completes between requests.
+ *
+ * On Vercel serverless the function may exit before all warms
+ * complete, but each request still warms `WARM_CONCURRENCY` URLs
+ * synchronously before yielding — the cache fills over multiple
+ * page loads.
+ */
+async function warmInBackground(
+  urls: ReadonlyArray<string>,
+  warm: (url: string) => Promise<unknown>,
+): Promise<void> {
+  let next = 0;
+  async function worker(): Promise<void> {
+    while (next < urls.length) {
+      const i = next++;
+      try {
+        await warm(urls[i]!);
+      } catch {
+        // Decorative — swallow.
+      }
+    }
+  }
+  const workers: Promise<void>[] = [];
+  const concurrency = Math.min(WARM_CONCURRENCY, urls.length);
+  for (let i = 0; i < concurrency; i++) workers.push(worker());
+  await Promise.all(workers);
 }

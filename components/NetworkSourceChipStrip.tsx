@@ -38,6 +38,12 @@ interface NetworkSourceChipStripProps {
    * member's chosen sort direction.
    */
   preserveParams?: Record<string, string | undefined>;
+  /**
+   * Base path the chip hrefs point to. Defaults to `/network` (list
+   * view). Pass `/network/spread` from the gallery so toggling a chip
+   * doesn't kick the user out of gallery mode.
+   */
+  basePath?: string;
 }
 
 const rowStyle: CSSProperties = {
@@ -65,7 +71,11 @@ function toggleSlug(active: string[], slug: string): string[] {
   return [...active, slug];
 }
 
-function buildHref(slugs: string[], preserve: Record<string, string | undefined>): string {
+function buildHref(
+  slugs: string[],
+  preserve: Record<string, string | undefined>,
+  basePath: string,
+): string {
   // Manual query construction (not URLSearchParams) so commas in the
   // source list stay literal — `/network?source=a,b` is friendlier
   // for sharing than `/network?source=a%2Cb`. Slug values are kebab-
@@ -78,13 +88,14 @@ function buildHref(slugs: string[], preserve: Record<string, string | undefined>
   for (const [k, v] of Object.entries(preserve)) {
     if (v !== undefined && v !== '') parts.push(`${k}=${encodeURIComponent(v)}`);
   }
-  return parts.length ? `/network?${parts.join('&')}` : '/network';
+  return parts.length ? `${basePath}?${parts.join('&')}` : basePath;
 }
 
 export function NetworkSourceChipStrip({
   sources,
   active,
   preserveParams = {},
+  basePath = '/network',
 }: NetworkSourceChipStripProps) {
   const isAll = active.length === 0;
 
@@ -95,7 +106,7 @@ export function NetworkSourceChipStrip({
       style={rowStyle}
     >
       <a
-        href={buildHref([], preserveParams)}
+        href={buildHref([], preserveParams, basePath)}
         aria-current={isAll ? 'page' : undefined}
         aria-label="All sources"
         data-testid="network-source-chip-all"
@@ -107,7 +118,7 @@ export function NetworkSourceChipStrip({
       {sources.map((source) => {
         const isActive = active.includes(source.slug);
         const next = toggleSlug(active, source.slug);
-        const href = buildHref(next, preserveParams);
+        const href = buildHref(next, preserveParams, basePath);
         return (
           <SourceBadge
             key={source.slug}

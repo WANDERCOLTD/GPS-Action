@@ -164,6 +164,28 @@ describe('NetworkSourceChipStrip', () => {
     expect(chips.get('hendon-jag')?.props.ariaLabel).toBe('Hendon JAG');
   });
 
+  it('hrefs default to /network base path', () => {
+    const tree = NetworkSourceChipStrip({
+      sources: SOURCES,
+      active: [],
+    }) as AnyElement;
+    const chips = chipsBySlug(tree);
+    expect(chips.get('gps-action-network')?.props.href).toBe('/network?source=gps-action-network');
+  });
+
+  it('hrefs follow basePath when set (gallery preserves spread mode)', () => {
+    const tree = NetworkSourceChipStrip({
+      sources: SOURCES,
+      active: [],
+      basePath: '/network/spread',
+    }) as AnyElement;
+    const chips = chipsBySlug(tree);
+    expect(chips.get('gps-action-network')?.props.href).toBe(
+      '/network/spread?source=gps-action-network',
+    );
+    expect(findAllChip(tree)?.props.href).toBe('/network/spread');
+  });
+
   it('exposes description via title attribute, falling back to label', () => {
     // The chip strip now passes `description ?? label` as the title
     // (label fallback for accessibility — tooltip is always populated).

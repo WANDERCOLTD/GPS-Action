@@ -126,6 +126,7 @@ export default async function SpreadPage({ searchParams }: SpreadPageProps) {
         <NetworkSourceChipStrip
           sources={sources}
           active={activeSources}
+          basePath="/network/spread"
           preserveParams={{ type: typeQs, sort: sortQs }}
         />
         <NetworkSpreadTypeChipStrip
