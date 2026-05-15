@@ -65,7 +65,6 @@ import {
   Users,
   HelpCircle,
   ChevronDown,
-  CheckSquare,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { CreatePostResult } from '@/app/compose/actions';
@@ -81,6 +80,7 @@ import {
 import { LinkPreviewCard } from './LinkPreviewCard';
 import { HeroImagePicker } from './HeroImagePicker';
 import { KindPickerSheet, TILES, type Tile } from './KindPickerSheet';
+import { TickCrossPair } from './TickCrossPair';
 import { PostPublishModal, type PublishModalKindConfig } from './PostPublishModal';
 import { DiscardConfirmSheet } from './DiscardConfirmSheet';
 import { UndoSnackbar } from './UndoSnackbar';
@@ -236,7 +236,9 @@ const INTENT_META: Record<string, IntentMeta> = {
   // publish the post saves and a confirm modal copies the formatted
   // message to the clipboard before opening the GPS Network channel.
   tick_or_cross: {
-    icon: <CheckSquare size={20} />,
+    // ADR-0020 — lucide tick+cross overlap pair matches the GPS Network
+    // ✅ or ❌ source-chip glyph; single visual identity for the concept.
+    icon: <TickCrossPair size="compact" />,
     accent: 'var(--colour-primary)',
     bannerHeading: '✅ or ❌',
     bannerBody:

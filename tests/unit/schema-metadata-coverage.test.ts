@@ -72,6 +72,11 @@ const SCHEMA_MODELS_AWAITING_METADATA: ReadonlyArray<string> = [
   // service (`getLinkPreview`). A read-only admin browser is a
   // follow-up if cache-debugging needs surface in production.
   'LinkPreview',
+  // BU-source-and-kind-icons (ADR-0020, D085) — added SourceIconOverride.
+  // Slug-keyed local overrides for Grant's gps_chat_labels icons.
+  // Admin surface deferred to a follow-up BU (Vercel Blob upload UI);
+  // v1 ships with /public-relative seeded paths from the migration.
+  'SourceIconOverride',
 ];
 
 // Metadata keys with no corresponding schema model. None today.

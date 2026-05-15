@@ -42,6 +42,8 @@ import {
 } from '@/server/lib/supabase';
 import { normalizeUrl } from '@/server/lib/url-normalize';
 import { classifyUrl, type LinkType } from '@/server/lib/url-type';
+import { stripUrlFromText } from '@/server/lib/strip-url-from-text';
+import { listSourceIconOverrides } from '@/server/services/source-icon-overrides';
 import type {
   SpreadLinkType,
   SpreadListResponse,
@@ -68,6 +70,8 @@ interface ListSpreadInput {
 interface ListSpreadDeps {
   fetchUpstream?: typeof listGpsGroupMessages;
   fetchLabels?: typeof listGpsChatLabels;
+  /** ADR-0020 — override the per-slug icon-override map (tests). */
+  fetchOverrides?: typeof listSourceIconOverrides;
 }
 
 function trendingWindowHours(): number {
@@ -102,11 +106,18 @@ export async function listNetworkSpread(
 ): Promise<SpreadListResponse> {
   const fetchUpstream = deps.fetchUpstream ?? listGpsGroupMessages;
   const fetchLabels = deps.fetchLabels ?? listGpsChatLabels;
+  const fetchOverrides = deps.fetchOverrides ?? listSourceIconOverrides;
 
-  // ── 1. Labels ────────────────────────────────────────────────
-  const labels = await fetchLabels();
+  // ── 1. Labels + icon overrides ───────────────────────────────
+  const [labels, overrides] = await Promise.all([fetchLabels(), fetchOverrides()]);
   const sourceByChatId = new Map<string, NetworkCardSource>();
-  for (const l of labels) sourceByChatId.set(l.chat_id, labelToSource(l));
+  for (const l of labels) {
+    const base = labelToSource(l);
+    sourceByChatId.set(l.chat_id, {
+      ...base,
+      iconOverride: overrides.get(base.slug) ?? null,
+    });
+  }
 
   // ── 2. Source-filter → chat_id allowlist ─────────────────────
   let chatIds: string[] | undefined;
@@ -197,12 +208,17 @@ export async function listNetworkSpread(
     const source = sourceByChatId.get(row.chat_id);
     if (!source) continue; // orphan row — no chat label
 
+    // URL-strip the message body server-side so the wire carries
+    // clean, ready-to-render text. Empty after strip → null (detail
+    // sheet skips the quote block).
+    const stripped = stripUrlFromText(row.text_body, norm);
     const occurrence: SpreadOccurrence = {
       messageId: BigInt(row.id),
       sentAt: new Date(row.sent_at),
       fromName: row.from_name,
       isForwarded: row.is_forwarded,
       source,
+      textBody: stripped.length > 0 ? stripped : null,
     };
 
     const existing = buckets.get(norm);

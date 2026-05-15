@@ -43,6 +43,13 @@ export interface SpreadOccurrence {
   fromName: string | null;
   isForwarded: boolean;
   source: NetworkCardSource;
+  /**
+   * Raw WhatsApp message text accompanying the URL share. May be
+   * null (forwarded with no comment) or empty after URL-strip. The
+   * detail sheet renders a quote block only when the stripped text
+   * is non-empty — most forwards collapse cleanly.
+   */
+  textBody: string | null;
 }
 
 /**

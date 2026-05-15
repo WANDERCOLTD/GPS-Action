@@ -12,8 +12,9 @@
 
 'use client';
 
-import { useEffect, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { getSourceColor } from '@/shared/styles/source-palette';
+import { SourceBadge } from '@/components/SourceBadge';
 import type { SpreadOccurrence, SpreadTile } from '@/shared/network-spread';
 
 interface NetworkSpreadDetailSheetProps {
@@ -91,24 +92,11 @@ const sectionLabel: CSSProperties = {
 
 const traceStep: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: '22px 1fr auto',
+  gridTemplateColumns: 'auto 1fr auto',
   gap: 10,
   alignItems: 'center',
   padding: '8px 0',
 };
-
-const chipMicro = (bg: string): CSSProperties => ({
-  width: 22,
-  height: 22,
-  borderRadius: '50%',
-  background: bg,
-  color: 'var(--colour-text-inverse)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: 12,
-  lineHeight: 1,
-});
 
 const timeStyle: CSSProperties = {
   fontSize: 'var(--text-xs)',
@@ -177,21 +165,85 @@ function domainOf(url: string): string {
   }
 }
 
+// Quote block max-lines before "Show more" appears.
+const QUOTE_CLAMP_LINES = 4;
+
+const quoteWrapStyle = (color: string): CSSProperties => ({
+  margin: '6px 0 8px 32px',
+  padding: '8px 12px',
+  borderLeft: `3px solid ${color}`,
+  background: 'var(--colour-surface-sunken)',
+  borderRadius: '0 var(--radius-md) var(--radius-md) 0',
+  fontSize: 'var(--text-sm)',
+  lineHeight: 1.45,
+  color: 'var(--colour-text-primary)',
+});
+
+const quoteTextStyle = (expanded: boolean): CSSProperties => ({
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word',
+  display: '-webkit-box',
+  WebkitLineClamp: expanded ? 'unset' : QUOTE_CLAMP_LINES,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden',
+});
+
+const showMoreButtonStyle: CSSProperties = {
+  marginTop: 4,
+  background: 'none',
+  border: 'none',
+  padding: 0,
+  font: 'inherit',
+  fontSize: 'var(--text-xs)',
+  color: 'var(--colour-primary)',
+  cursor: 'pointer',
+  textDecoration: 'underline',
+};
+
+function QuoteBlock({ text, color }: { text: string; color: string }) {
+  const [expanded, setExpanded] = useState(false);
+  // Heuristic: only show the toggle when the text is genuinely long.
+  // Counting lines client-side without measurement is unreliable;
+  // approximate via character + newline count.
+  const looksLong = text.length > 200 || text.split('\n').length > QUOTE_CLAMP_LINES;
+  return (
+    <div style={quoteWrapStyle(color)} data-testid="network-spread-detail-quote">
+      <div style={quoteTextStyle(expanded)}>{text}</div>
+      {looksLong && (
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          style={showMoreButtonStyle}
+          data-testid="network-spread-detail-quote-toggle"
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function TraceRow({ occurrence, isFirst }: { occurrence: SpreadOccurrence; isFirst: boolean }) {
   const color = getSourceColor(occurrence.source);
   return (
-    <div style={traceStep}>
-      <span style={chipMicro(color)} aria-hidden="true">
-        {occurrence.source.icon ?? '•'}
-      </span>
-      <div style={{ fontSize: 'var(--text-sm)' }}>
-        <strong>{occurrence.source.label}</strong>
-        <div style={{ color: 'var(--colour-text-secondary)', fontSize: 'var(--text-xs)' }}>
-          {occurrence.fromName ?? 'Unknown sender'} ·{' '}
-          {isFirst ? 'original' : occurrence.isForwarded ? 'forwarded' : 'reposted'}
+    <div>
+      <div style={traceStep}>
+        <SourceBadge
+          source={occurrence.source}
+          iconOverride={occurrence.source.iconOverride ?? null}
+          variant="micro"
+          showLabel={false}
+        />
+        <div style={{ fontSize: 'var(--text-sm)' }}>
+          <strong>{occurrence.source.label}</strong>
+          <div style={{ color: 'var(--colour-text-secondary)', fontSize: 'var(--text-xs)' }}>
+            {occurrence.fromName ?? 'Unknown sender'} ·{' '}
+            {isFirst ? 'original' : occurrence.isForwarded ? 'forwarded' : 'reposted'}
+          </div>
         </div>
+        <div style={timeStyle}>{formatTime(occurrence.sentAt)}</div>
       </div>
-      <div style={timeStyle}>{formatTime(occurrence.sentAt)}</div>
+      {occurrence.textBody && <QuoteBlock text={occurrence.textBody} color={color} />}
     </div>
   );
 }

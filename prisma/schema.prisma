@@ -406,6 +406,10 @@ model PostKind {
   slug            String    @unique
   displayName     String
   icon            String?
+  /// ADR-0020 — lucide registry key (e.g. 'tick-cross-pair', 'check', 'x').
+  /// When non-null, render layer prefers this over `icon` (emoji).
+  /// Registry lives at `server/lib/lucide-icon-registry.ts`.
+  lucideIcon      String?
   sortOrder       Int       @default(0)
   isAlertEligible Boolean   @default(false)
   createdAt       DateTime  @default(now())
@@ -1614,4 +1618,22 @@ model LinkPreview {
   @@index([normalizedUrl])
   @@index([expiresAt])
   @@index([linkType])
+}
+
+/// Per-source icon override. Joins to Grant's `gps_chat_labels.slug`.
+/// See ADR-0020 + D085.
+///
+/// - `iconKind = 'image'` → render `imageUrl` (either `/public`-relative
+///   path or absolute URL once Vercel Blob lands)
+/// - `iconKind = 'lucide'` → render lucide registry key `lucideKey`
+///   (e.g. 'tick-cross-pair')
+///
+/// Sources without a row fall back to `gps_chat_labels.icon` (emoji).
+model SourceIconOverride {
+  slug      String   @id
+  iconKind  String
+  imageUrl  String?
+  lucideKey String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

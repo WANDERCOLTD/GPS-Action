@@ -25,7 +25,7 @@
  */
 
 import type { CSSProperties } from 'react';
-import { getSourceColor } from '@/shared/styles/source-palette';
+import { SourceBadge } from '@/components/SourceBadge';
 import type { NetworkSource } from '@/shared/network-card';
 
 interface NetworkSourceChipStripProps {
@@ -51,23 +51,8 @@ const rowStyle: CSSProperties = {
   maskImage: 'linear-gradient(to right, black calc(100% - 24px), transparent 100%)',
 };
 
-const dotStyle = (color: string): CSSProperties => ({
-  display: 'inline-block',
-  width: 8,
-  height: 8,
-  borderRadius: '50%',
-  background: color,
-  flexShrink: 0,
-});
-
 const labelStyle: CSSProperties = {
   whiteSpace: 'nowrap',
-};
-
-const iconStyle: CSSProperties = {
-  fontSize: 'var(--text-sm)',
-  lineHeight: 1,
-  opacity: 0.8,
 };
 
 /**
@@ -123,27 +108,17 @@ export function NetworkSourceChipStrip({
         const isActive = active.includes(source.slug);
         const next = toggleSlug(active, source.slug);
         const href = buildHref(next, preserveParams);
-        const color = getSourceColor(source);
         return (
-          <a
+          <SourceBadge
             key={source.slug}
+            source={source}
+            iconOverride={source.iconOverride ?? null}
+            variant="chip"
             href={href}
-            aria-current={isActive ? 'page' : undefined}
-            aria-label={source.label}
-            data-testid="network-source-chip"
-            data-source-slug={source.slug}
-            data-active={isActive ? 'true' : 'false'}
-            title={source.description ?? undefined}
-            className={isActive ? 'gps-chip gps-chip--active' : 'gps-chip'}
-          >
-            <span aria-hidden="true" style={dotStyle(color)} />
-            {source.icon && (
-              <span aria-hidden="true" style={iconStyle}>
-                {source.icon}
-              </span>
-            )}
-            <span style={labelStyle}>{source.label}</span>
-          </a>
+            active={isActive}
+            ariaLabel={source.label}
+            title={source.description ?? source.label}
+          />
         );
       })}
     </nav>

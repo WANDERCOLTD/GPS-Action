@@ -16,6 +16,9 @@ vi.mock('@/server/db/client', () => ({
     linkPreview: {
       findMany: vi.fn(),
     },
+    sourceIconOverride: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -76,7 +79,7 @@ describe('listNetworkSpread', () => {
 
     const result = await listNetworkSpread(
       { windowDays: 30, sources: [], types: [], sort: 'mostSpread' },
-      { fetchUpstream, fetchLabels },
+      { fetchUpstream, fetchLabels, fetchOverrides: async () => new Map() },
     );
 
     expect(result.tiles).toEqual([]);
@@ -103,7 +106,7 @@ describe('listNetworkSpread', () => {
 
     const result = await listNetworkSpread(
       { windowDays: 30, sources: [], types: [], sort: 'mostSpread' },
-      { fetchUpstream, fetchLabels },
+      { fetchUpstream, fetchLabels, fetchOverrides: async () => new Map() },
     );
 
     expect(result.tiles).toHaveLength(1);
@@ -133,7 +136,7 @@ describe('listNetworkSpread', () => {
 
     const result = await listNetworkSpread(
       { windowDays: 30, sources: [], types: [], sort: 'mostSpread' },
-      { fetchUpstream, fetchLabels },
+      { fetchUpstream, fetchLabels, fetchOverrides: async () => new Map() },
     );
 
     expect(result.tiles).toHaveLength(1);
@@ -158,7 +161,7 @@ describe('listNetworkSpread', () => {
 
     const result = await listNetworkSpread(
       { windowDays: 30, sources: [], types: [], sort: 'mostSpread' },
-      { fetchUpstream, fetchLabels },
+      { fetchUpstream, fetchLabels, fetchOverrides: async () => new Map() },
     );
 
     expect(result.tiles).toHaveLength(2);
@@ -176,7 +179,7 @@ describe('listNetworkSpread', () => {
 
     const result = await listNetworkSpread(
       { windowDays: 30, sources: [], types: [], sort: 'mostSpread' },
-      { fetchUpstream, fetchLabels },
+      { fetchUpstream, fetchLabels, fetchOverrides: async () => new Map() },
     );
 
     expect(result.tiles[0]!.url).toContain('triple');
@@ -204,7 +207,7 @@ describe('listNetworkSpread', () => {
 
     const result = await listNetworkSpread(
       { windowDays: 30, sources: [], types: [], sort: 'mostRecent' },
-      { fetchUpstream, fetchLabels },
+      { fetchUpstream, fetchLabels, fetchOverrides: async () => new Map() },
     );
 
     expect(result.tiles[0]!.url).toContain('new');
@@ -228,7 +231,7 @@ describe('listNetworkSpread', () => {
 
     const result = await listNetworkSpread(
       { windowDays: 30, sources: [], types: ['Video'], sort: 'mostSpread' },
-      { fetchUpstream, fetchLabels },
+      { fetchUpstream, fetchLabels, fetchOverrides: async () => new Map() },
     );
 
     expect(result.tiles).toHaveLength(1);
@@ -241,7 +244,7 @@ describe('listNetworkSpread', () => {
 
     await listNetworkSpread(
       { windowDays: 30, sources: ['hendon'], types: [], sort: 'mostSpread' },
-      { fetchUpstream, fetchLabels },
+      { fetchUpstream, fetchLabels, fetchOverrides: async () => new Map() },
     );
 
     expect(fetchUpstream).toHaveBeenCalledWith(
@@ -257,7 +260,7 @@ describe('listNetworkSpread', () => {
 
     const result = await listNetworkSpread(
       { windowDays: 30, sources: ['unknown-slug'], types: [], sort: 'mostSpread' },
-      { fetchUpstream, fetchLabels },
+      { fetchUpstream, fetchLabels, fetchOverrides: async () => new Map() },
     );
 
     expect(result.tiles).toEqual([]);
@@ -282,9 +285,74 @@ describe('listNetworkSpread', () => {
 
     const result = await listNetworkSpread(
       { windowDays: 30, sources: [], types: [], sort: 'mostSpread' },
-      { fetchUpstream, fetchLabels },
+      { fetchUpstream, fetchLabels, fetchOverrides: async () => new Map() },
     );
 
     expect(result.tiles).toHaveLength(200);
+  });
+
+  it('carries URL-stripped textBody on each occurrence (ADR-0020)', async () => {
+    const rows = [
+      makeRow({
+        id: 1,
+        chat_id: 'chat-action',
+        url: 'https://example.com/article',
+        sent_at: '2026-05-14T09:00:00Z',
+        text_body: 'Strong piece worth reading: https://example.com/article — thoughts?',
+      }),
+      makeRow({
+        id: 2,
+        chat_id: 'chat-hendon',
+        url: 'https://example.com/article',
+        sent_at: '2026-05-14T10:00:00Z',
+        text_body: 'https://example.com/article',
+      }),
+    ];
+    const fetchUpstream = vi.fn().mockResolvedValue(rows);
+    const fetchLabels = vi.fn().mockResolvedValue(labels);
+
+    const result = await listNetworkSpread(
+      { windowDays: 30, sources: [], types: [], sort: 'mostSpread' },
+      { fetchUpstream, fetchLabels, fetchOverrides: async () => new Map() },
+    );
+
+    const occurrences = result.tiles[0]!.occurrences;
+    expect(occurrences[0]!.textBody).toBe('Strong piece worth reading: — thoughts?');
+    // Second occurrence was just the URL → stripped to '' → null on the wire.
+    expect(occurrences[1]!.textBody).toBeNull();
+  });
+
+  it('decorates occurrence.source with iconOverride when one exists (ADR-0020)', async () => {
+    const rows = [
+      makeRow({
+        id: 1,
+        chat_id: 'chat-action',
+        url: 'https://example.com/article',
+      }),
+    ];
+    const fetchUpstream = vi.fn().mockResolvedValue(rows);
+    const fetchLabels = vi.fn().mockResolvedValue(labels);
+    const fetchOverrides = vi
+      .fn()
+      .mockResolvedValue(
+        new Map([
+          [
+            'action',
+            { iconKind: 'image' as const, imageUrl: '/source-icons/action.jpg', lucideKey: null },
+          ],
+        ]),
+      );
+
+    const result = await listNetworkSpread(
+      { windowDays: 30, sources: [], types: [], sort: 'mostSpread' },
+      { fetchUpstream, fetchLabels, fetchOverrides },
+    );
+
+    const occurrence = result.tiles[0]!.occurrences[0]!;
+    expect(occurrence.source.iconOverride).toEqual({
+      iconKind: 'image',
+      imageUrl: '/source-icons/action.jpg',
+      lucideKey: null,
+    });
   });
 });

@@ -5739,3 +5739,53 @@ Full reasoning, options considered, schema, and migration notes in
   (existing consumer of `linkPreviewCache`)
 - D083 / ADR-0017 — `NetworkCardState` (recent precedent for an
   own-side table joined to Grant's view)
+
+# D085 — Source-group icon overrides + PostKind lucide rendering + cartouche frame
+
+**Status:** decided · 2026-05-15
+
+One-line summary: unify icon rendering across the three independent
+systems (WhatsApp source chips, PostKind chips, signal badges) onto
+a shared lucide registry. New `SourceIconOverride` table (slug-keyed,
+joins to Grant's `gps_chat_labels`) lets admins assign uploaded
+brand images OR lucide glyphs to specific sources. New
+`PostKind.lucideIcon` column lets PostKinds render via the same
+registry. Source-group icons sit inside a coloured-border
+"cartouche" pill that visually declares "this represents a
+WhatsApp group" — distinct from PostKind / filter / feature glyphs.
+
+Driver: GPS Action Network needs a custom brand mark (uploaded
+JPEG), GPS Network ✅ or ❌ needs a tick+cross overlap pair
+glyph, and `tick_or_cross` PostKind needs the same pair rendered
+consistently across FAB picker / composer / post card. Today
+each surface inlines its own icon constants — three sources of
+truth, drifting independently.
+
+Lucide registry (`server/lib/lucide-icon-registry.ts`) is the
+single name → component map. v1 entries: `tick-cross-pair`,
+`check`, `x`. Adding a new entry is a 1-line code change + name
+type union update; no migration.
+
+Storage decision: v1 ships `/public`-relative paths for committed
+images (`/source-icons/gps-action-network.jpg`). Vercel Blob +
+admin upload UI deferred to v2 once a third source needs an image
+override.
+
+Seed migration inserts the two known overrides idempotently
+(ON CONFLICT DO UPDATE) and sets `tick_or_cross.lucideIcon`
+in the same migration (D070 pattern — reference data lives in
+migrations, not seed scripts).
+
+Full reasoning, schema, options rejected, and forward-compat
+notes in **ADR-0020** (`docs/adrs/0020-source-and-kind-icons.md`).
+
+## Related
+
+- ADR-0020 — Source/Kind icons (the design in detail)
+- D070 — Reference data lives in migrations, not seeds
+- D069 — `tick_or_cross` PostKind (consumer of the new rendering)
+- D051 — BU naming convention
+- bu-network-source-chips — shipped the source-chip strip this
+  refactors
+- bu-network-spread-gallery — shipped the tile markers this
+  refactors

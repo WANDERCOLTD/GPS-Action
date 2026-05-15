@@ -19,6 +19,7 @@
 
 import type { CSSProperties } from 'react';
 import { getSourceColor } from '@/shared/styles/source-palette';
+import { SourceBadge } from '@/components/SourceBadge';
 import type { NetworkCardSource } from '@/shared/network-card';
 import type { SpreadTile } from '@/shared/network-spread';
 
@@ -78,39 +79,18 @@ const markerStackStyle: CSSProperties = {
  * shorthand — colored dot + emoji on a raised surface — without the
  * label (no room on a tile). One pill per distinct source.
  */
-const markerPillStyle: CSSProperties = {
+/** "+N" overflow pill, matching the compact SourceBadge shape but text-only. */
+const overflowPillStyle: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
-  gap: 3,
-  padding: '2px 5px',
+  padding: '2px 6px',
   background: 'var(--colour-surface-raised)',
   borderRadius: 'var(--radius-pill)',
-  boxShadow: 'var(--shadow-sm)',
+  border: '1.5px solid var(--colour-border-subtle)',
   fontSize: 11,
   lineHeight: 1,
-};
-
-const markerDotStyle = (bg: string): CSSProperties => ({
-  width: 7,
-  height: 7,
-  borderRadius: '50%',
-  background: bg,
-  display: 'inline-block',
-  flexShrink: 0,
-});
-
-const markerEmojiStyle: CSSProperties = {
-  fontSize: 11,
-  lineHeight: 1,
-  opacity: 0.85,
-};
-
-/** "+N" overflow pill, same shape as a marker pill but text-only. */
-const overflowPillStyle: CSSProperties = {
-  ...markerPillStyle,
   fontWeight: 600,
   color: 'var(--colour-text-secondary)',
-  padding: '2px 6px',
 };
 
 const badgeStyle: CSSProperties = {
@@ -192,19 +172,14 @@ export function NetworkSpreadTile({ tile, onSelect }: NetworkSpreadTileProps) {
         data-testid="network-spread-tile-markers"
       >
         {visible.map((source) => (
-          <span
+          <SourceBadge
             key={source.slug}
-            style={markerPillStyle}
+            source={source}
+            iconOverride={source.iconOverride ?? null}
+            variant="compact"
+            showLabel={false}
             title={source.label}
-            data-source-slug={source.slug}
-          >
-            <span aria-hidden="true" style={markerDotStyle(getSourceColor(source))} />
-            {source.icon && (
-              <span aria-hidden="true" style={markerEmojiStyle}>
-                {source.icon}
-              </span>
-            )}
-          </span>
+          />
         ))}
         {overflow > 0 && (
           <span
