@@ -66,6 +66,12 @@ const SCHEMA_MODELS_AWAITING_METADATA: ReadonlyArray<string> = [
   // (Phase B). Drops off this list when bu-share-event-polymorphic
   // Phase B ships the share-event admin surface.
   'ShareEvent',
+  // bu-link-preview-store (ADR-0019, D084) — added LinkPreview as a
+  // service-internal cache for URL preview metadata. No admin CRUD
+  // surface in scope; rows are managed entirely by the read-through
+  // service (`getLinkPreview`). A read-only admin browser is a
+  // follow-up if cache-debugging needs surface in production.
+  'LinkPreview',
 ];
 
 // Metadata keys with no corresponding schema model. None today.

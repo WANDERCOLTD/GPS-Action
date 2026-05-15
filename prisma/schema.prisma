@@ -1583,3 +1583,35 @@ model ShareEvent {
   @@index([postId])
   @@index([networkCardStateId])
 }
+
+/// Persistent server-side cache for URL preview metadata.
+/// See ADR-0019 + D084.
+///
+/// - `url` (unique): the exact URL the caller passed; lookup key.
+/// - `normalizedUrl` (indexed): tracking-stripped canonical form;
+///   dedup key for the spread gallery.
+/// - `linkType` (indexed): bucket classification from `lib/url-type.ts`.
+/// - `fetchStatus`: ok | no_og | fetch_error | blocked.
+/// - `expiresAt`: TTL boundary; reads past this trigger re-fetch.
+///
+/// Storage cost: ~750 bytes/row × ~500 new URLs/day ≈ 140 MB/year.
+/// Lazy fill; no backfill required — first read after deploy
+/// populates the row.
+model LinkPreview {
+  id            String   @id @default(uuid())
+  url           String   @unique
+  normalizedUrl String
+  title         String?
+  description   String?
+  imageUrl      String?
+  siteName      String?
+  faviconUrl    String?
+  linkType      String?
+  fetchStatus   String
+  fetchedAt     DateTime @default(now())
+  expiresAt     DateTime
+
+  @@index([normalizedUrl])
+  @@index([expiresAt])
+  @@index([linkType])
+}
