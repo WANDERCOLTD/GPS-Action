@@ -82,6 +82,7 @@ _Source: D038 §6 (the discipline) + D053 (this script)._
 | BU-link-share | 5 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D061, D062, D064, D069, D072, D073, D076 |
 | BU-network-feed | 9 | — | D083 |
 | BU-network-reactions | 4 | SCN-3 | D050, D052 |
+| BU-network-spread-gallery | 8 | — | — |
 | BU-one-click-polish | 4 | SCN-3, SCN-20 | D050, D052 |
 | BU-post-hero-demo | 6 | SCN-19, SCN-26, SCN-27 | D045, D048, D060, D062, D064, D069, D072, D073, D076 |
 | BU-post-location-input | 1 | — | — |

@@ -147,6 +147,14 @@ export default async function NetworkPage({ searchParams }: NetworkPageProps) {
         active={activeSort}
         preserveParams={{ source: sourceQs, unread: unreadQs }}
       />
+      <a
+        href={sourceQs ? `/network/spread?source=${sourceQs}` : '/network/spread'}
+        className="gps-chip"
+        data-testid="network-view-gallery"
+        title="What's spreading — gallery view"
+      >
+        Gallery →
+      </a>
     </div>
   );
 
