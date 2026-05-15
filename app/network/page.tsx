@@ -156,6 +156,7 @@ export default async function NetworkPage({ searchParams }: NetworkPageProps) {
   // two view-switchers are positionally symmetric.
   const galleryButton = (
     <a
+      key="gallery-button"
       href={sourceQs ? `/network/spread?source=${sourceQs}` : '/network/spread'}
       className="gps-chip"
       data-testid="network-view-gallery"
