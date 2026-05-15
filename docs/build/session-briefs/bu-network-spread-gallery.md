@@ -1,6 +1,7 @@
 ---
 slug: bu-network-spread-gallery
-status: ready
+status: shipped
+shipped_in: "#369"
 phase: 2
 priority: medium
 depends_on: bu-link-preview-store

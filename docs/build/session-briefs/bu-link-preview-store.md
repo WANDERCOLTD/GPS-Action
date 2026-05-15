@@ -1,6 +1,7 @@
 ---
 slug: bu-link-preview-store
-status: ready
+status: shipped
+shipped_in: "#369"
 phase: 2
 priority: medium
 note: "Brief v0.2 (2026-05-15, groomed for build). Foundation BU — promotes the in-memory link-preview LRU to a Postgres-backed store keyed by URL. Zero user-visible change at ship; unlocks cross-surface reuse (feed cards, compose, network spread gallery) and survives deploys. Four open decisions locked. Companion: bu-network-spread-gallery (depends on this shipping)."

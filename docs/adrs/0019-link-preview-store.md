@@ -41,13 +41,13 @@ about **where the result is stored** and **how it's keyed**.
 Sampled 120 recent URLs from /network's top 4 platforms (X, FB, IG,
 YT). With a 1MB read cap (matches `fetchLinkMetadata.MAX_BYTES`):
 
-| Platform   | Usable og:image rate |
-|------------|---------------------:|
-| Instagram  |  100% |
-| YouTube    |   97% |
-| X / Twitter |  73% (rest are connection-blocked) |
-| Facebook   |   73% (rest are private/no-og) |
-| **Total**  | **86%** |
+| Platform    |              Usable og:image rate |
+| ----------- | --------------------------------: |
+| Instagram   |                              100% |
+| YouTube     |                               97% |
+| X / Twitter | 73% (rest are connection-blocked) |
+| Facebook    |      73% (rest are private/no-og) |
+| **Total**   |                           **86%** |
 
 86% means a gallery is feasible — but only if we don't re-fetch
 every URL on every cold-pod boot.
