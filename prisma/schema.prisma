@@ -406,6 +406,10 @@ model PostKind {
   slug            String    @unique
   displayName     String
   icon            String?
+  /// ADR-0020 — lucide registry key (e.g. 'tick-cross-pair', 'check', 'x').
+  /// When non-null, render layer prefers this over `icon` (emoji).
+  /// Registry lives at `server/lib/lucide-icon-registry.ts`.
+  lucideIcon      String?
   sortOrder       Int       @default(0)
   isAlertEligible Boolean   @default(false)
   createdAt       DateTime  @default(now())
@@ -1582,4 +1586,54 @@ model ShareEvent {
   @@index([userId, intentAt])
   @@index([postId])
   @@index([networkCardStateId])
+}
+
+/// Persistent server-side cache for URL preview metadata.
+/// See ADR-0019 + D084.
+///
+/// - `url` (unique): the exact URL the caller passed; lookup key.
+/// - `normalizedUrl` (indexed): tracking-stripped canonical form;
+///   dedup key for the spread gallery.
+/// - `linkType` (indexed): bucket classification from `lib/url-type.ts`.
+/// - `fetchStatus`: ok | no_og | fetch_error | blocked.
+/// - `expiresAt`: TTL boundary; reads past this trigger re-fetch.
+///
+/// Storage cost: ~750 bytes/row × ~500 new URLs/day ≈ 140 MB/year.
+/// Lazy fill; no backfill required — first read after deploy
+/// populates the row.
+model LinkPreview {
+  id            String   @id @default(uuid())
+  url           String   @unique
+  normalizedUrl String
+  title         String?
+  description   String?
+  imageUrl      String?
+  siteName      String?
+  faviconUrl    String?
+  linkType      String?
+  fetchStatus   String
+  fetchedAt     DateTime @default(now())
+  expiresAt     DateTime
+
+  @@index([normalizedUrl])
+  @@index([expiresAt])
+  @@index([linkType])
+}
+
+/// Per-source icon override. Joins to Grant's `gps_chat_labels.slug`.
+/// See ADR-0020 + D085.
+///
+/// - `iconKind = 'image'` → render `imageUrl` (either `/public`-relative
+///   path or absolute URL once Vercel Blob lands)
+/// - `iconKind = 'lucide'` → render lucide registry key `lucideKey`
+///   (e.g. 'tick-cross-pair')
+///
+/// Sources without a row fall back to `gps_chat_labels.icon` (emoji).
+model SourceIconOverride {
+  slug      String   @id
+  iconKind  String
+  imageUrl  String?
+  lucideKey String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

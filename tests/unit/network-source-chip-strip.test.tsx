@@ -31,12 +31,35 @@ function flatChildren(el: AnyElement): AnyElement[] {
   return acc;
 }
 
+/**
+ * Chip-strip now renders `<SourceBadge>` per source. The component
+ * isn't materialised here (no React render), so walk the JSX tree
+ * and pick out the SourceBadge invocations by their displayName or
+ * function name. Read props from the unrendered element directly.
+ */
 function chipsBySlug(tree: AnyElement): Map<string, AnyElement> {
   const out = new Map<string, AnyElement>();
   for (const el of flatChildren(tree)) {
-    if (el.props['data-testid'] === 'network-source-chip') {
-      const slug = el.props['data-source-slug'];
-      if (typeof slug === 'string') out.set(slug, el);
+    const type = el.type as unknown;
+    const isSourceBadge =
+      typeof type === 'function' &&
+      ((type as { displayName?: string; name?: string }).displayName === 'SourceBadge' ||
+        (type as { name?: string }).name === 'SourceBadge');
+    if (!isSourceBadge) continue;
+    const source = el.props.source as { slug?: string } | undefined;
+    if (source?.slug) {
+      // Synthesize `data-active` and `href` on the element so the
+      // existing tests can keep their access pattern (`.props['data-active']`,
+      // `.props.href`) without rewriting every assertion.
+      const synthetic = {
+        ...el,
+        props: {
+          ...el.props,
+          'data-active': el.props.active ? 'true' : 'false',
+          'data-source-slug': source.slug,
+        },
+      } as AnyElement;
+      out.set(source.slug, synthetic);
     }
   }
   return out;
@@ -131,18 +154,45 @@ describe('NetworkSourceChipStrip', () => {
     expect(findAllChip(tree)?.props.href).toBe('/network');
   });
 
-  it('sets aria-label on each source chip to its label', () => {
+  it('sets ariaLabel on each source badge to its label', () => {
+    // SourceBadge takes `ariaLabel` (camelCase) as a prop and emits
+    // it as `aria-label` on the rendered element. Reading the prop
+    // directly here.
     const tree = NetworkSourceChipStrip({ sources: SOURCES, active: [] }) as AnyElement;
     const chips = chipsBySlug(tree);
-    expect(chips.get('gps-action-network')?.props['aria-label']).toBe('GPS Action Network!');
-    expect(chips.get('hendon-jag')?.props['aria-label']).toBe('Hendon JAG');
+    expect(chips.get('gps-action-network')?.props.ariaLabel).toBe('GPS Action Network!');
+    expect(chips.get('hendon-jag')?.props.ariaLabel).toBe('Hendon JAG');
   });
 
-  it('exposes description via title attribute when present', () => {
+  it('hrefs default to /network base path', () => {
+    const tree = NetworkSourceChipStrip({
+      sources: SOURCES,
+      active: [],
+    }) as AnyElement;
+    const chips = chipsBySlug(tree);
+    expect(chips.get('gps-action-network')?.props.href).toBe('/network?source=gps-action-network');
+  });
+
+  it('hrefs follow basePath when set (gallery preserves spread mode)', () => {
+    const tree = NetworkSourceChipStrip({
+      sources: SOURCES,
+      active: [],
+      basePath: '/network/spread',
+    }) as AnyElement;
+    const chips = chipsBySlug(tree);
+    expect(chips.get('gps-action-network')?.props.href).toBe(
+      '/network/spread?source=gps-action-network',
+    );
+    expect(findAllChip(tree)?.props.href).toBe('/network/spread');
+  });
+
+  it('exposes description via title attribute, falling back to label', () => {
+    // The chip strip now passes `description ?? label` as the title
+    // (label fallback for accessibility — tooltip is always populated).
     const tree = NetworkSourceChipStrip({ sources: SOURCES, active: [] }) as AnyElement;
     const chips = chipsBySlug(tree);
     expect(chips.get('hendon-jag')?.props.title).toBe('Local action group');
-    expect(chips.get('gps-action-network')?.props.title).toBeUndefined();
+    expect(chips.get('gps-action-network')?.props.title).toBe('GPS Action Network!');
   });
 });
 

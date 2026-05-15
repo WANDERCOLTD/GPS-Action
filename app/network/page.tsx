@@ -20,6 +20,7 @@
  * not "no results, try again." Members get permission to close.
  */
 
+import { LayoutGrid } from 'lucide-react';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
@@ -150,12 +151,29 @@ export default async function NetworkPage({ searchParams }: NetworkPageProps) {
     </div>
   );
 
+  // Gallery affordance lives in the page header (`actions` slot) next to
+  // refresh — same placement as "List view" on /network/spread, so the
+  // two view-switchers are positionally symmetric.
+  const galleryButton = (
+    <a
+      key="gallery-button"
+      href={sourceQs ? `/network/spread?source=${sourceQs}` : '/network/spread'}
+      className="gps-chip"
+      data-testid="network-view-gallery"
+      aria-label="Switch to gallery view — see what's spreading across groups"
+      title="Gallery view — see what's spreading across groups"
+    >
+      <LayoutGrid size={16} aria-hidden="true" />
+    </a>
+  );
+
   return (
     <main style={{ maxWidth: 720, margin: '0 auto' }} data-testid="network-page">
       <NetworkFeed
         initial={initialSerialised}
         chipStrip={chipStrip}
         sortControl={sortControl}
+        galleryButton={galleryButton}
         unreadOnly={unreadOnly}
       />
     </main>

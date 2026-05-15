@@ -28,6 +28,7 @@ import { auditLog } from '@/server/services/audit';
 import { isFeatureEnabled } from '@/server/services/flags';
 import { getLinkPreview } from '@/server/services/link-preview-cache';
 import { fetchLinkMetadata } from '@/server/services/link-metadata';
+import { listSourceIconOverrides } from '@/server/services/source-icon-overrides';
 import { getNetworkCardShareCounts } from '@/server/services/share-event';
 import { getSystemSettingInt } from '@/server/services/system-setting';
 import {
@@ -222,10 +223,17 @@ export async function listNetworkSources(
     fetchSources?: typeof listGpsChatLabels;
     /** Skip the cache layer — used by tests. */
     bypassCache?: boolean;
+    /** Override the override-map fetcher — primarily for tests (ADR-0020). */
+    fetchOverrides?: typeof listSourceIconOverrides;
   } = {},
 ): Promise<NetworkSource[]> {
   const entry = await getSourcesCacheEntry(deps);
-  return entry.list;
+  const fetchOverrides = deps.fetchOverrides ?? listSourceIconOverrides;
+  const overrides = await fetchOverrides();
+  return entry.list.map((source) => ({
+    ...source,
+    iconOverride: overrides.get(source.slug) ?? null,
+  }));
 }
 
 /** Wholesale source-cache invalidation. Exposed for admin "Refresh sources". */

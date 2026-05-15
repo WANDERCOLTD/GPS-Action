@@ -1,80 +1,92 @@
 /**
- * @build-unit BU-network-link-previews
- * @spec build/session-briefs/bu-network-link-previews.md
+ * @build-unit BU-link-preview-store
+ * @spec adrs/0019-link-preview-store.md
  *
- * URL-keyed LRU+TTL cache fronting `fetchLinkMetadata`. Used by the
- * network feed service to enrich each card with OpenGraph data
- * without re-fetching identical URLs on every page load.
+ * Persistent server-side cache for URL preview metadata.
  *
- * Mirrors the cache pattern in `server/services/network.ts` (in-process
- * Map with LRU touch + expiry sweep on read). Per-process — multi-pod
- * deploys accept cross-pod skew. Failures are cached too (as `null`):
- * a temporarily-broken URL still avoids hammering the upstream on
- * every render. TTL handles eventual recovery without a manual flush.
+ * Read-through pattern: lookup by exact `url`; on miss or expired
+ * row, call `fetchLinkMetadata` and upsert. Failures cache too
+ * (status `fetch_error`, shorter TTL) so a temporarily-broken URL
+ * doesn't hammer upstream on every render.
  *
- * The cache is intentionally write-once-per-key on a miss path: if two
- * concurrent calls for the same URL race, both will fetch — that's a
- * cheap duplicate, not a correctness bug. A request-coalescing layer
- * (single in-flight Promise per key) is a follow-up if duplicate
- * fetches show up in logs.
+ * Shared across all surfaces:
+ *   /network        list cards (existing consumer)
+ *   /network/spread gallery tiles (bu-network-spread-gallery)
+ *   /compose        link previews (D060)
+ *   /feed           post link cards
+ *
+ * Boundary preserved: callers continue to use
+ * `getLinkPreview(url)` and receive `LinkMetadata | null`. The swap
+ * from in-memory `Map` to Postgres is invisible.
+ *
+ * Forward-compat: stampede coalescer + L1 in-front-of-DB cache are
+ * v2 follow-ups, not blocking the gallery. See ADR-0019 §6.
  */
 
-import { fetchLinkMetadata, type LinkMetadata } from '@/server/services/link-metadata';
+import { prisma } from '@/server/db/client';
+import {
+  fetchLinkMetadata,
+  type LinkMetadata,
+  type LinkMetadataResult,
+} from '@/server/services/link-metadata';
+import { normalizeUrl } from '@/server/lib/url-normalize';
+import { classifyUrl } from '@/server/lib/url-type';
 
-interface CacheEntry {
-  value: LinkMetadata | null;
-  expiresAt: number;
-}
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-function readMaxEntries(): number {
-  const raw = process.env.NETWORK_LINK_PREVIEW_MAX_ENTRIES;
+function readTtlMs(envName: string, defaultDays: number): number {
+  const raw = process.env[envName];
   const parsed = raw ? Number.parseInt(raw, 10) : NaN;
-  // 200 default holds ~1 month of network-feed URLs at observed
-  // volume. Override via env for tests or aggressive sizing.
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 200;
+  const days = Number.isFinite(parsed) && parsed > 0 ? parsed : defaultDays;
+  return days * MS_PER_DAY;
 }
 
-function readCacheTtlMs(): number {
-  const raw = process.env.NETWORK_LINK_PREVIEW_TTL_SECONDS;
-  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
-  // 1 hour default — link metadata changes slowly. Override via env
-  // for tests or aggressive flushing.
-  const seconds = Number.isFinite(parsed) && parsed > 0 ? parsed : 3600;
-  return seconds * 1000;
-}
-
-const cache = new Map<string, CacheEntry>();
-
-function cacheGet(url: string): { hit: true; value: LinkMetadata | null } | { hit: false } {
-  const entry = cache.get(url);
-  if (!entry) return { hit: false };
-  if (entry.expiresAt < Date.now()) {
-    cache.delete(url);
-    return { hit: false };
+function ttlForStatus(status: FetchStatus): number {
+  if (status === 'ok' || status === 'no_og') {
+    return readTtlMs('LINK_PREVIEW_OK_TTL_DAYS', 30);
   }
-  // LRU touch — re-insert to move to most-recently-used.
-  cache.delete(url);
-  cache.set(url, entry);
-  return { hit: true, value: entry.value };
+  return readTtlMs('LINK_PREVIEW_ERROR_TTL_DAYS', 3);
 }
 
-function cacheSet(url: string, value: LinkMetadata | null): void {
-  const max = readMaxEntries();
-  if (cache.size >= max && !cache.has(url)) {
-    const oldest = cache.keys().next().value;
-    if (oldest !== undefined) cache.delete(oldest);
+type FetchStatus = 'ok' | 'no_og' | 'fetch_error' | 'blocked';
+
+function classifyResult(result: LinkMetadataResult): FetchStatus {
+  if (!result.ok) {
+    if (result.reason === 'http_403' || result.reason === 'http_429') {
+      return 'blocked';
+    }
+    return 'fetch_error';
   }
-  cache.set(url, { value, expiresAt: Date.now() + readCacheTtlMs() });
+  // Successful HTTP, but maybe no useful OG image / title.
+  const { title, imageUrl } = result.data;
+  if (!title && !imageUrl) return 'no_og';
+  return 'ok';
+}
+
+function rowToMetadata(row: {
+  title: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  siteName: string | null;
+  faviconUrl: string | null;
+  fetchStatus: string;
+}): LinkMetadata | null {
+  // Failures are stored to short-circuit re-fetches but surface as
+  // `null` to callers — preview is decorative, never load-bearing.
+  if (row.fetchStatus !== 'ok' && row.fetchStatus !== 'no_og') return null;
+  if (row.fetchStatus === 'no_og') return null;
+  return {
+    title: row.title,
+    description: row.description,
+    imageUrl: row.imageUrl,
+    siteName: row.siteName,
+    faviconUrl: row.faviconUrl,
+  };
 }
 
 /** Wholesale cache invalidation. Used by admin escape hatch + tests. */
-export function invalidateLinkPreviewCache(): void {
-  cache.clear();
-}
-
-/** Test-only: peek at cache size for assertions. */
-export function _linkPreviewCacheSize(): number {
-  return cache.size;
+export async function invalidateLinkPreviewCache(): Promise<void> {
+  await prisma.linkPreview.deleteMany({});
 }
 
 interface GetLinkPreviewDeps {
@@ -84,20 +96,61 @@ interface GetLinkPreviewDeps {
 
 /**
  * Returns OpenGraph metadata for `url`, or `null` when the fetch
- * fails or the page has no parseable metadata. Result is cached;
- * a null is also cached so a broken URL doesn't re-fetch on every
- * list call.
+ * fails or the page has no parseable metadata. Result is persisted;
+ * a null is also recorded so a broken URL doesn't re-fetch on every
+ * list call. TTL by `fetchStatus`: 30 days for ok/no_og, 3 days for
+ * fetch_error/blocked.
  */
 export async function getLinkPreview(
   url: string,
   deps: GetLinkPreviewDeps = {},
 ): Promise<LinkMetadata | null> {
-  const cached = cacheGet(url);
-  if (cached.hit) return cached.value;
+  const existing = await prisma.linkPreview.findUnique({ where: { url } });
+  const now = new Date();
+
+  if (existing && existing.expiresAt > now) {
+    return rowToMetadata(existing);
+  }
 
   const fetcher = deps.fetcher ?? fetchLinkMetadata;
   const result = await fetcher({ url });
-  const value: LinkMetadata | null = result.ok ? result.data : null;
-  cacheSet(url, value);
-  return value;
+  const status = classifyResult(result);
+  const data: LinkMetadata = result.ok
+    ? result.data
+    : { title: null, description: null, imageUrl: null, siteName: null, faviconUrl: null };
+
+  const expiresAt = new Date(now.getTime() + ttlForStatus(status));
+  const normalizedUrl = normalizeUrl(url);
+  const linkType = classifyUrl(url);
+
+  await prisma.linkPreview.upsert({
+    where: { url },
+    create: {
+      url,
+      normalizedUrl,
+      title: data.title,
+      description: data.description,
+      imageUrl: data.imageUrl,
+      siteName: data.siteName,
+      faviconUrl: data.faviconUrl,
+      linkType,
+      fetchStatus: status,
+      fetchedAt: now,
+      expiresAt,
+    },
+    update: {
+      normalizedUrl,
+      title: data.title,
+      description: data.description,
+      imageUrl: data.imageUrl,
+      siteName: data.siteName,
+      faviconUrl: data.faviconUrl,
+      linkType,
+      fetchStatus: status,
+      fetchedAt: now,
+      expiresAt,
+    },
+  });
+
+  return status === 'ok' ? data : null;
 }

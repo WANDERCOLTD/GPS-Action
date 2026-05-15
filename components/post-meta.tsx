@@ -13,6 +13,7 @@
  */
 
 import type { CSSProperties, FC, ReactElement } from 'react';
+import { renderLucideKey } from '@/components/lucide-icon-registry';
 
 // ── Kind chip palette ───────────────────────────────────────────────────
 //
@@ -149,7 +150,11 @@ interface SignalBadgeRowProps {
  * the title for tick_or_cross posts in card / detail.
  */
 export const SignalBadgeRow: FC<SignalBadgeRowProps> = ({ signal, sharedToNetworkAt }) => {
-  const glyph = signal === 'promote' ? '✅' : '❌';
+  // ADR-0020: replaces the previous ✅/❌ emoji with the lucide
+  // single-check / single-x glyphs from the icon registry. Same
+  // visual identity as the tick_or_cross PostKind picker and the
+  // GPS Network ✅ or ❌ source chip.
+  const glyph = renderLucideKey(signal === 'promote' ? 'check' : 'x', { size: 'compact' });
   return (
     <div
       data-testid="post-card-signal-row"
@@ -168,13 +173,6 @@ export const SignalBadgeRow: FC<SignalBadgeRowProps> = ({ signal, sharedToNetwor
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          padding: '2px var(--space-2)',
-          borderRadius: 'var(--radius-pill)',
-          background: 'var(--colour-surface-sunken)',
-          color: 'var(--colour-text-primary)',
-          fontSize: 'var(--text-sm)',
-          fontWeight: 600,
-          border: '1px solid var(--colour-border-subtle)',
         }}
       >
         {glyph}

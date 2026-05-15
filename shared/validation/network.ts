@@ -101,3 +101,36 @@ export const networkSetCardStateSchema = z.object({
 });
 
 export type NetworkSetCardStateInput = z.infer<typeof networkSetCardStateSchema>;
+
+/**
+ * bu-network-spread-gallery — input schema for `network.spread.list`.
+ *
+ * Sources is the same kebab-case slug list as the feed; types is the
+ * five buckets from `bu-link-preview-store`. Both default to empty
+ * (no filter / "All"). Sort defaults to `mostSpread` per the
+ * brief-locked decision.
+ */
+export const SPREAD_SORT_OPTIONS = ['mostSpread', 'trending', 'mostRecent'] as const;
+export const spreadSortSchema = z.enum(SPREAD_SORT_OPTIONS);
+export type SpreadSort = z.infer<typeof spreadSortSchema>;
+
+export const SPREAD_LINK_TYPES = ['Social', 'Video', 'News', 'Action', 'Other'] as const;
+export const spreadLinkTypeSchema = z.enum(SPREAD_LINK_TYPES);
+export type SpreadLinkType = z.infer<typeof spreadLinkTypeSchema>;
+
+export const NETWORK_SPREAD_DEFAULT_WINDOW_DAYS = 30;
+export const NETWORK_SPREAD_MAX_WINDOW_DAYS = 90;
+
+export const networkSpreadListSchema = z.object({
+  windowDays: z
+    .number()
+    .int()
+    .positive()
+    .max(NETWORK_SPREAD_MAX_WINDOW_DAYS)
+    .default(NETWORK_SPREAD_DEFAULT_WINDOW_DAYS),
+  sources: z.array(networkSourceSlugSchema).default([]),
+  types: z.array(spreadLinkTypeSchema).default([]),
+  sort: spreadSortSchema.default('mostSpread'),
+});
+
+export type NetworkSpreadListInput = z.infer<typeof networkSpreadListSchema>;

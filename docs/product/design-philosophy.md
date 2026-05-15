@@ -290,6 +290,8 @@ via Settings → "Data"). Still in use elsewhere — e.g.
 | Group kind — Region         | `map-pin`                 | `GroupBadge` (bu-group-identity / ADR-0013 — re-use; concept broadened to "geographic place")                                                    |
 | System-event row prefix     | `info`                    | `CommentNoteThread` (bu-coordination-board atom 5d-4 — kanban thread system rows)                                                                |
 | Kanban ticket — list prefix | `kanban`                  | `SearchHitRows` (`SearchTicketHitRow` — search results pointing to a coord-board ticket)                                                         |
+| View switcher — gallery     | `layout-grid`             | `app/network/page.tsx` (bu-network-spread-gallery — header action that switches `/network` → `/network/spread`)                                  |
+| View switcher — list        | `list`                    | `app/network/spread/page.tsx` (bu-network-spread-gallery — header action that switches `/network/spread` → `/network`)                           |
 
 ### Person vs group (the `user` / `users` carve)
 

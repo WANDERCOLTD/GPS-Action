@@ -88,6 +88,18 @@ export interface NetworkCardShareCounts {
  * renderer treats them as fallbacks behind a token-palette override
  * map (`styles/source-palette.ts`).
  */
+/**
+ * ADR-0020 — local override for a source's icon. Decorated onto
+ * `NetworkCardSource` by the service layer (server-side join against
+ * `SourceIconOverride` by slug). Null = no override; render falls
+ * back to `source.icon` (emoji) or coloured dot.
+ */
+export interface SourceIconOverrideValue {
+  readonly iconKind: 'image' | 'lucide';
+  readonly imageUrl: string | null;
+  readonly lucideKey: string | null;
+}
+
 export interface NetworkCardSource {
   slug: string;
   label: string;
@@ -96,6 +108,12 @@ export interface NetworkCardSource {
   color: string | null;
   icon: string | null;
   memberCount: number | null;
+  /**
+   * ADR-0020 — optional icon override joined from `SourceIconOverride`.
+   * Populated server-side; clients read this to render the
+   * `<SourceBadge>` cartouche.
+   */
+  iconOverride?: SourceIconOverrideValue | null;
 }
 
 /**

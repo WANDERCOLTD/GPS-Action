@@ -36,6 +36,13 @@ vi.mock('@/server/db/client', () => ({
     shareEvent: {
       groupBy: vi.fn().mockResolvedValue([]),
     },
+    // ADR-0020 — listNetworkSources joins against SourceIconOverride
+    // to decorate each source with its icon override. Default to an
+    // empty result so existing tests get the un-decorated sources
+    // (iconOverride: null) and behave like the legacy path.
+    sourceIconOverride: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     // bu-network-card-body-clamp — listNetworkCards reads the
     // threshold via getSystemSettingInt. Default to null (unset) so
     // the fallback (6) applies and tests don't have to care.
@@ -709,6 +716,9 @@ describe('listNetworkSources', () => {
         color: '#3fb950',
         icon: '🎯',
         memberCount: 190,
+        // ADR-0020 — listNetworkSources now decorates each source
+        // with its SourceIconOverride row (or null when absent).
+        iconOverride: null,
       },
     ]);
   });

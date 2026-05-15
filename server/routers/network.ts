@@ -29,10 +29,12 @@ import {
   listNetworkSources,
   setNetworkCardState,
 } from '@/server/services/network';
+import { listNetworkSpread } from '@/server/services/network-spread';
 import {
   networkListSchema,
   networkListSourcesSchema,
   networkSetCardStateSchema,
+  networkSpreadListSchema,
 } from '@/shared/validation/network';
 
 const FLAG_NAME = 'network_feed';
@@ -73,4 +75,20 @@ export const networkRouter = router({
       });
       return { ok: true as const, state };
     }),
+
+  /**
+   * bu-network-spread-gallery — Photos-app-style gallery on
+   * `/network/spread`. Deduped URL tiles within a rolling window
+   * (default 30 days). Behind the same `network_feed` flag.
+   *
+   * Nested as `spread: { list }` to group future spread-only
+   * procedures (e.g. per-tile detail fetch with full occurrence
+   * timeline) without polluting the top-level surface.
+   */
+  spread: router({
+    list: publicProcedure.input(networkSpreadListSchema).query(async ({ input }) => {
+      await assertFlagEnabled();
+      return listNetworkSpread(input);
+    }),
+  }),
 });

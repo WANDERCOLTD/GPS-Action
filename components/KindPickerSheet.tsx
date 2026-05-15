@@ -31,8 +31,8 @@ import {
   Flag,
   Pencil,
   HelpCircle,
-  CheckSquare,
 } from 'lucide-react';
+import { TickCrossPair } from '@/components/TickCrossPair';
 
 export interface Tile {
   key: string;
@@ -55,12 +55,15 @@ export const TILES: Tile[] = [
   },
   // BU-tick-or-cross (D069): publishes to the GPS Network channel as
   // part of submit. Sortable above general kinds, below the alert tile.
+  // ADR-0020: uses the lucide tick+cross overlap pair from the icon
+  // registry, matching the GPS Network ✅ or ❌ source-chip glyph
+  // (single visual identity for the same concept across the app).
   {
     key: 'tick_or_cross',
     label: '✅ or ❌',
     hint: 'Amplify or flag — sends to the GPS Network channel',
     href: '/compose?intent=tick_or_cross',
-    icon: <CheckSquare size={24} />,
+    icon: <TickCrossPair size="hero" />,
     accent: 'var(--colour-primary)',
   },
   {
