@@ -19,12 +19,16 @@
 
 import type { CSSProperties } from 'react';
 import { getSourceColor } from '@/shared/styles/source-palette';
+import type { NetworkCardSource } from '@/shared/network-card';
 import type { SpreadTile } from '@/shared/network-spread';
 
 interface NetworkSpreadTileProps {
   tile: SpreadTile;
   onSelect: (tile: SpreadTile) => void;
 }
+
+/** Cap on visible source markers per tile. More → "+N" overflow chip. */
+const MAX_VISIBLE_SOURCE_MARKERS = 3;
 
 const tileBase: CSSProperties = {
   position: 'relative',
@@ -58,22 +62,56 @@ const noOgStyle = (bg: string): CSSProperties => ({
   lineHeight: 1.3,
 });
 
-const srcChipStyle = (bg: string): CSSProperties => ({
+/** Container for the multi-source marker stack at bottom-left. */
+const markerStackStyle: CSSProperties = {
   position: 'absolute',
   bottom: 6,
   left: 6,
-  width: 22,
-  height: 22,
-  borderRadius: '50%',
-  display: 'flex',
+  display: 'inline-flex',
   alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: 12,
-  lineHeight: 1,
-  background: bg,
-  color: 'var(--colour-text-inverse)',
+  gap: 3,
+  flexWrap: 'nowrap',
+};
+
+/**
+ * Mini picker-style pill. Matches the source-chip strip's visual
+ * shorthand — colored dot + emoji on a raised surface — without the
+ * label (no room on a tile). One pill per distinct source.
+ */
+const markerPillStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 3,
+  padding: '2px 5px',
+  background: 'var(--colour-surface-raised)',
+  borderRadius: 'var(--radius-pill)',
   boxShadow: 'var(--shadow-sm)',
+  fontSize: 11,
+  lineHeight: 1,
+};
+
+const markerDotStyle = (bg: string): CSSProperties => ({
+  width: 7,
+  height: 7,
+  borderRadius: '50%',
+  background: bg,
+  display: 'inline-block',
+  flexShrink: 0,
 });
+
+const markerEmojiStyle: CSSProperties = {
+  fontSize: 11,
+  lineHeight: 1,
+  opacity: 0.85,
+};
+
+/** "+N" overflow pill, same shape as a marker pill but text-only. */
+const overflowPillStyle: CSSProperties = {
+  ...markerPillStyle,
+  fontWeight: 600,
+  color: 'var(--colour-text-secondary)',
+  padding: '2px 6px',
+};
 
 const badgeStyle: CSSProperties = {
   position: 'absolute',
@@ -98,15 +136,34 @@ function domainOf(url: string): string {
   }
 }
 
+/**
+ * Distinct sources for a tile, sorted by `displayOrder` (the same
+ * order the picker chip strip uses). Deduped by slug — multiple
+ * occurrences from the same chat collapse to one marker.
+ */
+function distinctSourcesByOrder(tile: SpreadTile): NetworkCardSource[] {
+  const seen = new Map<string, NetworkCardSource>();
+  for (const o of tile.occurrences) {
+    if (!seen.has(o.source.slug)) seen.set(o.source.slug, o.source);
+  }
+  return Array.from(seen.values()).sort(
+    (a, b) => a.displayOrder - b.displayOrder || a.label.localeCompare(b.label),
+  );
+}
+
 export function NetworkSpreadTile({ tile, onSelect }: NetworkSpreadTileProps) {
-  const sourceColor = getSourceColor(tile.firstSeenSource);
+  const firstSeenColor = getSourceColor(tile.firstSeenSource);
   const showBadge = tile.occurrenceCount >= 2;
   const hasImage = Boolean(tile.imageUrl);
+
+  const sources = distinctSourcesByOrder(tile);
+  const visible = sources.slice(0, MAX_VISIBLE_SOURCE_MARKERS);
+  const overflow = Math.max(0, sources.length - visible.length);
 
   return (
     <button
       type="button"
-      style={hasImage ? tileBase : noOgStyle(sourceColor)}
+      style={hasImage ? tileBase : noOgStyle(firstSeenColor)}
       onClick={() => onSelect(tile)}
       data-testid="network-spread-tile"
       data-occurrence-count={tile.occurrenceCount}
@@ -129,8 +186,37 @@ export function NetworkSpreadTile({ tile, onSelect }: NetworkSpreadTileProps) {
         </span>
       )}
 
-      <span style={srcChipStyle(sourceColor)} aria-hidden="true" title={tile.firstSeenSource.label}>
-        {tile.firstSeenSource.icon ?? '•'}
+      <span
+        style={markerStackStyle}
+        aria-label={`Shared into ${sources.length} ${sources.length === 1 ? 'group' : 'groups'}: ${sources.map((s) => s.label).join(', ')}`}
+        data-testid="network-spread-tile-markers"
+      >
+        {visible.map((source) => (
+          <span
+            key={source.slug}
+            style={markerPillStyle}
+            title={source.label}
+            data-source-slug={source.slug}
+          >
+            <span aria-hidden="true" style={markerDotStyle(getSourceColor(source))} />
+            {source.icon && (
+              <span aria-hidden="true" style={markerEmojiStyle}>
+                {source.icon}
+              </span>
+            )}
+          </span>
+        ))}
+        {overflow > 0 && (
+          <span
+            style={overflowPillStyle}
+            title={`+${overflow} more ${overflow === 1 ? 'group' : 'groups'}: ${sources
+              .slice(MAX_VISIBLE_SOURCE_MARKERS)
+              .map((s) => s.label)
+              .join(', ')}`}
+          >
+            +{overflow}
+          </span>
+        )}
       </span>
 
       {showBadge && (
