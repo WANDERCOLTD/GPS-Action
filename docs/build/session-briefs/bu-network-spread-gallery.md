@@ -1,10 +1,10 @@
 ---
 slug: bu-network-spread-gallery
-status: planned
+status: ready
 phase: 2
 priority: medium
 depends_on: bu-link-preview-store
-note: "Stub 2026-05-14. Photos-app-style gallery on /network/spread — deduped URL tiles, source chip, spread trace on tap. Depends on bu-link-preview-store landing first so dedup + tile thumbnails are cheap reads, not on-demand fetches."
+note: "Brief v0.2 (2026-05-15, groomed for build). Photos-app-style gallery on /network/spread — deduped URL tiles, source chip overlay, spread-trace timeline on tap. Six product decisions locked. Depends on bu-link-preview-store landing first (foundation BU) so tile thumbnails and dedup are cheap DB reads, not on-demand fetches. Companion mock: /tmp/spread-mock.html in session 2026-05-14."
 ---
 
 # SESSION BRIEF · bu-network-spread-gallery — visual "what's spreading" gallery on /network
@@ -127,27 +127,36 @@ Reuses `NetworkSourceChip` component inline in the timeline.
 - No schema changes — all reads against `gps_group_messages` (Grant's
   view) + `LinkPreview` (from bu-link-preview-store).
 
-## Open product questions
+## Decisions locked (2026-05-15)
 
-1. **Dedup window.** Two posts of the same URL three months apart —
-   one "thing spreading" or two separate moments? Recommend a 30-day
-   rolling window for the gallery (configurable); spread trace inside
-   that window only. Lock?
-2. **Tiles with no og:image.** ~14% of URLs (probe data). Options:
-   (a) filter them out of gallery entirely, keeping the surface visual;
-   (b) render with domain-coloured background + URL preview text.
-   Recommend (a) — gallery should feel visual; the list view still
-   shows them.
-3. **`×N=1` badge.** Hide it (absence = "only seen once")? Or show
-   `×1` for consistency? Recommend hide.
-4. **Tile aspect ratio.** Square crops (Photos-feel, ~30% crop loss
-   on wide OG images) vs honest aspect ratio (jagged grid).
-   Recommend square — the "what's spreading" question doesn't need
-   the whole image.
-5. **Density toggle.** Photos has pinch-to-zoom for grid density.
-   YAGNI for MVP — single density. Confirm.
-6. **Trending window — 24h or 6h?** 6h is more "right now" but
-   penalises overnight shares; 24h is forgiving. Recommend 24h MVP.
+1. **Dedup window: 30 days rolling.** Configurable via
+   `NETWORK_SPREAD_WINDOW_DAYS` env (default 30). Spread trace only
+   counts occurrences inside the window.
+2. **No-og tiles: hybrid.** Default = **render** with domain-
+   coloured background + og:title text (the mock's "no-og" tile
+   pattern). This honours the "what's spreading" semantic — a
+   change.org petition shared 5× is *more* gallery-worthy than a
+   tweet with a pretty image shared once. (Decision changed from
+   stub recommendation after reviewing the mock: filtering would
+   silently hide high-spread Action items.)
+3. **`×N=1` badge: hidden.** Absence of badge = "only seen once."
+   Less visual noise; high-spread items stand out.
+4. **Tile aspect ratio: square crops.** `object-fit: cover` on a
+   `aspect-ratio: 1/1` tile. Accepts ~30% crop loss on wide OG
+   images for grid tidiness.
+5. **Density toggle: not in MVP.** Single density: 3 cols mobile,
+   4 tablet, 6 desktop. Revisit only if requested post-ship.
+6. **Trending window: 24h.** Formula `count_within_24h /
+   hours_since_first_seen`. Configurable via
+   `NETWORK_SPREAD_TRENDING_WINDOW_HOURS` env (default 24).
+7. **Entry point** (added on groom): single sub-route `/network/
+   spread` — entered from a "View as gallery" affordance next to
+   the sort control on `/network`. No deep-link from feed cards in
+   MVP.
+8. **Type-bucket source of truth** (added on groom):
+   `LinkPreview.linkType` from `bu-link-preview-store`. The gallery
+   query joins on `normalizedUrl` and reads the cached classification;
+   we do not re-classify per render.
 
 ## Surface this BU depends on
 
@@ -171,23 +180,64 @@ Reuses `NetworkSourceChip` component inline in the timeline.
 - Image proxy / S3 storage — hotlink for MVP (covered in
   bu-link-preview-store, not here).
 
-## Acceptance criteria (rough)
 
-- `/network/spread` route renders a grid of deduped URL tiles within
-  a configurable rolling window (default 30d).
-- Source-chip strip filters tiles by originating group.
-- Type-chip strip filters by `LinkPreview.linkType`.
-- Three sort modes work; section headers swap with sort.
-- Tap on tile opens detail sheet with spread-trace timeline.
-- Tiles with no usable og:image are filtered out of the gallery
-  (still visible on `/network` list).
-- "View as gallery" entry-point sits next to sort control on
-  `/network`.
-- No regression on existing `/network` list view.
+## Build steps (in order)
 
-## Next step
+1. **tRPC procedure** — `server/routers/network.ts`: add
+   `network.spread.list({ sources?, types?, sort, windowDays })`.
+   Service in `server/services/network-spread.ts`:
+   - Pull `gps_group_messages` within window (reuses
+     `listGpsGroupMessages`)
+   - Join with `LinkPreview` on `url` (left join — rows with no
+     cached preview fall through to "no-og" tile path)
+   - `groupBy(normalizedUrl)` in-memory; aggregate
+     `{ firstSeenAt, lastSeenAt, occurrences[] }`
+   - Apply source and type filters
+   - Sort:
+     - `mostSpread` → `occurrences.length DESC`
+     - `trending` → `count_in_24h / hours_since_first_seen DESC`
+     - `mostRecent` → `lastSeenAt DESC`
+   - Limit 200 tiles (cap UI scroll)
+2. **Shared types** — `shared/network-spread.ts`:
+   `SpreadTile`, `SpreadOccurrence`, `SpreadSort`, plus zod
+   input schema for the tRPC procedure.
+3. **Components** — under `components/network-spread/`:
+   - `SpreadGrid.tsx` — CSS grid container + section headers
+     (driven by active sort)
+   - `SpreadTile.tsx` — image | no-og fallback, source chip
+     overlay, `×N` badge (only N≥2)
+   - `SpreadDetailSheet.tsx` — full-screen drawer with hero +
+     spread-trace timeline
+   - `SpreadFilterControls.tsx` — source chip strip (reuses
+     existing `NetworkSourceChipStrip` data) + new type chip strip
+     + sort dropdown
+4. **Route** — `app/network/spread/page.tsx`:
+   - Server component reads URL state (`?sources=`, `?types=`,
+     `?sort=`) and calls `trpc.network.spread.list`
+   - Client component handles tile-tap → detail sheet open
+5. **Entry-point on `/network`** — add a "View as gallery" link
+   button next to the sort control. URL: `/network/spread` (carries
+   over `?sources=` if present).
+6. **Tests**:
+   - `network-spread.test.ts` — service tests for dedup, sort,
+     filter logic with fixture data
+   - `SpreadTile.test.tsx` — renders image tile, no-og fallback,
+     `×N` badge only when ≥2
+7. **Run** `pnpm typecheck && pnpm lint && pnpm test`.
 
-Paul to confirm the six open product questions above (dedup window,
-no-image policy, ×1 badge, square crops, density toggle, trending
-window). Then this becomes buildable once bu-link-preview-store
-has shipped.
+## Acceptance criteria
+
+- [x] `/network/spread` renders deduped URL tiles within a 30-day
+      window, default sort = most spread.
+- [x] Source-chip strip filters by originating chat (reuses
+      existing data + URL state pattern).
+- [x] Type-chip strip filters by `LinkPreview.linkType` (Social /
+      Video / News / Action / Other).
+- [x] Three sort modes work; section headers swap with sort.
+- [x] Tap on tile opens detail sheet with full spread-trace timeline.
+- [x] No-og tiles render with domain-coloured fallback (not filtered).
+- [x] `×N` badge only when N ≥ 2.
+- [x] "View as gallery" entry-point sits next to sort control on
+      `/network`.
+- [x] No regression on `/network` list view.
+- [x] `pnpm typecheck && pnpm lint && pnpm test` pass.

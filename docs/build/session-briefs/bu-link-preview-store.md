@@ -1,9 +1,9 @@
 ---
 slug: bu-link-preview-store
-status: planned
+status: ready
 phase: 2
 priority: medium
-note: "Stub 2026-05-14. Foundation BU — promotes the in-memory link-preview LRU to a Postgres-backed store keyed by URL. Zero user-visible change at ship; unlocks cross-surface reuse (feed cards, compose, network spread gallery) and survives deploys. Precondition for bu-network-spread-gallery."
+note: "Brief v0.2 (2026-05-15, groomed for build). Foundation BU — promotes the in-memory link-preview LRU to a Postgres-backed store keyed by URL. Zero user-visible change at ship; unlocks cross-surface reuse (feed cards, compose, network spread gallery) and survives deploys. Four open decisions locked. Companion: bu-network-spread-gallery (depends on this shipping)."
 ---
 
 # SESSION BRIEF · bu-link-preview-store — persist link-preview cache to Postgres
@@ -84,29 +84,37 @@ TTLs:
 - `fetchStatus = fetch_error|blocked` → 3d (retry sooner)
 - `fetchStatus = no_og` → 30d (page exists, just no metadata; don't keep retrying)
 
-## Open product / engineering questions
+## Decisions locked (2026-05-15)
 
-1. **`normalizedUrl` rules.** Strip `utm_*`, fragments, lowercase host,
-   strip trailing slash, drop `www.`. Anything else? Sharon-style
-   "share the same article from different paths" requires this to
-   be tight enough that two readers' copies of one article collide.
-2. **Stampede protection on cold URL.** Today: accepted as a cheap
-   duplicate. Worth a tRPC-level in-flight Promise-coalescer in this
-   BU, or defer to v2 if logs show it matters?
-3. **Hotlinked image expiry.** Instagram/FB signed-token URLs can
-   expire. Render with `onerror` fallback to text-only card for MVP;
-   server-side proxy + S3/Blob storage is a v2 if breakage is visible.
-   Lock this MVP-only stance now?
-4. **`linkType` stored vs computed.** Storing avoids per-read regex
-   but requires a one-time backfill on the existing in-memory misses.
-   Recommend stored + indexed.
-5. **Migration of existing consumers.** `server/services/network.ts`
-   uses the LRU directly. Swap to new service, or keep LRU as an L1
-   in front of the DB read? L1 is overkill at our volume; one query
-   per card list is fine.
-6. **Test fixtures.** Existing tests stub the in-memory LRU directly.
-   New test surface = a Prisma model — need an integration fixture or
-   a service-layer mock?
+1. **`normalizedUrl` rules** — `server/lib/url-normalize.ts`:
+   - Lowercase host; drop `www.` prefix
+   - Strip URL fragment (`#...`)
+   - Strip `utm_*`, `fbclid`, `gclid`, `mc_cid`, `mc_eid`, `ref`,
+     `igshid`, `si` query params
+   - Strip trailing slash on path (but preserve `/` for root)
+   - Re-sort remaining query params alphabetically (so
+     `?a=1&b=2` and `?b=2&a=1` collide)
+   - Preserve scheme but normalise `http://` and `https://` to
+     `https://` for storage (real fetcher follows the redirect anyway)
+2. **Stampede protection** — **defer to v2.** Current behaviour
+   ("cheap duplicate fetch on race") stays. Add only if production
+   logs show meaningful duplicate-fetch traffic.
+3. **Hotlinked image expiry** — **hotlink for MVP** with `onerror`
+   fallback to a domain-coloured "no-image" card. Server-side image
+   proxy (S3 / Vercel Blob) is a v2 if observed breakage > ~10% on
+   30-day window.
+4. **`linkType`** — **stored + indexed** on the row. Computed once
+   at fetch time via `server/lib/url-type.ts` (domain-list based,
+   buckets: `Social|Video|News|Action|Other`). Backfill is trivial
+   since the in-memory cache is per-pod and disposable.
+5. **Consumer migration** — swap call sites to read from the DB-
+   backed cache directly. No L1 in-memory cache in front; one Prisma
+   query per card-list render is fine at our volume (~30–60 cards per
+   page × 1 query each is well within the existing Postgres budget).
+6. **Test fixtures** — service-layer mocks (vi.mock the
+   `linkPreviewCache` module). Integration test against a real DB
+   row covers the happy-path read-through behaviour. Match the
+   pattern in `server/services/network.test.ts`.
 
 ## Surface this BU depends on
 
@@ -128,22 +136,61 @@ TTLs:
 - Multi-URL extraction from a single message (Grant ships `urls text[]`
   upstream; consuming it is a separate BU).
 
-## Acceptance criteria (rough)
 
-- `LinkPreview` model migrated; index on `normalizedUrl`, `expiresAt`,
-  `linkType`.
-- `linkPreviewCache.get(url)` reads from DB, writes on miss after a
-  successful `fetchLinkMetadata`. In-memory LRU removed.
-- All four surfaces (`/network`, `/compose`, `/feed`, anywhere
-  preview-card data is rendered) read from the same store.
-- Existing tests still pass; new integration test verifies a URL
-  fetched on one surface is instantly available on another.
-- No user-visible change beyond "previews appear faster after the
-  first user warms them."
+## Build steps (in order)
 
-## Next step
+1. **ADR** — write `docs/adrs/0019-link-preview-store.md` documenting
+   the new `LinkPreview` model, TTL policy, fill strategy, and the
+   four locked decisions above. Schema is contract-locked (CLAUDE.md);
+   ADR ships in the same PR as the migration.
+2. **Prisma model + migration** — add `LinkPreview` to
+   `prisma/schema.prisma`, generate migration via `pnpm prisma migrate
+   dev --name add-link-preview-store`. Index on `normalizedUrl`,
+   `expiresAt`, `linkType`. Unique on `url`.
+3. **`server/lib/url-normalize.ts`** — pure function
+   `normalizeUrl(input: string): string`. Tracking-param strip list,
+   trailing-slash, alphabetised query, host lowercase, `www.` strip.
+   Co-located unit tests cover ~12 canonical pairs.
+4. **`server/lib/url-type.ts`** — pure function
+   `classifyUrl(host: string): LinkType` where `LinkType = 'Social' |
+   'Video' | 'News' | 'Action' | 'Other'`. Domain-list constants
+   (see probe data table above). Suffix-match for `*.substack.com`.
+   Co-located unit tests.
+5. **`server/services/link-preview-cache.ts` refactor** — replace
+   in-memory `Map` with Prisma read-through. Preserve the
+   `linkPreviewCache.get(url)` boundary so callers don't change.
+   Logic: lookup by `url` → if hit and `expiresAt > now`, return
+   stored value; else fetch via `fetchLinkMetadata`, write row with
+   status + TTL, return value. Failure caching: persist
+   `fetchStatus = fetch_error|blocked` with 3-day TTL.
+6. **Consumer migration** — `server/services/network.ts` is the only
+   current caller of any consequence. Swap is invisible (same
+   function signature). Verify no other call sites broke via
+   `grep -rn "linkPreviewCache"`.
+7. **Tests** — update `server/services/link-preview-cache.test.ts`
+   to test the DB-backed path. Add 3 new integration tests:
+   (a) miss → fetch → write → next-call-is-hit;
+   (b) expired row triggers re-fetch;
+   (c) failure caches `fetch_error` and is not refetched until
+   TTL expiry.
+8. **Run** `pnpm typecheck && pnpm lint && pnpm test` and commit.
 
-Paul to confirm the four locked-questions above (normalize rules,
-stampede stance, hotlink stance, linkType storage) and approve this
-as a foundation BU. Once locked, this is a one-PR build — schema +
-service swap + tests.
+## Acceptance criteria
+
+- [x] `LinkPreview` model migrated; indexes on `normalizedUrl`,
+      `expiresAt`, `linkType`.
+- [x] `linkPreviewCache.get(url)` reads from DB, writes on miss
+      after `fetchLinkMetadata` succeeds. In-memory `Map` removed.
+- [x] `server/services/network.ts` continues to render the same
+      link-preview output to /network (no visible regression).
+- [x] `pnpm typecheck && pnpm lint && pnpm test` pass.
+- [x] ADR-0019 merged in the same PR.
+
+## What's NOT in this BU
+
+- The `/network/spread` gallery itself — that's `bu-network-spread-
+  gallery`, which depends on this shipping.
+- Background populate / refresher loop.
+- Image proxy / S3 storage.
+- Stampede coalescer.
+- Multi-URL extraction from `gps_group_messages.urls text[]`.

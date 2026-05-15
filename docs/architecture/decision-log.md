@@ -5696,3 +5696,46 @@ in **ADR-0017** (`docs/adrs/0017-network-card-state.md`).
   (`docs/build/session-briefs/bu-network-feed.md`)
 - ADR-0014 — `KanbanEventConfig` (recent precedent for an own-side
   config table indexed by an enum)
+
+# D084 — `LinkPreview` — persistent server-side store for URL preview metadata
+
+**Status:** decided · 2026-05-15
+
+One-line summary: promote `server/services/link-preview-cache.ts`
+from an in-process LRU+TTL `Map` to a Postgres-backed table.
+Read-through cache, lazy fill, 30-day TTL for ok/no-og rows,
+3-day TTL for fetch errors. Two keys: unique `url` for the
+lookup; indexed `normalizedUrl` for cross-URL dedup in the
+spread gallery. `linkType` (Social/Video/News/Action/Other)
+stored + indexed so type-chip filtering is pure SQL.
+
+Driver: `bu-network-spread-gallery` needs URL-keyed dedup across
+a 30-day window — the existing in-memory LRU evicts entries and
+loses dedup integrity, plus it dies on every deploy/cold-pod.
+Also unlocks cross-surface reuse: `/network`, `/network/spread`,
+`/compose`, and `/feed` link cards all share one cache.
+
+Probe-grounded sizing: 86% of recent /network URLs return a
+usable og:image at the 1MB read cap (`fetchLinkMetadata.MAX_BYTES`).
+Storage cost ~140 MB/year at observed volume.
+
+Forward compatibility: hotlink-and-fallback for image expiry in
+MVP; server-side image proxy is a v2. Stampede coalescer deferred
+to v2 (current "cheap duplicate fetch" stance preserved). L1
+in-memory cache in front is forward-compatible (this table
+becomes L2; boundary unchanged).
+
+Full reasoning, options considered, schema, and migration notes in
+**ADR-0019** (`docs/adrs/0019-link-preview-store.md`).
+
+## Related
+
+- ADR-0019 — `LinkPreview` (the schema decision in detail)
+- bu-link-preview-store — the foundation BU
+  (`docs/build/session-briefs/bu-link-preview-store.md`)
+- bu-network-spread-gallery — the dependent consumer
+  (`docs/build/session-briefs/bu-network-spread-gallery.md`)
+- D060 — Post schema additions for link-share preview cards
+  (existing consumer of `linkPreviewCache`)
+- D083 / ADR-0017 — `NetworkCardState` (recent precedent for an
+  own-side table joined to Grant's view)
