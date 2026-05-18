@@ -1,10 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
-    "deploymentEnabled": {
-      "main": false,
-      "release": true
-    }
+    "deploymentEnabled": false,
+    "silent": true
   },
   "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"release\" ]",
   "buildCommand": "prisma migrate deploy && ([ \"$DEMO_MODE\" = \"1\" ] && pnpm seed:demo || true) && next build"
