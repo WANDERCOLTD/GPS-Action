@@ -45,7 +45,7 @@
     "@trpc/server": "^11.0.0",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
-    "lucide-react": "^1.11.0",
+    "lucide-react": "^1.16.0",
     "next": "^16.2.6",
     "pg": "^8.20.0",
     "psl": "^1.15.0",
