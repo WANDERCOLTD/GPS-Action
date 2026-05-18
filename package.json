@@ -42,7 +42,7 @@
     "@trpc/client": "^11.0.0",
     "@trpc/next": "^11.0.0",
     "@trpc/react-query": "^11.0.0",
-    "@trpc/server": "^11.0.0",
+    "@trpc/server": "^11.17.0",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "lucide-react": "^1.11.0",
