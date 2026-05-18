@@ -47,6 +47,7 @@ import {
   HeartHandshake,
   IdCard,
   Image as ImageIcon,
+  Images,
   Inbox,
   KeyRound,
   Languages,
@@ -517,7 +518,14 @@ const SECTIONS: Section[] = [
         title: 'Network Feed',
         ref: '/network',
         status: 'shipped',
-        note: 'GPS Action Network WhatsApp pipe',
+        note: 'WhatsApp pipe · link previews · reactions · sort + unread chip',
+      },
+      {
+        icon: Images,
+        title: 'Network Spread Gallery',
+        ref: '/network/spread',
+        status: 'shipped',
+        note: 'Grid view of link-preview cards · share strip · responsive',
       },
       {
         icon: LayoutGrid,
