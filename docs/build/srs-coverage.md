@@ -1,12 +1,34 @@
 ---
 title: SRS v1.1 — Codebase Coverage Audit
 status: draft
-date: 2026-05-11
+date: 2026-05-18
 authored_by: Paul + Claude
 spec_source: docs/feature-spec/GPS_Software_Requirements_v1.1.docx
-codebase_ref: d839b34 (main, 2026-05-11)
+codebase_ref: ff7f820 (main, 2026-05-18)
 previous_refs:
+  - d839b34 (main, 2026-05-11)
   - 1ed6ed8 (main, 2026-04-28)
+---
+
+## Changes since 2026-05-11 (`d839b34`)
+
+Status-table unchanged; phantom-features appendix gains four entries for
+the network-polish run shipped 2026-05-12 → 2026-05-18.
+
+- **`/network/spread` shipped** — gallery / grid view of the WhatsApp
+  link stream (BU-network-spread-gallery, #369).
+- **Link-preview store shipped** — persistent OG-card cache backing
+  the gallery + feed (BU-link-preview-store, #369).
+- **Spread polish + responsive shipped** — `/network` and
+  `/network/spread` unified at maxWidth=1200, gallery gains a per-card
+  share strip, `PostShareGroup` + `WhatsAppShareButton` refactored to a
+  generic `Shareable` interface (BU-spread-polish-responsive, #371).
+- **Sort toggle + sparkles unread chip shipped** — single-button sort
+  control with sparkles unread indicator behind FF (#368).
+
+No SRS-table status changes; all four belong in the phantom-features
+appendix (post-D001/D002 surfaces, not in v1.1 spec).
+
 ---
 
 ## Changes since 2026-04-28 (`1ed6ed8`)
@@ -517,7 +539,10 @@ The Addendum *amends* §17 and is meant to be Phase 1. Schema check follows.
 | Honest-tracking-only commitment | D047 | Reach numbers never inflated. |
 | Self-dispatch as default (vs SRS dispatch-queue framing) | D013, D016 | Conscious divergence from §5 task-assignment model. |
 | Coordination Feed (`/feed`) | BU-feed (#13) · BU-feed-card-affordances · BU-feed-card-clamp | The core member surface — chronological post stream. The post-first reframe (D001/D002) made this the spine rather than an alerts queue. |
-| Network Feed (`/network`) | BU-network-feed · BU-network-link-previews · BU-network-reactions · BU-network-shares · ADR-0017 | Read-side surface for the GPS Action Network WhatsApp link stream — searchable, multi-device, flag-gated. |
+| Network Feed (`/network`) | BU-network-feed · BU-network-link-previews · BU-network-reactions · BU-network-shares · ADR-0017 · sort toggle + sparkles unread chip (#368) | Read-side surface for the GPS Action Network WhatsApp link stream — searchable, multi-device, flag-gated. |
+| Network Spread Gallery (`/network/spread`) | BU-network-spread-gallery (#369) · BU-spread-polish-responsive (#371) | Grid view of link-preview cards · per-card share strip · responsive (maxWidth=1200 unified with `/network`). |
+| Link-preview store | BU-link-preview-store (#369) | Persistent OG-card cache backing the feed + gallery. |
+| Shareable primitive | BU-spread-polish-responsive (#371) | `PostShareGroup` + `WhatsAppShareButton` refactored to generic `Shareable` interface — reusable across post / network-card / future surfaces. |
 | Coordination Board (`/board`) | BU-coordination-board · BU-board-gallery (#246) · BU-board-palette · BU-kanban-event-config · BU-coord-board-share-allowlist-ui (#276) · BU-ticket-detail-relayout · BU-ticket-view-fixes | Group-scoped kanban + snapshot gallery + share allow-list. Closer to SRS §5 "Monday-style" than the original §5 row credited; folded into §5.1 evidence. |
 | Composer + Intent Picker (`/compose`) | BU-composer · BU-fab-intent-picker · BU-composer-intent-polish · BU-composer-bespoke-per-intent · BU-link-first-composer · BU-link-share | FAB → tile picker → per-intent composer. AM-link auto-collapse lives here (folded into §5.3 evidence). |
 | Admin tools | BU-admin-crud · BU-admin-audit-integration · BU-admin-bulk-ops · BU-admin-group-membership | User CRUD + audit + bulk ops + group membership — partial satisfaction of §3 Super Admin. |
