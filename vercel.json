@@ -1,7 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
-    "deploymentEnabled": false,
+    "deploymentEnabled": {
+      "main": false,
+      "release": true
+    },
     "silent": true
   },
   "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"release\" ]",
