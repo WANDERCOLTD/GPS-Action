@@ -10,13 +10,16 @@ updates:
       - 'dependencies'
     commit-message:
       prefix: 'chore(deps)'
+    # Group ALL bumps (major + minor + patch) so each weekly run produces
+    # at most one prod-PR + one dev-PR, instead of N PRs per package.
+    # Cuts dependabot/Vercel webhook fan-out to a fixed 2 per main push.
     groups:
       dev-dependencies:
         dependency-type: 'development'
-        update-types: ['minor', 'patch']
+        update-types: ['major', 'minor', 'patch']
       prod-dependencies:
         dependency-type: 'production'
-        update-types: ['patch']
+        update-types: ['major', 'minor', 'patch']
 
   - package-ecosystem: 'github-actions'
     directory: '/'
