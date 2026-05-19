@@ -49,6 +49,20 @@ export const NETWORK_SORT_OPTIONS = ['recent', 'oldest'] as const;
 export const networkSortSchema = z.enum(NETWORK_SORT_OPTIONS);
 export type NetworkSort = z.infer<typeof networkSortSchema>;
 
+/**
+ * bu-review-split — surface discriminator. `main` = `/network` (default,
+ * excludes review chat_ids); `review` = `/review` (only the review
+ * chat_ids configured in SystemSetting `network_review_chat_ids`).
+ *
+ * Until Grant ships a per-message `kind` field upstream, the
+ * discriminator is chat_id-based: items posted in a designated review
+ * WhatsApp chat route to `/review`. The admin-tunable SystemSetting
+ * lets the value change without a code deploy.
+ */
+export const NETWORK_MODE_OPTIONS = ['main', 'review'] as const;
+export const networkModeSchema = z.enum(NETWORK_MODE_OPTIONS);
+export type NetworkMode = z.infer<typeof networkModeSchema>;
+
 export const networkListSchema = z.object({
   limit: z.number().int().positive().max(NETWORK_LIST_MAX_LIMIT).default(NETWORK_LIST_MAX_LIMIT),
   /** Opaque cursor — encodes the last-seen `id` for pagination. */
@@ -77,6 +91,13 @@ export const networkListSchema = z.object({
    * is keyset-stable on either axis.
    */
   sort: networkSortSchema.default('recent'),
+  /**
+   * bu-review-split — `main` (default) returns items NOT in the review
+   * chat_ids set; `review` returns items ONLY in that set. The set
+   * lives in SystemSetting `network_review_chat_ids` (JSON array of
+   * chat_id strings, admin-tunable).
+   */
+  mode: networkModeSchema.default('main'),
 });
 
 export type NetworkListInput = z.infer<typeof networkListSchema>;
@@ -86,7 +107,16 @@ export type NetworkListInput = z.infer<typeof networkListSchema>;
  * schema is here for symmetry and to keep the router signature
  * consistent with the rest of the surface.
  */
-export const networkListSourcesSchema = z.object({}).default({});
+export const networkListSourcesSchema = z
+  .object({
+    /**
+     * bu-review-split — same discriminator as `list`. `/network` chip
+     * strip should not include review chat_ids; `/review` chip strip
+     * should show ONLY review chat_ids.
+     */
+    mode: networkModeSchema.default('main'),
+  })
+  .default({ mode: 'main' });
 
 export type NetworkListSourcesInput = z.infer<typeof networkListSourcesSchema>;
 

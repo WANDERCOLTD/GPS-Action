@@ -70,6 +70,7 @@ The first segment must come from this approved list:
 | `dev`          | Dev-only affordances on the demo path — banner toggle, dev tools (BU-one-click-polish)                            |
 | `search`       | Search overlay + full-results page (BU-search-surface — D078)                                                     |
 | `board`        | Coordination board — group picker, kanban view, ticket detail, notifications (bu-coordination-board)              |
+| `review`       | Reviewer queue split — `/review` page, view-gallery affordance, login link (bu-review-split)                      |
 | `shortcut`     | Keyboard shortcut help overlay — backdrop, modal, rows, close (BU-keyboard-shortcuts)                             |
 | `share`        | Polymorphic share rail + verify-prompt dialog — used on /network cards, future on /feed posts (bu-network-shares) |
 | `help`         | Per-page HelpSheet drawer — title, summary, action list, shortcut list, close (bu-page-header-system)             |
