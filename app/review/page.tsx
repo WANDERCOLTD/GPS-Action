@@ -2,20 +2,33 @@
  * @build-unit bu-review-split
  * @spec adrs/0017-network-card-state.md
  *
- * /review — reviewer-facing slice of the network pipe. Same Whapi →
- * Supabase ingest as /network, but filtered to items whose chat_id
- * appears in the admin-tunable SystemSetting `network_review_chat_ids`.
+ * /review — reviewer-facing slice of the network pipe. Three URL-driven
+ * tabs covering the kind_review item lifecycle:
+ *
+ *   - `for-review` (default) — raw items from the review chat(s),
+ *     awaiting a reviewer to claim and verdict. Queries the same
+ *     network pipe as /network but with `mode: 'review'` (filters by
+ *     chat_id allowlist from SystemSetting).
+ *   - `approved` — items the reviewer has approved but the CSV batch
+ *     hasn't shipped yet. Empty until bu-review-csv-batch wires the
+ *     query against `Request(type=kind_review, resolution=approved,
+ *     exportedAt IS NULL)`.
+ *   - `sent` — items already included in a CSV batch sent to Grant.
+ *     Same Request query with `exportedAt IS NOT NULL`. Empty until
+ *     bu-review-csv-batch.
  *
  * Until Grant ships a per-message `kind` field upstream, the
- * discriminator is chat_id-based. The plumbing stays the same once
- * the upstream gains a kind column — only the matching predicate moves.
+ * for-review discriminator is chat_id-based. The plumbing stays the
+ * same once the upstream gains a kind column — only the matching
+ * predicate moves.
  *
- * Reuses NetworkFeed for interactivity. Distinct from /network only by
- * the mode flag passed to the tRPC list call + the route slug + the
- * page title.
+ * Tab strip uses anchor links (not buttons) so the URL stays the
+ * canonical state container — bookmarkable, shareable, back-button
+ * compatible. Same idiom as `/network`'s source chips and sort.
  */
 
 import { LayoutGrid } from 'lucide-react';
+import Link from 'next/link';
 import { createCaller } from '@/server/routers/_app';
 import { createTRPCContext } from '@/server/routers/context';
 import { isFeatureEnabled } from '@/server/services/flags';
@@ -30,8 +43,17 @@ export const metadata = {
   title: 'Review — GPS Action',
 };
 
+const REVIEW_STATUSES = ['for-review', 'approved', 'sent'] as const;
+type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+
+function parseStatusParam(raw: string | string[] | undefined): ReviewStatus {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return REVIEW_STATUSES.includes(value as ReviewStatus) ? (value as ReviewStatus) : 'for-review';
+}
+
 interface ReviewPageProps {
   searchParams: Promise<{
+    status?: string | string[];
     source?: string | string[];
     sort?: string | string[];
     unread?: string | string[];
@@ -78,8 +100,45 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
     );
   }
 
-  const caller = createCaller(ctx);
   const params = await searchParams;
+  const status = parseStatusParam(params.status);
+
+  const tabStrip = <ReviewTabStrip active={status} />;
+
+  if (status === 'approved' || status === 'sent') {
+    return (
+      <main style={{ maxWidth: 1200, margin: '0 auto' }} data-testid={`review-page-${status}`}>
+        <PageHeader title="Review" description="Links awaiting review" actions={null} />
+        {tabStrip}
+        <div
+          style={{
+            padding: 'var(--space-8) var(--space-5)',
+            maxWidth: 720,
+            margin: '0 auto',
+            textAlign: 'center',
+          }}
+          data-testid={`review-${status}-empty`}
+        >
+          <p style={{ color: 'var(--colour-text-secondary)', marginBottom: 'var(--space-2)' }}>
+            {status === 'approved' ? 'No items awaiting export.' : 'No items sent to Grant yet.'}
+          </p>
+          <p
+            className="gps-caption"
+            style={{ color: 'var(--colour-text-tertiary, var(--colour-text-secondary))' }}
+          >
+            {status === 'approved'
+              ? 'Approved review items appear here until the next CSV batch ships.'
+              : 'Items appear here once a CSV batch has shipped to Grant.'}
+            <br />
+            <em>Wiring lands with bu-review-csv-batch.</em>
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  // status === 'for-review' — load the network pipe with mode='review'.
+  const caller = createCaller(ctx);
   const activeSources = parseSourcesParam(params.source);
   const activeSort = parseSortParam(params.sort);
   const unreadOnly = parseUnreadParam(params.unread);
@@ -134,6 +193,7 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
 
   return (
     <main style={{ maxWidth: 1200, margin: '0 auto' }} data-testid="review-page">
+      {tabStrip}
       <NetworkFeed
         initial={initialSerialised}
         chipStrip={chipStrip}
@@ -142,5 +202,63 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
         unreadOnly={unreadOnly}
       />
     </main>
+  );
+}
+
+function ReviewTabStrip({ active }: { active: ReviewStatus }) {
+  const tabs: { value: ReviewStatus; label: string; testId: string; href: string }[] = [
+    { value: 'for-review', label: 'For Review', testId: 'review-tab-for-review', href: '/review' },
+    {
+      value: 'approved',
+      label: 'Approved',
+      testId: 'review-tab-approved',
+      href: '/review?status=approved',
+    },
+    {
+      value: 'sent',
+      label: 'Approved & Sent',
+      testId: 'review-tab-sent',
+      href: '/review?status=sent',
+    },
+  ];
+  return (
+    <div
+      role="tablist"
+      aria-label="Review status"
+      data-testid="review-tabs"
+      style={{
+        display: 'flex',
+        gap: 'var(--space-2)',
+        borderBottom: '1px solid var(--colour-border-subtle)',
+        padding: '0 var(--space-5)',
+      }}
+    >
+      {tabs.map((tab) => {
+        const isActive = active === tab.value;
+        return (
+          <Link
+            key={tab.value}
+            href={tab.href}
+            role="tab"
+            aria-selected={isActive}
+            data-testid={tab.testId}
+            data-active={isActive}
+            style={{
+              padding: 'var(--space-2) var(--space-3)',
+              borderBottom: isActive
+                ? '2px solid var(--colour-text-link)'
+                : '2px solid transparent',
+              color: isActive ? 'var(--colour-text-primary)' : 'var(--colour-text-secondary)',
+              fontFamily: 'var(--font-ui)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: isActive ? 600 : 400,
+              textDecoration: 'none',
+            }}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
+    </div>
   );
 }
