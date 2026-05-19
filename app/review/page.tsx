@@ -120,15 +120,15 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
           data-testid={`review-${status}-empty`}
         >
           <p style={{ color: 'var(--colour-text-secondary)', marginBottom: 'var(--space-2)' }}>
-            {status === 'approved' ? 'No items awaiting export.' : 'No items sent to Grant yet.'}
+            {status === 'approved' ? 'Outbox is empty.' : 'Nothing sent yet.'}
           </p>
           <p
             className="gps-caption"
             style={{ color: 'var(--colour-text-tertiary, var(--colour-text-secondary))' }}
           >
             {status === 'approved'
-              ? 'Approved review items appear here until the next CSV batch ships.'
-              : 'Items appear here once a CSV batch has shipped to Grant.'}
+              ? 'Approved review items wait here until the next CSV batch ships to Grant.'
+              : 'Items move here once a CSV batch has shipped to Grant.'}
             <br />
             <em>Wiring lands with bu-review-csv-batch.</em>
           </p>
@@ -206,17 +206,22 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
 }
 
 function ReviewTabStrip({ active }: { active: ReviewStatus }) {
+  // Tab LABELS use email-app idiom (Outbox / Sent) for the post-decision
+  // states. URL ?status= values stay as the data states (for-review /
+  // approved / sent) so the URL preserves semantic fidelity — "approved"
+  // is the Request.resolution value, "Outbox" is what reviewers call
+  // that bucket on screen.
   const tabs: { value: ReviewStatus; label: string; testId: string; href: string }[] = [
     { value: 'for-review', label: 'For Review', testId: 'review-tab-for-review', href: '/review' },
     {
       value: 'approved',
-      label: 'Approved',
-      testId: 'review-tab-approved',
+      label: 'Outbox',
+      testId: 'review-tab-outbox',
       href: '/review?status=approved',
     },
     {
       value: 'sent',
-      label: 'Approved & Sent',
+      label: 'Sent',
       testId: 'review-tab-sent',
       href: '/review?status=sent',
     },
