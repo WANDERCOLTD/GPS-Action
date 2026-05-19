@@ -47,7 +47,15 @@ import * as React from 'react';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CalendarClock, Inbox, KanbanSquare, Newspaper, RadioTower, Search } from 'lucide-react';
+import {
+  CalendarClock,
+  ClipboardCheck,
+  Inbox,
+  KanbanSquare,
+  Newspaper,
+  RadioTower,
+  Search,
+} from 'lucide-react';
 import { IconChipTooltip } from '@/components/IconChipTooltip';
 
 interface AppNavProps {
@@ -71,6 +79,7 @@ type ActiveKey =
   | 'calendar'
   | 'compose'
   | 'network'
+  | 'review'
   | 'requests'
   | 'search'
   | 'settings'
@@ -83,6 +92,7 @@ function deriveActive(pathname: string | null): ActiveKey {
   if (pathname === '/calendar' || pathname.startsWith('/calendar/')) return 'calendar';
   if (pathname === '/compose' || pathname.startsWith('/compose/')) return 'compose';
   if (pathname === '/network' || pathname.startsWith('/network/')) return 'network';
+  if (pathname === '/review' || pathname.startsWith('/review/')) return 'review';
   if (pathname === '/requests' || pathname.startsWith('/requests/')) return 'requests';
   // BU-coordination-board / Surface 3: the inbox glyph routes to
   // /notifications under `coord_board_v1`. Slot is shared with /requests
@@ -170,6 +180,18 @@ export function AppNav({
             style={active === 'network' ? activeStyle : linkStyle}
           >
             <RadioTower size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
+          </Link>
+        </IconChipTooltip>
+      )}
+      {networkFeedEnabled && (
+        <IconChipTooltip label="Review">
+          <Link
+            href="/review"
+            aria-label="Review"
+            data-testid="nav-review-link"
+            style={active === 'review' ? activeStyle : linkStyle}
+          >
+            <ClipboardCheck size={ICON_SIZE} strokeWidth={ICON_STROKE} aria-hidden="true" />
           </Link>
         </IconChipTooltip>
       )}

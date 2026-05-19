@@ -60,9 +60,9 @@ export const networkRouter = router({
    * `list`; same public-read posture (any authenticated coordinator
    * can read; no role gating per Round 2 visibility model).
    */
-  listSources: publicProcedure.input(networkListSourcesSchema).query(async () => {
+  listSources: publicProcedure.input(networkListSourcesSchema).query(async ({ input }) => {
     await assertFlagEnabled();
-    return listNetworkSources();
+    return listNetworkSources({ mode: input.mode });
   }),
 
   setCardState: authedProcedure

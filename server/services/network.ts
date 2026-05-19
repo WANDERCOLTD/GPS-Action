@@ -30,6 +30,7 @@ import { getLinkPreview } from '@/server/services/link-preview-cache';
 import { fetchLinkMetadata } from '@/server/services/link-metadata';
 import { listSourceIconOverrides } from '@/server/services/source-icon-overrides';
 import { getNetworkCardShareCounts } from '@/server/services/share-event';
+import { getReviewChatIds } from '@/server/services/review-chat-ids';
 import { getSystemSettingInt } from '@/server/services/system-setting';
 import {
   listGpsChatLabels,
@@ -70,10 +71,12 @@ function readCacheTtlMs(): number {
 
 const cache = new Map<string, CacheEntry>();
 
-function cacheKey(input: NetworkListInput): string {
+function cacheKey(
+  input: Omit<NetworkListInput, 'mode'> & { mode?: NetworkListInput['mode'] },
+): string {
   // Sort sources so `?source=a,b` and `?source=b,a` share a cache slot.
   const sources = input.sources.length ? [...input.sources].sort().join(',') : 'all';
-  return `${input.windowDays}:${input.limit}:${input.cursor ?? 'first'}:${sources}:${input.sort}`;
+  return `${input.windowDays}:${input.limit}:${input.cursor ?? 'first'}:${sources}:${input.sort}:${input.mode ?? 'main'}`;
 }
 
 function cacheGet(key: string): NetworkListResponse | null {
@@ -219,7 +222,9 @@ async function getSourcesCacheEntry(deps: {
  * the same way `listNetworkCards` does.
  */
 export async function listNetworkSources(
-  deps: {
+  args: {
+    /** bu-review-split — `main` excludes review chat_ids; `review` shows only them. */
+    mode?: 'main' | 'review';
     fetchSources?: typeof listGpsChatLabels;
     /** Skip the cache layer — used by tests. */
     bypassCache?: boolean;
@@ -227,10 +232,34 @@ export async function listNetworkSources(
     fetchOverrides?: typeof listSourceIconOverrides;
   } = {},
 ): Promise<NetworkSource[]> {
+  const mode = args.mode ?? 'main';
+  const deps = {
+    fetchSources: args.fetchSources,
+    bypassCache: args.bypassCache,
+  };
   const entry = await getSourcesCacheEntry(deps);
-  const fetchOverrides = deps.fetchOverrides ?? listSourceIconOverrides;
+  const fetchOverrides = args.fetchOverrides ?? listSourceIconOverrides;
   const overrides = await fetchOverrides();
-  return entry.list.map((source) => ({
+
+  // bu-review-split — chip strip on `/network` must not show review
+  // chat_ids; chip strip on `/review` shows ONLY review chat_ids.
+  const reviewChatIds = await getReviewChatIds();
+  const filtered = entry.list.filter((source) => {
+    // Find the chat_id this source maps to. byChatId is keyed by
+    // chat_id; reverse-lookup via the source slug match.
+    let chatId: string | null = null;
+    for (const [id, src] of entry.byChatId) {
+      if (src.slug === source.slug) {
+        chatId = id;
+        break;
+      }
+    }
+    if (chatId === null) return mode === 'main'; // unmappable rows visible on main only
+    const isReview = reviewChatIds.has(chatId);
+    return mode === 'review' ? isReview : !isReview;
+  });
+
+  return filtered.map((source) => ({
     ...source,
     iconOverride: overrides.get(source.slug) ?? null,
   }));
@@ -282,9 +311,12 @@ interface ListDeps {
 }
 
 export async function listNetworkCards(
-  input: NetworkListInput,
+  input: Omit<NetworkListInput, 'mode'> & { mode?: NetworkListInput['mode'] },
   deps: ListDeps = {},
 ): Promise<NetworkListResponse> {
+  // Default mode to 'main' when callers (e.g. legacy tests) don't pass it.
+  // The router boundary always sets it via the zod default.
+  const mode: 'main' | 'review' = input.mode ?? 'main';
   const key = cacheKey(input);
 
   // bu-network-card-body-clamp — threshold lives outside the LRU cache
@@ -329,6 +361,11 @@ export async function listNetworkCards(
     throw err;
   }
 
+  // bu-review-split — review-chat-ids set drives the /network vs /review
+  // surface split. `main` excludes these chat_ids; `review` includes
+  // ONLY these chat_ids. Combined with the source-slug filter below.
+  const reviewChatIds = await getReviewChatIds();
+
   // Resolve slug filter → chat_id allowlist. Unknown slugs silently drop.
   let chatIdAllowlist: string[] | undefined;
   if (input.sources.length > 0) {
@@ -337,21 +374,48 @@ export async function listNetworkCards(
     for (const [chatId, source] of labels.byChatId) {
       if (allowedSlugs.has(source.slug)) ids.push(chatId);
     }
-    // Empty list = the slug(s) match nothing. Short-circuit to avoid
-    // an upstream call with `chat_id=in.()` (PostgREST treats empty IN
-    // as a parse error in some versions).
-    if (ids.length === 0) {
-      const empty: NetworkListResponse = {
-        items: [],
-        nextCursor: null,
-        fetchedAt: new Date(),
-        fromCache: false,
-        bodyClampThresholdLines,
-      };
-      cacheSet(key, empty);
-      return empty;
-    }
     chatIdAllowlist = ids;
+  }
+
+  // Apply mode filter on top of the slug-derived allowlist.
+  // - `main`: subtract review chat_ids from allowlist (or from all labels if no slug filter)
+  // - `review`: intersect allowlist with review chat_ids (or use review set directly if no slug filter)
+  if (mode === 'review') {
+    const reviewIds = Array.from(reviewChatIds);
+    if (chatIdAllowlist) {
+      chatIdAllowlist = chatIdAllowlist.filter((id) => reviewChatIds.has(id));
+    } else {
+      chatIdAllowlist = reviewIds;
+    }
+  } else {
+    // mode === 'main'
+    if (chatIdAllowlist) {
+      chatIdAllowlist = chatIdAllowlist.filter((id) => !reviewChatIds.has(id));
+    } else if (reviewChatIds.size > 0) {
+      // No slug filter, but we need to subtract review chat_ids. Build
+      // an allowlist of every labelled chat_id minus the review set.
+      // Note: this misses chat_ids without labels, but those are also
+      // currently invisible in the chip strip — acceptable for v1.
+      const ids: string[] = [];
+      for (const chatId of labels.byChatId.keys()) {
+        if (!reviewChatIds.has(chatId)) ids.push(chatId);
+      }
+      chatIdAllowlist = ids;
+    }
+  }
+
+  // Empty allowlist (either from no source matches, or after subtracting
+  // review chat_ids) = short-circuit to avoid `chat_id=in.()` parse error.
+  if (chatIdAllowlist && chatIdAllowlist.length === 0) {
+    const empty: NetworkListResponse = {
+      items: [],
+      nextCursor: null,
+      fetchedAt: new Date(),
+      fromCache: false,
+      bodyClampThresholdLines,
+    };
+    cacheSet(key, empty);
+    return empty;
   }
 
   let rows: GpsGroupMessageRow[];
